@@ -2065,7 +2065,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
               collapse = ""))
 }
 
-"dens" <- function(modelName, data, mu, ...)
+"dens" <- function(modelName, data, mu, logarithm=FALSE, ...)
 {
 ##
 # This function is part of the MCLUST software described at
@@ -2075,12 +2075,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
 # Distribution of MCLUST is prohibited except by agreement with the 
 # University of Washington.
 ##
-  ## ... sigmasq or sigma, pro, eps
   aux <- list(...)
-  logarithm <- aux$log
-  aux$logarithm <- TRUE
   cden <- do.call("cdens", c(list(modelName = modelName, data = data,
-                                  mu = mu), aux))
+                                  mu = mu),
+                             c(list(logarithm=TRUE), aux)))
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   G <- if(oneD) length(mu) else ncol(as.matrix(mu))

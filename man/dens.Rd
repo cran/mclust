@@ -7,7 +7,7 @@
   Computes densities of obseravations in parameterized MVN mixtures.
 }
 \usage{
-dens(modelName, data, mu, \dots)
+dens(modelName, data, mu, logarithm, \dots)
 }
 \arguments{
   \item{modelName}{
@@ -39,9 +39,11 @@ dens(modelName, data, mu, \dots)
     The mean for each component. If there is more than one component,
     \code{mu} is a matrix whose columns are the means of the components.
   }
+  \item{logarithm}{Return logarithm of the density, rather than the
+    density itself. Default: FALSE}
   \item{\dots}{
-    Other arguments, such as a logical \code{logarithm} (default:
-    FALSE), and an argument describing the variance. See \code{\link{cdens}}.
+    Other arguments, such as an argument describing the variance.
+    See \code{\link{cdens}}.
   }
 }
 \value{

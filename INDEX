@@ -1,75 +1,83 @@
-awe                      Approximate weight of evidence for model-based
-                         hierarchical clustering.
-bic                      BIC for parameterized MVN mixture models
-censcale                 Centering and Scaling of Data
-chevron                  Simulated minefield data
-clpairs                  Classifications for hierarchical clustering.
-diabetes                 Diabetes data
-emclust                  BIC from hierarchical clustering followed by EM
-                         for several parameterized Gaussian mixture
-                         models.
-emclust1                 BIC from hierarchical clustering followed by EM
-                         for a parameterized Gaussian mixture model.
-estep.EEE                E-step for constant-variance MVN mixture models
-estep.EI                 E-step for spherical, constant-volume MVN
-                         mixture models
-estep                    E-step for parameterized MVN mixture models
-estep.VI                 E-step for spherical, varying volume MVN mixture
-                         models
-estep.VVV                E-step for constant-variance MVN mixture models
-estep.XEV                E-step for constant shape MVN mixture models
-hypvol                   Estimation of hypervolume
-loglik                   Loglikelihood for model-based hierarchical
-                         clustering.
-me.EEE                   EM for constant-variance MVN mixture models
-me.EEV                   EM for constant shape, constant volume MVN
-                         mixture models
-me.EI                    EM for spherical, constant-volume MVN mixture
-                         models
-me                       EM for parameterized MVN mixture models
-me.VEV                   EM for constant shape, varying volume MVN
-                         mixture models
-me.VI                    EM for spherical, varying volume MVN mixture
-                         models
-me.VVV                   EM for unconstrained MVN mixture models
-mhclass                  Classifications for hierarchical clustering.
-mhtree.EEE               Classification tree for hierarchical clustering
-                         for Gaussian models with constant variance.
-mhtree.EFV               Classification tree for hierarchical clustering
-                         for Gaussian models with equal volume and fixed
-                         shape.
-mhtree.EI                Classification tree for hierarchical clustering
-                         for Gaussian models with uniform diagonal
-                         variance.
-mhtree                   Classification Tree for Model-based Gaussian
-                         hierarchical clustering.
-mhtree.VFV               Classification tree for hierarchical clustering
-                         for Gaussian models with equal volume and
-                         constant shape.
-mhtree.VI                Classification tree for hierarchical clustering
-                         for Gaussian models with diagonal variance.
-mhtree.VVV               Classification tree for hierarchical clustering
-                         for Gaussian models with unconstrained variance.
-mixproj                  Displays one standard deviation of an MVN
-                         mixture classification.
-mstep.EEE                M-step for constant-variance MVN mixture models
-mstep.EEV                M-step for constant shape, constant volume MVN
-                         mixture models
-mstep.EI                 M-step for spherical, constant-volume MVN
-                         mixture models
-mstep                    M-step for parameterized MVN mixture models
-mstep.VEV                M-step for constant shape, constant volume MVN
-                         mixture models
-mstep.VI                 M-step for spherical, varying volume MVN mixture
-                         models
-mstep.VVV                M-step for unconstrained MVN mixture models
-one.XXX                  Log-likelihood for a single cluster
-partconv                 Convert partitioning into numerical vector.
-partuniq                 Classifies Data According to Unique Observations
-plot.emclust             Plot BIC values
-print.emclust            Print methods for BIC values
-summary.emclust          Summary method for `emclust' objects.
-summary.emclust1         Summary method for `emclust1' objects.
-traceW                   Compute traceW
-ztoc                     Conversion between conditional probabilities and
-                         a classification
+Defaults.Mclust         List of values controlling defaults for some
+                        MCLUST functions. 
+EMclust                 BIC for Model-Based Clustering 
+EMclustN                BIC for Model-Based Clustering with Poisson
+                        Noise 
+Mclust                  Model-Based Clustering 
+bic                     BIC for Parameterized MVN Mixture Models 
+bicE                    BIC for a Parameterized MVN Mixture Model 
+bicEMtrain              Select models in discriminant analysis using
+                        BIC
+cdens                   Component Density for Parameterized MVN Mixture
+                        Models 
+cdensE                  Component Density for a Parameterized MVN
+                        Mixture Model 
+chevron                 Simulated minefield data
+clPairs                 Pairwise Scatter Plots showing Classification 
+compClass               Compare classifications having the same number
+                        of groups. 
+coordProj               Coordinate projections of data in more than two
+                        dimensions modelled by an MVN mixture. 
+cv1EMtrain              Select discriminant models using cross
+                        validation
+decomp2sigma            Convert mixture component covariances to matrix
+                        form. 
+dens                    Density for Parameterized MVN Mixtures 
+diabetes                Diabetes data
+em                      EM algorithm starting with E-step for
+                        parameterized MVN mixture models. 
+emE                     EM algorithm starting with E-step for a
+                        parameterized MVN mixture model. 
+estep                   E-step for parameterized MVN mixture models. 
+estepE                  E-step in the EM algorithm for a parameterized
+                        MVN mixture model. 
+grid1                   Generate grid points
+hc                      Model-based Hierarchical Clustering 
+hcE                     Model-based Hierarchical Clustering 
+hclass                  Classifications from Hierarchical Agglomeration 
+hypvol                  Aproximate Hypervolume for Multivariate Data 
+lansing                 Maple trees in Lansing Woods
+map                     Classification given Probabilities 
+mclust1Dplot            Plot one-dimensional data modelled by an MVN
+                        mixture. 
+mclust2Dplot            Plot two-dimensional data modelled by an MVN
+                        mixture. 
+mclustDA                MclustDA discriminant analysis. 
+mclustDAtest            MclustDA Testing 
+mclustDAtrain           MclustDA Training 
+mclustOptions           Set control values for use with MCLUST. 
+me                      EM algorithm starting with M-step for
+                        parameterized MVN mixture models. 
+meE                     EM algorithm starting with M-step for a
+                        parameterized MVN mixture model. 
+mstep                   M-step in the EM algorithm for parameterized
+                        MVN mixture models. 
+mstepE                  M-step in the EM algorithm for a parameterized
+                        MVN mixture model. 
+mvn                     Multivariate Normal Fit 
+mvnX                    Multivariate Normal Fit 
+partconv                Convert partitioning into numerical vector.
+partuniq                Classifies Data According to Unique
+                        Observations 
+plot.Mclust             Plot Model-Based Clustering Results 
+plot.mclustDA           Plotting method for MclustDA discriminant
+                        analysis. 
+randProj                Random projections for data in more than two
+                        dimensions modelled by an MVN mixture. 
+sigma2decomp            Convert mixture component covariances to
+                        decomposition form. 
+sim                     Simulate from Parameterized MVN Mixture Models 
+simE                    Simulate from a Parameterized MVN Mixture Model 
+spinProj                Planar spin for random projections of data in
+                        more than two dimensions modelled by an MVN
+                        mixture. 
+summary.EMclust         Summary function for EMclust 
+summary.EMclustN        summary function for EMclustN 
+summary.mclustDAtest    Classification and posterior probability from
+                        mclustDAtest. 
+summary.mclustDAtrain   Models and classifications from mclustDAtrain 
+surfacePlot             Density or uncertainty surface for two
+                        dimensional mixtures. 
+traceW                  Compute traceW
+uncerPlot               Uncertainty Plot for Model-Based Clustering 
+unmap                   Indicator Variables given Classification 

@@ -1,8 +1,0 @@
-Due to a problem with code not relying on 64bit floats, compiling
-mclust with optimization level -O2 may give incorrect results: 
-z-values are computed larger than 1 (to be more exact: 1 +
-.Machine$double.eps), which should not happen. 
-If this is the case, mclust will not pass the check stage. 
-This has been observed with at least one particular version the g77 compiler
-(GNU Fortran 0.5.25 19991030 (prerelease)); the problem disappeared when f2c
-was used, and also when no optimization was performed with g77.

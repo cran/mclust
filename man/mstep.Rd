@@ -1,95 +1,145 @@
 \name{mstep}
 \alias{mstep}
 \title{
-M-step for parameterized MVN mixture models
+  M-step in the EM algorithm for parameterized MVN mixture models.
 }
 \description{
-M-step for estimating parameters given conditional probabilities in a
-MVN mixture model with possibly one Poisson noise term.
+  Maximization step in the EM algorithm for parameterized MVN mixture models.
 }
 \usage{
-mstep(data, modelid, z, \dots)
-
-
+mstep(modelName, data, z, \dots)
 }
 \arguments{
-\item{data}{
-matrix of observations.
+  \item{modelName}{
+    A character string indicating the model: \cr\cr
+    "E": equal variance  (one-dimensional) \cr
+    "V": variable variance (one-dimensional) \cr
+    "EII": spherical, equal volume \cr
+    "VII": spherical, unequal volume \cr
+    "EEI": diagonal, equal volume and shape \cr
+    "VEI": diagonal, varying volume, equal shape \cr
+    "EVI": diagonal, equal volume, varying shape \cr
+    "VVI": diagonal, varying volume and shape \cr
+    "EEE": ellipsoidal, equal volume, shape, and orientation \cr
+    "EEV": ellipsoidal, equal volume and equal shape\cr
+    "VEV": ellipsoidal, equal shape \cr
+    "VVV": ellipsoidal, varying volume, shape, and orientation
+  }
+  \item{data}{
+    A numeric vector, matrix, or data frame of observations.
+    Categorical variables are not allowed.
+    If a matrix or data frame, rows correspond to observations and
+    columns correspond to variables.
+  }
+  \item{z}{
+    A matrix whose \code{[i,k]}th entry is the
+    conditional probability of the ith observation belonging to
+    the \emph{k}th component of the mixture.  
+  }
+  \item{\dots}{
+    Any number of the following:
+    \describe{
+      \item{equalPro}{
+	A logical value indicating whether or not the components in the
+	model are present in equal proportions. The default is
+	\code{.Mclust\$equalPro}.  
+      }
+      \item{noise}{
+	A logical value indicating whether or not the model includes a Poisson
+	noise component. The default assumes there is no noise component.
+      }
+      \item{Vinv}{
+	An estimate of the reciprocal hypervolume of the data region.
+	The default is determined by applying function 
+	\code{hypvol} to the data. Used only when \code{noise = TRUE}.
+      }
+      \item{eps}{
+	A scalar tolerance for deciding when to terminate computations due
+	to computational singularity in covariances. Smaller values of
+	\code{eps} allows computations to proceed nearer to singularity. The
+	default is \code{.Mclust\$eps}.  
+	
+	Not used for models "EII", "VII", "EEE", "VVV".
+      }
+      \item{tol}{
+	For models with iterative M-step ("VEI", "VEE", "VVE", "VEV"), 
+	a scalar tolerance for relative convergence of the parameters. 
+	The default is \code{.Mclust\$tol}. 
+      }
+      \item{itmax}{
+	For models with iterative M-step ("VEI", "VEE", "VVE", "VEV"), 
+	an integer limit on the number of EM iterations. 
+	The default is \code{.Mclust\$itmax}. 
+      }
+      \item{warnSingular}{
+	A logical value indicating whether or not a warning should be issued
+	whenever a singularity is encountered.
+	The default is \code{.Mclust\$warnSingular}.
+	
+	Not used for models "EII", "VII", "EEE", "VVV".
+      }
+    }
+  }
 }
-\item{modelid}{
-An integer specifying a parameterization of the MVN covariance matrix defined 
-by volume, shape and orientation charactertistics of the underlying clusters. 
-The allowed values for \code{modelid} and their interpretation are as follows:
-\code{"EI"} : uniform spherical, \code{"VI"} : spherical, \code{"EEE"} : uniform variance,
-\code{"VVV"} : unconstrained variance, \code{"EEV"} : uniform shape and volume,
-\code{"VEV"} : uniform shape.
-}
-\item{z}{
-matrix of conditional probabilities. \code{z} should have a row for each observation
-in \code{data}, and a column for each component of the mixture.
-}
-\item{...}{
-additional arguments, as follows:
-}
-\item{eps}{
-Tolerance for determining singularity in the covariance matrix. The precise 
-definition of \code{eps} varies the parameterization, each of which has a default.
-}
-\item{equal}{
-Logical variable indicating whether or not to assume equal proportions in the
-mixture. Default : \code{F}.
-}
-\item{noise}{
-Logical variable indicating whether or not to include a Poisson noise term in
-the model. Default : \code{F}.
-}
-\item{Vinv}{
-An estimate of the inverse hypervolume of the data region (needed only if
-\code{noise = T}). Default : determined by function \code{hypvol}
-}}
 \value{
-A list whose components are the parameter estimates corresponding to \code{z}:
-
-\item{mu}{
-matrix whose columns are the Gaussian group means.
+  A list including the following components: 
+  
+  \item{mu}{
+    A matrix whose kth column is the
+    mean of the \emph{k}th component of the mixture model.
+  }
+  \item{sigma}{
+    An array whose \code{[,,k]}th entry is the
+    the covariance matrix of the \emph{k}th component of the mixture.  
+  }
+  \item{pro}{
+    A vector whose \emph{k}th component
+    is the mixing proportion for the \emph{k}th component of the mixture model.
+  }
+  \item{z}{
+    A matrix whose \code{[i,k]}th entry is the
+    conditional probability of the \emph{i}th observation belonging to
+    the \emph{k}th component of the mixture.  
+  }
+  \item{loglik}{
+    The logliklihood for the data in the mixture model. 
+  }
+  \item{modelName}{
+    A character string identifying the model (same as the input argument).
+  }
+  \item{Attributes:}{
+    \item \code{"info"}: Information on the iteration.
+    \item \code{"warn"}: An appropriate warning if problems are
+    encountered in the computations. 
+  }
 }
-\item{sigma}{
-group variance matrix.
-}
-\item{prob}{
-probabilities (mixing proportions) for each group (present only when
-\code{equal = T}).
-The loglikelihood is returned as an attribute.
-}}
-\section{NOTE}{
-The reciprocal condition estimate returned as an attribute ranges in value
-between 0 and 1. The closer this estimate is to zero, the more likely it is
-that the corresponding EM result (and BIC) are contaminated by roundoff error.
-}
-\references{
-G. Celeux and G. Govaert, Gaussian parsimonious clustering models,
-\emph{Pattern Recognition, }28:781-793 (1995).
-
-
-A. P. Dempster, N. M. Laird and D. B. Rubin, Maximum Likelihood from
-Incomplete Data via the EM Algorithm, \emph{Journal of the Royal Statistical
-Society, Series B, }39:1-22 (1977).
-
-
-G. J. MacLachlan and K. E. Basford, The EM Algorithm and Extensions, Wiley,
-(1997).
+\section{References}{
+  C. Fraley and A. E. Raftery (2002a).
+  Model-based clustering, discriminant analysis, and density estimation.
+  \emph{Journal of the American Statistical Association 97:611-631}.
+  See \url{http://www.stat.washington.edu/mclust}. 
+  
+  
+  C. Fraley and A. E. Raftery (2002b).
+  MCLUST:Software for model-based clustering, density estimation and 
+  discriminant analysis. 
+  Technical Report, Department of Statistics, University of Washington. 
+  See \url{http://www.stat.washington.edu/mclust}.
 }
 \seealso{
-\code{\link{me}}, \code{\link{estep}}
+  \code{\link{mstepE}}, \ldots,
+  \code{\link{mstepVVV}},
+  \code{\link{me}},
+  \code{\link{estep}},
+  \code{\link{mclustOptions}}.
 }
 \examples{
 data(iris)
-cl <- mhclass(mhtree(iris[,1:4], modelid = "VVV"),3)
-z <- me( iris[,1:4], modelid = "VVV", ctoz(cl))
-pars <- mstep(iris[,1:4], modelid="VVV", z)
-
+irisMatrix <- as.matrix(iris[,1:4])
+irisClass <- iris[,5]
+ 
+mstep(modelName = "VII", data = irisMatrix, z = unmap(irisClass))
 }
 \keyword{cluster}
-% Converted by Sd2Rd version 0.3-2.
-
-
+% docclass is function
+% Converted by Sd2Rd version 1.21.

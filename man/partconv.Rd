@@ -7,7 +7,7 @@
   (default) or not.
 }
 \usage{
-partconv(x, consec=T)
+partconv(x, consec=TRUE)
 }
 
 \arguments{
@@ -23,9 +23,9 @@ partconv(x, consec=T)
 data(iris)
 partconv(iris[,5])
 
-cl _ sample(1:10, 25, replace=T)
-partconv(cl, consec=F)
-partconv(cl, consec=T)
+cl _ sample(1:10, 25, replace=TRUE)
+partconv(cl, consec=FALSE)
+partconv(cl, consec=TRUE)
 }
 
 \keyword{cluster}

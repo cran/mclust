@@ -13203,211 +13203,6 @@ CIBM           PREFER SCALAR
 *     End of DORGLQ
 *
       END
-      SUBROUTINE DORGQL( M, N, K, A, LDA, TAU, WORK, LWORK, INFO )
-*
-*  -- LAPACK routine (version 2.0) --
-*     Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
-*     Courant Institute, Argonne National Lab, and Rice University
-*     September 30, 1994
-*
-*     .. Scalar Arguments ..
-      INTEGER            INFO, K, LDA, LWORK, M, N
-*     ..
-*     .. Array Arguments ..
-      DOUBLE PRECISION   A( LDA, * ), TAU( * ), WORK( LWORK )
-*     ..
-*
-*  Purpose
-*  =======
-*
-*  DORGQL generates an M-by-N real matrix Q with orthonormal columns,
-*  which is defined as the last N columns of a product of K elementary
-*  reflectors of order M
-*
-*        Q  =  H(k) . . . H(2) H(1)
-*
-*  as returned by DGEQLF.
-*
-*  Arguments
-*  =========
-*
-*  M       (input) INTEGER
-*          The number of rows of the matrix Q. M >= 0.
-*
-*  N       (input) INTEGER
-*          The number of columns of the matrix Q. M >= N >= 0.
-*
-*  K       (input) INTEGER
-*          The number of elementary reflectors whose product defines the
-*          matrix Q. N >= K >= 0.
-*
-*  A       (input/output) DOUBLE PRECISION array, dimension (LDA,N)
-*          On entry, the (n-k+i)-th column must contain the vector which
-*          defines the elementary reflector H(i), for i = 1,2,...,k, as
-*          returned by DGEQLF in the last k columns of its array
-*          argument A.
-*          On exit, the M-by-N matrix Q.
-*
-*  LDA     (input) INTEGER
-*          The first dimension of the array A. LDA >= max(1,M).
-*
-*  TAU     (input) DOUBLE PRECISION array, dimension (K)
-*          TAU(i) must contain the scalar factor of the elementary
-*          reflector H(i), as returned by DGEQLF.
-*
-*  WORK    (workspace/output) DOUBLE PRECISION array, dimension (LWORK)
-*          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
-*
-*  LWORK   (input) INTEGER
-*          The dimension of the array WORK. LWORK >= max(1,N).
-*          For optimum performance LWORK >= N*NB, where NB is the
-*          optimal blocksize.
-*
-*  INFO    (output) INTEGER
-*          = 0:  successful exit
-*          < 0:  if INFO = -i, the i-th argument has an illegal value
-*
-*  =====================================================================
-*
-*     .. Parameters ..
-      DOUBLE PRECISION   ZERO
-      PARAMETER          ( ZERO = 0.0D+0 )
-*     ..
-*     .. Local Scalars ..
-      INTEGER            I, IB, IINFO, IWS, J, KK, L, LDWORK, NB, NBMIN,
-     $                   NX
-*     ..
-*     .. External Subroutines ..
-      EXTERNAL           DLARFB, DLARFT, DORG2L, XERBLA
-*     ..
-*     .. Intrinsic Functions ..
-      INTRINSIC          MAX, MIN
-*     ..
-*     .. External Functions ..
-      INTEGER            ILAENV
-      EXTERNAL           ILAENV
-*     ..
-*     .. Executable Statements ..
-*
-*     Test the input arguments
-*
-      INFO = 0
-      IF( M.LT.0 ) THEN
-         INFO = -1
-      ELSE IF( N.LT.0 .OR. N.GT.M ) THEN
-         INFO = -2
-      ELSE IF( K.LT.0 .OR. K.GT.N ) THEN
-         INFO = -3
-      ELSE IF( LDA.LT.MAX( 1, M ) ) THEN
-         INFO = -5
-      ELSE IF( LWORK.LT.MAX( 1, N ) ) THEN
-         INFO = -8
-      END IF
-      IF( INFO.NE.0 ) THEN
-         CALL XERBLA( 'DORGQL', -INFO )
-         RETURN
-      END IF
-*
-*     Quick return if possible
-*
-      IF( N.LE.0 ) THEN
-         WORK( 1 ) = 1
-         RETURN
-      END IF
-*
-*     Determine the block size.
-*
-      NB = ILAENV( 1, 'DORGQL', ' ', M, N, K, -1 )
-      NBMIN = 2
-      NX = 0
-      IWS = N
-      IF( NB.GT.1 .AND. NB.LT.K ) THEN
-*
-*        Determine when to cross over from blocked to unblocked code.
-*
-         NX = MAX( 0, ILAENV( 3, 'DORGQL', ' ', M, N, K, -1 ) )
-         IF( NX.LT.K ) THEN
-*
-*           Determine if workspace is large enough for blocked code.
-*
-            LDWORK = N
-            IWS = LDWORK*NB
-            IF( LWORK.LT.IWS ) THEN
-*
-*              Not enough workspace to use optimal NB:  reduce NB and
-*              determine the minimum value of NB.
-*
-               NB = LWORK / LDWORK
-               NBMIN = MAX( 2, ILAENV( 2, 'DORGQL', ' ', M, N, K, -1 ) )
-            END IF
-         END IF
-      END IF
-*
-      IF( NB.GE.NBMIN .AND. NB.LT.K .AND. NX.LT.K ) THEN
-*
-*        Use blocked code after the first block.
-*        The last kk columns are handled by the block method.
-*
-         KK = MIN( K, ( ( K-NX+NB-1 ) / NB )*NB )
-*
-*        Set A(m-kk+1:m,1:n-kk) to zero.
-*
-         DO 20 J = 1, N - KK
-            DO 10 I = M - KK + 1, M
-               A( I, J ) = ZERO
-   10       CONTINUE
-   20    CONTINUE
-      ELSE
-         KK = 0
-      END IF
-*
-*     Use unblocked code for the first or only block.
-*
-      CALL DORG2L( M-KK, N-KK, K-KK, A, LDA, TAU, WORK, IINFO )
-*
-      IF( KK.GT.0 ) THEN
-*
-*        Use blocked code
-*
-         DO 50 I = K - KK + 1, K, NB
-            IB = MIN( NB, K-I+1 )
-            IF( N-K+I.GT.1 ) THEN
-*
-*              Form the triangular factor of the block reflector
-*              H = H(i+ib-1) . . . H(i+1) H(i)
-*
-               CALL DLARFT( 'Backward', 'Columnwise', M-K+I+IB-1, IB,
-     $                      A( 1, N-K+I ), LDA, TAU( I ), WORK, LDWORK )
-*
-*              Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
-*
-               CALL DLARFB( 'Left', 'No transpose', 'Backward',
-     $                      'Columnwise', M-K+I+IB-1, N-K+I-1, IB,
-     $                      A( 1, N-K+I ), LDA, WORK, LDWORK, A, LDA,
-     $                      WORK( IB+1 ), LDWORK )
-            END IF
-*
-*           Apply H to rows 1:m-k+i+ib-1 of current block
-*
-            CALL DORG2L( M-K+I+IB-1, IB, IB, A( 1, N-K+I ), LDA,
-     $                   TAU( I ), WORK, IINFO )
-*
-*           Set rows m-k+i+ib:m of current block to zero
-*
-            DO 40 J = N - K + I, N - K + I + IB - 1
-               DO 30 L = M - K + I + IB, M
-                  A( L, J ) = ZERO
-   30          CONTINUE
-   40       CONTINUE
-   50    CONTINUE
-      END IF
-*
-      WORK( 1 ) = IWS
-      RETURN
-*
-*     End of DORGQL
-*
-      END
       SUBROUTINE DORGQR( M, N, K, A, LDA, TAU, WORK, LWORK, INFO )
 *
 *  -- LAPACK routine (version 2.0) --
@@ -13614,169 +13409,6 @@ CIBM           PREFER SCALAR
       RETURN
 *
 *     End of DORGQR
-*
-      END
-      SUBROUTINE DORGTR( UPLO, N, A, LDA, TAU, WORK, LWORK, INFO )
-*
-*  -- LAPACK routine (version 2.0) --
-*     Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
-*     Courant Institute, Argonne National Lab, and Rice University
-*     September 30, 1994
-*
-*     .. Scalar Arguments ..
-      CHARACTER          UPLO
-      INTEGER            INFO, LDA, LWORK, N
-*     ..
-*     .. Array Arguments ..
-      DOUBLE PRECISION   A( LDA, * ), TAU( * ), WORK( LWORK )
-*     ..
-*
-*  Purpose
-*  =======
-*
-*  DORGTR generates a real orthogonal matrix Q which is defined as the
-*  product of n-1 elementary reflectors of order N, as returned by
-*  DSYTRD:
-*
-*  if UPLO = 'U', Q = H(n-1) . . . H(2) H(1),
-*
-*  if UPLO = 'L', Q = H(1) H(2) . . . H(n-1).
-*
-*  Arguments
-*  =========
-*
-*  UPLO    (input) CHARACTER*1
-*          = 'U': Upper triangle of A contains elementary reflectors
-*                 from DSYTRD;
-*          = 'L': Lower triangle of A contains elementary reflectors
-*                 from DSYTRD.
-*
-*  N       (input) INTEGER
-*          The order of the matrix Q. N >= 0.
-*
-*  A       (input/output) DOUBLE PRECISION array, dimension (LDA,N)
-*          On entry, the vectors which define the elementary reflectors,
-*          as returned by DSYTRD.
-*          On exit, the N-by-N orthogonal matrix Q.
-*
-*  LDA     (input) INTEGER
-*          The leading dimension of the array A. LDA >= max(1,N).
-*
-*  TAU     (input) DOUBLE PRECISION array, dimension (N-1)
-*          TAU(i) must contain the scalar factor of the elementary
-*          reflector H(i), as returned by DSYTRD.
-*
-*  WORK    (workspace/output) DOUBLE PRECISION array, dimension (LWORK)
-*          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
-*
-*  LWORK   (input) INTEGER
-*          The dimension of the array WORK. LWORK >= max(1,N-1).
-*          For optimum performance LWORK >= (N-1)*NB, where NB is
-*          the optimal blocksize.
-*
-*  INFO    (output) INTEGER
-*          = 0:  successful exit
-*          < 0:  if INFO = -i, the i-th argument had an illegal value
-*
-*  =====================================================================
-*
-*     .. Parameters ..
-      DOUBLE PRECISION   ZERO, ONE
-      PARAMETER          ( ZERO = 0.0D+0, ONE = 1.0D+0 )
-*     ..
-*     .. Local Scalars ..
-      LOGICAL            UPPER
-      INTEGER            I, IINFO, J
-*     ..
-*     .. External Functions ..
-      LOGICAL            LSAME
-      EXTERNAL           LSAME
-*     ..
-*     .. External Subroutines ..
-      EXTERNAL           DORGQL, DORGQR, XERBLA
-*     ..
-*     .. Intrinsic Functions ..
-      INTRINSIC          MAX
-*     ..
-*     .. Executable Statements ..
-*
-*     Test the input arguments
-*
-      INFO = 0
-      UPPER = LSAME( UPLO, 'U' )
-      IF( .NOT.UPPER .AND. .NOT.LSAME( UPLO, 'L' ) ) THEN
-         INFO = -1
-      ELSE IF( N.LT.0 ) THEN
-         INFO = -2
-      ELSE IF( LDA.LT.MAX( 1, N ) ) THEN
-         INFO = -4
-      ELSE IF( LWORK.LT.MAX( 1, N-1 ) ) THEN
-         INFO = -7
-      END IF
-      IF( INFO.NE.0 ) THEN
-         CALL XERBLA( 'DORGTR', -INFO )
-         RETURN
-      END IF
-*
-*     Quick return if possible
-*
-      IF( N.EQ.0 ) THEN
-         WORK( 1 ) = 1
-         RETURN
-      END IF
-*
-      IF( UPPER ) THEN
-*
-*        Q was determined by a call to DSYTRD with UPLO = 'U'
-*
-*        Shift the vectors which define the elementary reflectors one
-*        column to the left, and set the last row and column of Q to
-*        those of the unit matrix
-*
-         DO 20 J = 1, N - 1
-            DO 10 I = 1, J - 1
-               A( I, J ) = A( I, J+1 )
-   10       CONTINUE
-            A( N, J ) = ZERO
-   20    CONTINUE
-         DO 30 I = 1, N - 1
-            A( I, N ) = ZERO
-   30    CONTINUE
-         A( N, N ) = ONE
-*
-*        Generate Q(1:n-1,1:n-1)
-*
-         CALL DORGQL( N-1, N-1, N-1, A, LDA, TAU, WORK, LWORK, IINFO )
-*
-      ELSE
-*
-*        Q was determined by a call to DSYTRD with UPLO = 'L'.
-*
-*        Shift the vectors which define the elementary reflectors one
-*        column to the right, and set the first row and column of Q to
-*        those of the unit matrix
-*
-         DO 50 J = N, 2, -1
-            A( 1, J ) = ZERO
-            DO 40 I = J + 1, N
-               A( I, J ) = A( I, J-1 )
-   40       CONTINUE
-   50    CONTINUE
-         A( 1, 1 ) = ONE
-         DO 60 I = 2, N
-            A( I, 1 ) = ZERO
-   60    CONTINUE
-         IF( N.GT.1 ) THEN
-*
-*           Generate Q(2:n,2:n)
-*
-            CALL DORGQR( N-1, N-1, N-1, A( 2, 2 ), LDA, TAU, WORK,
-     $                   LWORK, IINFO )
-         END IF
-      END IF
-      RETURN
-*
-*     End of DORGTR
 *
       END
       SUBROUTINE DORM2R( SIDE, TRANS, M, N, K, A, LDA, TAU, C, LDC,
@@ -23052,403 +22684,6 @@ CIBM           PREFER SCALAR
 *     End of DSYTRD
 *
       END
-      SUBROUTINE DSYEVX( JOBZ, RANGE, UPLO, N, A, LDA, VL, VU, IL, IU,
-     $                   ABSTOL, M, W, Z, LDZ, WORK, LWORK, IWORK,
-     $                   IFAIL, INFO )
-*
-*  -- LAPACK driver routine (version 2.0) --
-*     Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
-*     Courant Institute, Argonne National Lab, and Rice University
-*     September 30, 1994
-*
-*     .. Scalar Arguments ..
-      CHARACTER          JOBZ, RANGE, UPLO
-      INTEGER            IL, INFO, IU, LDA, LDZ, LWORK, M, N
-      DOUBLE PRECISION   ABSTOL, VL, VU
-*     ..
-*     .. Array Arguments ..
-      INTEGER            IFAIL( * ), IWORK( * )
-      DOUBLE PRECISION   A( LDA, * ), W( * ), WORK( * ), Z( LDZ, * )
-*     ..
-*
-*  Purpose
-*  =======
-*
-*  DSYEVX computes selected eigenvalues and, optionally, eigenvectors
-*  of a real symmetric matrix A.  Eigenvalues and eigenvectors can be
-*  selected by specifying either a range of values or a range of indices
-*  for the desired eigenvalues.
-*
-*  Arguments
-*  =========
-*
-*  JOBZ    (input) CHARACTER*1
-*          = 'N':  Compute eigenvalues only;
-*          = 'V':  Compute eigenvalues and eigenvectors.
-*
-*  RANGE   (input) CHARACTER*1
-*          = 'A': all eigenvalues will be found.
-*          = 'V': all eigenvalues in the half-open interval (VL,VU]
-*                 will be found.
-*          = 'I': the IL-th through IU-th eigenvalues will be found.
-*
-*  UPLO    (input) CHARACTER*1
-*          = 'U':  Upper triangle of A is stored;
-*          = 'L':  Lower triangle of A is stored.
-*
-*  N       (input) INTEGER
-*          The order of the matrix A.  N >= 0.
-*
-*  A       (input/output) DOUBLE PRECISION array, dimension (LDA, N)
-*          On entry, the symmetric matrix A.  If UPLO = 'U', the
-*          leading N-by-N upper triangular part of A contains the
-*          upper triangular part of the matrix A.  If UPLO = 'L',
-*          the leading N-by-N lower triangular part of A contains
-*          the lower triangular part of the matrix A.
-*          On exit, the lower triangle (if UPLO='L') or the upper
-*          triangle (if UPLO='U') of A, including the diagonal, is
-*          destroyed.
-*
-*  LDA     (input) INTEGER
-*          The leading dimension of the array A.  LDA >= max(1,N).
-*
-*  VL      (input) DOUBLE PRECISION
-*  VU      (input) DOUBLE PRECISION
-*          If RANGE='V', the lower and upper bounds of the interval to
-*          be searched for eigenvalues. VL < VU.
-*          Not referenced if RANGE = 'A' or 'I'.
-*
-*  IL      (input) INTEGER
-*  IU      (input) INTEGER
-*          If RANGE='I', the indices (in ascending order) of the
-*          smallest and largest eigenvalues to be returned.
-*          1 <= IL <= IU <= N, if N > 0; IL = 1 and IU = 0 if N = 0.
-*          Not referenced if RANGE = 'A' or 'V'.
-*
-*  ABSTOL  (input) DOUBLE PRECISION
-*          The absolute error tolerance for the eigenvalues.
-*          An approximate eigenvalue is accepted as converged
-*          when it is determined to lie in an interval [a,b]
-*          of width less than or equal to
-*
-*                  ABSTOL + EPS *   max( |a|,|b| ) ,
-*
-*          where EPS is the machine precision.  If ABSTOL is less than
-*          or equal to zero, then  EPS*|T|  will be used in its place,
-*          where |T| is the 1-norm of the tridiagonal matrix obtained
-*          by reducing A to tridiagonal form.
-*
-*          Eigenvalues will be computed most accurately when ABSTOL is
-*          set to twice the underflow threshold 2*DLAMCH('S'), not zero.
-*          If this routine returns with INFO>0, indicating that some
-*          eigenvectors did not converge, try setting ABSTOL to
-*          2*DLAMCH('S').
-*
-*          See "Computing Small Singular Values of Bidiagonal Matrices
-*          with Guaranteed High Relative Accuracy," by Demmel and
-*          Kahan, LAPACK Working Note #3.
-*
-*  M       (output) INTEGER
-*          The total number of eigenvalues found.  0 <= M <= N.
-*          If RANGE = 'A', M = N, and if RANGE = 'I', M = IU-IL+1.
-*
-*  W       (output) DOUBLE PRECISION array, dimension (N)
-*          On normal exit, the first M elements contain the selected
-*          eigenvalues in ascending order.
-*
-*  Z       (output) DOUBLE PRECISION array, dimension (LDZ, max(1,M))
-*          If JOBZ = 'V', then if INFO = 0, the first M columns of Z
-*          contain the orthonormal eigenvectors of the matrix A
-*          corresponding to the selected eigenvalues, with the i-th
-*          column of Z holding the eigenvector associated with W(i).
-*          If an eigenvector fails to converge, then that column of Z
-*          contains the latest approximation to the eigenvector, and the
-*          index of the eigenvector is returned in IFAIL.
-*          If JOBZ = 'N', then Z is not referenced.
-*          Note: the user must ensure that at least max(1,M) columns are
-*          supplied in the array Z; if RANGE = 'V', the exact value of M
-*          is not known in advance and an upper bound must be used.
-*
-*  LDZ     (input) INTEGER
-*          The leading dimension of the array Z.  LDZ >= 1, and if
-*          JOBZ = 'V', LDZ >= max(1,N).
-*
-*  WORK    (workspace/output) DOUBLE PRECISION array, dimension (LWORK)
-*          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
-*
-*  LWORK   (input) INTEGER
-*          The length of the array WORK.  LWORK >= max(1,8*N).
-*          For optimal efficiency, LWORK >= (NB+3)*N,
-*          where NB is the blocksize for DSYTRD returned by ILAENV.
-*
-*  IWORK   (workspace) INTEGER array, dimension (5*N)
-*
-*  IFAIL   (output) INTEGER array, dimension (N)
-*          If JOBZ = 'V', then if INFO = 0, the first M elements of
-*          IFAIL are zero.  If INFO > 0, then IFAIL contains the
-*          indices of the eigenvectors that failed to converge.
-*          If JOBZ = 'N', then IFAIL is not referenced.
-*
-*  INFO    (output) INTEGER
-*          = 0:  successful exit
-*          < 0:  if INFO = -i, the i-th argument had an illegal value
-*          > 0:  if INFO = i, then i eigenvectors failed to converge.
-*                Their indices are stored in array IFAIL.
-*
-* =====================================================================
-*
-*     .. Parameters ..
-      DOUBLE PRECISION   ZERO, ONE
-      PARAMETER          ( ZERO = 0.0D0, ONE = 1.0D0 )
-*     ..
-*     .. Local Scalars ..
-      LOGICAL            ALLEIG, INDEIG, LOWER, VALEIG, WANTZ
-      CHARACTER          ORDER
-      INTEGER            I, IINFO, IMAX, INDD, INDE, INDEE, INDIBL,
-     $                   INDISP, INDIWO, INDTAU, INDWKN, INDWRK, ISCALE,
-     $                   ITMP1, J, JJ, LLWORK, LLWRKN, LOPT, NSPLIT
-      DOUBLE PRECISION   ABSTLL, ANRM, BIGNUM, EPS, RMAX, RMIN, SAFMIN,
-     $                   SIGMA, SMLNUM, TMP1, VLL, VUU
-*     ..
-*     .. External Functions ..
-      LOGICAL            LSAME
-      DOUBLE PRECISION   DLAMCH, DLANSY
-      EXTERNAL           LSAME, DLAMCH, DLANSY
-*     ..
-*     .. External Subroutines ..
-      EXTERNAL           DCOPY, DLACPY, DORGTR, DORMTR, DSCAL, DSTEBZ,
-     $                   DSTEIN, DSTEQR, DSTERF, DSWAP, DSYTRD, XERBLA
-*     ..
-*     .. Intrinsic Functions ..
-      INTRINSIC          MAX, MIN, SQRT
-*     ..
-*     .. Executable Statements ..
-*
-*     Test the input parameters.
-*
-      LOWER = LSAME( UPLO, 'L' )
-      WANTZ = LSAME( JOBZ, 'V' )
-      ALLEIG = LSAME( RANGE, 'A' )
-      VALEIG = LSAME( RANGE, 'V' )
-      INDEIG = LSAME( RANGE, 'I' )
-*
-      INFO = 0
-      IF( .NOT.( WANTZ .OR. LSAME( JOBZ, 'N' ) ) ) THEN
-         INFO = -1
-      ELSE IF( .NOT.( ALLEIG .OR. VALEIG .OR. INDEIG ) ) THEN
-         INFO = -2
-      ELSE IF( .NOT.( LOWER .OR. LSAME( UPLO, 'U' ) ) ) THEN
-         INFO = -3
-      ELSE IF( N.LT.0 ) THEN
-         INFO = -4
-      ELSE IF( LDA.LT.MAX( 1, N ) ) THEN
-         INFO = -6
-      ELSE IF( VALEIG .AND. N.GT.0 .AND. VU.LE.VL ) THEN
-         INFO = -8
-      ELSE IF( INDEIG .AND. IL.LT.1 ) THEN
-         INFO = -9
-      ELSE IF( INDEIG .AND. ( IU.LT.MIN( N, IL ) .OR. IU.GT.N ) ) THEN
-         INFO = -10
-      ELSE IF( LDZ.LT.1 .OR. ( WANTZ .AND. LDZ.LT.N ) ) THEN
-         INFO = -15
-      ELSE IF( LWORK.LT.MAX( 1, 8*N ) ) THEN
-         INFO = -17
-      END IF
-*
-      IF( INFO.NE.0 ) THEN
-         CALL XERBLA( 'DSYEVX', -INFO )
-         RETURN
-      END IF
-*
-*     Quick return if possible
-*
-      M = 0
-      IF( N.EQ.0 ) THEN
-         WORK( 1 ) = 1
-         RETURN
-      END IF
-*
-      IF( N.EQ.1 ) THEN
-         WORK( 1 ) = 7
-         IF( ALLEIG .OR. INDEIG ) THEN
-            M = 1
-            W( 1 ) = A( 1, 1 )
-         ELSE
-            IF( VL.LT.A( 1, 1 ) .AND. VU.GE.A( 1, 1 ) ) THEN
-               M = 1
-               W( 1 ) = A( 1, 1 )
-            END IF
-         END IF
-         IF( WANTZ )
-     $      Z( 1, 1 ) = ONE
-         RETURN
-      END IF
-*
-*     Get machine constants.
-*
-      SAFMIN = DLAMCH( 'Safe minimum' )
-      EPS = DLAMCH( 'Precision' )
-      SMLNUM = SAFMIN / EPS
-      BIGNUM = ONE / SMLNUM
-      RMIN = SQRT( SMLNUM )
-      RMAX = MIN( SQRT( BIGNUM ), ONE / SQRT( SQRT( SAFMIN ) ) )
-*
-*     Scale matrix to allowable range, if necessary.
-*
-      ISCALE = 0
-      ABSTLL = ABSTOL
-      IF( VALEIG ) THEN
-         VLL = VL
-         VUU = VU
-      END IF
-      ANRM = DLANSY( 'M', UPLO, N, A, LDA, WORK )
-      IF( ANRM.GT.ZERO .AND. ANRM.LT.RMIN ) THEN
-         ISCALE = 1
-         SIGMA = RMIN / ANRM
-      ELSE IF( ANRM.GT.RMAX ) THEN
-         ISCALE = 1
-         SIGMA = RMAX / ANRM
-      END IF
-      IF( ISCALE.EQ.1 ) THEN
-         IF( LOWER ) THEN
-            DO 10 J = 1, N
-               CALL DSCAL( N-J+1, SIGMA, A( J, J ), 1 )
-   10       CONTINUE
-         ELSE
-            DO 20 J = 1, N
-               CALL DSCAL( J, SIGMA, A( 1, J ), 1 )
-   20       CONTINUE
-         END IF
-         IF( ABSTOL.GT.0 )
-     $      ABSTLL = ABSTOL*SIGMA
-         IF( VALEIG ) THEN
-            VLL = VL*SIGMA
-            VUU = VU*SIGMA
-         END IF
-      END IF
-*
-*     Call DSYTRD to reduce symmetric matrix to tridiagonal form.
-*
-      INDTAU = 1
-      INDE = INDTAU + N
-      INDD = INDE + N
-      INDWRK = INDD + N
-      LLWORK = LWORK - INDWRK + 1
-      CALL DSYTRD( UPLO, N, A, LDA, WORK( INDD ), WORK( INDE ),
-     $             WORK( INDTAU ), WORK( INDWRK ), LLWORK, IINFO )
-      LOPT = 3*N + WORK( INDWRK )
-*
-*     If all eigenvalues are desired and ABSTOL is less than or equal to
-*     zero, then call DSTERF or DORGTR and SSTEQR.  If this fails for
-*     some eigenvalue, then try DSTEBZ.
-*
-      IF( ( ALLEIG .OR. ( INDEIG .AND. IL.EQ.1 .AND. IU.EQ.N ) ) .AND.
-     $    ( ABSTOL.LE.ZERO ) ) THEN
-         CALL DCOPY( N, WORK( INDD ), 1, W, 1 )
-         INDEE = INDWRK + 2*N
-         IF( .NOT.WANTZ ) THEN
-            CALL DCOPY( N-1, WORK( INDE ), 1, WORK( INDEE ), 1 )
-            CALL DSTERF( N, W, WORK( INDEE ), INFO )
-         ELSE
-            CALL DLACPY( 'A', N, N, A, LDA, Z, LDZ )
-            CALL DORGTR( UPLO, N, Z, LDZ, WORK( INDTAU ),
-     $                   WORK( INDWRK ), LLWORK, IINFO )
-            CALL DCOPY( N-1, WORK( INDE ), 1, WORK( INDEE ), 1 )
-            CALL DSTEQR( JOBZ, N, W, WORK( INDEE ), Z, LDZ,
-     $                   WORK( INDWRK ), INFO )
-            IF( INFO.EQ.0 ) THEN
-               DO 30 I = 1, N
-                  IFAIL( I ) = 0
-   30          CONTINUE
-            END IF
-         END IF
-         IF( INFO.EQ.0 ) THEN
-            M = N
-            GO TO 40
-         END IF
-         INFO = 0
-      END IF
-*
-*     Otherwise, call DSTEBZ and, if eigenvectors are desired, SSTEIN.
-*
-      IF( WANTZ ) THEN
-         ORDER = 'B'
-      ELSE
-         ORDER = 'E'
-      END IF
-      INDIBL = 1
-      INDISP = INDIBL + N
-      INDIWO = INDISP + N
-      CALL DSTEBZ( RANGE, ORDER, N, VLL, VUU, IL, IU, ABSTLL,
-     $             WORK( INDD ), WORK( INDE ), M, NSPLIT, W,
-     $             IWORK( INDIBL ), IWORK( INDISP ), WORK( INDWRK ),
-     $             IWORK( INDIWO ), INFO )
-*
-      IF( WANTZ ) THEN
-         CALL DSTEIN( N, WORK( INDD ), WORK( INDE ), M, W,
-     $                IWORK( INDIBL ), IWORK( INDISP ), Z, LDZ,
-     $                WORK( INDWRK ), IWORK( INDIWO ), IFAIL, INFO )
-*
-*        Apply orthogonal matrix used in reduction to tridiagonal
-*        form to eigenvectors returned by DSTEIN.
-*
-         INDWKN = INDE
-         LLWRKN = LWORK - INDWKN + 1
-         CALL DORMTR( 'L', UPLO, 'N', N, M, A, LDA, WORK( INDTAU ), Z,
-     $                LDZ, WORK( INDWKN ), LLWRKN, IINFO )
-      END IF
-*
-*     If matrix was scaled, then rescale eigenvalues appropriately.
-*
-   40 CONTINUE
-      IF( ISCALE.EQ.1 ) THEN
-         IF( INFO.EQ.0 ) THEN
-            IMAX = M
-         ELSE
-            IMAX = INFO - 1
-         END IF
-         CALL DSCAL( IMAX, ONE / SIGMA, W, 1 )
-      END IF
-*
-*     If eigenvalues are not in order, then sort them, along with
-*     eigenvectors.
-*
-      IF( WANTZ ) THEN
-         DO 60 J = 1, M - 1
-            I = 0
-            TMP1 = W( J )
-            DO 50 JJ = J + 1, M
-               IF( W( JJ ).LT.TMP1 ) THEN
-                  I = JJ
-                  TMP1 = W( JJ )
-               END IF
-   50       CONTINUE
-*
-            IF( I.NE.0 ) THEN
-               ITMP1 = IWORK( INDIBL+I-1 )
-               W( I ) = W( J )
-               IWORK( INDIBL+I-1 ) = IWORK( INDIBL+J-1 )
-               W( J ) = TMP1
-               IWORK( INDIBL+J-1 ) = ITMP1
-               CALL DSWAP( N, Z( 1, I ), 1, Z( 1, J ), 1 )
-               IF( INFO.NE.0 ) THEN
-                  ITMP1 = IFAIL( I )
-                  IFAIL( I ) = IFAIL( J )
-                  IFAIL( J ) = ITMP1
-               END IF
-            END IF
-   60    CONTINUE
-      END IF
-*
-*     Set WORK(1) to optimal workspace size.
-*
-      WORK( 1 ) = MAX( 7*N, LOPT )
-*
-      RETURN
-*
-*     End of DSYEVX
-*
-      END
       INTEGER          FUNCTION ILAENV( ISPEC, NAME, OPTS, N1, N2, N3,
      $                 N4 )
 *
@@ -24083,5 +23318,65 @@ CIBM           PREFER SCALAR
      $      'an illegal value' )
 *
 *     End of XERBLA
+*
+      END
+      SUBROUTINE D2NORM ( N, X, INCX, VALUE )
+*     .. Scalar Arguments ..
+      INTEGER                           INCX, N
+*     .. Array Arguments ..
+      DOUBLE PRECISION                  X( * ), VALUE
+*     ..
+*     
+*  DNRM2 returns the euclidean norm of a vector via the function
+*  name, so that
+*
+*     DNRM2 := sqrt( x'*x )
+*
+*     THIS FUNCTION MODELLED AFTER DNRM2 BUT WRITTEN AS A SUBROUTINE
+*
+*  -- This version written on 25-October-1982.
+*     Modified on 14-October-1993 to inline the call to DLASSQ.
+*     Sven Hammarling, Nag Ltd.
+*
+*
+*     .. Parameters ..
+      DOUBLE PRECISION      ONE         , ZERO
+      PARAMETER           ( ONE = 1.0D+0, ZERO = 0.0D+0 )
+*     .. Local Scalars ..
+      INTEGER               IX
+      DOUBLE PRECISION      ABSXI, NORM, SCALE, SSQ
+*     .. Intrinsic Functions ..
+      INTRINSIC             ABS, SQRT
+*     ..
+*     .. Executable Statements ..
+      IF( N.LT.1 .OR. INCX.LT.1 )THEN
+         NORM  = ZERO
+      ELSE IF( N.EQ.1 )THEN
+         NORM  = ABS( X( 1 ) )
+      ELSE
+         SCALE = ZERO
+         SSQ   = ONE
+*        The following loop is equivalent to this call to the LAPACK
+*        auxiliary routine:
+*        CALL DLASSQ( N, X, INCX, SCALE, SSQ )
+*
+         DO 10, IX = 1, 1 + ( N - 1 )*INCX, INCX
+            IF( X( IX ).NE.ZERO )THEN
+               ABSXI = ABS( X( IX ) )
+               IF( SCALE.LT.ABSXI )THEN
+                  SSQ   = ONE   + SSQ*( SCALE/ABSXI )**2
+                  SCALE = ABSXI
+               ELSE
+                  SSQ   = SSQ   +     ( ABSXI/SCALE )**2
+               END IF
+            END IF
+   10    CONTINUE
+         NORM  = SCALE * SQRT( SSQ )
+      END IF
+*
+      VALUE = NORM
+      RETURN
+*
+*     End of D2NORM.
 *
       END

@@ -1,92 +1,156 @@
 \name{me}
 \alias{me}
 \title{
-EM for parameterized MVN mixture models
+  EM algorithm starting with M-step for parameterized MVN mixture models.
 }
 \description{
-EM iteration (M-step followed by E-step) for estimating parameters in an 
-MVN mixture model with possibly one Poisson noise term.
+  Implements the EM algorithm for parameterized MVN mixture models,
+  starting with the maximization step.
 }
 \usage{
-me(data, modelid, z, \dots)
-
-
+me(modelName, data, z, \dots)
 }
 \arguments{
-\item{data}{
-matrix of observations.
+  \item{modelName}{
+    A character string indicating the model: \cr
+    "E": equal variance  (one-dimensional) \cr
+    "V": variable variance (one-dimensional)\cr 
+    "EII": spherical, equal volume \cr
+    "VII": spherical, unequal volume \cr
+    "EEI": diagonal, equal volume and shape\cr 
+    "VEI": diagonal, varying volume, equal shape\cr 
+    "EVI": diagonal, equal volume, varying shape \cr
+    "VVI": diagonal, varying volume and shape \cr
+    "EEE": ellipsoidal, equal volume, shape, and orientation \cr
+    "EEV": ellipsoidal, equal volume and equal shape\cr
+    "VEV": ellipsoidal, equal shape \cr
+    "VVV": ellipsoidal, varying volume, shape, and orientation 
+  }
+  \item{data}{
+    A numeric vector, matrix, or data frame of observations.
+    Categorical variables are not allowed.
+    If a matrix or data frame, rows correspond to observations and
+    columns correspond to variables.
+  }
+  \item{z}{
+    A matrix whose \code{[i,k]}th entry is the
+    conditional probability of the ith observation belonging to
+    the \emph{k}th component of the mixture.  
+  }
+  \item{\dots}{
+    Any number of the following:
+    \itemize{
+      \item{eps}{
+	A scalar tolerance for deciding when to terminate computations due
+	to computational singularity in covariances. Smaller values of
+	\code{eps} allow computations to proceed nearer to singularity. The
+	default is \code{.Mclust\$eps}. 
+	
+	For those models with iterative M-step ("VEI", "VEV"), two
+	values can be entered for \code{eps}, in which case the second
+	value is used for determining singularity in the M-step. 
+      }
+      \item{tol}{
+	A scalar tolerance for relative convergence of the
+	loglikelihood. The default is \code{.Mclust\$tol}.
+	
+	For those models with iterative M-step ("VEI", "VEV"), two values
+	can be entered for \code{tol}, in which case the second value
+	governs parameter convergence in the M-step.  
+      }
+      \item{itmax}{
+	An integer limit on the number of EM iterations. The default is
+	\code{.Mclust\$itmax}. For those models with iterative M-step
+	("VEI", "VEV"), two values can be entered for \code{itmax}, in
+	which case the second value is an upper limit on the number of
+	iterations in the M-step. 
+      }
+      \item{equalPro}{
+	Logical variable indicating whether or not the mixing proportions are
+	equal in the model. The default is \code{.Mclust\$equalPro}.
+      }
+      \item{warnSingular}{
+	A logical value indicating whether or not a warning should be issued
+	whenever a singularity is encountered.
+	The default is \code{.Mclust\$warnSingular}.
+      }
+      \item{noise}{
+	A logical value indicating whether or not the model includes a
+	Poisson noise component. The default assumes there is no noise
+	component. 
+      }
+      \item{Vinv}{
+	An estimate of the reciprocal hypervolume of the data region. The
+	default is determined by applying function \code{hypvol} to the
+	data. Used only when \code{noise = TRUE}. 
+      }
+    }
+  }
 }
-\item{modelid}{
-An integer specifying a parameterization of the MVN covariance matrix defined 
-by volume, shape and orientation charactertistics of the underlying clusters. 
-The allowed values for \code{modelid} and their interpretation are as follows:
-\code{"EI"} : uniform spherical, \code{"VI"} : spherical, \code{"EEE"} : uniform variance,
-\code{"VVV"} : unconstrained variance, \code{"EEV"} : uniform shape and volume,
-\code{"VEV"} : uniform shape.
-}
-\item{z}{
-matrix of conditional probabilities. \code{z} should have a row for each observation
-in \code{data}, and a column for each component of the mixture.
-}
-\item{...}{
-additional arguments, as follows:
-}
-\item{eps}{
-Tolerance for determining singularity in the covariance matrix. The precise 
-definition of \code{eps} varies the parameterization, each of which has a default.
-}
-\item{tol}{
-The iteration is terminated if the relative error in the loglikelihood value
-falls below \code{tol}. Default : \code{sqrt(.Machine$double.eps)}.
-}
-\item{itmax}{
-Upper limit on the number of iterations. Default : \code{Inf} (no upper limit).
-}
-\item{equal}{
-Logical variable indicating whether or not to assume equal proportions in the
-mixture. Default : \code{F}.
-}
-\item{noise}{
-Logical variable indicating whether or not to include a Poisson noise term in
-the model. Default : \code{F}.
-}
-\item{Vinv}{
-An estimate of the inverse hypervolume of the data region (needed only if
-\code{noise = T}). Default : determined by function \code{hypvol}
-}}
 \value{
-the conditional probablilities at the final iteration (information about the
-iteration is included as attributes).
+  A list including the following components: 
+  \item{mu}{
+    A matrix whose kth column is the mean of the \emph{k}th component of
+    the mixture model. 
+  }
+  \item{sigma}{
+    An array whose \code{[,,k]}th entry is the
+    the covariance matrix of the \emph{k}th component of the mixture.  
+  }
+  \item{pro}{
+    A vector whose \emph{k}th component
+    is the mixing proportion for the \emph{k}th component of the mixture model.
+  }
+  \item{z}{
+    A matrix whose \code{[i,k]}th entry is the
+    conditional probability of the \emph{i}th observation belonging to
+    the \emph{k}th component of the mixture.  
+  }
+  \item{loglik}{
+    The logliklihood for the data in the mixture model. 
+  }
+  \item{modelName}{
+    A character string identifying the model (same as the input argument).
+  }
+  \item{Attributes:}{
+    \itemize{
+      \item{"info"}{
+	Information on the iteration.
+      }
+      \item{"warn"}{
+	An appropriate warning if problems are encountered in the computations.
+      }
+    }
+  }
 }
-\section{NOTE}{
-The reciprocal condition estimate returned as an attribute ranges in value
-between 0 and 1. The closer this estimate is to zero, the more likely it is
-that the corresponding EM result (and BIC) are contaminated by roundoff error.
-}
-\references{
-G. Celeux and G. Govaert, Gaussian parsimonious clustering models,
-\emph{Pattern Recognition, }28:781-793 (1995).
-
-
-A. P. Dempster, N. M. Laird and D. B. Rubin, Maximum Likelihood from
-Incomplete Data via the EM Algorithm, \emph{Journal of the Royal Statistical
-Society, Series B, }39:1-22 (1977).
-
-
-G. J. MacLachlan and K. E. Basford, The EM Algorithm and Extensions, Wiley,
-(1997).
+\section{References}{
+  C. Fraley and A. E. Raftery (2002a).
+  Model-based clustering, discriminant analysis, and density estimation.
+  \emph{Journal of the American Statistical Association 97:611-631}.
+  See \url{http://www.stat.washington.edu/mclust}. 
+  
+  C. Fraley and A. E. Raftery (2002b).
+  MCLUST:Software for model-based clustering, density estimation and 
+  discriminant analysis. 
+  Technical Report, Department of Statistics, University of Washington.
+  See \url{http://www.stat.washington.edu/mclust}.
 }
 \seealso{
-\code{\link{mstep}}, \code{\link{estep}}
+  \code{\link{meE}},...,
+  \code{\link{meVVV}},
+  \code{\link{em}},
+  \code{\link{mstep}},
+  \code{\link{estep}},
+  \code{\link{mclustOptions}}
 }
 \examples{
 data(iris)
-cl <- mhclass(mhtree(iris[,1:4], modelid = "VVV"),3)
-me( iris[,1:4], modelid = "VVV", ctoz(cl))
-
-
+irisMatrix <- as.matrix(iris[,1:4])
+irisClass <- iris[,5]
+ 
+me(modelName = "VVV", data = irisMatrix, z = unmap(irisClass))
 }
 \keyword{cluster}
-% Converted by Sd2Rd version 0.3-2.
-
+% docclass is function
+% Converted by Sd2Rd version 1.21.
 

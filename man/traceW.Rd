@@ -11,6 +11,6 @@
 
 \examples{
 data(iris)
-traceW(as.matrix(iris[,1:4]))
+traceW(as.matrix(as.matrix(iris[,1:4])))
 }
 \keyword{cluster}

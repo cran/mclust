@@ -1,1650 +1,4565 @@
-### mclust for R, version 1.1-6: dd. Feb 14th, 2002
-### .   fixed bug in emclust which was introduced in 1.1-5 when
-###     specifying (the size of) a subset
-### .   fixed code of generic methods summary.emclust(1) so they
-###     do not give a warning during 'make check'
-###
-### mclust for R, version 1.1-5: dd. June 14th, 2001 - December 12th, 2001
-### .   fixed some disagreements in code/man pages
-### .   added standard plot arguments to mvn2plot
-### .   added the possibility to enter indices of a subset in emclust
-###     and emclust1
-### .   check for z-values of 1+machineprecision that may occur
-###     depending on compiler/hardware, and set those to 1 (in mstep functions)
-### .   added code in emclust to patch bug in the case of just one
-###     number of clusters given (e.g. best model with 5 clusters)
-### 
-### mclust for R, version 1.1-4: better keywords in man pages
-###
-### mclust for R, version 1.1-3: some bug fixes
-### .   fixed bug in summary.emclust in the noise case
-### .   fixed bug in emclust1 in the noise case and possibly 0 clusters
-### .   added attr(bic, "rcond") <- NA in bic.EI because emclust1 with
-###     noise and possibly 0 clusters stumbled when this attr was NULL
-###
-### mclust for R, version 1.1-2: some changes in graphics functions
-###     and completion of help files
-### Changed dd. Jan. 10th, 2001
-### .   made xlim, ylim, xlab and ylab arguments in mixproj
-### .   use matplot in plot.emclust, with some extra arguments
-### Changed dd. jan 22, 2001
-### .   made xlab and ylab arguments in emclust and emclust1
-### .   removed function charconv since it was only used in function partuniq
-### .   removed function print.mclust since there is no class mclust
-###
-### mclust for R, version 1.1-1: first working version
-### Change dd. July 28th, 2000 (S-incompatibilities?)
-### .   changed sigmasq in estep.EI, estep.VI, mstep.EI and mstep.VI to sigma;
-###     apparently S can complete names
-### .   added if (!is.na(bicval)) to RC statements in emclust and emclust1
-###     apparently S does not mind...
-### .   added [1:3] after "cols" in summary.emclust in statement 
-###           names(best) <- names(rcond) <- paste 
-### .   replaced -.Machine$double.xmax with -Inf in summary.emclust
+##
+## Port of mclust (2002 version) to R
+## Original program by Chris Fraley and Adrian Raftery
+## Port by Ron Wehrens
+##
 
+".Mclust" <- 
+  list("eps" = .Machine$double.eps, ## 2.2204460492503101e-16,
+       "tol" = c(1.0000000000000001e-05, 1.0000000000000001e-05),
+       "itmax" = c(Inf, Inf),
+       "equalPro" = FALSE,
+       "warnSingular" = TRUE,
+       "emModelNames" = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE",
+         "EEV", "VEV", "VVV"),
+       "hcModelName" = c("V", "VVV"),
+       "symbols" = c(17, 0, 10, 4, 11, 18, 6, 7, 3, 16, 2, 12, 8, 15,
+         1, 9, 14, 13, 5))
 
-"awe" <- function(tree, data)
+"EMclust" <- function(data, G, emModelNames, hcPairs, subset, eps,
+                      tol, itmax, equalPro, warnSingular = FALSE, ...)
 {
-  data <- as.matrix(data)
-  p <- ncol(data)
-  n <- nrow(data)
-  dof <- switch(attr(tree, "model"),
-		EI = p,
-		VI = p + 1,
-		EEE = p,
-		VVV = (p * (p - 1))/2 + 2 * p,
-		EEV = (p * (p - 1))/2 + p,
-		VEV = (p * (p - 1))/2 + p + 1,
-		stop("invalid model id"))
-  like <- loglik(tree, data)
-  class(tree) <- NULL
-  u <- attr(attr(tree, "initial.partition"), "unique")
-  s <- ncol(tree)
-  nmerge <- attr(like, "nmerge")
-  attr(like, "nmerge") <- NULL
-  if(!all(good <- !is.na(like))) {
-    like <- like[good]
-    l <- length(like)
-    if(l <= 1)
-      return(rep(NA, n - 1))
-    nmerge <- nmerge[ - ((1:length(good))[!good])]
-  }
-  AWE <- -2 * diff(like) - (3 + 2 * log(p * nmerge)) * dof
-  c(0, rep(NA, u - s - 1), cumsum(rev(AWE)), 
-    rep(NA, (n - 1) - length(AWE) + (u - s)))
-}
-
-"bic" <- function(data, modelid, ...)
-{
-### ... z, eps, equal = F, noise = F, Vinv
-  switch(as.character(modelid),
-	 EI = bic.EI(data, ...),
-	 VI = bic.VI(data, ...),
-	 EEE = bic.EEE(data, ...),
-	 VVV = bic.VVV(data, ...),
-	 EEV = bic.EEV(data, ...),
-	 VEV = bic.VEV(data, ...),
-	 stop("invalid model id"))
-}
-
-"bic.EEE" <- function(data, z, eps, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD && length(dimData) != 2)
+    stop("data must be a vector or a matrix")
   if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(z)) {
-### one cluster case
-    if(noise) {
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      loglik <- n * log(Vinv)
-      bic <- 2 * loglik - log(n)
-      attr(bic, "params") <- list(Vinv = Vinv)
-      attr(bic, "loglik") <- loglik
-    }
-    else {
-      nparams <- (p * (p + 1))/2
-      temp <- one.XXX(data)
-      loglik <- attr(temp, "loglik")
-      rcond <- attr(temp, "rcond")
-      attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-      bic <- 2 * loglik - (p + nparams) * log(n)
-      attr(bic, "params") <- temp
-      attr(bic, "rcond") <- rcond
-      attr(bic, "loglik") <- loglik
-    }
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    p <- 1
   }
   else {
-    if(!any(is.na(z))) {
-      K <- ncol(z)
-      nparams <- (p * (p + 1))/2
-      if(noise) {
-	G <- K - 1
-	if(missing(Vinv))
-	  Vinv <- hypvol(data, reciprocal = T)
-	temp <- mstep.EEE(data, z, eps = eps, equal = 
-			  equal, noise = T, Vinv = Vinv)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- NULL	
-	## plus one parameter for 1/V; plus p - 1 parameters for proportions
-	if(equal) {
-	  bic <- 2 * loglik - (G * p + nparams + 1) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * p + G + nparams + 1) * log(n)
-	}
-	attr(bic, "params") <- c(temp, Vinv = Vinv)
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-      else {
-	G <- K
-	temp <- mstep.EEE(data, z, eps = eps, equal = equal)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- NULL	
-	## plus p - 1 parameters for proportions
-	if(equal) {
-	  bic <- 2 * loglik - (G * p + nparams) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * p + (G - 1) + nparams) * log(n)
-	}
-	attr(bic, "params") <- temp
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+  }
+  if(missing(emModelNames)) {
+    if(p == 1) {
+      emModelNames <- c("E", "V")
     }
     else {
-      bic <- NA
+      emModelNames <- .Mclust$emModelNames
     }
   }
-  attr(bic, "model") <- "EEE"
-  attr(bic, "class") <- "bic"
-  bic
+  if(p == 1 && any(nchar(emModelNames) > 1)) {
+    Emodel <- any(sapply(emModelNames, function(x)
+                         charmatch("E", x, nomatch = 0)[1]) == 1)
+    Vmodel <- any(sapply(emModelNames, function(x)
+                         charmatch("V", x, nomatch = 0)[1]) == 1)
+    emModelNames <- c("E", "V")[c(Emodel, Vmodel)]
+  }
+  m <- length(emModelNames)
+  if(missing(G)) {
+    G <- 1:9
+  }
+  else {
+    G <- sort(G)
+  }
+  if(any(G) <= 0)
+    stop("G must be positive")
+  l <- length(G)
+  Glabels <- as.character(G)
+  BIC <- matrix(0, nrow = l, ncol = m, dimnames = list(Glabels, 
+                                         emModelNames))
+  if(G[1] == 1) {
+    for(mdl in emModelNames) {
+      hood <- mvn(modelName = mdl, data = data)$loglik
+      BIC[1, mdl] <- bic(modelName = mdl, loglik = hood,
+                         n = n, d = p, G = 1, equalPro = equalPro)
+    }
+    if(l == 1) {
+      attrHC <- attributes(hcPairs)
+      attributes(hcPairs) <- NULL
+      hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(hcPairs)/2)
+      return(structure(BIC, subset = subset, equalPro = equalPro,
+                       hcPairs = hcPairs, attrHC = attrHC,
+                       args = as.list(match.call())[-1], class = "EMclust"))
+    }
+    G <- G[-1]
+    Glabels <- Glabels[-1]
+  }
+  if(missing(subset)) {
+    subset <- NULL
+#######################################################
+### all data in initial hierarchical clustering phase
+#######################################################
+    if(missing(hcPairs)) {
+      if(p != 1) {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[2], data = data)
+      } else {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[1], data = data)
+      }
+    }
+    clss <- hclass(hcPairs, G)
+    for(i in seq(along = G)) {
+      z <- unmap(clss[, Glabels[i]])
+      for(modelName in emModelNames) {
+        hood <- me(modelName = modelName, data = data,
+                   z = z, eps = eps, tol = tol, itmax = 
+                   itmax, equalPro = equalPro, 
+                   warnSingular = warnSingular)$loglik
+        BIC[Glabels[i], modelName] <-
+          bic(modelName = modelName, loglik = hood, n = n, d = p,
+              G = G[i], equalPro = equalPro) 
+      }
+    }
+  } else {
+######################################################
+### sample for the initial hierarchical clustering phase
+######################################################
+    if(missing(hcPairs)) {
+      if(p != 1) {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[2],
+                      data = data[subset,  ])
+      } else {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[1],
+                      data = data[subset,  ])
+      }
+    }
+    clss <- hclass(hcPairs, G)
+    if(length(tol) > 1)
+      tol <- tol[2]
+    if(length(itmax) > 1)
+      itmax <- itmax[2]
+    for(i in seq(along = G)) {
+      z <- unmap(clss[, Glabels[i]])
+      dimnames(z) <- list(as.character(subset), NULL)
+      for(modelName in emModelNames) {
+        ms <- mstep(modelName = modelName, data = data[subset,  ],
+                    z = z, eps = eps, tol = tol, 
+                    itmax = itmax, equalPro = equalPro,
+                    warnSingular = warnSingular)
+        hood <- do.call("em",
+                        c(list(data = data,
+                               eps = eps, tol = tol, itmax = itmax,
+                               equalPro = equalPro,
+                               warnSingular = warnSingular), 
+                          ms))$loglik
+        BIC[Glabels[i], modelName] <-
+          bic(modelName = modelName, loglik = hood, n = n, d = p,
+              G = G[i], equalPro = equalPro)
+      }
+    }
+  }
+  ##
+  ## separating hc from its attributes gets around what seems to be a bug
+  ##
+  attrHC <- attributes(hcPairs)
+  attributes(hcPairs) <- NULL
+  hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(hcPairs)/2)
+  structure(BIC, subset = subset, eps = eps, tol = tol, itmax = itmax,
+            equalPro = equalPro, warnSingular = warnSingular, hcPairs = 
+            hcPairs, attrHC = attrHC, args = as.list(match.call())[-1],
+            class = "EMclust")
 }
 
-"bic.EEV" <- function(data, z, eps, equal = F, noise = F, Vinv)
+"EMclustN" <- function(data, G, emModelNames, noise, hcPairs, eps,
+                       tol, itmax, equalPro, warnSingular = FALSE, Vinv, ...)
 {
+  ##
+  ## noise  is a logical vector in which TRUE indicates noise
+  ##
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD && length(dimData) != 2)
+    stop("data must be a vector or a matrix")
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    p <- 1
+  }
+  else {
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+  }
+  if(missing(emModelNames)) {
+    if(p == 1) {
+      emModelNames <- c("E", "V")
+    }
+    else {
+      emModelNames <- .Mclust$emModelNames
+    }
+  }
+  m <- length(emModelNames)
+  if(missing(G)) {
+    G <- 0:9
+  }
+  else {
+    G <- sort(G)
+  }
+  if(any(G) < 0)
+    stop("G must be non negative")
+  l <- length(G)
+  Glabels <- as.character(G)
+  BIC <- matrix(0, nrow = l, ncol = m, dimnames = list(Glabels, 
+                                         emModelNames))
+  if(missing(Vinv) || Vinv <= 0)
+    Vinv <- hypvol(data, reciprocal = TRUE)
+  if(!G[1]) {
+    hood <- n * logb(Vinv)
+    BIC[1,  ] <- 2 * hood - logb(n)
+    if(l == 1) {
+      attrHC <- attributes(hcPairs)
+      attributes(hcPairs) <- NULL
+      hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(
+                                             hcPairs)/2)
+      return(structure(BIC, equalPro = equalPro, noise = 
+                       noise, Vinv = Vinv, hcPairs = hcPairs, attrHC
+                       = attrHC, args = as.list(match.call())[-1],
+                       class = "EMclustN"))
+    }
+    G <- G[-1]
+    Glabels <- Glabels[-1]
+  }
+  if(missing(hcPairs)) {
+    if(p != 1) {
+      hcPairs <- hc(modelName = .Mclust$hcModelName[2], data
+                    = data[!noise,  ])
+    }
+    else {
+      hcPairs <- hc(modelName = .Mclust$hcModelName[1], data
+                    = data[!noise,  ])
+    }
+  }
+  clss <- hclass(hcPairs, G)
+  z <- matrix(0, n, max(G) + 1)
+  for(i in seq(along = G)) {
+    z[!noise, 1:G[i]] <- unmap(clss[, Glabels[i]])
+    G1 <- G[i] + 1
+    z[!noise, G1] <- 0
+    z[noise, G1] <- 1
+    for(modelName in emModelNames) {
+      hood <- me(modelName = modelName, data = data, z = z[, 1:G1],
+                 eps = eps, tol = tol, itmax = itmax, 
+                 equalPro = equalPro, noise = TRUE, Vinv = Vinv,
+                 warnSingular = warnSingular)$loglik
+      BIC[Glabels[i], modelName] <-
+        bic(modelName = modelName, loglik = hood, n = n, d = p,
+            G = G[i], equalPro = equalPro, noise = TRUE) 
+    }
+  }
+  ##
+  ## separating hc from its attributes gets around what seems to be a bug
+  ##
+  attrHC <- attributes(hcPairs)
+  attributes(hcPairs) <- NULL
+  hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(hcPairs)/2)
+  structure(BIC, eps = eps, tol = tol, itmax = itmax, equalPro = equalPro,
+            warnSingular = warnSingular, noise = noise, Vinv = Vinv, 
+            hcPairs = hcPairs, attrHC = attrHC, args = as.list(match.call(
+                                                  ))[-1], class = "EMclustN")
+}
+
+"Mclust" <- function(data, minG = 1, maxG = 9)
+{
+  emModelNames <- c("EII", "VII", "EEI", "VVI", "EEE", "VVV")
+  G <- minG:maxG
+  Bic <- EMclust(data, G = G, emModelNames = emModelNames)
+  Sumry <- summary(Bic, data)
+  if(!(length(G) == 1)) {
+    bestG <- length(unique(Sumry$cl))
+    if(bestG == max(G))
+      warning("optimal number of clusters occurs at max choice"
+              )
+    else if(bestG == min(G))
+      warning("optimal number of clusters occurs at min choice"
+              )
+  }
+  attr(Bic, "hcPairs") <- attr(Bic, "attrHC") <- NULL
+  attr(Bic, "args") <- attr(Bic, "equal") <- attr(Bic, "class") <- NULL
+  Sumry$cholsigma <- Sumry$cholSigma <- NULL
+  Sumry$Vinv <- Sumry$options <- NULL
+  Sumry$bic <- Sumry$bic[1]
+  attr(Sumry, "class") <- NULL
+  structure(c(list(BIC = Bic), Sumry), class = "Mclust")
+}
+
+"[.EMclust" <- 
+  function(x, i, j, drop = FALSE)
+{
+  clx <- class(x)
+  attrx <- attributes(x)[c("Vinv", "args", "class", "equal", "fuzzy",
+                           "hc", "noise")]
+  class(x) <- NULL
+  x <- NextMethod("[")
+  do.call("structure", c(list(.Data = x), attrx))
+}
+
+"[.EMclustN" <- function(x, i, j, drop = FALSE)
+{
+  clx <- class(x)
+  attrx <- attributes(x)[c("Vinv", "args", "class", "equal", "fuzzy",
+                           "hc", "noise")]
+  class(x) <- NULL
+  x <- NextMethod("[")
+  do.call("structure", c(list(.Data = x), attrx))
+}
+
+"bic" <- function(modelName, loglik, n, d, G, ...)
+{
+  modelName <- switch(modelName,
+                      XII = "EII",
+                      XXI = "EEI",
+                      XXX = "EEE",
+                      modelName)
+  funcName <- paste("bic", modelName, sep = "")
+  do.call(funcName, list(loglik = loglik, n = n, d = d, G = G, ...))
+}
+
+"bicE" <- function(loglik, n, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G + 1
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicEEE" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    s <- (d * (d + 1))/2
+    nparams <- G * d + s
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicEEI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G * d + d + 1
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicEEV" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    s <- (d * (d - 1))/2
+    nparams <- G * (d + s) + (d - 1) + 1
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicEII" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G * d + 1
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicEMtrain" <- function(data, labels, modelNames)
+{
+  z <- unmap(as.numeric(labels))
+  G <- ncol(z)
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(oneD || length(dimData) != 2) {
+    if(missing(modelNames))
+      modelNames <- c("E", "V")
+    if(any(!match(modelNames, c("E", "V"), nomatch = 0)))
+      stop("modelNames E or V for one-dimensional data")
+  }
+  else {
+    if(missing(modelNames))
+      modelNames <- .Mclust$emModelNames
+  }
+  BIC <- rep(NA, length(modelNames))
+  names(BIC) <- modelNames
+  for(m in modelNames) {
+    mStep <- mstep(modelName = m, data = data, z = z, warnSingular = FALSE)
+    eStep <- do.call("estep", c(mStep, list(data = data, 
+                                            warnSingular = FALSE)))
+    if(is.null(attr(eStep, "warn")))
+      BIC[m] <- do.call("bic", eStep)
+  }
+  BIC
+}
+
+"bicEVI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+  }
+  else {
+    nparams <- 2 * (d * G) + 1
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicV" <- function(loglik, n, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G * 2
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicVEI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G * d + d + G
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicVEV" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    ## d*d - d(d+1)/2 for orientation, 1 for volume
+    s <- (d * (d - 1))/2 + 1
+    nparams <- G * (d + s) + (d - 1)
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicVII" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G * (d + 1)
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicVVI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    nparams <- G * d + (d + 1) * G
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"bicVVV" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
+{
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(G == 0) {
+    ## one cluster case
+    if(!noise) stop("undefined model")
+    nparams <- 1
+  }
+  else {
+    s <- (d * (d + 1))/2
+    nparams <- G * (d + s)
+    if(!equalPro)
+      nparams <- nparams + (G - 1)
+    if(noise)
+      nparams <- nparams + 2
+  }
+  2 * loglik - nparams * logb(n)
+}
+
+"cdens" <- function(modelName, data, mu, ...)
+{
+  ## ... sigmasq or sigma, eps
+  modName <- switch(EXPR=modelName,
+                    X = "E",
+                    XII = "EII",
+                    XXI = "EEI",
+                    XXX = "EEE",
+                    modelName)
+  funcName <- paste("cdens", modName, sep = "")
+  out <- do.call(funcName, list(data = data, mu = mu, ...))
+  modName <- switch(modelName,
+                    X = "X",
+                    XII = "XII",
+                    XXI = "XXI",
+                    XXX = "XXX",
+                    modName)
+  attr(out, "modelName") <- modName
+  out
+}
+
+"cdensE" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  G <- length(mu)
+  if(all(is.na(c(mu, sigmasq)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "E", warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(sigmasq <= eps) {
+    warn <- "sigma-squared falls below threshold"
+    warning("sigma-squared falls below threshold")
+    return(structure(matrix(NA, n, G), modelName = "E", warn = warn))
+  }
+  temp <- .Fortran("den1e",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[6:7]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "E", warn = warn)
+}
+
+"cdensEEE" <- function(data, mu, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) > 2)
+    stop("data must be a matrix or a vector")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  if(missing(eps))
-    eps <- c(.Machine$double.eps, sqrt(.Machine$double.eps))
-  else if(length(eps) == 1)
-    eps <- c(eps, sqrt(.Machine$double.eps))
-  if(missing(z)) {
-### one cluster case
-    if(noise) {
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      loglik <- n * log(Vinv)
-      bic <- 2 * loglik - log(n)
-      attr(bic, "params") <- list(Vinv = Vinv)
-      attr(bic, "loglik") <- loglik
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  cholSigma <- list(...)$cholSigma
+  if(is.null(cholSigma)) {
+    if(!is.null(decomp <- list(...)$decomp)) {
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      sig <- qr.R(qr(O * sqrt(scale * shape)))
+      cholIND <- "U"
     }
-    else {
-      nparams <- (p * (p - 1))/2
-      temp <- one.XXX(data)
-      loglik <- attr(temp, "loglik")
-      rcond <- attr(temp, "rcond")
-      attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-      bic <- 2 * loglik - (p + nparams + (p - 1) + 1) * log(n)
-      attr(bic, "params") <- temp
-      attr(bic, "rcond") <- rcond
-      attr(bic, "loglik") <- loglik
+    else if(!is.null(Sigma <- list(...)$Sigma)) {
+      sig <- Sigma
+      cholIND <- "N"
     }
+    else if(!missing(sigma)) {
+      sig <- sigma
+      cholIND <- "N"
+    }
+    else stop("invalid specification for sigma")
   }
   else {
-    if(!any(is.na(z))) {
-      K <- ncol(z)
-      nparams <- (p * (p - 1))/2
-      if(noise) {
-	G <- K - 1
-	if(missing(Vinv))
-	  Vinv <- hypvol(data, reciprocal = T)
-	temp <- mstep.EEV(data, z, eps = eps, equal = 
-			  equal, noise = T, Vinv = Vinv)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + nparams) + (p - 1) + 1 + 1) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p+nparams) + G + (p-1) + 1 + 1) * log(n) 
-	}
-	attr(bic, "params") <- c(temp, list(Vinv = Vinv))
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-      else {
-	G <- K
-	temp <- mstep.EEV(data, z, eps = eps, equal = equal)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + nparams) + (p - 1) + 1) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p+nparams) + (G-1) + (p-1) + 1) * log(n)}
-	attr(bic, "params") <- temp
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
+    sig <- cholSigma
+    cholIND <- "U"
+  }
+  if(any(is.na(c(mu, sig)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "EEE", warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("deneee",
+                   as.integer(if (cholIND=="N") 0 else 1),
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sig),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p),
+                   as.double(eps),
+                   double(n * G))[8:10]
+  lapackCholInfo <- temp[[1]][1]
+  eps <- temp[[2]]
+  cden <- matrix(temp[[3]], n, G)
+  warn <- NULL
+  if(lapackCholInfo) {
+    if(lapackCholInfo > 0) {
+      warn <- "sigma is not positive definite"
+      if(warnSingular)
+        warning("sigma is not positive definite")
     }
     else {
-      bic <- NA
+      warn <- "input error for LAPACK DPOTRF"
+      warning("input error for LAPACK DPOTRF")
     }
+    cden[] <- NA
   }
-  attr(bic, "model") <- "EEV"
-  attr(bic, "class") <- "bic"
-  bic
+  else if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "EEE", warn = warn)
 }
 
-"bic.EI" <- function(data, z, eps, equal = F, noise = F, Vinv)
+"cdensEEI" <- function(data, mu, decomp, eps, warnSingular, ...)
 {
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
   if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(z)) {
-### one cluster case
-    if(noise) {
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      loglik <- n * log(Vinv)
-      bic <- 2 * loglik - log(n)
-      attr(bic, "params") <- list(Vinv = Vinv)
-      attr(bic, "loglik") <- loglik
-###   Added (RW) because emclust1 with noise and no clusters 
-###   will give an error here (NULL cannot be assigned to a 
-###   numerical vector element
-      attr(bic, "rcond") <- NA
-    }
-    else {
-      temp <- one.XI(data)
-      loglik <- attr(temp, "loglik")
-      rcond <- attr(temp, "rcond")
-      attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-      bic <- 2 * loglik - (p + 1) * log(n)
-      attr(bic, "params") <- temp
-      attr(bic, "rcond") <- rcond
-      attr(bic, "loglik") <- loglik
-    }
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "EEI", warn = warn))
   }
-  else {
-    if(!any(is.na(z))) {
-      K <- ncol(z)
-      if(noise) {
-	G <- K - 1
-	if(missing(Vinv))
-	  Vinv <- hypvol(data, reciprocal = T)
-	temp <- mstep.EI(data, z, eps = eps, equal = 
-			 equal, noise = T, Vinv = Vinv)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * p + 1 + 1) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * p + G + 1 + 1) * log(
-							n)
-	}
-	attr(bic, "params") <- c(temp, list(Vinv = Vinv
-					    ))
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-      else {
-	G <- K
-	temp <- mstep.EI(data, z, eps = eps, equal = 
-			 equal)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * p + 1) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * p + (G - 1) + 1) * 
-	    log(n)
-	}
-	attr(bic, "params") <- temp
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-    }
-    else {
-      bic <- NA
-    }
+  temp <- .Fortran("deneei",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[8:9]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
   }
-  attr(bic, "model") <- "EI"
-  class(bic) <- "bic"
-  bic
+  structure(cden, modelName = "EEI", warn = warn)
 }
 
-"bic.VEV" <- function(data, z, eps, equal = F, noise = F, Vinv)
+"cdensEEV" <- function(data, mu, decomp, eps, warnSingular, ...)
 {
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
+  G <- ncol(mu)
+  mu <- as.matrix(mu)
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "EEV", warn = warn))
+  }
   if(missing(eps))
-    eps <- c(.Machine$double.eps, .Machine$double.eps)
-  else if(length(eps) == 1)
-    eps <- c(eps, .Machine$double.eps)
-  if(missing(z)) {
-					## one cluster case
-    if(noise) {
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      loglik <- n * log(Vinv)
-      bic <- 2 * loglik - log(n)
-      attr(bic, "params") <- list(Vinv = Vinv)
-      attr(bic, "loglik") <- loglik
-    }
-    else {
-      ## p*p - p(p+1)/2 for orientation, 1 for volume
-      nparams <- (p * (p - 1))/2 + 1
-      temp <- one.XXX(data)
-      loglik <- attr(temp, "loglik")
-      rcond <- attr(temp, "rcond")
-      attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-      bic <- 2 * loglik - (p + nparams + (p - 1)) * log(n)
-      attr(bic, "params") <- temp
-      attr(bic, "rcond") <- rcond
-      attr(bic, "loglik") <- loglik
-    }
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("deneev",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(decomp$orientation),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p),
+                   double(p),
+                   as.double(eps),
+                   double(n * G))[11:12]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
   }
-  else {
-    if(!any(is.na(z))) {
-      K <- ncol(z)	
-      ## p*p - p(p+1)/2 for orientation, 1 for volume
-      nparams <- (p * (p - 1))/2 + 1
-      if(noise) {
-	G <- K - 1
-	if(missing(Vinv))
-	  Vinv <- hypvol(data, reciprocal = T)
-	temp <- mstep.VEV(data, z, eps = eps, equal = 
-			  equal, noise = T, Vinv = Vinv)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + nparams) + (p - 1) + 1) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p + nparams) + G + (p - 1) + 1) * log(n)
-	}
-	attr(bic, "params") <- c(temp, list(Vinv = Vinv))
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-      else {
-	G <- K
-	temp <- mstep.VEV(data, z, eps = eps, equal = 
-			  equal)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + nparams) + (p - 1)) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p + nparams) + (G - 1) + (p - 1)) * log(n)
-	}
-	attr(bic, "params") <- temp
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-    }
-    else {
-      bic <- NA
-    }
-  }
-  attr(bic, "model") <- "VEV"
-  attr(bic, "class") <- "bic"
-  bic
+  structure(cden, modelName = "EEV", warn = warn)
 }
 
-"bic.VI" <- function(data, z, eps, equal = F, noise = F, Vinv)
+"cdensEII" <- function(data, mu, sigmasq, eps, warnSingular, ...)
 {
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
   if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(z)) {
-					## one cluster case
-    if(noise) {
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      loglik <- n * log(Vinv)
-      bic <- 2 * loglik - log(n)
-      attr(bic, "params") <- list(Vinv = Vinv)
-      attr(bic, "loglik") <- loglik
-    }
-    else {
-      temp <- one.XI(data)
-      loglik <- attr(temp, "loglik")
-      rcond <- attr(temp, "rcond")
-      attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-      bic <- 2 * loglik - (p + 1) * log(n)
-      attr(bic, "params") <- temp
-      attr(bic, "rcond") <- rcond
-      attr(bic, "loglik") <- loglik
-    }
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(sigmasq)) {
+    sigmasq <- list(...)$decomp$scale
   }
-  else {
-    if(!any(is.na(z))) {
-      K <- ncol(z)
-      if(noise) {
-	G <- K - 1
-	if(missing(Vinv))
-	  Vinv <- hypvol(data, reciprocal = T)
-	temp <- mstep.VI(data, z, eps = eps, equal = 
-			 equal, noise = T, Vinv = Vinv)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + 1) + 1) * log(n
-						      )
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p + 1) + G + 1) * 
-	    log(n)
-	}
-	attr(bic, "params") <- c(temp, list(Vinv = Vinv
-					    ))
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-      else {
-	G <- K
-	temp <- mstep.VI(data, z, eps = eps, equal = 
-			 equal)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + 1)) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p + 1) + (G - 1)) * 
-	    log(n)
-	}
-	attr(bic, "params") <- temp
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-    }
-    else {
-      bic <- NA
-    }
+  if(any(is.na(c(mu, sigmasq)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "EII", warn = 
+                     warn))
   }
-  attr(bic, "model") <- "VI"
-  class(bic) <- "bic"
-  bic
+  if(list(...)$decomp$scale <= eps) {
+    warn <- "sigma-squared falls below threshold"
+    warning("sigma-squared falls below threshold")
+    return(structure(matrix(NA, n, G), modelName = "EII", warn = 
+                     warn))
+  }
+  temp <- .Fortran("deneii",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[7:8]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    cden[] - NA
+  }
+  structure(cden, modelName = "EII", warn = warn)
 }
-"bic.VVV" <-
-function(data, z, eps, equal = F, noise = F, Vinv)
+
+"cdensEVI" <- function(data, mu, decomp, eps, warnSingular, ...)
 {
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
   if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(z)) {
-					## one cluster case
-    if(noise) {
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      loglik <- n * log(Vinv)
-      bic <- 2 * loglik - log(n)
-      attr(bic, "params") <- list(Vinv = Vinv)
-      attr(bic, "loglik") <- loglik
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "EVI", warn = 
+                     warn))
+  }
+  temp <- .Fortran("denevi",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[8:9]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "EVI", warn = warn)
+}
+
+"cdensV" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  G <- length(mu)
+  if(any(is.na(c(mu, sigmasq)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "V", warn = warn
+                     ))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(any(sigmasq <= eps)) {
+    warn <- "sigma-squared falls below threshold"
+    warning("sigma-squared falls below threshold")
+    return(structure(matrix(NA, n, G), modelName = "V", warn = warn
+                     ))
+  }
+  temp <- .Fortran("den1v",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[6:7]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "V", warn = warn)
+}
+
+"cdensVEI" <- function(data, mu, decomp, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "VEI", warn = 
+                     warn))
+  }
+  temp <- .Fortran("denvei",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[8:9]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "VEI", warn = warn)
+}
+
+"cdensVEV" <- function(data, mu, decomp, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "VEV", warn = 
+                     warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("denvev",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(decomp$orientation),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p),
+                   double(p),
+                   as.double(eps),
+                   double(n * G))[11:12]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "VEV", warn = warn)
+}
+
+"cdensVII" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(sigmasq)) {
+    sigmasq <- list(...)$decomp$scale
+  }
+  if(any(is.na(c(mu, sigmasq)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "VII", warn = 
+                     warn))
+  }
+  if(any(list(...)$decomp$scale <= eps)) {
+    warn <- "sigma-squared falls below threshold"
+    warning("sigma-squared falls below threshold")
+    return(structure(matrix(NA, n, G), modelName = "VII", warn = 
+                     warn))
+  }
+  temp <- .Fortran("denvii",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[7:8]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "VII", warn = warn)
+}
+
+"cdensVVI" <- function(data, mu, decomp, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "VVI", warn = 
+                     warn))
+  }
+  temp <- .Fortran("denvvi",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(n * G))[8:9]
+  eps <- temp[[1]]
+  cden <- matrix(temp[[2]], n, G)
+  warn <- NULL
+  if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "VVI", warn = warn)
+}
+
+"cdensVVV" <- function(data, mu, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  cholsigma <- list(...)$cholsigma
+  if(is.null(cholsigma)) {
+    if(!is.null(sigma <- list(...)$sigma)) {
+      sig <- sigma
+      cholIND <- "N"
     }
-    else {
-      nparams <- (p * (p + 1))/2
-      temp <- one.XXX(data)
-      loglik <- attr(temp, "loglik")
-      rcond <- attr(temp, "rcond")
-      attr(temp, "loglik") <- attr(temp, "rcond") <- NULL
-      bic <- 2 * loglik - (p + nparams) * log(n)
-      attr(bic, "params") <- temp
-      attr(bic, "rcond") <- rcond
-      attr(bic, "loglik") <- loglik
+    else if(!is.null(decomp <- list(...)$decomp)) {
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      sig <- array(0, c(p, p, G))
+      shape <- sqrt(sweep(shape, MARGIN = 2, STATS = scale,
+                          FUN = "*"))
+      for(k in 1:G)
+        sig[,  , k] <- qr.R(qr(O[,  , k] * shape))
+      cholIND <- "U"
     }
+    else stop("sigma improperly specified")
   }
   else {
-    if(!any(is.na(z))) {
-      K <- ncol(z)
-      nparams <- (p * (p + 1))/2
-      if(noise) {
-	G <- K - 1
-	if(missing(Vinv))
-	  Vinv <- hypvol(data, reciprocal = T)
-	temp <- mstep.VVV(data, z, eps = eps, equal = 
-			  equal, noise = T, Vinv = Vinv)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik - (G * (p + nparams) + 1) * 
-	    log(n)
-	}
-	else {
-	  bic <- 2 * loglik - (G * (p + nparams) + G + 
-			       1) * log(n)
-	}
-	attr(bic, "params") <- c(temp, list(Vinv = Vinv
-					    ))
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
-      else {
-	G <- K
-	temp <- mstep.VVV(data, z, eps = eps, equal = 
-			  equal)
-	loglik <- attr(temp, "loglik")
-	rcond <- attr(temp, "rcond")
-	attr(temp, "loglik") <- attr(temp, "rcond") <- 
-	  NULL
-	if(equal) {
-	  bic <- 2 * loglik -
-            (G * (p + nparams)) * log(n)
-	}
-	else {
-	  bic <- 2 * loglik -
-            (G * (p + nparams) + (G - 1)) * log(n)
-	}
-	attr(bic, "params") <- temp
-	attr(bic, "rcond") <- rcond
-	attr(bic, "loglik") <- loglik
-      }
+    sig <- cholsigma
+    cholIND <- "U"
+  }
+  if(any(is.na(c(mu, sig)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, G), modelName = "VVV", warn = 
+                     warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("denvvv",
+                   as.integer(if (cholIND == "N") 0 else 1),
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sig),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p),
+                   as.double(eps),
+                   double(n * G))[8:10]
+  lapackCholInfo <- temp[[1]][1]
+  eps <- temp[[2]]
+  cden <- matrix(temp[[3]], n, G)
+  warn <- NULL
+  if(lapackCholInfo) {
+    if(lapackCholInfo > 0) {
+      warn <- "sigma is not positive definite"
+      warning("sigma is not positive definite")
     }
     else {
-      bic <- NA
+      warn <- "input error for LAPACK DPOTRF"
+      warning("input error for LAPACK DPOTRF")
     }
+    cden[] <- NA
   }
-  attr(bic, "model") <- "VVV"
-  attr(bic, "class") <- "bic"
-  bic
+  else if(is.infinite(eps) || eps == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    cden[] <- NA
+  }
+  structure(cden, modelName = "VVV", warn = warn)
 }
 
-"censcale" <- function(x, tol = 0.0001)
-{
-  x <- as.matrix(x)
-  mu <- apply(x, 2, mean)
-  x <- sweep(x, 2, mu)
-  sd <- apply(x, 2, function(z)
-	      sqrt(var(z)))
-  sd[sd <= tol] <- 1
-  structure(sweep(x, 2, sd, "/"), mu = mu, sd = sd)
-}
+### Changed clPairs to use the standard R pairs functionality
+### Added color argument, because I like that...
+### 10/01/09, Ron
 
-"clpairs" <- function(x, partition, col=partition, ...) 
+"clPairs" <- function(data, classification, symbols,
+                      labels = dimnames(data)[[2]], CEX = 1, col, ...)
 {
-  x <- as.matrix(x)
-  m <- nrow(x)
-  n <- ncol(x)
-  if (missing(partition))
-    partition <- rep(1, m)
-  l <- length(unique(partition))
+  data <- as.matrix(data)
+  m <- nrow(data)
+  n <- ncol(data)
+  if(missing(classification))
+    classification <- rep(1, m)
+  if (!is.factor(classification))
+    classification <- as.factor(classification)
+  l <- length(levels(classification))
+  if(missing(symbols)) {
+    if(l == 1) {
+      symbols <- "."
+    }
+    if(l <= length(.Mclust$symbols)) {
+      symbols <- .Mclust$symbols
+    }
+    else if(l <= 9) {
+      symbols <- as.character(1:9)
+    }
+    else if(l <= 26) {
+      symbols <- LETTERS[1:l]
+    }
+    else stop("need more than 26 symbols")
+  }
+  else if(length(symbols) < l)
+    stop("more symbols needed")
+
+  if (missing(col)) col <- 1:l
   if (length(unique(col)) < l & length(unique(col))>1)
     stop("more colors needed")
-
-  pairs(x, col=col, ...)
+  if (length(col) == 1) col <- rep(col, l)
+  
+  pairs(x=data, labels=labels, pch=symbols[classification],
+        cex=CEX, col=col[classification], ...)
   invisible()
 }
 
-"ctoz" <- function(cl, noise)
+
+## "clPairs" <- function(data, classification, symbols, 
+##                       labels = dimnames(x)[[2]], CEX = 1, PCH = ".", ...)
+## {
+##   par(pty = "s")
+##   x <- as.matrix(data)
+##   m <- nrow(x)
+##   n <- ncol(x)
+##   if(missing(classification))
+##     classification <- rep(1, m)
+##   u <- sort(unique(classification))
+##   l <- length(u)
+##   if(missing(symbols)) {
+##     if(missing(classification)) {
+##       symbols[1] <- PCH
+##     }
+##     if(l <= length(.Mclust$symbols)) {
+##       symbols <- .Mclust$symbols
+##     }
+##     else if(l <= 9) {
+##       symbols <- as.character(1:9)
+##     }
+##     else if(l <= 26) {
+##       symbols <- LETTERS[1:l]
+##     }
+##     else stop("need more than 26 symbols")
+##   }
+##   else if(length(symbols) < l)
+##     stop("more symbols needed")
+##   doaxis <- function(which, dolabel = TRUE)
+##     axis(which, outer = TRUE, line = -0.5, labels = dolabel)
+##   setup <- function(x, y, ...)
+##     .Internal(plot("zplot", range(x[!is.na(x)]), range(y[!is.na(y)]),
+##                    type = "n", axes = FALSE, ...), "call_S_Version2")
+##   oldpar <- par("oma", "mar", "cex", "tck", "mfg", "mgp", "mex", "mfrow")
+##   oldcex <- par("cex")
+##   ##
+##   ##	CEX <- oldcex * max(7.7/(2. * n + 3.), 0.6)
+##   ##
+##   par(mfrow = c(n, n), mgp = c(2., 0.8, 0.), oma = rep(3., 4.),
+##       mar = rep(0.5, 4.), tck = -0.03/n)  
+##   on.exit(par(oldpar))
+##   ##
+##   ##	par(cex = CEX)
+##   ##
+##   if(length(labels) < n) labels <- paste(deparse(substitute(data)), "[,",
+##                                          1:n, "]", sep = "")
+##   if(par("pty") == "s") {
+##     dif <- diff(par("fin"))/2
+##     if(dif > 0)
+##       par(omi = c(dif * n, 0, dif * n, 0) + par("omi"))
+##     else par(omi = c(0, ( - dif) * n, 0, ( - dif) * n) + par("omi"))
+##   }
+##   invert <- list(...)$invert
+##   order <- if(is.null(invert) || invert) 1:n else n:1
+##   for(i in order) {
+##     for(j in 1.:n) {
+##       setup(as.vector(x[, j]), as.vector(x[, i]), ...)
+##       box()
+##       mfg <- par("mfg")
+##       if(i == 1)
+##         doaxis(3, j %% 2 == 0)
+##       if(i == n)
+##         doaxis(1, j %% 2 == 1)
+##       if(j == 1)
+##         doaxis(2, i %% 2 == 0)
+##       if(j == n)
+##         doaxis(4, i %% 2 == 1)
+##       if(i != j) {
+##         for(k in 1:l) {
+##           r <- (1:m)[classification == u[k]]
+##           points(as.vector(x[r, j]), as.vector(x[r, i]), pch = symbols[k],
+##                  cex = CEX)
+##         }
+##       }
+##       else {
+##         par(usr = c(0., 1., 0., 1.))
+##         text(0.5, 0.5, labels[i], cex = CEX)
+##       }
+##       if(all.equal(par("mfg"), mfg) != TRUE)
+##         stop("The panel function made a new plot")
+##     }
+##   }
+##   invisible()
+## }
+
+"compClass" <- function(a, b)
 {
-  ## converts a classification to conditional probabilities
-  ## classes are arranged in sorted order
-  ## if a noise indicator is specified, that column is placed last
-  n <- length(cl)
-  u <- sort(unique(cl))
-  labs <- as.character(u)
-  k <- length(u)
-  z <- matrix(0, n, k)
-  if(!missing(noise)) {
-    l <- u == noise
-    if(any(l)) {
-      m <- max(u) + 1
-      u[l] <- m
-      labs <- labs[order(u)]
-      u <- sort(u)
-      cl[cl == noise] <- m
+  "nextPerm" <- function(perm)
+    {
+      ##
+      ## perm is assumed to be a vector of any mode in which no two elements  
+      ## are identical. next.perm produces the next permutation after perm in
+      ## a lexicographic order. If perm is a vector of consecutive positive 
+      ## integers beginning with 1, this order is that of increasing 
+      ## magnitude when each permutation is viewed as an integer in base 
+      ## max(perm)+1 arithmetic.
+      ##
+      n <- length(perm)
+      if(n == 1)
+        return(perm)
+      i <- (n - 1):1
+      q <- perm[i + 1] > perm[i]
+      if(q[1])
+        return(replace(perm, c(n - 1, n), perm[c(n, n - 1)]))
+      if(all(!q))
+        return(rev(perm))
+      m <- i[q][1]
+      i <- (m + 1):n
+      perm[i] <- rev(perm[i])
+      l <- i[perm[i] > perm[m]][1]
+      replace(perm, c(m, l), perm[c(l, m)])
     }
+  
+  ## minimum error rate (fraction in 0,1) between classifications
+  if(any(is.na(a)) || any(is.na(b))) return(NA)
+  if(!length(a) || !length(b))
+    return(NA)
+  clconv <- function(z, v, lv)
+    {
+      (1:lv)[z == v]
+    }
+  errcomp <- function(a, b)
+    {
+      ## b gets permuted
+      x <- b
+      n <- length(a)
+      s <- u <- unique(a)
+      l <- length(s)
+      errsum <- errmin <- sum(as.numeric(a != x))/n
+      alias <- u
+      count <- 1
+      while(TRUE) {
+        u <- nextPerm(u)
+        if(all(u == s))
+          break
+        x <-  - b
+        for(k in 1:l)
+          x[x ==  - k] <- u[k]
+        if(any(x < 0))
+          stop("x < 0")
+        errsum <- sum(as.numeric(a != x))/n
+        if(errsum < errmin) {
+          alias <- u
+          errmin <- errsum
+        }
+      }
+      list(bperm = alias, error = errmin)
+    }
+  n <- length(a)
+  if(length(b) != n) {
+    warning("unequal lengths")
+    return(list(error = NA, map = NA))
   }
-  for(j in 1:k)
-    z[cl == u[j], j] <- 1
-  dimnames(z) <- list(NULL, labs)
-  if(any((sumz <- as.integer(apply(z, 1, sum))) != 1)) {
-    warning("improper z")
-    stop("STOP")
-  }
-  z
+  ua <- unique(a)
+  lua <- length(ua)
+  A <- sapply(a, clconv, v = ua, lv = lua)
+  ub <- unique(b)
+  lub <- length(ub)
+  B <- sapply(b, clconv, v = ub, lv = lub)
+  temp <- if(lua >= lub) errcomp(A, B) else errcomp(B, A)
+  ub <- ub[temp$bperm]
+  correspondence <- rbind(ua, ub)
+  dimnames(correspondence) <- list(c("a", "b"), NULL)
+  list(error = temp$error, map = correspondence)
 }
 
-"emclust" <- function(data, nclus, modelid, k, equal = F, noise, Vinv)
+"coordProj" <- function(data, ..., dimens = c(1, 2),
+                        type = c("classification", "uncertainty", "errors"),
+                        ask = TRUE, quantiles = c(0.75, 0.95), symbols,
+                        scale = FALSE, identify = FALSE, CEX = 1, PCH = ".",
+                        xlim, ylim, col) 
 {
-  dd <- dim(data)
-  d <- dd[dd != 1]
-  if(length(d) != 2)
-    stop("data must be matrix-conformal")
-  data <- if(length(d) != length(dd)) matrix(data, d[1], d[2]) else 
-  as.matrix(data)
-  n <- d[1]
-  if(missing(modelid))
-    modelid <- c("EI", "VI", "EEE", "VVV", "EEV", "VEV")
-  if(missing(k)) {
-
-    ## use all of the data in the initial hierarchical clustering phase
-
-    if(missing(noise)) {
-      if(missing(nclus))
-	nclus <- 1:9
-      nclus <- sort(nclus)
-      l <- length(nclus)	
-###---------------------------------------------------------------------------
-      tree <- mhtree.VVV(data)
-      clss <- mhclass(tree, nclus)	
-###---------------------------------------------------------------------------
-      gauss <- function(modelid, data, clss, nclus, l, equal
-			)
-	{
-	  bicnam <- paste("bic.", modelid, sep = "")
-	  menam <- paste("me.", modelid, sep = "")
-	  BIC <- RC <- numeric(l)
-	  for(j in 1:l) {
-	    i <- nclus[j]
-	    if(i == 1) {
-	      bicval <- do.call(bicnam, list(data))
-	    }
-	    else {
-	      z <- do.call(menam, list(data, ctoz(clss[, as.character(i)]),
-				       equal = equal))
-	      bicval <- do.call(bicnam, list(data, z, equal = equal))
-	    }
-	    BIC[j] <- bicval
-	    if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
-	  }
-	  list(bic = BIC, rc = RC)
-	}
-      all <- lapply(as.list(modelid), gauss, data = data, 
-		    clss = clss, nclus = nclus, l = l, equal = 
-		    equal)
-      ## Original:      all <- list(bic = t(sapply(all, function(z)
-      ##	    z$bic)), rc = t(sapply(all, function(z) z$rc)))	
-      all <- list(bic = sapply(all, function(z) z$bic), 
-		   rc = sapply(all, function(z) z$rc))
-      ## following piece of code necessary if only one number of
-      ## clusters given...
-      if (is.matrix(all$bic)) {
-	all$bic _ t(all$bic)
-      } else {
-	all$bic _ as.matrix(all$bic)
-      }
-      if (is.matrix(all$rc)) {
-	all$rc _ t(all$rc)
-      } else {
-	all$rc _ as.matrix(all$rc)
-      }
-      ##
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      dimnames(all$bic) <- dimnames(all$rc) <- list(modelid, 
-						    as.character(nclus))
-      structure(all$bic, equal = equal, tree = tree, rcond = 
-		all$rc, class = "emclust")
+  if(scale)
+    par(pty = "s")
+  aux <- list(...)
+  z <- aux$z
+  classification <- aux$classification
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  uncertainty <- aux$uncertainty
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  truth <- aux$truth
+  mu <- aux$mu
+  sigma <- aux$sigma
+  decomp <- aux$decomp
+  params <- !is.null(mu) && (!is.null(sigma) || !is.null(decomp))
+  Data <- data[, dimens]
+  if(dim(Data)[2] != 2)
+    stop("need two dimensions")
+  if(missing(xlim))
+    xlim <- range(Data[, 1])
+  if(missing(ylim))
+    ylim <- range(Data[, 2])
+  if(scale) {
+    d <- diff(xlim) - diff(ylim)
+    if(d > 0) {
+      ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
     }
     else {
-      ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      ## noise case
-      ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      noise <- as.logical(noise)
-      n <- nrow(data)	
-      ##
-      ##----------------------------------------------------------------------
-      if(missing(nclus))
-	nclus <- 0:9
-      nclus <- sort(nclus)
-      l <- length(nclus)	
-      ##-----------------------------------------------------------------------
-      tree <- mhtree.VVV(data[!noise,  ])
-      clss <- mhclass(tree, nclus[nclus != 0])
-      if(missing(Vinv)) Vinv <- hypvol(data, reciprocal = T)	
-      ##-----------------------------------------------------------------------
-      gaussn <- function(modelid, data, clss, nclus, l, n, 
-			 equal, noise, Vinv)
-	{
-	  bicnam <- paste("bic.", modelid, sep = "")
-	  menam <- paste("me.", modelid, sep = "")
-	  BIC <- RC <- numeric(l)
-	  if(n != length(noise))
-	    stop("STOP")
-	  k <- 1
-	  if(nclus[1] == 0) {
-					# all noise --- same for all models
-	    BIC[k] <- bic(data, modelid = modelid, equal
-			  = equal, noise = T, Vinv = Vinv)
-	    RC[k] <- NA
-	    k <- k + 1
-	  }
-	  if(k < l) {
-	    cl <- numeric(n)
-	    for(j in k:l) {
-	      i <- nclus[j]
-	      cl[!noise] <- clss[, as.character(i)]
-	      cl[noise] <- i + 1
-	      z <- do.call(menam, 
-			   list(data, ctoz(cl), 
-				equal = equal, noise = T, Vinv = Vinv))
-	      bicval <- do.call(bicnam, 
-				list(data, z, equal = equal, noise = T,
-				     Vinv = Vinv)) 
-	      BIC[j] <- bicval
-	      if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
-	    }
-	  }
-	  list(bic = BIC, rc = RC)
-	}
-      all <- lapply(as.list(modelid), gaussn, data = data, 
-		    clss = clss, nclus = nclus, l = l, n = n, equal
-		    = equal, noise = noise, Vinv = Vinv)
-      ## Original:
-      ##      all <- list(bic = t(sapply(all, function(z)
-      ##    z$bic)), rc = t(sapply(all, function(z) z$rc)))	
-      all <- list(bic = sapply(all, function(z) z$bic), 
-		   rc = sapply(all, function(z) z$rc))
-      ## following piece of code necessary if only one number of
-      ## clusters given...
-      if (is.matrix(all$bic)) {
-	all$bic _ t(all$bic)
-      } else {
-	all$bic _ as.matrix(all$bic)
-      }
-      if (is.matrix(all$rc)) {
-	all$rc _ t(all$rc)
-      } else {
-	all$rc _ as.matrix(all$rc)
-      }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      dimnames(all$bic) <- dimnames(all$rc) <- list(modelid, 
-						    as.character(nclus))
-      structure(all$bic, equal = equal, tree = tree, noise = 
-		noise, Vinv = Vinv, rcond = all$rc, class = 
-		"emclust")
+      xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
     }
   }
+  if(is.null(dnames <- dimnames(Data)[[2]]))
+    xlab <- ylab <- ""
   else {
-############################################################################
-### use only a sample of the data in the initial hierarchical clustering phase
-############################################################################
-    if(missing(noise)) {
-      if(missing(nclus))
-	nclus <- 1:9
-      nclus <- sort(nclus)
-      l <- length(nclus)	
-      ##-----------------------------------------------------------------------
-      ## Added 14/8/2001, RW. Original: k always integer
-      ## smpl <- sample(1:n, size = k) (so just the else clause)
-      if (length(k)>1 & max(k) <= n) {
-	smpl _ k
-	k _ length(k)
-      } else {
-	smpl <- sample(1:n, size = k)
+    xlab <- dnames[1]
+    ylab <- dnames[2]
+  }
+  if(!is.null(mu)) {
+    if(is.null(sigma)) {
+      if(is.null(decomp)) {
+        params <- FALSE
+        warning("covariance not supplied")
       }
-      tree <- mhtree.VVV(data[smpl,  ])
-      clss <- mhclass(tree, nclus)	
-      ##-----------------------------------------------------------------------
-      gaussk <- function(modelid, data, clss, nclus, l, smpl, 
-			 equal)
-	{
-	  bicnam <- paste("bic.", modelid, sep = "")
-	  menam <- paste("me.", modelid, sep = "")
-	  msnam <- paste("mstep.", modelid, sep = "")
-	  esnam <- paste("estep.", switch(modelid,
-					  EI = "EI",
-					  VI = "VI",
-					  EEE = "EEE",
-					  VVV = "VVV",
-					  EEV = "XEV",
-					  VEV = "XEV"), sep = "")
-	  BIC <- RC <- numeric(l)
-	  for(j in 1:l) {
-	    i <- nclus[j]
-	    if(i == 1) {
-	      bicval <- do.call(bicnam, list(data))
-	    }
-	    else {
-	      pars <- do.call(msnam, list(data[smpl,  ], 
-					  ctoz(clss[, as.character(i)]), 
-					  equal = equal))
-	      z <- do.call(esnam, c(list(data), pars))
-	      z <- do.call(menam, list(data, z, equal = 
-				       equal))
-	      bicval <- do.call(bicnam, list(data, z, 
-					     equal = equal))
-	    }
-	    BIC[j] <- bicval
-	    if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
-	  }
-	  list(bic = BIC, rc = RC)
-	}
-      all <- lapply(as.list(modelid), gaussk, data = data, 
-		    clss = clss, nclus = nclus, l = l, smpl = smpl, 
-		    equal = equal)
-      all <- list(bic = sapply(all, function(z) z$bic), 
-		   rc = sapply(all, function(z) z$rc))
-      ## following piece of code necessary if only one number of
-      ## clusters given...
-      if (is.matrix(all$bic)) {
-	all$bic _ t(all$bic)
-      } else {
-	all$bic _ as.matrix(all$bic)
+      else {
+        sigma <- decomp2sigma(decomp)
       }
-      if (is.matrix(all$rc)) {
-	all$rc _ t(all$rc)
-      } else {
-	all$rc _ as.matrix(all$rc)
-      }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      dimnames(all$bic) <- dimnames(all$rc) <- list(modelid, 
-						    as.character(nclus))
-      structure(all$bic, equal = equal, tree = tree, subset
-		= smpl, rcond = all$rc, class = "emclust")
     }
-    else 
+    mu <- mu[dimens,  ]
+    sigma <- sigma[dimens, dimens,  ]
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      params <- FALSE
+      warning("covariance improperly specified")
+    }
+    if(G != dimpar[3]) {
+      params <- FALSE
+      warning("mu and sigma are incompatible")
+    }
+  }
+  if(!is.null(truth)) {
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
+    }
+    else {
+      if(length(unique(truth)) != length(unique(classification)))
+        truth <- NULL
+      else truth <- as.character(truth)
+    }
+  }
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- sort(unique(classification))
+    L <- length(U)
+    if(missing(symbols)) {
+      if(L <= length(.Mclust$symbols)) {
+        symbols <- .Mclust$symbols
+      }
+      else if(L <= 9) {
+        symbols <- as.character(1:9)
+      }
+      else if(L <= 26) {
+        symbols <- LETTERS
+      }
+    }
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification")
+      classification <- NULL
+    }
+  }
+  if(l <- length(type)) {
+    choices <- c("classification", "uncertainty", "density", 
+                 "errors")
+    m <- rep(0, l)
+    for(i in 1:l) {
+      m[i] <- charmatch(type[i], choices, nomatch = 0)
+    }
+    choices <- choices[unique(m)]
+    if(is.null(classification))
+      choices <- choices[choices != "classification"]
+    if(is.null(uncertainty))
+      choices <- choices[choices != "uncertainty"]
+    if(is.null(truth))
+      choices <- choices[choices != "errors"]
+  }
+  else choices <- NULL
+  if(length(choices) > 1 && ask)
+    choices <- c(choices, "all")
+  else {
+    if(!length(choices)) {
+      plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
+      if(identify)
+        title(paste("Coordinate Projection: dimens = ",
+                    paste(dimens, collapse = ",")), cex = 0.5)
+      return(invisible())
+    }
+    if(length(choices) == 1)
+      ask <- FALSE
+  }
+  if(any(choices == "errors")) {
+    comp <- compClass(truth, classification)
+    tr <- comp$map[1,  ]
+    cl <- comp$map[2,  ]
+    TRUTH <- rep("0", length(truth))
+    for(k in 1:L) {
+      TRUTH[truth == tr[k]] <- cl[k]
+    }
+  }
+  if(!ask)
+    pick <- 1:length(choices)
+  ALL <- FALSE
+  while(TRUE) {
+    if(ask) {
+      pick <- menu(choices, title = 
+                   "\ncoordProj: make a plot selection (0 to exit):\n"
+                   )
+      if(!pick)
+        return(invisible())
+      ALL <- any(choices[pick] == "all")
+    }
+    if(any(choices[pick] == "classification") ||
+       (any(choices == "classification") && ALL)) {
+      plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+        }
+      }
+      if (missing(col)) col <- rep(1, L)
+      if (length(col) != L) {
+        warning(paste("Number of colors does not match number of classes!",
+                      "\nUsing only one color.", sep=""))
+        col <- rep(1, L)
+      }
+      for(k in 1:L) {
+        I <- classification == U[k]
+        points(Data[I, 1], Data[I, 2], pch = symbols[k], cex = CEX, col=col[k])
+      }
+      if(identify)
+        title(paste("Coordinate Projection showing Classification: dimens = ",
+                    paste(dimens, collapse = ",")), cex = 0.5)
+    }
+    if(any(choices[pick] == "uncertainty") ||
+       (any(choices == "uncertainty") && ALL))
       {
-	##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-	## noise case
-	##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      noise <- as.logical(noise)
-      m <- sum(as.numeric(!noise))
-      n <- nrow(data)	
-      ##-----------------------------------------------------------------------
-      if(missing(nclus))
-	nclus <- 0:9
-      nclus <- sort(nclus)
-      l <- length(nclus)	
-      ##-----------------------------------------------------------------------
-      ## Original: just the else clause... RW, 14/8/2001
-      ## smpl <- sample(1:m, size = k)
-      if (is.vector(k) & max(k) <= m) {
-	smpl _ k
-	k _ length(k)
-      } else {
-	smpl <- sample(1:m, size = k)
+        plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
+             ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+        if(params) {
+          for(k in 1:G) {
+            mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          }
+        }
+        breaks <- quantile(uncertainty, probs = sort(quantiles)
+                           )
+        I <- uncertainty < breaks[1]
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 0.5 * CEX)
+        I <- uncertainty < breaks[2] & !I
+        points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 * CEX)
+        I <- uncertainty >= breaks[2]
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 1.5 * CEX)
+        if(identify)
+          title(paste("Coordinate Projection showing Uncertainty: dimens = ",
+                      paste(dimens, collapse = ",")), cex = 0.5)
       }
-
-      tree <- mhtree.VVV(data[!noise,  ][smpl,  ])
-      clss <- mhclass(tree, nclus[nclus != 0])
-      if(missing(Vinv)) Vinv <- hypvol(data, reciprocal = T)	
-      ##-----------------------------------------------------------------------
-      gaussnk <- function(modelid, data, clss, nclus, l, n, 
-			  smpl, equal, noise, Vinv)
-	{
-	  bicnam <- paste("bic.", modelid, sep = "")
-	  menam <- paste("me.", modelid, sep = "")
-	  msnam <- paste("mstep.", modelid, sep = "")
-	  esnam <- paste("estep.", switch(modelid,
-					  EI = "EI",
-					  VI = "VI",
-					  EEE = "EEE",
-					  VVV = "VVV",
-					  EEV = "XEV",
-					  VEV = "XEV"), sep = "")
-	  BIC <- RC <- numeric(l)
-	  if(n != length(noise))
-	    stop("STOP")
-	  k <- 1
-	  if(nclus[1] == 0) {
-					# all noise --- same for all models
-	    BIC[k] <- bic(data, modelid = modelid, noise
-			  = T, Vinv = Vinv)
-	    RC[k] <- NA
-	    k <- k + 1
-	  }
-	  if(k < l) {
-	    z <- matrix(0, n, nclus[l] + 1)
-	    for(j in k:l) {
-	      i <- nclus[j]
-	      z[, 1:(i + 1)] <- 0
-	      pars <- do.call(msnam, 
-			      list(data[!noise,][smpl,], 
-				   ctoz(clss[, as.character(i)]), 
-				   equal = equal))
-	      z[!noise, 1:i] <- do.call(esnam, c(list(data[!noise,]), pars))
-	      z[noise, i + 1] <- 1
-	      z[, 1:(i + 1)] <- 
-		do.call(menam, list(data, z[, 1:(i + 1)], equal = equal,
-				    noise = T, Vinv = Vinv)) 
-	      bicval <- do.call(bicnam, list(data, z[, 1:(i + 1)],
-					     equal = equal, noise = T, 
-					     Vinv = Vinv)) 
-	      BIC[j] <- bicval
-	      if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
-	    }
-	  }
-	  list(bic = BIC, rc = RC)
-	}
-      all <- lapply(as.list(modelid), gaussnk, data = data, 
-		    clss = clss, nclus = nclus, l = l, n = n, smpl
-		    = smpl, equal = equal, noise = noise, Vinv = 
-		    Vinv)
-      all <- list(bic = sapply(all, function(z) z$bic), 
-		   rc = sapply(all, function(z) z$rc))
-      ##Original:
-      ##      all <- list(bic = t(sapply(all, function(z) z$bic)), 
-      ##	  rc = t(sapply(all, function(z) z$rc)))	
-      ## following piece of code necessary if only one number of
-      ## clusters given...
-      if (is.matrix(all$bic)) {
-	all$bic _ t(all$bic)
-      } else {
-	all$bic _ as.matrix(all$bic)
+    if(any(choices[pick] == "errors") || (any(choices == "errors") && ALL)) {
+      plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+        }
       }
-      if (is.matrix(all$rc)) {
-	all$rc _ t(all$rc)
-      } else {
-	all$rc _ as.matrix(all$rc)
+      CLASSES <- unique(as.character(TRUTH))
+      symOpen <- c(2, 0, 1, 5)
+      symFill <- c(17, 15, 16, 18)
+      good <- classification == TRUTH
+      if(L > 4) {
+        points(Data[good, 1], Data[good, 2], pch = 1, cex = CEX)
+        points(Data[!good, 1], Data[!good, 2], pch = 16, cex = CEX)
       }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      dimnames(all$bic) <- dimnames(all$rc) <- list(modelid, 
-						    as.character(nclus))
-      structure(all$bic, equal = equal, tree = tree, subset
-		= smpl, noise = noise, Vinv = Vinv, rcond = 
-		all$rc, class = "emclust")
+      else {
+        for(k in 1:L) {
+          K <- TRUTH == CLASSES[k]
+          points(Data[K, 1], Data[K, 2], pch = symOpen[k], cex = CEX)
+          if(any(I <- (K & !good))) {
+            points(Data[I, 1], Data[I, 2], pch = symFill[k], cex = CEX)
+          }
+        }
+      }
+      if(identify)
+        title(paste("Coordinate Projection showing Classification Errors:",
+                    "dimens = ", paste(dimens, collapse = ",")), cex = 0.5)
     }
+    if(!ask)
+      break
   }
+  invisible()
 }
 
-"emclust1" <- function(data, nclus, modelid = c("VVV", "VVV"), k, 
-		       equal = F, noise, Vinv) 
+"cv1EMtrain" <- function(data, labels, modelNames)
 {
-  data <- as.matrix(data)
-  if(length(modelid) == 1)
-    modelid <- c(modelid, modelid)
-  names(modelid) <- c("HC", "EM")
-  if(missing(k)) {
-    if(missing(noise)) {
-      nclus <- if(missing(nclus)) 1:9 else sort(unique(nclus))
-      ## no mhtree.EEV or mhtree.VEV
-      tree <- switch(modelid[1],
-		     EI = mhtree.EI(data),
-		     VI = mhtree.VI(data),
-		     EEE = mhtree.EEE(data),
-		     VVV = mhtree.VVV(data),
-		     stop("invalid model id for HC"))
-      l <- length(nclus)
-      BIC <- RC <- numeric(l)	
-      ##-----------------------------------------------------------------------
-      clss <- mhclass(tree, nclus)
-      for(j in 1:l) {
-	i <- nclus[j]
-	if(i == 1) {
-	  bicval <- bic(data, modelid = modelid[2])
-	}
-	else {
-	  z <- me(data, modelid = modelid[2], ctoz(clss[
-			  , as.character(i)]), equal = equal)
-	  bicval <- bic(data, modelid = modelid[2], z, 
-			equal = equal)
-	}
-	BIC[j] <- bicval
-	if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
+  z <- unmap(as.numeric(labels))
+  G <- ncol(z)
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(oneD || length(dimData) != 2) {
+    if(missing(modelNames))
+      modelNames <- c("E", "V")
+    if(any(!match(modelNames, c("E", "V"), nomatch = 0)))
+      stop("modelNames E or V for one-dimensional data")
+    n <- length(data)
+    cv <- matrix(1, nrow = n, ncol = length(modelNames))
+    dimnames(cv) <- list(NULL, modelNames)
+    for(m in modelNames) {
+      for(i in 1:n) {
+        mStep <- mstep(modelName = m, data = data[- i], z = z[ - i,],
+                       warnSingular = FALSE) 
+##        if (m == "V") cat("\n", mStep$sigmasq)
+        eStep <- do.call("estep", c(mStep, list(data = data[i],
+                                                warnSingular = FALSE)))
+        if(is.null(attr(eStep, "warn"))) {
+          k <- (1:G)[eStep$z == max(eStep$z)]
+          l <- (1:G)[z[i,  ] == max(z[i,  ])]
+          cv[i, m] <- as.numeric(!any(k == l))
+        } 
       }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      names(BIC) <- names(RC) <- as.character(nclus)
-      structure(BIC, modelid = modelid, equal = equal, tree
-		= tree, rcond = RC, class = "emclust1")
-    }
-    else {
-      ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      ## noise case
-      ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      nclus <- if(missing(nclus)) 0:9 else sort(unique(nclus)
-						)
-      noise <- as.logical(noise)	## no mhtree.EEV or mhtree.VEV
-      tree <- switch(modelid[1],
-		     EI = mhtree.EI(data[!noise,  ]),
-		     VI = mhtree.VI(data[!noise,  ]),
-		     EEE = mhtree.EEE(data[!noise,  ]),
-		     VVV = mhtree.VVV(data[!noise,  ]),
-		     stop("invalid model id for HC"))
-      l <- length(nclus)
-      BIC <- RC <- numeric(l)	
-      ##-----------------------------------------------------------------------
-      clss <- mhclass(tree, nclus[nclus != 0])
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      cl <- numeric(nrow(data))
-      k <- 1
-      if(nclus[k] == 0) {
-					# all noise --- same for all models
-	one <- bic.EI(data, noise = T, Vinv = Vinv)
-	BIC[k] <- one
-	### Original gave error here: Object "bicval" not found
-        ###	if (!is.na(bicval)) RC[k] <- attr(one, "rc")
-	if (!is.na(one)) RC[k] <- attr(one, "rc")
-	k <- k + 1
-      }
-      if(k < l) {
-	for(j in k:l) {
-	  i <- nclus[j]
-	  cl[!noise] <- clss[, as.character(i)]
-	  cl[noise] <- i + 1
-	  z <- me(data, modelid = modelid[2], ctoz(cl), 
-		  equal = equal, noise = T, Vinv = Vinv)
-	  bicval <- bic(data, modelid = modelid[2], z, 
-			equal = equal, noise = T, Vinv = Vinv)
-	  BIC[j] <- bicval
-	  if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
-	}
-      }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      names(BIC) <- names(RC) <- as.character(nclus)
-      structure(BIC, modelid = modelid, equal = equal, tree
-		= tree, noise = noise, Vinv = Vinv, rcond = RC,
-		class = "emclust1")
     }
   }
   else {
-    ##=========================================================================
-    ## hierarchical clustering with a sample
-    ##=========================================================================
-    if(missing(noise)) {
-      nclus <- if(missing(nclus)) 1:9 else sort(unique(nclus))	
-      ## no mhtree.EEV or mhtree.VEV
-      ## Original: just the else clause
-      ## smpl <- sample(1:nrow(data), k)
-      if (length(k)>1 & max(k) <= nrow(data)) {
-	smpl _ k
-	k _ length(k)
-      } else {
-	smpl <- sample(1:nrow(data), size = k)
+    if(missing(modelNames))
+      modelNames <- .Mclust$emModelNames
+    n <- nrow(data)
+    cv <- matrix(1, nrow = n, ncol = length(modelNames))
+    dimnames(cv) <- list(NULL, modelNames)
+    for(m in modelNames) {
+      for(i in 1:n) {
+        mStep <- mstep(modelName = m,
+                       data = data[- i,  ], z = z[ - i,  ],
+                       warnSingular = FALSE) 
+        eStep <- do.call("estep",
+                         c(mStep, list(data = data[i,  , drop = FALSE],
+                                       warnSingular = FALSE)))
+        if(is.null(attr(eStep, "warn"))) {
+          k <- (1:G)[eStep$z == max(eStep$z)]
+          l <- (1:G)[z[i,  ] == max(z[i,  ])]
+          cv[i, m] <- as.numeric(!any(k == l))
+        }
       }
+    }
+  }
+  errorRate <- apply(cv, 2, sum)
+  ## errorRate[errorRate < 0] <- n
+  errorRate/n
+}
 
-      tree <- switch(modelid[1],
-		     EI = mhtree.EI(data[smpl,  ]),
-		     VI = mhtree.VI(data[smpl,  ]),
-		     EEE = mhtree.EEE(data[smpl,  ]),
-		     VVV = mhtree.VVV(data[smpl,  ]),
-		     stop("invalid model id for HC"))
-      l <- length(nclus)
-      BIC <- RC <- numeric(l)	
-      ##-----------------------------------------------------------------------
-      clss <- mhclass(tree, nclus)	
-      for(j in 1:l) {
-	i <- nclus[j]
-	if(i == 1) {
-	  bicval <- bic(data, modelid = modelid[2])
-	}
-	else {
-	  pars <- mstep(data[smpl,  ], modelid = 
-			modelid[2], ctoz(clss[, as.character(i)]), 
-			equal = equal)
-	  z <- do.call("estep", c(list(data = data, 
-				       modelid = modelid[2]), pars))
-	  z <- me(data, modelid = modelid[2], z, equal
-		  = equal)
-	  bicval <- bic(data, modelid = modelid[2], z, 
-			equal = equal)
-	}
-	BIC[j] <- bicval
-	if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
+"decomp2sigma" <- function(d, G, scale, shape, orientation = NULL, ...)
+{
+  nod <- missing(d)
+  noG <- missing(G)
+  lenScale <- length(scale)
+  if(lenScale != 1) {
+    if(!noG && G != lenScale)
+      stop("scale incompatibile with G")
+    G <- lenScale
+  }
+  shape <- as.matrix(shape)
+  p <- nrow(shape)
+  if(!nod && p != d)
+    stop("shape incompatible with d")
+  d <- p
+  g <- ncol(shape)
+  if(g != 1) {
+    if(!is.null(G) && g != G)
+      stop("shape incompatible with scale")
+    if(!noG && g != G)
+      stop("shape incompatible with G")
+    G <- g
+  }
+  if(is.null(orientation)) {
+    orientName <- "I"
+    if(is.null(G)) {
+      G <- if(noG) 1 else G
+    }
+    orientation <- array(diag(d), c(d, d, G))
+  }
+  else {
+    dimO <- dim(orientation)
+    l <- length(dimO)
+    if(is.null(dimO) || l < 2 || l > 3 || dimO[1] != dimO[2])
+      stop("orientation improperly specified")
+    if(dimO[1] != d)
+      stop("orientation incompatible with shape")
+    if(l == 3) {
+      orientName <- "V"
+      if(is.null(G)) {
+        if(!noG && dimO[3] != G)
+          stop("orientation incompatible with G")
+        G <- dimO[3]
       }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      names(BIC) <- names(RC) <- as.character(nclus)
-      structure(BIC, modelid = modelid, equal = equal, tree
-		= tree, subset = smpl, rcond = RC, class = 
-		"emclust1")
+      else if(G != dimO[3])
+        stop("orientation incompatible with scale and/or shape"
+             )
     }
     else {
-      ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      ## noise case
-      ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      nclus <- if(missing(nclus)) 0:9 else sort(unique(nclus)
-						)
-      noise <- as.logical(noise)
-      m <- sum(as.numeric(!noise))
-      ## Original: just the else clause
-      ## smpl <- sample(1:m, size = k)	## no mhtree.EEV or mhtree.VEV
-      if (is.vector(k) & max(k) <= m) {
-	smpl _ k
-	k _ length(k)
-      } else {
-	smpl <- sample(1:m, size = k)
+      orientName <- "E"
+      if(is.null(G)) {
+        G <- if(noG) 1 else G
       }
-
-      tree <- switch(modelid[1],
-		     EI = mhtree.EI(data[!noise,  ][smpl,  ]),
-		     VI = mhtree.VI(data[!noise,  ][smpl,  ]),
-		     EEE = mhtree.EEE(data[!noise,  ][smpl,  ]),
-		     VVV = mhtree.VVV(data[!noise,  ][smpl,  ]),
-		     stop("invalid model id for HC"))
-      l <- length(nclus)
-      BIC <- RC <- numeric(l)	
-      ##-----------------------------------------------------------------------
-      clss <- mhclass(tree, nclus[nclus != 0])
-      if(missing(Vinv))
-	Vinv <- hypvol(data, reciprocal = T)
-      cl <- numeric(nrow(data))
-      k <- 1
-      if(nclus[k] == 0) {
-					# all noise --- same for all models
-	one <- bic.EI(data, noise = T, Vinv = Vinv)
-	BIC[k] <- one
-	if (!is.na(bicval)) RC[k] <- attr(one, "rc")
-	k <- k + 1
-      }
-      z <- matrix(0, nrow(data), nclus[l] + 1)
-      if(k < l) {
-	for(j in k:l) {
-	  i <- nclus[j]
-	  pars <- mstep(data[!noise,  ][smpl,  ], 
-			modelid = modelid[2], ctoz(clss[, 
-			  as.character(i)]), equal = equal)
-	  z0 <- do.call("estep.EI", c(list(data[!noise,], 
-					   modelid = modelid[2]), pars))
-	  z[, 1:(i + 1)] <- 0
-	  z[!noise, 1:i] <- z0
-	  z[noise, i + 1] <- 1
-	  z <- me(data, modelid = modelid[2], z[, 1:(i + 
-			  1)], equal = equal, noise = T, Vinv = Vinv)
-	  bicval <- bic(data, modelid = modelid[2], z[, 
-				1:(i + 1)], equal = equal, noise = T, Vinv
-			= Vinv)
-	  BIC[j] <- bicval
-	  if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
-	}
-      }
-      ##-----------------------------------------------------------------------
-      ## output
-      ##-----------------------------------------------------------------------
-      names(BIC) <- names(RC) <- as.character(nclus)
-      structure(BIC, modelid = modelid, equal = equal, tree
-		= tree, subset = smpl, noise = noise, Vinv = 
-		Vinv, rcond = RC, class = "emclust1")
+      orientation <- array(orientation, c(d, d, G))
     }
   }
+  if(G == 1) {
+    scaleName <- shapeName <- "X"
+  }
+  else {
+    scaleName <- if(lenScale == 1) "E" else "V"
+    shapeName <- if(g == 1) "E" else "V"
+    scale <- rep(scale, G)
+    shape <- matrix(shape, nrow = d, ncol = G)
+  }
+  sigma <- array(0, c(d, d, G))
+  for(k in 1:G) {
+    sigma[,  , k] <- crossprod(orientation[,  , k] *
+                               sqrt(scale[k] * shape[, k]))
+  }
+  structure(sigma, modelName = paste(c(scaleName, shapeName, orientName),
+                     collapse = ""))
 }
 
-"estep" <- function(data, modelid, mu, ...)
+"dens" <- function(modelName, data, mu, ...)
 {
-					# ... sigsq or sigma, eps, Vinv
-  switch(as.character(modelid),
-	 EI = estep.EI(data, mu, ...),
-	 VI = estep.VI(data, mu, ...),
-	 EEE = estep.EEE(data, mu, ...),
-	 VVV = estep.VVV(data, mu, ...),
-	 EEV = estep.XEV(data, mu, ...),
-	 VEV = estep.XEV(data, mu, ...),
-	 stop("invalid model id"))
+  ## ... sigmasq or sigma, pro, eps
+  cden <- do.call("cdens", list(modelName = modelName, data = data, mu = 
+                                mu, ...))
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  G <- if(oneD) length(mu) else ncol(as.matrix(mu))
+  if(is.null(pro <- list(...)$pro))
+    pro <- rep(1/G, G)
+  apply(sweep(cden, 2, FUN = "*", STATS = pro), 1, sum)
 }
 
-"estep.EEE" <- function(data, mu, sigma, prob, eps, Vinv)
+## "density" <- 
+##   function(x, n = 50, window = "gaussian", na.rm = FALSE, width = "HB", from,
+##            to, cut = if(iwindow == 4) 0.75 else 0.5, method, ...)
+## {
+##   if(!missing(method)) {
+##     if(method == "mclust") {
+##       modl <- summary(EMclust(x, ...), x)
+##     }
+##   }
+##   x.finites <- is.finite(x)
+##   if(!(na.rm || all(x.finites)))
+##     stop("NAs/Infs in x, na.rm is FALSE")
+##   x <- sort(x[x.finites])
+##   r <- range(x)
+##   iwindow <- pmatch(window, c("rectangular", "triangular", "cosine",
+##                               "gaussian"), -1)
+##   if(iwindow < 0)
+##     stop("Invalid window type")
+##   if(is.character(width))
+##     width.value <- switch(casefold(width),
+##                           bcv = bandwidth.bcv(x),
+##                           hb = bandwidth.hb(x),
+##                           nrd = bandwidth.nrd(x),
+##                           sj = bandwidth.sj(x),
+##                           ucv = bandwidth.ucv(x),
+##                           stop("Width method not recognized"))
+##   else if(is.numeric(width) || is.na(width))
+##     width.value <- width
+##   else if(is.function(width))
+##     width.value <- width(x)
+##   if(is.na(width.value)) {
+##     warning("Window width is NA.  Cannot calculate density.")
+##     return(NA)
+##   }
+##   if(missing(from))
+##     from <- r[1] - width.value * cut
+##   if(missing(to))
+##     to <- r[2] + width.value * cut
+##   if(to <= from)
+##     stop("Invalid from/to values")
+##   if(!missing(method)) {
+##     if(method == "mclust") {
+##       x <- seq(from, to, length = n)
+##       y <- do.call("dens", c(list(data = x, warnSingular = FALSE),
+##                              modl))
+##       return(list(x = x, y = y))
+##     }
+##   }
+##   list(x = seq(from, to, length = n), y = .Fortran("fitden",
+##                                         x = as.single(x),
+##                                         length(x),
+##                                         as.integer(iwindow),
+##                                         as.single(width.value),
+##                                         as.single(from),
+##                                         as.single(to),
+##                                         as.integer(n),
+##                                         y = single(n))$y)
+## }
+
+"em" <- function(modelName, data, mu, ...)
 {
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  G <- ncol(mu)
-  if(missing(prob))
-    prob <- rep(1/G, G)
-  prob <- prob/sum(prob)
-  equal <- length(unique(prob)) == 1
-  l <- length(prob)
-  noise <- l != G
-  if(all(is.na(c(sigma, mu, prob)))) {
-    z <- matrix(NA, n, if(noise) G + 1 else G)
-    attr(z, "loglik") <- NA
-    return(z)
-  }
-  else if(any(is.na(sigma)) || any(is.na(mu)) || any(is.na(prob))) {
-    stop("parameters contain missing values")
-  }
+  ## ... sigmasq or sigma, pro, eps, Vinv
+  funcName <- paste("em", modelName, sep = "")
+  do.call(funcName, list(data = data, mu = mu, ...))
+}
+
+"emE" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
+                  warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  G <- length(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
   if(!noise) {
-					# no noise assumed
+    if(l != G)
+      stop("pro improperly specified")
     K <- G
-    temp <- .Fortran("eseee",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(p),
-		     double(n * G),
-		     as.double(eps))[9:10]
+    Vinv <- -1
   }
   else {
     K <- G + 1
-    if(l != K)
-      stop("length(prob) = G+1 for noise")
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    temp <- .Fortran("esneee",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(p),
-		     double(n * K),
-		     as.double(eps),
-		     as.double(Vinv))[9:10]
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
   }
-  z <- matrix(NA, n, K)
-  attr(z, "loglik") <- NA
-  loglik <- temp[[2]]
-  if(loglik == .Machine$double.xmin) {
-    warning("sigma is not positive definite")
-    return(z)
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, k),
+                          loglik = NA, modelName = "E"), warn = warn))
   }
-  if(loglik ==  - .Machine$double.xmin) {
-    warning("input error for LAPACK DPOTRF")
-    return(z)
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.xmax
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(sigmasq <= eps) {
+    warn <- "sigma-squared falls below threshold"
+    warning("sigma-squared falls below threshold")
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, k),
+                          loglik = NA, modelName = "E"), warn = warn))
   }
-  if(loglik == .Machine$double.xmax) {
-    warning("sigma is nearly singular")
-    return(z)
+  temp <- .Fortran("em1e",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(eps),
+                   as.double(tol),
+                   double(n * K))[6:12]
+  mu <- temp[[1]]
+  names(mu) <- as.character(1:G)
+  sigmasq <- temp[[2]]
+  pro <- temp[[3]]
+  its <- temp[[4]]
+  err <- temp[[5]]
+  loglik <- temp[[6]]
+  z <- matrix(temp[[7]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || sigmasq <= max(eps, 0)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
   }
-  z[1:n, 1:K] <- temp[[1]]
-  attr(z, "loglik") <- loglik
-  z
+  else if(its >= itmax) {
+    warning("iteration limit reached")
+    warn <- "iteration limit reached"
+    its <-  - its
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, mu = mu, sigmasq = sigmasq, pro = 
+                 pro, z = z, loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "E"), info = info, warn = warn)
 }
-"estep.EI" <-
-function(data, mu, sigma, prob, eps, Vinv)
+
+"emEEE" <- function(data, mu, Sigma, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...)
 {
-  data <- as.matrix(data)
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
   n <- nrow(data)
   p <- ncol(data)
-  if(missing(eps))
-    eps <- .Machine$double.eps
+  mu <- as.matrix(mu)
   G <- ncol(mu)
-  if(missing(prob))
-    prob <- rep(1/G, G)
-  prob <- prob/sum(prob)
-  equal <- length(unique(prob)) == 1
-  l <- length(prob)
-  noise <- l != G
-  if(all(is.na(c(sigma, mu, prob)))) {
-    z <- matrix(NA, n, if(noise) G + 1 else G)
-    attr(z, "loglik") <- NA
-    return(z)
-  }
-  else if(is.na(sigma) || any(is.na(mu)) || any(is.na(prob))) {
-    stop("parameters contain missing values")
-  }
-  if(sigma <= eps) {
-    warning("sigma-squared falls below threshold")
-    z <- matrix(NA, n, if(noise) G + 1 else G)
-    attr(z, "loglik") <- NA
-    return(z)
-  }
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
   if(!noise) {
-					# no noise assumed
+    if(l != G)
+      stop("pro improperly specified")
     K <- G
-    temp <- .Fortran("esei",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(n * G),
-		     as.double(eps))[8:9]
+    Vinv <- -1
   }
   else {
     K <- G + 1
-    if(l != K)
-      stop("length(prob) = G+1 for noise")
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    temp <- .Fortran("esnei",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(n * K),
-		     as.double(eps),
-		     as.double(Vinv))[8:9]
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
   }
-  z <- matrix(NA, n, K)
-  attr(z, "loglik") <- NA
-  loglik <- temp[[2]]
-  if(loglik == .Machine$double.xmax) {
-    warning("sigma-squared falls below threshold")
-    return(z)
+  cholSigma <- list(...)$cholSigma
+  if(is.null(cholSigma)) {
+    if(!is.null(decomp <- list(...)$decomp)) {
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      sig <- qr.R(qr(O * sqrt(scale * shape)))
+      cholIND <- "U"
+    }
+    else if(!missing(Sigma)) {
+      sig <- Sigma
+      cholIND <- "N"
+    }
+    else if(!is.null(sigma <- list(...)$sigma)) {
+      sig <- sigma
+      cholIND <- "N"
+    }
+    else stop("invalid specification for sigma")
   }
-  z[1:n, 1:K] <- temp[[1]]
-  attr(z, "loglik") <- loglik
-  z
+  else {
+    sig <- cholSigma
+    cholIND <- "U"
+  }
+  if(any(is.na(c(mu, sig, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = mu,
+                          sigma = array(NA, c(p, p, G)),
+                          Sigma = matrix(NA, p, p),
+                          cholSigma = matrix(NA, p, p),
+                          pro = pro, z = matrix(NA, n, K),
+                          loglik = NA, modelName = "EEE"), warn = warn))  
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Machine$warnSingular
+  storage.mode(mu) <- "double"
+  storage.mode(sig) <- "double"
+  temp <- .Fortran("emeee",
+                   as.integer(if (cholIND == "N") 0 else 1),
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   sig,
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p),
+                   double(n * K))[8:15]
+  mu <- matrix(temp[[1]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  cholSigma <- structure(temp[[2]], def = 
+                         "Sigma = t(cholSigma) %*% cholSigma")
+  pro <- temp[[3]]
+  its <- temp[[4]]
+  err <- temp[[5]]
+  loglik <- temp[[6]]
+  lapackCholInfo <- temp[[7]][1]
+  z <- matrix(temp[[8]], n, K)
+  warn <- NULL
+  if(lapackCholInfo) {
+    if(lapackCholInfo > 0) {
+      if(warnSingular)
+        warning("sigma is not positive definite")
+      warn <- "sigma is not positive definite"
+    }
+    else {
+      warning("input error for LAPACK DPOTRF")
+      warn <- "input error for LAPACK DPOTRF"
+    }
+    z[] <- loglik <- icond <- NA
+    sigma <- array(NA, c(p, p, G))
+    cholSigma <- Sigma <- matrix(NA, p, p)
+  }
+  else {
+    Sigma <- unchol(cholSigma, upper = TRUE)
+    if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+      if(warnSingular)
+        warning("singular covariance")
+      warn <- "singular covariance"
+      mu[] <- pro[] <- z[] <- loglik <- NA
+      sigma <- array(NA, c(p, p, G))
+    }
+    else {
+      sigma <- array(0, c(p, p, G))
+      for(k in 1:G)
+        sigma[,  , k] <- Sigma
+      if(its >= itmax) {
+        warning("iteration limit reached")
+        warn <- "iteration limit reached"
+        its <-  - its
+      }
+    }
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 Sigma = Sigma, cholSigma = cholSigma, pro = pro,
+                 z = z, loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "EEE"), info = info, warn = warn)
 }
-"estep.VI" <-
-function(data, mu, sigma, prob, eps, Vinv)
+
+"emEEI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
 {
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  if(missing(eps))
-    eps <- .Machine$double.eps
+  mu <- as.matrix(mu)
   G <- ncol(mu)
-  if(missing(prob))
-    prob <- rep(1/G, G)
-  prob <- prob/sum(prob)
-  equal <- length(unique(prob)) == 1
-  l <- length(prob)
-  noise <- l != G
-  if(all(is.na(c(sigma, mu, prob)))) {
-    z <- matrix(NA, n, if(noise) G + 1 else G)
-    attr(z, "loglik") <- NA
-    return(z)
-  }
-  else if(any(is.na(sigma)) || any(is.na(mu)) || any(is.na(prob))) {
-    stop("parameters contain missing values")
-  }
-  if(any(sigma) <= eps) {
-    warning("sigma-squared falls below threshold")
-    z <- matrix(NA, n, length(prob))
-    attr(z, "loglik") <- NA
-    return(z)
-  }
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
   if(!noise) {
-					# no noise assumed
+    if(l != G)
+      stop("pro improperly specified")
     K <- G
-    temp <- .Fortran("esvi",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(n * G),
-		     as.double(eps))[8:9]
+    Vinv <- -1
   }
   else {
     K <- G + 1
-    if(l != K)
-      stop("length(prob) = G+1 for noise")
-    if(missing(Vinv))
-      Vinv <- hypvol(x, reciprocal = T)
-    temp <- .Fortran("esnvi",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(n * K),
-		     as.double(eps),
-		     as.double(Vinv))[8:9]
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
   }
-  z <- matrix(NA, n, K)
-  attr(z, "loglik") <- NA
-  loglik <- temp[[2]]
-  if(loglik == .Machine$double.xmax) {
-    warning("sigma-squared falls below threshold")
-    return(z)
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(list(n = n, d = p, G = G, mu = mu,
+                sigma = array(NA, c(p, p, G)),
+                Sigma = matrix(NA, p, p),
+                decomp = list(p = p, G = G, scale = NA, shape = rep(NA, p)),
+                pro = pro, z = matrix(NA, n, K),
+                loglik = NA, modelName = "EEI"), warn = warn) 
   }
-  z[1:n, 1:K] <- temp[[1]]
-  attr(z, "loglik") <- loglik
-  z
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(mu) <- "double"
+  temp <- .Fortran("emeei",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(n * K))[7:14]
+  mu <- temp[[1]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[2]]
+  shape <- temp[[3]]
+  pro <- temp[[4]]
+  its <- temp[[5]]
+  err <- temp[[6]]
+  loglik <- temp[[7]]
+  z <- matrix(temp[[8]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+    Sigma <- matrix(NA, p, p)
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    Sigma <- diag(rep(scale, p))
+    for(k in 1:G)
+      sigma[,  , k] <- Sigma
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, Sigma = 
+                 Sigma, decomp = decomp, pro = pro, z = z, loglik = loglik,
+                 Vinv = if(noise) Vinv else NULL, modelName = "EEI"), info = 
+            info, warn = warn)
 }
-"estep.VVV" <-
-function(data, mu, sigma, prob, eps, Vinv)
+
+"emEEV" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...)
 {
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  if(missing(eps))
-    eps <- .Machine$double.eps
+  mu <- as.matrix(mu)
   G <- ncol(mu)
-  if(missing(prob))
-    prob <- rep(1/G, G)
-  prob <- prob/sum(prob)
-  equal <- length(unique(prob)) == 1
-  l <- length(prob)
-  noise <- l != G
-  if(all(is.na(c(sigma, mu, prob)))) {
-    z <- matrix(NA, n, if(noise) G + 1 else G)
-    attr(z, "loglik") <- NA
-    return(z)
-  }
-  else if(any(is.na(sigma)) || any(is.na(mu)) || any(is.na(prob))) {
-    stop("parameters contain missing values")
-  }
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
   if(!noise) {
-					# no noise assumed
+    if(l != G)
+      stop("pro improperly specified")
     K <- G
-    temp <- .Fortran("esvvv",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(p),
-		     double(n * G),
-		     as.double(eps))[9:10]
+    Vinv <- -1
   }
   else {
     K <- G + 1
-    if(l != K)
-      stop("length(prob) = G+1 for noise")
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    temp <- .Fortran("esnvvv",
-		     as.double(data),
-		     as.double(mu),
-		     as.double(sigma),
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     double(p),
-		     double(n * K),
-		     as.double(eps),
-		     as.double(Vinv))[9:10]
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
   }
-  z <- matrix(NA, n, K)
-  attr(z, "loglik") <- NA
-  loglik <- temp[[2]]
-  if(loglik == .Machine$double.xmin) {
-    warning("sigma is not positive definite")
-    return(z)
+  if(missing(decomp))
+    stop("decomp must be specified")
+  sigmaIND <- "N"
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = mu,
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(p = p, G = G, scale = NA,
+                            shape = rep(NA, p)),
+                          pro = pro, z = matrix(NA, n, K),
+                          loglik = NA, modelName = "EEV"), warn = warn))
   }
-  if(loglik ==  - .Machine$double.xmin) {
-    warning("input error for LAPACK DPOTRF")
-    return(z)
-  }
-  if(loglik == .Machine$double.xmax) {
-    warning("sigma is nearly singular")
-    return(z)
-  }
-  z[1:n, 1:K] <- temp[[1]]
-  attr(z, "loglik") <- loglik
-  z
-}
-"estep.XEV" <-
-function(data, mu, sigma, prob, eps, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
   if(missing(eps))
-    eps <- c(.Machine$double.eps, .Machine$double.eps)
-  else if(length(eps) == 1)
-    eps <- c(eps, .Machine$double.eps)
-  G <- ncol(mu)
-  if(missing(prob))
-    prob <- rep(1/G, G)
-  prob <- prob/sum(prob)
-  equal <- length(unique(prob)) == 1
-  l <- length(prob)
-  noise <- l != G
-  if(all(is.na(c(sigma, mu, prob)))) {
-    z <- matrix(NA, n, if(noise) G + 1 else G)
-    attr(z, "loglik") <- NA
-    return(z)
-  }
-  else if(any(is.na(sigma)) || any(is.na(mu)) || any(is.na(prob))) {
-    stop("parameters contain missing values")
-  }
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
   lwork <- max(4 * p, 5 * p - 4)
   storage.mode(mu) <- "double"
-  storage.mode(sigma) <- "double"
+  temp <- .Fortran("emeev",
+                   as.integer(if (sigmaIND == "N") 0 else 1),
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(decomp$orientation),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   as.integer(lwork),
+                   double(lwork),
+                   double(n * K),
+                   double(p))[8:18]
+  mu <- temp[[1]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[2]]
+  shape <- temp[[3]]
+  O <- array(temp[[4]], c(p, p, G))
+  pro <- temp[[5]]
+  its <- temp[[6]]
+  err <- temp[[7]]
+  loglik <- temp[[8]]
+  lapackSVDinfo <- temp[[9]]
+  z <- matrix(temp[[11]], n, K)
+  warn <- NULL
+  if(lapackSVDinfo) {
+    if(lapackSVDinfo > 0) {
+      warning("LAPACK DGESVD fails to converge")
+      warn <- "LAPACK DGESVD fails to converge"
+    }
+    else {
+      warning("input error for LAPACK DGESVD")
+      warn <- "input error for LAPACK DGESVD"
+    }
+    z[] <- O[] <- shape[] <- NA
+    scale <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- scale * shapeO(shape, O, transpose = TRUE)
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
+                           orienation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "EEV"), info = info, warn
+            = warn)
+}
+
+"emEII" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
   if(!noise) {
-					# no noise assumed
+    if(l != G)
+      stop("pro improperly specified")
     K <- G
-    temp <- .Fortran("esxev",
-		     as.double(data),
-		     mu,
-		     sigma,
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(lwork),
-		     as.integer(lwork),
-		     double(n * G),
-		     double(1))[c(2:3, 8, 12:13)]
+    Vinv <- -1
   }
   else {
     K <- G + 1
-    if(l != K)
-      stop("length(prob) = G+1 for noise")
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    temp <- .Fortran("esnxev",
-		     as.double(data),
-		     mu,
-		     sigma,
-		     as.double(if(equal) 1 else prob),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(lwork),
-		     as.integer(lwork),
-		     double(n * K),
-		     double(1),
-		     as.double(Vinv))[c(2:3, 8, 12:13)]
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
   }
-  rcmin <- temp[[3]][2]
-  z <- matrix(NA, n, K)
-  attr(z, "loglik") <- NA
-  attr(z, "var.shape") <- max(apply(temp[[1]], 1, var))
-  attr(z, "lambda") <- temp[[2]][1, 1,  ]
-  attr(z, "rcmin") <- rcmin
-  loglik <- temp[[5]]
-  if(rcmin <= eps[2])
-    warning("reciprocal condition number falls below threshold")
-  if(loglik == .Machine$double.neg.eps) {
-    stop("sigma is not positive definite")
+  if(missing(sigmasq))
+    sigmasq <- list(...)$decomp$scale
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigma = array(NA, c(p, p, G)), sigmasq = NA,
+                          Sigma = matrix(NA, p, p),
+                          decomp = list(p = p, G = G, scale = NA),
+                          pro = rep(NA, K), z = matrix(NA, n, k),
+                          loglik = NA, modelName = "EII"), warn = warn))
   }
-  if(loglik ==  - .Machine$double.neg.eps) {
-    stop("input error in LAPACK DPOTRF")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(sigmasq <= eps) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigma = array(NA, c(p, p, G)), sigmasq = NA,
+                          Sigma = matrix(NA, p, p), pro = rep(NA, K),
+                          z = matrix(NA, n, k), loglik = NA,
+                          modelName = "EII"), warn = warn))
   }
-  if(loglik == .Machine$double.xmin) {
-    stop("LAPACK DGESVD fails to converge")
+  storage.mode(mu) <- "double"
+  temp <- .Fortran("emeii",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(n * K))[7:13]
+  mu <- temp[[1]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  sigmasq <- temp[[2]]
+  Sigma <- diag(rep(sigmasq, p))
+  pro <- temp[[3]]
+  its <- temp[[4]]
+  err <- temp[[5]]
+  if(is.infinite(loglik <- temp[[6]]))
+    loglik <- NA
+  z <- matrix(temp[[7]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax ||
+     sigmasq <= max(eps, 0)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
   }
-  if(loglik == .Machine$double.xmin) {
-    stop("input error for LAPACK DGESVD")
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- Sigma
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
   }
-  if(loglik == .Machine$double.xmax) {
-    warning("volume falls below threshold")
-    return(z)
-  }
-  z[1:n, 1:K] <- temp[[4]]
-  attr(z, "loglik") <- loglik
-  z
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = sigmasq)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 sigmasq = sigmasq, Sigma = Sigma, decomp = decomp,
+                 pro = pro, z = z, loglik = loglik,
+                 Vinv = if(noise) Vinv else NULL,
+                 modelName = "EII"), info = info, warn = warn)
 }
 
-"hypvol" <- function(data, reciprocal = F)
+"emEVI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...)
+{
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, decomp$scale, decomp$shape, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = mu,
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(p = p, G = G, scale = NA,
+                            shape = matrix(NA, p, G)),
+                          pro = rep(NA, K), z = matrix(NA, n, K),
+                          loglik = NA, modelName = "VEI"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(mu) <- "double"
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  temp <- .Fortran("emevi",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(n * K))[7:14]
+  mu <- temp[[1]]
+  scale <- temp[[2]]
+  shape <- matrix(temp[[3]], p, G)
+  dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+  pro <- temp[[4]]
+  its <- temp[[5]]
+  err <- temp[[6]]
+  loglik <- temp[[7]]
+  z <- matrix(temp[[8]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "EVI"), info = info, warn
+            = warn)
+}
+
+"emV" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
+                  warnSingular, Vinv, ...) 
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensionsal")
+  data <- as.vector(data)
+  n <- length(data)
+  G <- length(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigmasq = rep(NA, G), pro = rep(NA, K),
+                          z = matrix(NA, n, k), loglik = NA,
+                          modelName = "V"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol[1]
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Mclust$integer.xmax
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(any(sigmasq <= eps)) {
+    warn <- "sigma-squared falls below threshold"
+    warning("sigma-squared falls below threshold")
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigmasq = rep(NA, G), pro = rep(NA, K),
+                          z = matrix(NA, n, k), loglik = NA,
+                          modelName = "V"), warn = warn))
+  }
+  temp <- .Fortran("em1v",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(eps),
+                   as.double(tol),
+                   double(n * K))[6:12]
+  mu <- temp[[1]]
+  names(mu) <- as.character(1:G)
+  sigmasq <- temp[[2]]
+  pro <- temp[[3]]
+  its <- temp[[4]]
+  err <- temp[[5]]
+  loglik <- temp[[6]]
+  z <- matrix(temp[[7]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || any(sigmasq <= max(eps, 0))) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+  }
+  else if(its >= itmax) {
+    warning("iteration limit reached")
+    warn <- "iteration limit reached"
+    its <-  - its
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, mu = mu, sigmasq = sigmasq, pro = 
+                 pro, z = z, loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "V"), info = info, warn = warn)
+}
+
+"emVEI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
+{
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = mu,
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(p = p, G = G, scale = rep(NA, G),
+                            shape = rep(NA, p)), pro = rep(NA, K),
+                          z = matrix(NA, n, K), loglik = NA,
+                          modelName = "VEI"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(length(tol) == 1)
+    tol <- c(tol, tol)
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  if(length(itmax) == 1)
+    itmax <- c(itmax, Inf)
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(mu) <- "double"
+  temp <- .Fortran("emvei",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(n * K),
+                   double(G),
+                   double(p),
+                   double(p * G))[7:14]
+  mu <- temp[[1]]
+  scale <- temp[[2]]
+  shape <- temp[[3]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  pro <- temp[[4]]
+  its <- temp[[5]][1]
+  inner <- temp[[5]][2]
+  err <- temp[[6]][1]
+  inerr <- temp[[6]][2]
+  loglik <- temp[[7]]
+  z <- matrix(temp[[8]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(NA, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- diag(scale[k] * shape)
+    if(inner >= itmax[2]) {
+      warning("inner iteration limit reached")
+      warn <- "inner iteration limit reached"
+      inner <-  - inner
+    }
+    else if(its >= itmax[1]) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- structure(c(iterations = its, error = err),
+                    inner = c(iterations = inner, error = inerr))
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VEI"), info = info, warn
+            = warn)
+}
+
+"emVEV" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
+{
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(decomp))
+    stop("decomp must be specified")
+  sigmaIND <- "N"
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = mu,
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(p = p, G = G,
+                            scale = NA, shape = rep(NA, p)),
+                          pro = rep(NA, K), z = matrix(NA, n, K),
+                          loglik = NA, modelName = "VEV"),
+                     warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(length(tol) == 1)
+    tol <- c(tol, tol)
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  if(length(itmax) == 1)
+    itmax <- c(itmax, Inf)
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  lwork <- max(4 * p, 5 * p - 4, p + G)
+  storage.mode(mu) <- "double"
+  temp <- .Fortran("emvev",
+                   as.integer(if (sigmaIND == "N") 0 else 1),
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(decomp$orientation),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   as.integer(lwork),
+                   double(lwork),
+                   double(n * K),
+                   double(p))[8:18]
+  mu <- temp[[1]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[2]]
+  shape <- temp[[3]]
+  O <- array(temp[[4]], c(p, p, G))
+  pro <- temp[[5]]
+  its <- temp[[6]][1]
+  inner <- temp[[6]][2]
+  err <- temp[[7]][1]
+  inerr <- temp[[7]][2]
+  loglik <- temp[[8]]
+  lapackSVDinfo <- temp[[9]]
+  z <- matrix(temp[[11]], n, K)
+  warn <- NULL
+  if(lapackSVDinfo) {
+    if(lapackSVDinfo > 0) {
+      warning("LAPACK DGESVD fails to converge")
+      warn <- "LAPACK DGESVD fails to converge"
+    }
+    else {
+      warning("input error for LAPACK DGESVD")
+      warn <- "input error for LAPACK DGESVD"
+    }
+    O[] <- shape[] <- scale[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- shapeO(shape, O, transpose = TRUE)
+    sigma <- sweep(sigma, MARGIN = 3, STATS = scale, FUN = "*")
+    if(inner >= itmax[2]) {
+      warning("inner iteration limit reached")
+      warn <- "inner iteration limit reached"
+      inner <-  - inner
+    }
+    else if(its >= itmax[1]) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+  info <- structure(c(iterations = its, error = err),
+                    inner = c(iterations = inner, error = inerr))
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VEV"), info = info, warn
+            = warn)
+}
+
+"emVII" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(sigmasq))
+    sigmasq <- list(...)$decomp$scale
+  if(all(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigma = array(NA, c(p, p, G)), sigmasq = rep(NA, G),
+                          decomp = list(p = p, G = G, scale = rep(NA, G)),
+                          pro = rep(NA, K), z = matrix(NA, n, K),
+                          loglik = NA, modelName = "VII"), warn = warn))
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(any(sigmasq <= eps)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+                          sigma = array(NA, c(p, p, G)), sigmasq = rep(NA, G),
+                          decomp = list(p = p, G = G, scale = rep(NA, G)),
+                          pro = rep(NA, K), z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "VII"), warn = warn))
+  }
+  storage.mode(mu) <- "double"
+  temp <- .Fortran("emvii",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(n * K))[7:13]
+  mu <- temp[[1]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  sigmasq <- temp[[2]]
+  pro <- temp[[3]]
+  its <- temp[[4]]
+  err <- temp[[5]]
+  if(is.infinite(loglik <- temp[[6]]))
+    loglik <- NA
+  z <- matrix(temp[[7]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax ||
+     any(sigmasq <= max(eps, 0))) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- diag(rep(sigmasq[k], p))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = sigmasq)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 sigmasq = sigmasq, decomp = decomp, pro = pro, z = z,
+                 loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "VII"), info = info, warn = warn)
+}
+
+"emVVI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
+{
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G, mu = mu,
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(p = p, G = G, scale = rep(NA, G),
+                            shape = matrix(NA, p, G)),
+                          pro = rep(NA, K), z = matrix(NA, n, K),
+                          loglik = NA, modelName = "VVI"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Machine$warnSingular
+  storage.mode(mu) <- "double"
+  temp <- .Fortran("emvvi",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(n * K))[7:14]
+  mu <- temp[[1]]
+  scale <- temp[[2]]
+  shape <- matrix(temp[[3]], p, G)
+  dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+  pro <- temp[[4]]
+  its <- temp[[5]]
+  err <- temp[[6]]
+  loglik <- temp[[7]]
+  z <- matrix(temp[[8]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
+                               FUN = "*"), 2, diag), c(p, p, G))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VVI"), info = info, warn
+            = warn)
+}
+
+"emVVV" <- function(data, mu, sigma, pro, eps, tol, itmax, equalPro,
+                    warnSingular, Vinv, ...) 
+{
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  cholsigma <- list(...)$cholsigma
+  if(is.null(cholsigma)) {
+    sigma <- list(...)$sigma
+    if(!missing(sigma)) {
+      sig <- sigma
+      cholIND <- "N"
+    }
+    else {
+      decomp$list(...)$decomp
+      if(is.null(decomp))
+        stop("covariance improperly specified")
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      sig <- array(0, c(p, p, G))
+      shape <- sqrt(sweep(shape, MARGIN = 2, STATS = scale,
+                          FUN = "*"))
+      for(k in 1:G)
+        sig[,  , k] <- qr.R(qr(O[,  , k] * shape))
+      cholIND <- "U"
+    }
+  }
+  else {
+    sig <- cholsigma
+    cholIND <- "U"
+  }
+  if(all(is.na(c(mu, sig, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(n = n, d = p, G = G,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          cholsigma = array(NA, c(p, p, G)),
+                          z = matrix(NA, n, K), loglik = NA,
+                          modelName = "VVV"), warn = warn))
+  }
+  if(any(is.na(c(mu, sig, pro)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(mu) <- "double"
+  storage.mode(sig) <- "double"
+  temp <- .Fortran("emvvv",
+                   as.integer(if (cholIND == "N") 0 else 1),
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   mu,
+                   sig,
+                   as.double(pro),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p),
+                   double(n * K))[8:15]
+  mu <- matrix(temp[[1]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  cholsigma <- structure(array(temp[[2]], c(p, p, G)), def = 
+                         "Sigma = t(cholsigma) %*% cholsigma")
+  pro <- temp[[3]]
+  its <- temp[[4]]
+  err <- temp[[5]]
+  loglik <- temp[[6]]
+  lapackCholInfo <- temp[[7]][1]
+  z <- matrix(temp[[8]], n, K)
+  warn <- NULL
+  if(lapackCholInfo) {
+    if(lapackCholInfo > 0) {
+      if(warnSingular)
+        warning("sigma is not positive definite")
+      warn <- "sigma is not positive definite"
+    }
+    else {
+      warn <- "input error for LAPACK DPOTRF"
+      warning("input error for LAPACK DPOTRF")
+    }
+    z[] <- loglik <- icond <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(cholsigma, 3, unchol), c(p, p, G))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 cholsigma = cholsigma, pro = pro, z = z,
+                 loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "VVV"), info = info, warn = warn)
+}
+
+"estep" <- function(modelName, data, mu, ...)
+{
+  funcName <- paste("estep", modelName, sep = "")
+  do.call(funcName, list(data = data, mu = mu, ...))
+}
+
+"estepE" <- function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  data <- as.vector(data)
+  n <- length(data)
+  G <- length(mu)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "E"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(sigmasq <= eps) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    return(structure(matrix(NA, n, K), loglik = NA, modelName = "E",
+                     warn = warn))
+  }
+  temp <- .Fortran("es1e",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[8:9]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = 1, G = G, z = z, loglik = loglik, modelName
+		 = "E"), warn = warn)
+}
+
+"estepEEE" <- function(data, mu, Sigma, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) > 2)
+    stop("data must be a matrix or a vector")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  cholSigma <- list(...)$cholSigma
+  if(is.null(cholSigma)) {
+    if(!is.null(decomp <- list(...)$decomp)) {
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      sig <- qr.R(qr(O * sqrt(scale * shape)))
+      cholIND <- "U"
+    }
+    else if(!is.null(Sigma <- list(...)$Sigma)) {
+      sig <- Sigma
+      cholIND <- "N"
+    }
+    else if(!missing(sigma)) {
+      sig <- sigma
+      cholIND <- "N"
+    }
+    else stop("invalid specification for sigma")
+  }
+  else {
+    sig <- cholSigma
+    cholIND <- "U"
+  }
+  if(any(is.na(c(mu, sig, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "EEE"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("eseee",
+                   as.integer(if (cholIND == "N") 0 else 1),
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sig),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   double(p),
+                   as.double(eps),
+                   double(n * K))[10:12]
+  lapackCholInfo <- temp[[1]][1]
+  loglik <- temp[[2]]
+  z <- matrix(temp[[3]], n, K)
+  warn <- NULL
+  if(lapackCholInfo) {
+    if(lapackCholInfo > 0) {
+      warn <- "sigma is not positive definite"
+      warning("sigma is not positive definite")
+    }
+    else {
+      warn <- "input error for LAPACK DPOTRF"
+      warning("input error for LAPACK DPOTRF")
+    }
+    z[] <- loglik <- NA
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "EEE"), warn = warn)
+}
+
+"estepEEI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
+                       ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "EEI"), warn = warn))
+  }
+  temp <- .Fortran("eseei",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[10:11]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "EEI"), warn = warn)
+}
+
+"estepEEV" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
+                       ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "EEV"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("eseev",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(decomp$orientation),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   double(p),
+                   double(p),
+                   as.double(eps),
+                   double(n * K))[13:14]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "EEV"), warn = warn)
+}
+
+"estepEII" <- 
+  function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(sigmasq)) {
+    sigmasq <- list(...)$decomp$scale
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "EII"), warn = warn))
+  }
+  ## Changed 09/30/02, Ron
+  ##  if(list(...)$decomp$scale <= eps) {
+  if(sigmasq <= eps) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    return(structure(matrix(NA, n, K), loglik = NA, modelName = 
+                     "EII", warn = warn))
+  }
+  temp <- .Fortran("eseii",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[9:10]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "EII"), warn = warn)
+}
+
+"estepEVI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "EVI"), warn = warn))
+  }
+  temp <- .Fortran("esevi",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[10:11]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "EVI"), warn = warn)
+}
+
+"estepV" <- function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  data <- as.vector(data)
+  n <- length(data)
+  G <- length(mu)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "V"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(any(sigmasq <= eps)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    return(structure(matrix(NA, n, K), loglik = NA, modelName = "V",
+                     warn = warn))
+  }
+  temp <- .Fortran("es1v",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[8:9]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold: second position")
+    warn <- "sigma-squared falls below threshold"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = 1, G = G, z = z, loglik = loglik,
+                 modelName = "V"), warn = warn)
+}
+
+"estepVEI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
+                       ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "VEI"), warn = warn))
+  }
+  temp <- .Fortran("esvei",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[10:11]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "VEI"), warn = warn)
+}
+
+"estepVEV" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
+                       ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "VEV"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("esvev",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(decomp$orientation),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   double(p),
+                   double(p),
+                   as.double(eps),
+                   double(n * K))[13:14]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "VEV"), warn = warn)
+}
+
+"estepVII" <- function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(sigmasq)) {
+    sigmasq <- list(...)$decomp$scale
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "VII"), warn = warn))
+  }
+  ##  if(any(list(...)$decomp$scale <= eps)) {
+  if(any(sigmasq <= eps)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    return(structure(matrix(NA, n, K), loglik = NA, modelName = 
+                     "VII", warn = warn))
+  }
+  temp <- .Fortran("esvii",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sigmasq),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[9:10]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "VII"), warn = warn)
+}
+
+"estepVVI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
+                       ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(any(is.na(c(mu, unlist(decomp), pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "VVI"), warn = warn))
+  }
+  temp <- .Fortran("esvvi",
+                   as.double(data),
+                   as.double(mu),
+                   as.double(decomp$scale),
+                   as.double(decomp$shape),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   as.double(eps),
+                   double(n * K))[10:11]
+  loglik <- temp[[1]]
+  z <- matrix(temp[[2]], n, K)
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "VVI"), warn = warn)
+}
+
+"estepVVV" <- function(data, mu, sigma, pro, eps, warnSingular, Vinv, ...)
+{
+  dimdat <- dim(data)
+  if(is.null(dimdat) || length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  mu <- as.matrix(mu)
+  G <- ncol(mu)
+  pro <- pro/sum(pro)
+  l <- length(pro)
+  noise <- l == G + 1
+  if(!noise) {
+    if(l != G)
+      stop("pro improperly specified")
+    K <- G
+    Vinv <- -1
+  }
+  else {
+    K <- G + 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  cholsigma <- list(...)$cholsigma
+  if(is.null(cholsigma)) {
+    if(missing(sigma)) {
+      if(!is.null(sigma <- list(...)$sigma)) {
+        sig <- sigma
+        cholIND <- "N"
+      }
+      else if(!is.null(decomp <- list(...)$decomp)) {
+        scale <- decomp$scale
+        shape <- decomp$shape
+        O <- decomp$orientation
+        sig <- array(0, c(p, p, G))
+        shape <- sqrt(sweep(shape, MARGIN = 2, STATS = 
+                            scale, FUN = "*"))
+        for(k in 1:G)
+          sig[,  , k] <- qr.R(qr(O[,  , k] * 
+                                 shape))
+        cholIND <- "U"
+      }
+      else stop("sigma improperly specified")
+    }
+    else {
+      sig <- sigma
+      cholIND <- "N"
+    }
+  }
+  else {
+    sig <- cholsigma
+    cholIND <- "U"
+  }
+  if(any(is.na(c(mu, sig, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(list(z = matrix(NA, n, K), loglik = NA, 
+                          modelName = "VVV"), warn = warn))
+  }
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("esvvv",
+                   as.integer(if (cholIND == "N") 0 else 1),
+                   as.double(data),
+                   as.double(mu),
+                   as.double(sig),
+                   as.double(pro),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   double(p),
+                   as.double(eps),
+                   double(n * K))[10:12]
+  lapackCholInfo <- temp[[1]][1]
+  loglik <- temp[[2]]
+  z <- matrix(temp[[3]], n, K)
+  warn <- NULL
+  if(lapackCholInfo) {
+    if(lapackCholInfo > 0) {
+      warn <- "sigma is not positive definite"
+      warning("sigma is not positive definite")
+    }
+    else {
+      warn <- "input error for LAPACK DPOTRF"
+      warning("input error for LAPACK DPOTRF")
+    }
+    z[] <- loglik <- NA
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    z[] <- loglik <- NA
+  }
+  structure(list(n = n, d = p, G = G, z = z, loglik = loglik, modelName
+		 = "VVV"), warn = warn)
+}
+
+"grid1" <- function(n, range = c(0., 1.), edge = TRUE)
+{
+  if(any(n < 0. | round(n) != n))
+    stop("n must be nonpositive and integer")
+  G <- rep(0., n)
+  if(edge) {
+    G <- seq(from = min(range), to = max(range), by = abs(diff(
+                                                   range))/(n - 1.))
+  }
+  else {
+    lj <- abs(diff(range))
+    incr <- lj/(2. * n)
+    G <- seq(from = min(range) + incr, to = max(range) - incr,
+             by = 2. * incr)
+  }
+  G
+}
+
+"grid2" <- 
+  function(x, y)
+{
+  lx <- length(x)
+  ly <- length(y)
+  xy <- matrix(0, nrow = lx * ly, ncol = 2)
+  l <- 0
+  for(j in 1:ly) {
+    for(i in 1:lx) {
+      l <- l + 1
+      xy[l,  ] <- c(x[i], y[j])
+    }
+  }
+  xy
+}
+
+"hc" <- function(modelName, data, ...)
+{
+  ## ... partition, minclus = 1, 
+  do.call(paste("hc", modelName, sep = ""), list(data, ...))
+}
+
+"hcE" <- function(data, partition, minclus = 1, ...)
+{
+  if(minclus < 1)
+    stop("minclus must be positive")
+  if(any(is.na(data)))
+    stop("missing values not allowed in data")
+###====================================================================
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data mist be one-dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  if(missing(partition))
+    partition <- 1:n
+  else if(length(partition) != n)
+    stop("partition must assign a class to each observation")
+  partition <- partconv(partition, consec = TRUE)
+  l <- length(unique(partition))
+  attr(partition, "unique") <- l
+  m <- l - minclus
+  if(m <= 0)
+    stop("initial number of clusters is not greater than minclus")
+  storage.mode(data) <- "double"
+  ld <- max(c((l * (l - 1))/2, 3 * m))
+  temp <- .Fortran("hc1e",
+                   data,
+                   as.integer(n),
+                   as.integer(partition),
+                   as.integer(l),
+                   as.integer(m),
+                   as.integer(ld),
+                   double(ld))[c(1, 3, 7)]
+  temp[[1]] <- temp[[1]][1:m]
+  temp[[2]] <- temp[[2]][1:m]
+  temp[[3]] <- temp[[3]][1:m]
+  structure(rbind(temp[[1]], temp[[2]]), change = temp[[3]], 
+            initialPartition = partition, dimensions = n, modelName = "E",
+            class = "hc")
+}
+
+"hcEEE" <- function(data, partition, minclus = 1, ...)
+{
+  if(minclus < 1)
+    stop("minclus must be positive")
+  if(any(is.na(data)))
+    stop("missing values not allowed in data")
+###=====================================================================
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  dimnames(data) <- NULL
+  n <- nrow(data)
+  p <- ncol(data)
+  if(n <= p)
+    warning("# of observations <= data dimension")
+  if(missing(partition))
+    partition <- 1:n
+  else if(length(partition) != n)
+    stop("partition must assign a class to each observation")
+  partition <- partconv(partition, consec = TRUE)
+  l <- length(unique(partition))
+  attr(partition, "unique") <- l
+  m <- l - minclus
+  if(m <= 0)
+    stop("initial number of clusters is not greater than minclus")
+  storage.mode(data) <- "double"
+  temp <- .Fortran("hceee",
+                   data,
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(partition),
+                   as.integer(l),
+                   as.integer(m),
+                   if(p < 3) integer(m) else integer(1),
+                   if(p < 4) integer(m) else integer(1),
+                   double(p),
+                   double(p * p),
+                   double(p * p),
+                   double(p * p))[c(1, 7:10)]
+                                        #
+                                        # currently temp[[5]] is not output
+  temp[[4]] <- temp[[4]][1:2]
+  temp[[5]] <- temp[[5]][1:2]
+  names(temp[[5]]) <- c("determinant", "trace")
+  temp[[1]] <- temp[[1]][1:(m + 1),  ]
+  if(p < 3)
+    tree <- rbind(temp[[2]], temp[[3]])
+  else if(p < 4)
+    tree <- rbind(temp[[1]][-1, 3], temp[[3]])
+  else tree <- t(temp[[1]][-1, 3:4, drop = FALSE])
+  determinant <- temp[[1]][, 1]
+  attr(determinant, "breakpoints") <- temp[[4]]
+  structure(tree, determinant = determinant, trace = temp[[1]][, 2],
+            initialPartition = partition, dimensions = dimdat, modelName = 
+            "EEE", class = "hc")
+}
+
+"hcEII" <- function(data, partition, minclus = 1, ...)
+{
+  if(minclus < 1)
+    stop("minclus must be positive")
+  if(any(is.na(data)))
+    stop("missing values not allowed in data")
+###====================================================================
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  dimnames(data) <- NULL
+  n <- nrow(data)
+  p <- ncol(data)
+  if(missing(partition))
+    partition <- 1:n
+  else if(length(partition) != n)
+    stop("partition must assign a class to each observation")
+  partition <- partconv(partition, consec = TRUE)
+  l <- length(unique(partition))
+  attr(partition, "unique") <- l
+  m <- l - minclus
+  if(m <= 0)
+    stop("initial number of clusters is not greater than minclus")
+  if(n <= p)
+    warning("# of observations <= data dimension")
+###=============================================================
+  storage.mode(data) <- "double"
+  ld <- max(c((l * (l - 1))/2, 3 * m))
+  temp <- .Fortran("hceii",
+                   data,
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(partition),
+                   as.integer(l),
+                   as.integer(m),
+                   double(p),
+                   as.integer(ld),
+                   double(ld))[c(1, 9)]
+  temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
+  temp[[2]] <- temp[[2]][1:m]
+  structure(t(temp[[1]]), change = temp[[2]], initialPartition = 
+            partition, dimensions = dimdat, modelName = "EII", class = "hc"
+            )
+}
+
+"hcV" <- function(data, partition, minclus = 1, alpha = 1, ...)
+{
+  if(minclus < 1)
+    stop("minclus must be positive")
+  if(any(is.na(data)))
+    stop("missing values not allowed in data")
+###=====================================================================
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  if(missing(partition))
+    partition <- 1:n
+  else if(length(partition) != n)
+    stop("partition must assign a class to each observation")
+  partition <- partconv(partition, consec = TRUE)
+  l <- length(unique(partition))
+  attr(partition, "unique") <- l
+  m <- l - minclus
+  if(m <= 0)
+    stop("initial number of clusters is not greater than minclus")
+  storage.mode(data) <- "double"
+  alpha <- alpha * (vecnorm(data - mean(data))^2/n)
+  alpha <- min(alpha, .Machine$double.eps)
+  ld <- max(c((l * (l - 1))/2, 3 * m))
+  temp <- .Fortran("hc1v",
+                   data,
+                   as.integer(n),
+                   as.integer(partition),
+                   as.integer(l),
+                   as.integer(m),
+                   as.double(alpha),
+                   as.integer(ld),
+                   double(ld))[c(1, 3, 8)]
+  temp[[1]] <- temp[[1]][1:m]
+  temp[[2]] <- temp[[2]][1:m]
+  temp[[3]] <- temp[[3]][1:m]
+  structure(rbind(temp[[1]], temp[[2]]), change = temp[[3]], 
+            initialPartition = partition, dimensions = n, modelName = "V",
+            class = "hc")
+}
+
+"hcVII" <- function(data, partition, minclus = 1, alpha = 1, ...)
+{
+  if(minclus < 1)
+    stop("minclus must be positive")
+  if(any(is.na(data)))
+    stop("missing values not allowed in data")
+###=====================================================================
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  dimnames(data) <- NULL
+  n <- nrow(data)
+  p <- ncol(data)
+  if(n <= p)
+    warning("# of observations <= data dimension")
+  if(missing(partition))
+    partition <- 1:n
+  else if(length(partition) != n)
+    stop("partition must assign a class to each observation")
+  partition <- partconv(partition, consec = TRUE)
+  l <- length(unique(partition))
+  attr(partition, "unique") <- l
+  m <- l - minclus
+  if(m <= 0)
+    stop("initial number of clusters is not greater than minclus")
+  storage.mode(data) <- "double"
+  ll <- (l * (l - 1))/2
+  ld <- max(n, ll, 3 * m)
+  alpha <- alpha * traceW(data/sqrt(n * p))
+  alpha <- max(alpha, .Machine$double.eps)
+  temp <- .Fortran("hcvii",
+                   data,
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(partition),
+                   as.integer(l),
+                   as.integer(m),
+                   as.double(alpha),
+                   double(p),
+                   as.integer(ld),
+                   double(ld))[c(1, 10)]
+  temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
+  temp[[2]] <- temp[[2]][1:m]
+  structure(t(temp[[1]]), change = temp[[2]], initialPartition = 
+            partition, dimensions = dimdat, modelName = "VII", class = "hc"
+            )
+}
+
+"hcVVV" <- function(data, partition, minclus = 1, alpha = 1, beta = 1,
+                    ...)
+{
+  if(minclus < 1)
+    stop("minclus must be positive")
+  if(any(is.na(data)))
+    stop("missing values not allowed in data")
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  dimnames(data) <- NULL
+  n <- nrow(data)
+  p <- ncol(data)
+  if(n <= p)
+    warning("# of observations <= data dimension")
+  if(missing(partition))
+    partition <- 1:n
+  else if(length(partition) != n)
+    stop("partition must assign a class to each observation")
+  partition <- partconv(partition, consec = TRUE)
+  l <- length(unique(partition))
+  attr(partition, "unique") <- l
+  m <- l - minclus
+  if(m <= 0)
+    stop("initial number of clusters is not greater than minclus")
+  storage.mode(data) <- "double"
+  ll <- (l * (l - 1))/2
+  ##	dp <- duplicated(partition)
+  ##x[c((1:n)[!dp],(1:n)[dp]), ], 
+  ##as.integer(c(partition[!dp], partition[dp])), 
+  ld <- max(n, ll + 1, 3 * m)
+  alpha <- alpha * traceW(data/sqrt(n * p))
+  alpha <- max(alpha, .Machine$double.eps)
+  temp <- .Fortran("hcvvv",
+                   cbind(data, 0.),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(partition),
+                   as.integer(l),
+                   as.integer(m),
+                   as.double(alpha),
+                   as.double(beta),
+                   double(p),
+                   double(p * p),
+                   double(p * p),
+                   double(p * p),
+                   as.integer(ld),
+                   double(ld))[c(1, 14)]
+  temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
+  temp[[2]] <- temp[[2]][1:m]
+  structure(t(temp[[1]]), change = temp[[2]], initialPartition = 
+            partition, dimensions = dimdat, modelName = "VVV", class = "hc"
+            )
+}
+
+"hclass" <- function(hcPairs, G)
+{
+  initial <- attributes(hcPairs)$init
+  n <- length(initial)
+  k <- length(unique(initial))
+  G <- if(missing(G)) k:2 else rev(sort(unique(G)))
+  select <- k - G
+  if(length(select) == 1 && !select)
+    return(matrix(initial, ncol = 1, dimnames = list(NULL, 
+                                       as.character(G))))
+  bad <- select < 0 | select >= k
+  if(all(bad))
+    stop("No classification with the specified number of clusters")
+  if(any(bad))
+    warning("Some selected classifications are inconsistent\n                          with mclust object")
+  L <- length(select)
+  cl <- matrix(NA, nrow = n, ncol = L, 
+               dimnames = list(NULL, as.character(G)))
+  if(select[1])
+    m <- 1
+  else {
+    cl[, 1] <- initial
+    m <- 2
+  }
+  for(l in 1:max(select)) {
+    ij <- hcPairs[, l]
+    i <- min(ij)
+    j <- max(ij)
+    initial[initial == j] <- i
+    if(select[m] == l) {
+      cl[, m] <- initial
+      m <- m + 1
+    }
+  }
+  apply(cl[, L:1, drop = FALSE], 2, partconv, consec = TRUE)
+}
+
+"hypvol" <- function(data, reciprocal = FALSE)
 {
   ## finds the minimum hypervolume between principal components and 
   ## variable bounds
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD) {
+    ## 1D case
+    n <- length(as.vector(data))
+    if(reciprocal) {
+      ans <- 1/(max(data) - min(data))
+    }
+    else {
+      ans <- max(data) - min(data)
+    }
+    return(ans)
+  }
+  if(length(dimdat) != 2)
+    stop("data must be a vector or a matrix")
   data <- as.matrix(data)
   dimd <- dim(data)
   n <- dimd[1]
   p <- dimd[2]
-#  if(F) {
-#    vol1 <- prod(apply(data, 2, function(z)
-#		       diff(range(z))))
-#    V <- matrix(temp[[1]], p, p)
-#    xbar <- apply(data, 2, mean)
-#    X <- sweep(data, 2, xbar)
-#    library(Matrix)
-#    print(V)
-#    print(eigen.Hermitian(crossprod(X))$vectors)
-#    X <- X %*% V
-#    vol <- prod(apply(X, 2, function(z)
-#		      diff(range(z))))
-#  }
-  lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)	# min
-  lwsyevd <- p * (3 * p + 2 * ceiling(log(p, base = 2)) + 5) + 1	# min
-  lisyevd <- 5 * p + 2	# minimum
-  lwsyevx <- 8 * p	# minimum
+  if(FALSE) {
+    vol1 <- prod(apply(data, 2, function(z)
+                       diff(range(z))))
+    V <- matrix(temp[[1]], p, p)
+    xbar <- apply(data, 2, mean)
+    X <- sweep(data, 2, xbar)
+    library(Matrix)
+    print(V)
+    print(eigen.Hermitian(crossprod(X))$vectors)
+    X <- X %*% V
+    vol <- prod(apply(X, 2, function(z)
+                      diff(range(z))))
+  }
+  lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)
+                                        # min
+  lwsyevd <- p * (3 * p + 2 * ceiling(logb(p, base = 2)) + 5) + 1
+                                        # minimum
+  lisyevd <- 5 * p + 2
+                                        # minimum
+  lwsyevx <- 8 * p
   lisyevx <- 5 * p + p
   lwork <- max(lwsyevd, lwsyevx, n)
   liwork <- lisyevx
   temp <- .Fortran("mclvol",
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   double(p),
-		   double(p * p),
-		   double(p * p),
-		   double(lwork),
-		   as.integer(lwork),
-		   integer(liwork),
-		   as.integer(liwork),
-		   integer(1))[c(4, 11)]
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   double(p),
+                   double(p * p),
+                   double(p * p),
+                   double(lwork),
+                   as.integer(lwork),
+                   integer(liwork),
+                   as.integer(liwork),
+                   integer(1))[c(4, 11)]
   if(temp[[2]])
     stop("problem in computing principal components")
   if(reciprocal) {
@@ -1660,2013 +4575,3367 @@ function(data, mu, sigma, prob, eps, Vinv)
   ans
 }
 
-"loglik" <- function(tree, data, ...)
+
+"map" <- function(z, ...)
 {
-  switch(attr(tree, "model"),
-	 EI = loglik.EI(tree, data, ...),
-	 VI = loglik.VI(tree, data, ...),
-	 EEE = loglik.EEE(tree, data, ...),
-	 VVV = loglik.VVV(tree, data, ...),
-	 EEV = loglik.EEV(tree, data, ...),
-	 VEV = loglik.VEV(tree, data, ...),
-	 stop("invalid model id"))
+  ##
+  ## converts conditional probabilities to a classification
+  ## z <- sweep(z, 1, apply(z, 1, sum), "/")
+  ##
+  cl <- numeric(nrow(z))
+  for(i in 1:nrow(z)) {
+    cl[i] <- (1.:ncol(z))[z[i,  ] == max(z[i,  ])]
+  }
+  cl
 }
 
-"loglik.EEE" <- function(tree, data)
+"mclust1Dplot" <-
+  function(data, ..., type = c("classification", "uncertainty", "density",
+                        "errors"),
+           ask = TRUE, symbols, grid = 100, identify = FALSE, CEX = 1, xlim)
 {
-  n <- nrow(data)
-  if(length(attr(tree, "initial.partition")) != n)
-    stop("initial partition incompatible with number of observations"
-	 )
-  data <- as.matrix(data)
-  temp <- .Fortran("likeee",
-		   as.integer(tree),
-		   as.integer(ns <- ncol(tree)),
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p <- ncol(data)),
-		   as.integer(attr(tree, "initial.partition")),
-		   as.integer(length(unique(attr(tree, "initial.partition")))),
-		   double(p),
-		   double(p * p),
-		   integer(ns),
-		   double(ns + 1))[c(11, 10)]
-  nmerge <- temp[[2]]
-  temp <- temp[[1]]
-  temp[temp ==  - .Machine$double.xmax] <- NA
-  structure(temp, nmerge = nmerge)
-}
-
-"loglik.EFV" <- function(tree, data, Vinv)
-{
-  n <- nrow(data)
-  if(length(attr(tree, "initial.partition")) != n)
-    stop("initial partition incompatible with number of observations"
-	 )
-  p <- ncol(data)
-  data <- as.matrix(data)
-  if(missing(Vinv))
-    Vinv <- hypvol(data, reciprocal = T)
-  temp <- .Fortran("likefv",
-		   as.integer(tree),
-		   as.integer(ns <- ncol(tree)),
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(attr(tree, "initial.partition")),
-		   as.integer(length(unique(attr(tree, "initial.partition")))),
-		   as.double(sqrt(attr(tree, "shape"))),
-		   as.integer(lwork <- max(4 * p, 5 * p - 4)),
-		   double(lwork),
-		   double(p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   integer(ns),
-		   double(ns + 1),
-		   integer(1))[c(9, 16:18)]
-  if(temp[[4]])
-    stop("SVD does not converge")
-  lwopt <- temp[[1]]
-  temp <- temp[ - c(1, 4)]
-  nmerge <- temp[[1]]
-  temp <- temp[[2]]
-  temp[temp ==  - .Machine$double.xmax] <- NA
-  structure(temp, nmerge = nmerge)
-}
-
-"loglik.EI" <- function(tree, data)
-{
-  n <- nrow(data)
-  if(length(attr(tree, "initial.partition")) != n)
-    stop("initial partition incompatible with number of observations"
-	 )
-  data <- as.matrix(data)
-  temp <- .Fortran("likei",
-		   as.integer(tree),
-		   as.integer(ns <- ncol(tree)),
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p <- ncol(data)),
-		   as.integer(attr(tree, "initial.partition")),
-		   as.integer(length(unique(attr(tree, "initial.partition")))),
-		   double(p),
-		   integer(ns),
-		   double(ns + 1))[c(10, 9)]
-  nmerge <- temp[[2]]
-  temp <- temp[[1]]
-  temp[temp ==  - .Machine$double.xmax] <- NA
-  structure(temp, nmerge = nmerge)
-}
-
-"loglik.VFV" <- function(tree, data, Vinv)
-{
-  n <- nrow(data)
-  if(length(attr(tree, "initial.partition")) != n)
-    stop("initial partition incompatible with number of observations"
-	 )
-  data <- as.matrix(data)
-  p <- ncol(data)
-  if(missing(Vinv))
-    Vinv <- hypvol(data, reciprocal = T)
-  temp <- .Fortran("likvfv",
-		   as.integer(tree),
-		   as.integer(ns <- ncol(tree)),
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(attr(tree, "initial.partition")),
-		   as.integer(length(unique(attr(tree, "initial.partition")))),
-		   as.double(Vinv),
-		   as.double(sqrt(attr(tree, "shape"))),
-		   as.integer(lwork <- max(4 * p, 5 * p - 4)),
-		   double(lwork),
-		   double(p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   integer(ns),
-		   double(ns + 1),
-		   integer(1))[c(10, 17:19)]
-  if(temp[[4]])
-    stop("SVD does not converge")
-  lwopt <- temp[[1]]
-  temp <- temp[ - c(1, 4)]
-  nmerge <- temp[[1]]
-  temp <- temp[[2]]
-  temp[temp ==  - .Machine$double.xmax] <- NA
-  structure(temp, nmerge = nmerge)
-}
-
-"loglik.VI" <- function(tree, data, Vinv)
-{
-  n <- nrow(data)
-  if(length(attr(tree, "initial.partition")) != n)
-    stop("initial partition incompatible with number of observations"
-	 )
-  data <- as.matrix(data)
-  p <- ncol(data)
-  if(missing(Vinv))
-    Vinv <- hypvol(data, reciprocal = T)
-  temp <- .Fortran("likvi",
-		   as.integer(tree),
-		   as.integer(ns <- ncol(tree)),
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(attr(tree, "initial.partition")),
-		   as.integer(length(unique(attr(tree, "initial.partition")))),
-		   as.double(Vinv),
-		   double(p),
-		   integer(ns),
-		   double(ns + 1))[c(11, 10)]
-  nmerge <- temp[[2]]
-  temp <- temp[[1]]
-  temp[temp ==  - .Machine$double.xmax] <- NA
-  structure(temp, nmerge = nmerge)
-}
-
-"loglik.VVV" <- function(tree, data, Vinv)
-{
-  n <- nrow(data)
-  if(length(attr(tree, "initial.partition")) != n)
-    stop("initial partition incompatible with number of observations"
-	 )
-  data <- as.matrix(data)
-  p <- ncol(data)
-  if(missing(Vinv))
-    Vinv <- hypvol(data, reciprocal = T)
-  temp <- .Fortran("likvvv",
-		   as.integer(tree),
-		   as.integer(ns <- ncol(tree)),
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(attr(tree, "initial.partition")),
-		   as.integer(length(unique(attr(tree, "initial.partition")))),
-		   as.double(Vinv),
-		   double(p),
-		   double(p * p),
-		   integer(ns),
-		   double(ns + 1))[c(12, 11)]
-  nmerge <- temp[[2]]
-  temp <- temp[[1]]
-  temp[temp ==  - .Machine$double.xmax] <- NA
-  structure(temp, nmerge = nmerge)
-}
-
-"me" <- function(data, modelid, z, ...)
-{
-  ## ... z, eps, tol, itmax, equal = F, noise = F, Vinv
-  switch(as.character(modelid),
-	 EI = me.EI(data, z, ...),
-	 VI = me.VI(data, z, ...),
-	 EEE = me.EEE(data, z, ...),
-	 VVV = me.VVV(data, z, ...),
-	 EEV = me.EEV(data, z, ...),
-	 VEV = me.VEV(data, z, ...),
-	 stop("invalid model id"))
-}
-
-"me.EEE" <- function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  if(all(is.na(z))) {
-    attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
-    return(z)
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  K <- dimz[2]	# number of groups
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(tol))
-    tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.infinite(itmax))
-    itmax <- .Machine$integer.max
-  if(!noise) {
-    G <- K
-    temp <- .Fortran("meeee",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(p * G),
-		     double(p * p),
-		     double(if(equal) 1 else G),
-		     double(p))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, G)
-    rc <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("meneee",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(p * G),
-		     double(p * p),
-		     double(if(equal) 1 else G),
-		     double(p),
-		     as.double(Vinv))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, K)
-    rc <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  if(its >= itmax) {
-    warning("iteration limit reached")
-    attr(z, "warn") <- list("iteration limit reached")
-    its <-  - its
-  }
-  if(rc <= abs(eps)) {
-    warning("reciprocal condition estimate falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"),
-	list("reciprocal condition estimate falls below threshold"))
-  }
-  attr(z, "info") <- c(iterations = its, maxerr = err, rcond = rc)
-  z
-}
-
-"me.EEV" <- function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  if(all(is.na(z))) {
-    attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
-    return(z)
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  K <- dimz[2]	# number of groups
-  if(missing(eps))
-    eps <- c(.Machine$double.eps, sqrt(.Machine$double.eps))
-  else if(length(eps) == 1)
-    eps <- c(eps, sqrt(.Machine$double.eps))
-  if(missing(tol))
-    tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.infinite(itmax))
-    itmax <- .Machine$integer.max
-  lwork <- max(4 * p, 5 * p - 4)
-  if(!noise) {
-    G <- K
-    temp <- .Fortran("meeev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(p * G),
-		     double(p * p * G),
-		     double(if(equal) 1 else G),
-		     double(p),
-		     double(p),
-		     double(lwork),
-		     as.integer(lwork))[c(2, 6:8)]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("meneev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(p * G),
-		     double(p * p * G),
-		     double(if(equal) 1 else G),
-		     double(p),
-		     double(p),
-		     double(lwork),
-		     as.integer(lwork),
-		     as.double(Vinv))[c(2, 6:8)]
-  }
-  z <- matrix(NA, n, K)
-  temp[2:3] <- lapply(temp[2:3], function(z)
-		      {
-			z[z == .Machine$double.xmax] <- NA
-			z
-		      }
-		      )
-  lamin <- temp[[2]][1]
-  rcmin <- temp[[2]][2]
-  err <- temp[[3]]
-  its <- temp[[4]]
-  if(its >= itmax) {
-    warning("iteration limit reached")
-    attr(z, "warn") <- list("iteration limit reached")
-    its <-  - its
-  }
-  if(lamin == .Machine$double.xmax) {
-    warning("LAPACK DGESVD fails to converge")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("LAPACK DGESVD fails to converge"))
-  }
-  else if(lamin ==  - .Machine$double.xmax) {
-    warning("input error for LAPACK DGESVD")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("input error for LAPACK DGESVD"))
-  }
-  else if(lamin <= eps[1]) {
-    warning("volume falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("volume falls below threshold"))
-  }
-  if(rcmin <= eps[2]) {
-    warning("reciprocal condition estimate falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), 
-	list("reciprocal condition estimate falls below threshold"))
-  }
-  else z[1:n, 1:K] <- temp[[1]]
-  attr(z, "info") <- c(iterations = its, maxerr = err, rcond = rcmin)
-  z
-}
-"me.EI" <-
-function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  if(all(is.na(z))) {
-    attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
-    return(z)
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  K <- dimz[2]	# number of groups
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(tol))
-    tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.infinite(itmax))
-    itmax <- .Machine$integer.max
-  if(!noise) {
-    G <- K
-    temp <- .Fortran("meei",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(if(eps > 0) n * G else 1),
-		     double(p),
-		     double(if(equal) 1 else G))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, G)
-    sigsq <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("menei",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(if(eps > 0) n * G else 1),
-		     double(p),
-		     double(if(equal) 1 else K),
-		     as.double(Vinv))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, K)
-    sigsq <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  rcond <- sigsq/(1 + sigsq)
-  if(its >= itmax) {
-    warning("iteration limit reached")
-    attr(z, "warn") <- list("iteration limit reached")
-    its <-  - its
-  }
-  if(sigsq <= abs(eps)) {
-    warning("sigma-squared falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("sigma-squared falls below threshold"))
-  }
-  attr(z, "info") <- c(iterations = its, maxerr = err, rcond = rcond)
-  z
-}
-"me.VEV" <- function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  if(all(is.na(z))) {
-    attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
-    return(z)
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  K <- dimz[2]	# number of groups
-  if(missing(eps))
-    eps <- c(.Machine$double.eps, .Machine$double.eps)
-  else if(length(eps) == 1)
-    eps <- c(eps, .Machine$double.eps)
-  if(missing(tol))
-    tol <- rep(sqrt(.Machine$double.eps), 2)
-  else if(length(tol) == 1)
-    tol <- c(tol, sqrt(.Machine$double.eps))
-  if(missing(itmax))
-    itmax <- c(Inf, Inf)
-  else if(length(itmax) == 1)
-    itmax <- c(itmax, Inf)
-  itmax[itmax == Inf] <- .Machine$integer.max
-  lwork <- max(4 * p, 5 * p - 4)
-  if(!noise) {
-    G <- K
-    lwork <- max(lwork, p + G)
-    temp <- .Fortran("mevev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(p * G),
-		     double(p * p * G),
-		     double(G),
-		     double(G),
-		     double(p),
-		     double(p),
-		     double(p * G),
-		     double(lwork),
-		     as.integer(lwork))[c(2, 6:8)]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    lwork <- max(lwork, p + G)
-    temp <- .Fortran("menvev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(p * G),
-		     double(p * p * G),
-		     double(G),
-		     double(G),
-		     double(p),
-		     double(p),
-		     double(p * G),
-		     double(lwork),
-		     as.integer(lwork),
-		     as.double(Vinv))[c(2, 6:8)]
-  }
-  z <- matrix(NA, n, K)
-  temp[2:3] <- lapply(temp[2:3], function(z)
-		      {
-			z[z == .Machine$double.xmax] <- NA
-			z
-		      }
-		      )
-  lamin <- temp[[2]][1]
-  rcmin <- temp[[2]][2]
-  its <- temp[[4]][1]
-  inner <- temp[[4]][2]
-  err <- if(its > 1) temp[[3]][1] else NA
-  inerr <- temp[[3]][2]
-  if(its >= itmax[1]) {
-    warning("iteration limit reached")
-    attr(z, "warn") <- list("iteration limit reached")
-    its <-  - its
-  }
-  if(itmax[2] > 0 && inner >= itmax[2]) {
-    warning("inner iteration limit reached")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("inner iteration limit reached"))
-    inner <-  - inner
-  }
-  if(lamin == .Machine$double.xmax) {
-    warning("LAPACK DGESVD fails to converge")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("LAPACK DGESVD fails to converge"))
-  }
-  else if(lamin ==  - .Machine$double.xmax) {
-    warning("input error for LAPACK DGESVD")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("input error for LAPACK DGESVD"))
-  }
-  else if(lamin <= eps[1]) {
-    warning("volume falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("volume falls below threshold"))
-  }
-  if(rcmin <= eps[2]) {
-    warning("reciprocal condition estimate falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), 
-	list("reciprocal condition estimate falls below threshold"))
-  }
-  else z[1:n, 1:K] <- temp[[1]]
-  attr(z, "info") <- c(iterations = its, maxerr = err, rcond = rcmin)
-#  attr(attr(z, "info"), "inner") <- c(iterations = inner, maxerr = inerr)
-  z
-}
-
-"me.VI" <- function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  if(all(is.na(z))) {
-    attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
-    return(z)
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  K <- dimz[2]	# number of groups
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(tol))
-    tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.infinite(itmax))
-    itmax <- .Machine$integer.max
-  if(!noise) {
-    G <- K
-    temp <- .Fortran("mevi",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(if(eps > 0) n * G else 1),
-		     double(p))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, G)
-    sigmin <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("menvi",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(if(eps > 0) n * G else 1),
-		     double(p),
-		     as.double(Vinv))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, K)
-    sigmin <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  rcond <- sigmin/(1 + sigmin)
-  if(its >= itmax) {
-    warning("iteration limit reached")
-    attr(z, "warn") <- list("iteration limit reached")
-    its <-  - its
-  }
-  if(sigmin <= abs(eps)) {
-    warning("sigma-squared falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), list("sigma-squared falls below threshold"))
-  }
-  attr(z, "info") <- c(iterations = its, maxerr = err, rcond = rcond)
-  z
-}
-"me.VVV" <-
-function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  if(all(is.na(z))) {
-    attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
-    return(z)
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  K <- dimz[2]	# number of groups
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(missing(tol))
-    tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.infinite(itmax))
-    itmax <- .Machine$integer.max
-  if(!noise) {
-    G <- K
-    temp <- .Fortran("mevvv",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(if(eps > 0) n * G else 1),
-		     double(p),
-		     double(p * p),
-		     double(p))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, G)
-    rcmin <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("menvvv",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(if(eps > 0) n * G else 1),
-		     double(p),
-		     double(p * p),
-		     double(p),
-		     as.double(Vinv))[c(2, 6:8)]
-    z <- matrix(temp[[1]], n, K)
-    rcmin <- temp[[2]]
-    err <- temp[[3]]
-    its <- temp[[4]]
-  }
-  if(its >= itmax) {
-    warning("iteration limit reached")
-    attr(z, "warn") <- list("iteration limit reached")
-    its <-  - its
-  }
-  if(rcmin <= abs(eps)) {
-    warning("reciprocal condition estimate falls below threshold")
-    attr(z, "warn") <- 
-      c(attr(z, "warn"), 
-	list("reciprocal condition estimate falls below threshold"))
-  }
-  attr(z, "info") <- c(iterations = its, maxerr = err, rcond = rcmin)
-  z
-}
-
-"mhclass" <- function(tree, nclusters)
-{
-  initial <- attributes(tree)$init
-  n <- length(initial)
-  k <- length(unique(initial))
-  nclusters <- if(missing(nclusters)) 
-    k:2 
-  else 
-    rev(sort(unique(nclusters)))
-  select <- k - nclusters
-  if(length(select) == 1 && !select)
-    return(matrix(initial, ncol = 1, 
-		  dimnames = list(NULL, as.character(nclusters))))
-  bad <- select < 0 | select >= k
-  if(all(bad))
-    stop("No classification with the specified number of clusters")
-  if(any(bad))
-    warning("Some selected classifications are inconsistent\n                          with mclust object"
-	    )	# all stages
-  l <- length(select)
-  cl <- matrix(NA, nrow = n, ncol = l, 
-	       dimnames = list(NULL, as.character(nclusters)))
-  if(select[1])
-    m <- 1
-  else {
-    cl[, 1] <- initial
-    m <- 2
-  }
-  for(l in 1:max(select)) {
-    ij <- tree[, l]
-    i <- min(ij)
-    j <- max(ij)
-    initial[initial == j] <- i
-    if(select[m] == l) {
-      cl[, m] <- initial
-      m <- m + 1
+  densNuncer <- function(data, mu, sigmasq, pro)
+    {
+      cden <- cdensV(data = data, mu = mu, sigmasq = sigmasq, pro = pro)
+      z <- sweep(cden, MARGIN = 2, FUN = "*", STATS = pro)
+      den <- apply(z, 1, sum)
+      z <- sweep(z, MARGIN = 1, FUN = "/", STATS = den)
+      data.frame(density = den, uncertainty = 1 - apply(z, 1, max))
+    }
+  p <- ncol(as.matrix(data))
+  if(p != 1)
+    stop("for one-dimensional data only")
+  data <- as.vector(data)
+  n <- length(data)
+  aux <- list(...)
+  z <- aux$z
+  classification <- aux$classification
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  uncertainty <- aux$uncertainty
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  truth <- aux$truth
+  mu <- as.vector(aux$mu)
+  sigma <- as.vector(aux$sigma)
+  pro <- aux$pro
+  params <- !is.null(mu) && !is.null(sigma) && !is.null(pro)
+  if(params) {
+    G <- length(mu)
+    if((l <- length(sigma)) == 1) {
+      sigma <- rep(sigma, G)
+    }
+    else if(l != G) {
+      params <- FALSE
+      warning("mu and sigma are incompatible")
     }
   }
-  apply(cl[, length(select):1, drop = F], 2, partconv, consec = T)
-}
-
-"mhtree" <- function(data, modelid, partition, min.clusters = 1, 
-		    verbose = F, ...) 
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) 
-    warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  if(missing(modelid))
-    modelid <- "VVV"
-  modelblurb <- switch(modelid,
-		       EI = "EI : uniform spherical",
-		       VI = "VI : spherical",
-		       EEE = "EEE : uniform variance",
-		       VVV = "VVV : unconstrained variance",
-		       EFV = "EFV : fixed shape, uniform volume",
-		       VFV = "VFV : fixed shape",
-		       "invalid model id")
-  if(verbose) cat("model ", modelblurb, "\n")	
-  ##===========================================================================
-  switch(modelid,
-	 EI = mhtree.EI(data, partition, min.clusters, ...),
-	 VI = mhtree.VI(data, partition, min.clusters, ...),
-	 EEE = mhtree.EEE(data, partition, min.clusters, ...),
-	 VVV = mhtree.VVV(data, partition, min.clusters, ...),
-	 EFV = mhtree.EFV(data, partition, min.clusters, ...),
-	 VFV = mhtree.VFV(data, partition, min.clusters, ...),
-	 stop("invalid model id"))
-}
-
-"mhtree.EEE" <- function(data, partition, min.clusters = 1)
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = T)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l	
-  ##===========================================================================
-  m <- l - min.clusters
-  if(m <= 0) {
-    return(structure(NA, determinant = NA, trace = NA, 
-		     initial.partition = partition, dimension = dimx, 
-		     call = match.call(), class = "mhtree"))
-  }
-  storage.mode(data) <- "double"
-  temp <- .Fortran("hceee",
-		   data,
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(partition),
-		   as.integer(l),
-		   as.integer(m),
-		   if(p < 3) integer(m) else integer(1),
-		   if(p < 4) integer(m) else integer(1),
-		   double(p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p))[c(1, 7:10)]
-  temp[[4]] <- temp[[4]][1:2]	## currently temp[[5]] is not output
-  temp[[5]] <- temp[[5]][1:2]
-  names(temp[[5]]) <- c("determinant", "trace")
-  temp[[1]] <- temp[[1]][1:(m + 1),  ]
-  if(p < 3)
-    tree <- rbind(temp[[2]], temp[[3]])
-  else if(p < 4)
-    tree <- rbind(temp[[1]][-1, 3], temp[[3]])
-  else tree <- t(temp[[1]][-1, 3:4, drop = F])
-  determinant <- temp[[1]][, 1]
-  attr(determinant, "breakpoints") <- temp[[4]]
-  structure(tree, determinant = determinant, trace = temp[[1]][, 2], 
-	    initial.partition = partition, dimensions = dimx, 
-	    ##call = match.call(),
-	    model = "EEE", class = "mhtree")
-}
-
-"mhtree.EFV" <- function(data, partition, min.clusters = 1, shape)
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(shape))
-    stop("no shape vector specified")
-  shape <- sqrt(rev(sort(shape)))
-  shape <- shape/shape[1]
-  if(length(shape) != p)
-    stop("length of shape vector must equal ncol(data)")
-  if(any(shape <= 0)) stop("nonpositive shape")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = T)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l	
-  ##===========================================================================
-  m <- l - min.clusters
-  if(m <= 0) {
-    return(structure(NA, change = NA, initial.partition = partition,
-		     shape = shape^2, dimension = dimx, call = match.call(), 
-		     class = "mhtree"))
-  }
-  storage.mode(data) <- "double"
-  ll <- (l * (l - 1))/2
-  ld <- max(n, ll + 1, 3 * m)	
-  ##	dp <- duplicated(partition)
-  ##    x[c((1:n)[!dp],(1:n)[dp]), ], 
-  ##    as.integer(c(partition[!dp], partition[dp])), 
-  temp <- .Fortran("hcefv",
-		   data,
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(partition),
-		   as.integer(l),
-		   as.integer(m),
-		   as.integer(lwork <- max(4 * p, 5 * p - 4)),
-		   as.double(shape),
-		   double(p),
-		   double(lwork),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   as.integer(ld),
-		   double(ld))[c(1, 10, 15, 16)]
-  if(temp[[3]])
-    stop("SVD does not converge")
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = F]
-  temp[[4]] <- temp[[4]][1:m]
-  structure(t(temp[[1]]), change = temp[[4]], initial.partition = 
-	    partition, shape = shape^2, dimensions = dimx, workspace.svd = 
-	    c(use = lwork, opt = temp[[2]]), call = match.call(), model = 
-	    "EFV", class = "mhtree")
-}
-
-"mhtree.EI" <- function(data, partition, min.clusters = 1)
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = T)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l	
-  ##===========================================================================
-  m <- l - min.clusters
-  if(m <= 0) {
-    return(structure(NA, change = NA, initial.partition = partition,
-		     dimensions = dimx, call = match.call(), class = 
-		     "mhtree"))
-  }
-  storage.mode(data) <- "double"
-  ld <- max(c((l * (l - 1))/2, 3 * m))
-  temp <- .Fortran("hcei",
-		   data,
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(partition),
-		   as.integer(l),
-		   as.integer(m),
-		   double(p),
-		   as.integer(ld),
-		   double(ld))[c(1, 9)]
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = F]
-  temp[[2]] <- temp[[2]][1:m]
-  structure(t(temp[[1]]), change = temp[[2]], 
-	    initial.partition = partition, dimensions = dimx,
-	    ##call = match.call(), 
-	    model = "EI", class = "mhtree")
-}
-
-"mhtree.VEV" <- "mhtree.VFV" <- function(data, partition, 
-				       min.clusters = 1, shape, alpha = 1) 
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(shape))
-    stop("no shape vector specified")
-  shape <- sqrt(rev(sort(shape)))
-  shape <- shape/shape[1]
-  if(length(shape) != p)
-    stop("length of shape vector must equal ncol(data)")
-  if(any(shape <= 0)) stop("nonpositive shape")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = T)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l	
-  ##===========================================================================
-  m <- l - min.clusters
-  if(m <= 0) {
-    return(structure(NA, change = NA, initial.partition = partition,
-		     shape = shape^2, dimension = dimx, call = match.call(), 
-		     class = "mhtree"))
-  }
-  storage.mode(data) <- "double"
-  ll <- (l * (l - 1))/2
-  ld <- max(n, ll + 1, 3 * m)	
-  ##	dp <- duplicated(partition)
-  ##    x[c((1:n)[!dp],(1:n)[dp]), ], 
-  ##    as.integer(c(partition[!dp], partition[dp])), 
-  alpha <- alpha * traceW(data/sqrt(n * p))
-  alpha <- max(alpha, .Machine$double.eps)
-  temp <- .Fortran("hcvfv",
-		   data,
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(partition),
-		   as.integer(l),
-		   as.integer(m),
-		   as.integer(lwork <- max(4 * p, 5 * p - 4)),
-		   as.double(alpha),
-		   as.double(shape),
-		   double(p),
-		   double(lwork),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   as.integer(ld),
-		   double(ld))[c(1, 7, 16, 17)]
-  if(temp[[3]])
-    stop("SVD does not converge")
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = F]
-  temp[[4]] <- temp[[4]][1:m]
-  structure(t(temp[[1]]), change = temp[[4]], initial.partition = 
-	    partition, shape = shape^2, dimensions = dimx, workspace.svd = 
-	    c(use = lwork, opt = temp[[2]]), call = match.call(), model = 
-	    "VFV", class = "mhtree")
-}
-"mhtree.VI" <-
-function(data, partition, min.clusters = 1, alpha = 1)
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = T)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l	
-  ##===========================================================================
-  m <- l - min.clusters
-  if(m <= 0) {
-    return(structure(NA, change = NA, initial.partition = partition,
-		     dimension = dimx, call = match.call(), class = "mhtree"
-		     ))
-  }
-  storage.mode(data) <- "double"
-  ll <- (l * (l - 1))/2
-  ld <- max(n, ll, 3 * m)
-  alpha <- alpha * traceW(data/sqrt(n * p))
-  alpha <- max(alpha, .Machine$double.eps)
-  temp <- .Fortran("hcvi",
-		   data,
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(partition),
-		   as.integer(l),
-		   as.integer(m),
-		   as.double(alpha),
-		   double(p),
-		   as.integer(ld),
-		   double(ld))[c(1, 10)]
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = F]
-  temp[[2]] <- temp[[2]][1:m]
-  structure(t(temp[[1]]), change = temp[[2]], initial.partition = 
-	    partition, dimensions = dimx, call = match.call(), model = "VI",
-	    class = "mhtree")
-}
-
-"mhtree.VVV" <-function(data, partition, min.clusters = 1, alpha = 1, beta = 1)
-{
-  if(min.clusters < 1)
-    stop("min.clusters must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimx <- dim(data)
-  if(is.null(dimx))
-    stop("data must be a matrix with  at least 2 columns")
-  data <- as.matrix(data)
-  n <- dimx[1]
-  p <- dimx[2]
-  if(p == 1)
-    stop("data must be a matrix with  at least 2 columns")
-  if(n <= p) warning("# of observations <= data dimension")	
-  ##===========================================================================
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = T)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l	
-  ##===========================================================================
-  m <- l - min.clusters
-  if(m <= 0) {
-    return(structure(NA, change = NA, initial.partition = partition,
-		     dimension = dimx, call = match.call(), class = "mhtree"
-		     ))
-  }
-  storage.mode(data) <- "double"
-  ll <- (l * (l - 1))/2
-  ld <- max(n, ll + 1, 3 * m)	
-  ##	dp <- duplicated(partition)
-  ##    x[c((1:n)[!dp],(1:n)[dp]), ], 
-  ##    as.integer(c(partition[!dp], partition[dp])), 
-  alpha <- alpha * traceW(data/sqrt(n * p))
-  alpha <- max(alpha, .Machine$double.eps)
-  temp <- .Fortran("hcvvv",
-		   cbind(data, 0),
-		   as.integer(n),
-		   as.integer(p),
-		   as.integer(partition),
-		   as.integer(l),
-		   as.integer(m),
-		   as.double(alpha),
-		   as.double(beta),
-		   double(p),
-		   double(p * p),
-		   double(p * p),
-		   double(p * p),
-		   as.integer(ld),
-		   double(ld))[c(1, 14)]
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = F]
-  temp[[2]] <- temp[[2]][1:m]
-  structure(t(temp[[1]]), change = temp[[2]], initial.partition = 
-	    partition, dimensions = dimx, call = match.call(), model = 
-	    "VVV", class = "mhtree")
-}
-
-"mixproj" <- function(data, ms, partition, dimens, scale = F, 
-                      k = 15, xlim, ylim, xlab, ylab,
-                      col=partition, pch=partition, ...)
-{
-  if(missing(dimens))
-    dimens <- sample(1:ncol(data), 2)
-  data <- data[, dimens]
-  if(dim(data)[2] != 2)
-    stop("need two dimensions")
-  p <- nrow(ms$mu)
-  d <- dim(ms$sigma)
-  ld <- length(d)
-  m <- ncol(ms$mu)
-  if(is.null(d)) {
-    l <- length(ms$sigma)
-    if(l == 1) {
-      ## uniform spherical model (EI)
-      sigma <- array(diag(c(ms$sigma, ms$sigma)), c(2, 2, m))
+  if(!is.null(truth)) {
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
     }
-    else if(l == m) {
-      ## spherical model (VI)
-      sigma <- array(sapply(ms$sigma, function(z) diag(c(z, z))), c(2, 2, m))
+    else {
+      if(length(unique(truth)) != length(unique(
+                 classification)))
+        truth <- NULL
+      else truth <- as.character(truth)
     }
-    else stop("mu and sigma are incompatible")
   }
-  else if(ld == 3 && all(d[1:2] == p) && d[3] == m) {
-    ## nonuniform variances (VVV, etc)
-    sigma <- ms$sigma[dimens, dimens,  ]
-  }
-  else if(ld == 2 && all(d == p)) {
-    ## uniform variance (EEE)
-    sigma <- array(ms$sigma[dimens, dimens], c(2, 2, m))
-  }
-  else stop("mu and sigma are incompatible")
-  mu <- ms$mu[dimens,  ]
-
-  if (missing(xlim))
-    xlim <- range(data[, 1])
-  if (missing(ylim))
-    ylim <- range(data[, 2])
-  
-  if(scale) {
-    d <- diff(xlim) - diff(ylim)
-    if(d > 0) 
-      ylim <- c(ylim[1] - d/2, ylim[2] + d/2)
-    else 
-      xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
-  }
-
-  if (missing(partition))
-    partition _ rep(1, dim(data)[1])
-  labs _ dimnames(data)[[2]]
-  if (missing(xlab)) {
-    if (is.null(labs))
-      xlab _ ""
-    else
-      xlab _ labs[1]
-  }
-  if (missing(ylab)) {
-    if (is.null(labs))
-      ylab _ ""
-    else
-      ylab _ labs[2]
-  }
-
-  plot(data[, 1], data[, 2], col=col, pch=pch, xlab=xlab, ylab=ylab,
-       xlim=xlim, ylim=ylim, ...)
-  l <- ncol(mu)
-  for(i in 1:l) {
-    mvn2plot(mu = mu[,i], sigma = sigma[,,i], k = k)
-  }
-  dimens
-}
-
-"mstep" <- function(data, modelid, z, ...)
-{
-  ## ... z, eps, tol, itmax, equal = F, noise = F, Vinv
-  switch(as.character(modelid),
-	 EI = mstep.EI(data, z, ...),
-	 VI = mstep.VI(data, z, ...),
-	 EEE = mstep.EEE(data, z, ...),
-	 VVV = mstep.VVV(data, z, ...),
-	 EEV = mstep.EEV(data, z, ...),
-	 VEV = mstep.VEV(data, z, ...),
-	 stop("invalid model id"))
-}
-
-"mstep.EEE" <-function(data, z, eps, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  np <- n * p
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  K <- dimz[2]	# number of groups
-  if(all(is.na(z))) {
-    G <- if(noise) K - 1 else K
-    return(
-	   if (equal) list(mu = matrix(NA, p, G), 
-			   sigma = matrix(NA, p, p)) 
-	   else list(mu = matrix(NA, p, G), 
-		     sigma = matrix(NA, p, p), prob = rep(NA, K)) 
-	   )
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(!noise) {
-					# no noise assumed
-    G <- K
-    temp <- .Fortran("mseee",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(1),
-		     double(p * G),
-		     double(p * p),
-		     double(if(equal) 1 else G))[c(6, 8:11)]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("msneee",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(1),
-		     double(p * G),
-		     double(p * p),
-		     double(if(equal) 1 else K),
-		     as.double(Vinv))[c(6, 8:11)]
-  }
-  rc <- temp[[1]]
-  loglik <- temp[[2]]
-  mu <- matrix(temp[[3]], p, G)
-  Sigma <- matrix(temp[[4]], p, p)
-  if(!equal)
-    prob <- temp[[5]]
-  dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigma = Sigma) else list(mu = mu, sigma
-				   = Sigma, prob = prob)
-  if(rc <= abs(eps)) {
-    warning("reciprocal condition estimate falls below threshold")
-    attr(out, "warn") <- 
-      list("reciprocal condition estimate falls below threshold")
-  }
-  if(loglik == .Machine$double.xmax)
-    loglik <- NA
-  attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- rc
-  out
-}
-
-"mstep.EEV" <- function(data, z, eps, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  np <- n * p
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  K <- dimz[2]	# number of groups
-  if(all(is.na(z))) {
-    G <- if(noise) K - 1 else K
-    return(
-	   if(equal) 
-	   list(mu = matrix(NA, p, G),
-		sigma = array(NA, c(p, p, G))) 
-	   else 
-	   list(mu = matrix(NA, p, G), 
-		sigma = array(NA, c(p, p, G)), prob = rep(NA, K))
-	   )
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1)) 
-    stop("improper specification of z")	
-  ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
-  if(missing(eps))
-    eps <- c(.Machine$double.eps, .Machine$double.eps)
-  else if(length(eps) == 1)
-    eps <- c(eps, .Machine$double.eps)
-  if(!noise) {
-					# no noise assumed
-    G <- K
-    lwork <- max(4 * p, 5 * p - 4, G)
-    temp <- .Fortran("mseev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(p),
-		     double(lwork),
-		     as.integer(lwork),
-		     double(1),
-		     double(p * G),
-		     double(p * p * G),
-		     double(if(equal) 1 else G))[c(6, 7, 11:14)]
-  } else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    lwork <- max(4 * p, 5 * p - 4, G)
-    temp <- .Fortran("msneev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(p),
-		     double(lwork),
-		     as.integer(lwork),
-		     double(1),
-		     double(p * G),
-		     double(p * p * G),
-		     double(if(equal) 1 else K),
-		     as.double(Vinv))[c(6, 7, 11:14)]
-  }
-  lambda <- temp[[1]][1]
-  rc <- temp[[1]][2]
-  shape <- temp[[2]]
-  loglik <- temp[[3]]
-  mu <- matrix(temp[[4]], p, G)
-  sigma <- array(temp[[5]], c(p, p, G))
-  if(!equal)
-    prob <- temp[[6]]
-  warn <- NULL
-  if(loglik == .Machine$double.xmax) {
-    loglik <- NA
-    warning("volume falls below threshold")
-    warn <- list("volume falls below threshold")
-    sigma <- array(NA, c(p, p, G))
-    shape <- rep(NA, p)
-  }
-  else if(loglik ==  - .Machine$double.xmax) {
-    loglik <- NA
-    warning("reciprocal condition estimate falls below threshold")
-    warn <- list("reciprocal condition estimate falls below threshold"
-		 )
-    sigma <- array(NA, c(p, p, G))
-  }
-  else if(loglik == .Machine$double.xmin) {
-    loglik <- NA
-    warning("LAPACK DGESVD fails to converge")
-    warn <- list("LAPACK DGESVD fails to converge")
-    sigma <- array(NA, c(p, p, G))
-    lambda <- NA
-    shape <- rep(NA, p)
-  }
-  else if(loglik ==  - .Machine$double.xmin) {
-    loglik <- NA
-    warning("input error for LAPACK DGESVD")
-    warn <- list("input error for LAPACK DGESVD")
-    sigma <- array(NA, c(p, p, G))
-    lambda <- NA
-    shape <- rep(NA, p)
-  }
-  dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigma = sigma) else list(mu = mu, sigma
-				   = sigma, prob = prob)
-  attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- rc
-  attr(out, "shape") <- shape * shape
-  attr(out, "lambda") <- lambda
-  attr(out, "warn") <- warn
-  out
-}
-
-"mstep.EI" <- function(data, z, eps, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  np <- n * p
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  K <- dimz[2]	# number of groups
-  if(all(is.na(z))) {
-    G <- if(noise) K - 1 else K
-    return(if(equal) list(mu = matrix(NA, p, G), sigma = NA)
-    else list(mu = matrix(NA, p, G), sigma = NA, prob = 
-	      rep(NA, K)))
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(!noise) {
-					# no noise assumed
-    G <- K
-    temp <- .Fortran("msei",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p * G),
-		     double(1),
-		     double(if(equal) 1 else G))[6:9]
-  } else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("msnei",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p * G),
-		     double(1),
-		     double(if(equal) 1 else K),
-		     as.double(Vinv))[6:9]
-  }
-  loglik <- temp[[1]]
-  mu <- matrix(temp[[2]], p, G)
-  sigma <- temp[[3]]
-  if(!equal)
-    prob <- temp[[4]]
-  dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigma = sigma) else list(mu = mu, 
-				   sigma = sigma, prob = prob)
-  if(sigma <= abs(eps)) {
-    warning("sigma-squared falls below threshold")
-    attr(out, "warn") <- list("sigma-squared falls below threshold"
-			      )
-  }
-  if(loglik == .Machine$double.xmax)
-    loglik <- NA
-  attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- sigma/(1 + sigma)
-  out
-}
-
-"mstep.VEV" <- function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  np <- n * p
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  K <- dimz[2]	# number of groups
-  if(all(is.na(z))) {
-    G <- if(noise) K - 1 else K
-    return(
-	   if (equal) 
-	   list(mu = matrix(NA, p, G), 
-		sigma = array(NA, c(p, p, G))) 
-	   else 
-	   list(mu = matrix(NA, p, G), 
-		sigma = array(NA, c(p, p, G)), prob = rep(NA, K))
-	   )
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1)) 
-    stop("improper specification of z")	
-  ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
-  if(missing(eps))
-    eps <- c(.Machine$double.eps, .Machine$double.eps)
-  else if(length(eps) == 1)
-    eps <- c(eps, .Machine$double.eps)
-  if(missing(tol))
-    tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax))
-    itmax <- .Machine$integer.max
-  if(!noise) {
-					# no noise assumed
-    G <- K
-    lwork <- max(4 * p, 5 * p - 4, G)
-    temp <- .Fortran("msvev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(G),
-		     double(p),
-		     double(p),
-		     double(p * G),
-		     double(lwork),
-		     as.integer(lwork),
-		     double(1),
-		     double(p * G),
-		     double(p * p * G),
-		     double(G))[c(6:10, 15:18)]
-  } else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    lwork <- max(4 * p, 5 * p - 4, G)
-    temp <- .Fortran("msnvev",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     as.double(tol),
-		     as.integer(itmax),
-		     double(G),
-		     double(p),
-		     double(p),
-		     double(p * G),
-		     double(lwork),
-		     as.integer(lwork),
-		     double(1),
-		     double(p * G),
-		     double(p * p * G),
-		     double(K),
-		     as.double(Vinv))[c(6:10, 15:18)]
-  }
-  rc <- temp[[1]][2]
-  inner <- temp[[3]]
-  inerr <- if(inner > 0) temp[[2]] else NA
-  lambda <- temp[[4]]
-  shape <- temp[[5]]
-  loglik <- temp[[6]]
-  mu <- matrix(temp[[7]], p, G)
-  sigma <- array(temp[[8]], c(p, p, G))
-  if(!equal)
-    prob <- temp[[9]]
-  warn <- NULL
-  if(inner >= itmax) {
-    warning("inner iteration limit reached")
-    warn <- list("inner iteration limit reached")
-  }
-  if(loglik == .Machine$double.xmax) {
-    loglik <- NA
-    warning("volume falls below threshold")
-    warn <- c(warn, list("volume falls below threshold"))
-    sigma <- array(NA, c(p, p, G))
-    shape <- rep(NA, p)
-  }
-  else if(loglik ==  - .Machine$double.xmax) {
-    loglik <- NA
-    warning("condition estimate falls below threshold")
-    warn <- c(warn, list("condition estimate falls below threshold"
-			 ))
-    sigma <- array(NA, c(p, p, G))
-    lambda <- rep(NA, G)
-    shape <- rep(NA, p)
-  }
-  else if(loglik == .Machine$double.xmin) {
-    loglik <- NA
-    warning("LAPACK DGESVD fails to converge")
-    warn <- list("LAPACK DGESVD fails to converge")
-    sigma <- array(NA, c(p, p, G))
-    lambda <- rep(NA, G)
-    shape <- rep(NA, p)
-  }
-  else if(loglik ==  - .Machine$double.xmin) {
-    loglik <- NA
-    warning("input error for LAPACK DGESVD")
-    warn <- list("input error for LAPACK DGESVD")
-    sigma <- array(NA, c(p, p, G))
-    lambda <- rep(NA, G)
-    shape <- rep(NA, p)
-  }
-  dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- 
-    if (equal) 
-      list(mu = mu, sigma = sigma) 
-    else 
-      list(mu = mu, sigma = sigma, prob = prob)
-  attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- rc
-  attr(out, "shape") <- shape * shape
-  attr(out, "lambda") <- lambda
-  attr(out, "warn") <- warn
-  ## Next line gives 
-  ## Error: attempt to set an attribute on NULL
-  ##  attr(attr(out, "info"), "inner") <- 
-  ##    c(iterations = inner, maxerr = inerr)
-  out
-}
-
-"mstep.VI" <- function(data, z, eps, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  np <- n * p
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  K <- dimz[2]	# number of groups
-  if(all(is.na(z))) {
-    G <- if(noise) K - 1 else K
-    return(
-	   if(equal) 
-	   list(mu = matrix(NA, p, G), 
-		sigma = rep(NA, G)) 
-	   else list(mu = matrix(NA, p, G), 
-		     sigma = rep(NA, G), prob = rep(NA, K))
-	   )
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(!noise) {
-					# no noise assumed
-    G <- K
-    temp <- .Fortran("msvi",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p * G),
-		     double(G),
-		     double(if(equal) 1 else G))[6:9]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("msnvi",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p * G),
-		     double(G),
-		     double(if(equal) 1 else K),
-		     as.double(Vinv))[6:9]
-  }
-  loglik <- temp[[1]]
-  mu <- matrix(temp[[2]], p, G)
-  sigma <- temp[[3]]
-  if(!equal)
-    prob <- temp[[4]]
-  temp <- min(sigma)
-  dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigma = sigma) else list(mu = mu, 
-				   sigma = sigma, prob = prob)
-  if(temp <= abs(eps)) {
-    warning("sigma-squared falls below threshold")
-    attr(out, "warn") <- list("sigma-squared falls below threshold"
-			      )
-  }
-  if(loglik == .Machine$double.xmax)
-    loglik <- NA
-  attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- temp/(1 + temp)
-  out
-}
-
-"mstep.VVV" <- function(data, z, eps, equal = F, noise = F, Vinv)
-{
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  np <- n * p
-  z <- as.matrix(z)
-  dimz <- dim(z)
-  if(dimz[1] != n)
-    stop("data and z should have the same row dimension")
-  K <- dimz[2]	# number of groups
-  if(all(is.na(z))) {
-    G <- if(noise) K - 1 else K
-    return(
-	   if(equal) 
-	   list(mu = matrix(NA, p, G), 
-			  sigma = array(NA, c(p, p, G))) 
-	   else list(mu = matrix(NA, p, G), 
-		     sigma = array(NA, c(p, p, G)), prob = rep(NA, K))
-	   )
-  }
-  ## Added RW 14/8/2001, next two lines
-  z[z>1 & z <= 1+.Machine$double.eps] _ 1
-  z[z<0 & z>= -.Machine$double.eps] _ 0
-  if(any(is.na(z)) || any(z < 0) || any(z > 1))
-    stop("improper specification of z")
-  if(missing(eps))
-    eps <- .Machine$double.eps
-  if(!noise) {
-					# no noise assumed
-    G <- K
-    temp <- .Fortran("msvvv",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(1),
-		     double(p * G),
-		     double(p * p * G),
-		     double(if(equal) 1 else G))[c(6, 8:11)]
-  }
-  else {
-    if(missing(Vinv))
-      Vinv <- hypvol(data, reciprocal = T)
-    G <- K - 1
-    temp <- .Fortran("msnvvv",
-		     as.double(data),
-		     as.double(z),
-		     as.integer(n),
-		     as.integer(p),
-		     as.integer(if(equal)  - G else G),
-		     as.double(eps),
-		     double(p),
-		     double(1),
-		     double(p * G),
-		     double(p * p * G),
-		     double(if(equal) 1 else K),
-		     as.double(Vinv))[c(6, 8:11)]
-  }
-  rc <- temp[[1]]
-  loglik <- temp[[2]]
-  mu <- matrix(temp[[3]], p, G)
-  sigma <- array(temp[[4]], c(p, p, G))
-  if(!equal)
-    prob <- temp[[5]]
-  dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigma = sigma) else list(mu = mu, sigma
-				   = sigma, prob = prob)
-  if(rc <= abs(eps)) {
-    warning("reciprocal condition estimate falls below threshold")
-    attr(out, "warn") <- 
-      list("reciprocal condition estimate falls below threshold")
-  }
-  if(loglik == .Machine$double.xmax)
-    loglik <- NA
-  attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- rc
-  out
-}
-
-"mvn2plot" <- function(mu, sigma, k = 15, add = TRUE, col=NULL, 
-		       xlim=NULL, ylim=NULL, xlab=NULL, ylab=NULL, ...)
-{
-  p <- length(mu)
-  if(p != 2)
-    stop("two-dimensional case only")
-  if(any(unique(dim(sigma)) != p))
-    stop("mu and sigma are incompatible")
-  ev <- eigen(sigma, symmetric = T)
-  s <- sqrt(rev(sort(ev$values)))	# need descending order
-  V <- t(ev$vectors[, rev(order(ev$values))])
-  theta <- (0:k) * (pi/(2 * k))
-  x <- s[1] * cos(theta)
-  y <- s[2] * sin(theta)
-  xy <- cbind(c(x,  - x,  - x, x), c(y, y,  - y,  - y))
-  xy <- xy %*% V
-  xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
-
-  if (!add) {
-    if (is.null(xlim) | is.null(ylim)) {
-      xymin <- apply(xy, 2, FUN = "min")
-      xymax <- apply(xy, 2, FUN = "max")
-      r <- ceiling(max(xymax - xymin)/2)
-      xymid <- (xymin + xymax)/2
-      if (is.null(xlim)) xlim <- c( - r, r) + xymid[1]
-      if (is.null(ylim)) ylim <- c( - r, r) + xymid[2]
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- unique(classification)
+    L <- length(U)
+    if(missing(symbols)) {
+      symbols <- rep("|", L)
+      if(FALSE) {
+        if(L <= length(.Mclust$symbols)) {
+          symbols <- .Mclust$symbols
+        }
+        else if(L <= 9) {
+          symbols <- as.character(1:9)
+        }
+        else if(L <= 26) {
+          symbols <- LETTERS
+        }
+      }
     }
-    if (is.null(xlab)) xlab <- "x"
-    if (is.null(ylab)) ylab <- "y"
-    plot(xy[,1], xy[,2], xlim = xlim, ylim = ylim, xlab = xlab, ylab =
-	 ylab, type = "n", ...)
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification")
+      classification <- NULL
+    }
   }
-  l <- length(x)
-  i <- 1:l
-  for(k in 1:4) {
-    lines(xy[i,  ], col=col)
-    i <- i + l
+  if(l <- length(type)) {
+    choices <- c("classification", "uncertainty", "density", 
+                 "errors")
+    m <- rep(0, l)
+    for(i in 1:l) {
+      m[i] <- charmatch(type[i], choices, nomatch = 0)
+    }
+    choices <- choices[unique(m)]
+    if(is.null(classification))
+      choices <- choices[choices != "classification"]
+    if(is.null(truth))
+      choices <- choices[choices != "errors"]
   }
-					# semi-major axes
-  P <- cbind(c( - s[1], s[1]), c(0, 0))
-  P <- P %*% V
-  P <- sweep(P, 2, mu, FUN = "+")
-  lines(P, lty = 2, col=col)
-  P <- cbind(c(0, 0), c( - s[2], s[2]))
-  P <- P %*% V
-  P <- sweep(P, 2, mu, FUN = "+")
-  if (is.null(col)) col <- 1
-  lines(P, lty = 2, col=col)
-  points(mu[1], mu[2], pch = "*", col=col)
+  else choices <- NULL
+  if(!params) {
+    choices <- choices[choices != "uncertainty"]
+    choices <- choices[choices != "density"]
+  }
+  if(length(choices) > 1 && ask)
+    choices <- c(choices, "all")
+  else {
+    if(!length(choices)) {
+      plot(data, rep(0, n), type = "n", xlab = "", ylab = "", xlim = xlim)
+      ##, ...)
+      points(data, rep(0, n), pch = "|", cex = CEX)
+      if(identify)
+        title("Point Plot", cex = 0.5)
+      return(invisible())
+    }
+    if(length(choices) == 1)
+      ask <- FALSE
+  }
+  if(any(choices == "errors")) {
+    comp <- compClass(truth, classification)
+    tr <- comp$map[1,  ]
+    cl <- comp$map[2,  ]
+    U <- as.character(U)
+    TRUTH <- rep("0", length(truth))
+    for(k in 1:L) {
+      TRUTH[truth == tr[k]] <- cl[k]
+    }
+  }
+  if(!ask)
+    pick <- 1:length(choices)
+  ALL <- FALSE
+  if(missing(xlim))
+    xlim <- range(data)
+  while(TRUE) {
+    if(ask) {
+      pick <- menu(choices, title = 
+                   "\nmclust1Dplot: make a plot selection (0 to exit):\n"
+                   )
+      if(!pick)
+        return(invisible())
+      ALL <- any(choices[pick] == "all")
+    }
+    if(any(choices[pick] == "classification") || (any(choices ==
+                    "classification") && ALL)) {
+      plot(data, seq(from = 0, to = L, length = n), type = "n",
+           xlab = "", ylab = "", xlim = xlim, yaxt = "n") 
+           ##, ...)
+      for(k in 1:L) {
+        I <- classification == U[k]
+        points(data[I], rep(0, length(data[I])), pch = 
+               symbols[k], cex = CEX)
+        points(data[I], rep(k, length(data[I])), pch = 
+               symbols[k], cex = CEX)
+      }
+      if(identify)
+        title("Classification", cex = 0.5)
+    }
+    if(any(choices[pick] == "errors") || (any(choices == "errors") &&
+                    ALL)) {
+      plot(data, seq(from = 0, to = L, length = n), type = "n",
+           xlab = "", ylab = "", xlim = xlim, yaxt = "n")
+      ##, ...)
+      good <- classification == truth
+      sym <- "|"
+      for(k in 1:L) {
+        K <- classification == U[k]
+        I <- K & good
+        if(any(I)) {
+          if(FALSE) {
+            sym <- if(L > 4) 1 else if(k ==
+                                       4)
+              5
+            else k - 1
+          }
+          l <- sum(as.numeric(I))
+          ##
+          ## points(data[I], rep(k, l), pch = sym, cex = CEX)
+          ##
+          points(data[I], rep(0, l), pch = sym,
+                 cex = CEX)
+        }
+        I <- K & !good
+        if(any(I)) {
+          if(FALSE)
+            sym <- if(L > 5) 16 else k +
+              14
+          l <- sum(as.numeric(I))
+          points(data[I], rep(k, l), pch = sym,
+                 cex = CEX)
+          points(data[I], rep(0, l), pch = sym,
+                 cex = CEX)
+        }
+      }
+      if(identify)
+        title("Classification Errors", cex = 0.5)
+    }
+    if((any(choices == "uncertainty" | choices == "density") && ALL
+        ) || any(choices[pick] == "uncertainty" | choices[
+                          pick] == "density")) {
+      x <- grid1(n = grid, range = xlim, edge = TRUE)
+      lx <- length(x)
+      Z <- densNuncer(data = x, mu = mu, sigmasq = sigma,
+                      pro = pro)
+    }
+    if(any(choices[pick] == "uncertainty") || (any(choices == 
+                    "uncertainty") && ALL)) {
+      plot(x, Z$uncertainty, xlab = "", ylab = "uncertainty",
+           xlim = xlim, type = "l")##, ...)
+      if(identify)
+        title("Uncertainty", cex = 0.5)
+    }
+    if(any(choices[pick] == "density") || (any(choices == "density"
+                    ) && ALL)) {
+      plot(x, Z$density, xlab = "", ylab = "density", xlim = 
+           xlim, type = "l")###, ...)
+      if(identify)
+        title("Density", cex = 0.5)
+    }
+    if(!ask)
+      break
+  }
   invisible()
 }
 
-"one.XI" <- function(data)
+"mclust2Dplot" <- function(data, ...,
+                           type = c("classification", "uncertainty", "errors"),
+                           ask = TRUE, quantiles = c(0.75, 0.95), symbols,
+                           scale = FALSE, identify = FALSE, CEX = 1,
+                           PCH = ".", xlim, ylim, swapAxes = FALSE)
 {
+  if(scale)
+    par(pty = "s")
+  data <- as.matrix(data)
+  p <- ncol(data)
+  if(p != 2)
+    stop("for two-dimensional data only")
+  aux <- list(...)
+  z <- aux$z
+  classification <- aux$classification
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  uncertainty <- aux$uncertainty
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  truth <- aux$truth
+  mu <- aux$mu
+  sigma <- aux$sigma
+  decomp <- aux$decomp
+  params <- !is.null(mu) && (!is.null(sigma) || !is.null(decomp))
+  if(!is.null(mu)) {
+    if(is.null(sigma)) {
+      if(is.null(decomp)) {
+        params <- FALSE
+        warning("covariance not supplied")
+      }
+      else {
+        sigma <- decomp2sigma(decomp)
+      }
+    }
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      params <- FALSE
+      warning("covariance improperly specified")
+    }
+    if(G != dimpar[3]) {
+      params <- FALSE
+      warning("mu and sigma are incompatible")
+    }
+    cho <- array(apply(sigma, 3, chol), c(p, p, G))
+  }
+  if(swapAxes) {
+    if(params) {
+      mu <- mu[2:1,  ]
+      sigma <- sigma[2:1, 2:1,  ]
+    }
+    data <- data[, 2:1]
+  }
+  if(!is.null(dnames <- dimnames(data)[[2]])) {
+    xlab <- dnames[1]
+    ylab <- dnames[2]
+  }
+  else xlab <- ylab <- ""
+  if(missing(xlim))
+    xlim <- range(data[, 1])
+  if(missing(ylim))
+    ylim <- range(data[, 2])
+  if(scale) {
+    d <- diff(xlim) - diff(ylim)
+    if(d > 0) {
+      ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
+    }
+    else {
+      xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
+    }
+  }
+  if(!is.null(truth)) {
+    truth <- as.character(truth)
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
+    }
+    else {
+      classification <- as.character(classification)
+      if(length(unique(truth)) != length(unique(
+                 classification)))
+        truth <- NULL
+    }
+  }
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- sort(unique(classification))
+    L <- length(U)
+    if(missing(symbols)) {
+      if(L <= length(.Mclust$symbols)) {
+        symbols <- .Mclust$symbols
+      }
+      else if(L <= 9) {
+        symbols <- as.character(1:9)
+      }
+      else if(L <= 26) {
+        symbols <- LETTERS
+      }
+    }
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification")
+      classification <- NULL
+    }
+  }
+  if(l <- length(type)) {
+    choices <- c("classification", "uncertainty", "errors")
+    m <- rep(0, l)
+    for(i in 1:l) {
+      m[i] <- charmatch(type[i], choices, nomatch = 0)
+    }
+    choices <- choices[unique(m)]
+    if(is.null(classification))
+      choices <- choices[choices != "classification"]
+    if(is.null(uncertainty))
+      choices <- choices[choices != "uncertainty"]
+    if(is.null(truth))
+      choices <- choices[choices != "errors"]
+  }
+  else choices <- NULL
+  if(length(choices) > 1 && ask)
+    choices <- c(choices, "all")
+  else {
+    if(!length(choices)) {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      points(data[, 1], data[, 2], pch = PCH, cex = CEX)
+      if(identify)
+        title("Point Plot", cex = 0.5)
+      return(invisible())
+    }
+    if(length(choices) == 1)
+      ask <- FALSE
+  }
+  if(any(choices == "errors")) {
+    comp <- compClass(truth, classification)
+    TR <- comp$map[1,  ]
+    CL <- comp$map[2,  ]
+    TRUTH <- rep("0", length(truth))
+    for(k in 1:L) {
+      TRUTH[truth == TR[k]] <- CL[k]
+    }
+  }
+  if(!ask)
+    pick <- 1:length(choices)
+  ALL <- FALSE
+  while(TRUE) {
+    if(ask) {
+      pick <- menu(choices, title = 
+                   "\nmclust2Dplot: make a plot selection (0 to exit):\n"
+                   )
+      if(!pick)
+        return(invisible())
+      ALL <- any(choices[pick] == "all")
+    }
+    if(any(choices[pick] == "classification") || (any(choices ==
+                    "classification") && ALL)) {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      for(k in 1:L) {
+        I <- classification == U[k]
+        points(data[I, 1], data[I, 2], pch = symbols[
+                                         k], cex = CEX)
+      }
+      if(identify)
+        title("Classification", cex = 0.5)
+    }
+    if(any(choices[pick] == "uncertainty") || (any(choices == 
+                    "uncertainty") && ALL)) {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      breaks <- quantile(uncertainty, probs = sort(quantiles)
+                         )
+      I <- uncertainty < breaks[1]
+      points(data[I, 1], data[I, 2], pch = 16, cex = 0.5 *
+             CEX)
+      I <- uncertainty < breaks[2] & !I
+      points(data[I, 1], data[I, 2], pch = 1, cex = 1 * CEX)
+      I <- uncertainty >= breaks[2]
+      points(data[I, 1], data[I, 2], pch = 16, cex = 1.5 *
+             CEX)
+      if(identify)
+        title("Classification Uncertainty", cex = 0.5)
+    }
+    if(any(choices[pick] == "errors") || (any(choices == "errors") &&
+                    ALL)) {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      CLASSES <- unique(as.character(TRUTH))
+      symOpen <- c(2, 0, 1, 5)
+      symFill <- c(17, 15, 16, 18)
+      good <- classification == TRUTH
+      if(L > 4) {
+        points(data[good, 1], data[good, 2], pch = 1,
+               cex = CEX)
+        points(data[!good, 1], data[!good, 2], pch = 16,
+               cex = CEX)
+      }
+      else {
+        for(k in 1:L) {
+          K <- TRUTH == CLASSES[k]
+          points(data[K, 1], data[K, 2], pch = 
+                 symOpen[k], cex = CEX)
+          if(any(I <- (K & !good))) {
+            points(data[I, 1], data[I,
+                                    2], pch = symFill[
+                                          k], cex = CEX)
+          }
+        }
+      }
+      if(identify)
+        title("Classification Errors", cex = 0.5)
+    }
+    if(!ask)
+      break
+  }
+  invisible()
+}
+
+"mclust2DplotControl" <- function(what = "classification", scale = FALSE,
+                                  flip = FALSE, identify = TRUE,
+                                  quantiles = c(0.75, 0.95),
+                                  symbols = .Mclust$symbols, grid = 100,
+                                  contours = 20)
+{
+  list(what = what, scale = scale, flip = flip, identify = identify,
+       quantiles = quantiles, symbols = .Mclust$symbols, grid = grid,
+       contours = contours)
+}
+
+"mclustDA" <-
+  function(trainingData, labels, testData, G = 1:6, verbose = FALSE)
+{
+  if(verbose)
+    cat("training ...\n")
+  emModelNames <- c("EII", "VII", "EEI", "VVI", "EEE", "VVV")
+  trainingModels <- mclustDAtrain(data = trainingData, labels = labels,
+                                  G = G, emModelNames = emModelNames,
+                                  verbose = verbose) 
+  if(verbose)
+    cat("testing ...\n")
+  S <- data.frame(trainClass = as.factor(unique(labels)), mclustModel = 
+                  as.factor(sapply(trainingModels, function(x)
+                                   x$modelName)),
+                  numGroups = sapply(trainingModels, function(x) x$G))
+  test <- mclustDAtest(testData, trainingModels)
+  testSumry <- summary(test)
+  train <- mclustDAtest(trainingData, trainingModels)
+  trainSumry <- summary(train)
+  comp <- compClass(trainSumry$classification, labels)
+  structure(list(testClassification = testSumry$classification, 
+                 trainingClassification = trainSumry$classification, errorRate
+		 = round(comp$error, 3), summary = S, models = trainingModels,
+                 postProb = testSumry$postProb), class = "mclustDA")
+}
+
+"mclustDAtest" <- function(data, models)
+{
+  densfun <- function(model, data)
+    {
+      do.call("dens", c(list(data = data), model))
+    }
+  den <- as.matrix(data.frame(lapply(models, densfun, data = data)))
+  dimnames(den) <- list(NULL, names(models))
+  structure(den, class = "mclustDAtest")
+}
+
+"mclustDAtrain" <-
+  function(data, labels, G, emModelNames, eps, tol, itmax,
+           equalPro, warnSingular = FALSE, verbose = TRUE) 
+{
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD && length(dimData) != 2)
+    stop("data must be a vector or a matrix")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    p <- 1
+    data <- as.matrix(data)
+  }
+  else {
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+  }
+  if(missing(emModelNames)) {
+    if(p == 1) {
+      emModelNames <- c("E", "V")
+    }
+    else {
+      emModelNames <- .Mclust$emModelNames
+    }
+  }
+  if(p == 1 && any(nchar(emModelNames) > 1)) {
+    Emodel <- any(sapply(emModelNames, function(x)
+                         charmatch("E", x, nomatch = 0)[1]) == 1)
+    Vmodel <- any(sapply(emModelNames, function(x)
+                         charmatch("V", x, nomatch = 0)[1]) == 1)
+    emModelNames <- c("E", "V")[c(Emodel, Vmodel)]
+  }
+  ## Old: U <- unique(labels)
+  ## New... 10/01/02 Ron
+  if (!is.factor(labels)) labels <- as.factor(labels)
+  U <- levels(labels)
+  
+  L <- length(U)
+  S <- rep(0, L)
+  M <- rep("XXX", L)
+  if(missing(G)) {
+    G <- 1:9
+  }
+  else {
+    G <- sort(G)
+  }
+  if(any(G) <= 0)
+    stop("G must be positive")
+  R <- rep(list(matrix(0, n, max(G) + 1)), L)
+  Glabels <- as.character(G)
+  for(l in 1:L) {
+    I <- labels == U[l]
+    bestBIC <-  - Inf
+    off <- 1
+    if(G[1] == 1) {
+      for(mdl in emModelNames) {
+        temp <- mvn(modelName = mdl, data = data[I, , drop = FALSE])
+        Bic <- bic(modelName = mdl, loglik = temp$loglik,
+                   n = n, d = p, G = 1, equalPro = equalPro)
+        if(is.na(Bic))
+          next
+        if(Bic > bestBIC) {
+          bestBIC <- Bic
+          bestModel <- mdl
+          bestG <- 1
+          bestResult <- temp
+        }
+      }
+      ##
+      ##			G <- G[-1]
+      ##		Glabels <- Glabels[-1]
+      ##
+      off <- 2
+    }
+    if(length(G) > 1) {
+      if(p != 1) {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[2],
+                      data = data[I,  , drop = FALSE])
+      }
+      else {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[1],
+                      data = data[I,  , drop = FALSE])
+      }
+
+      clss <- hclass(hcPairs, G)
+      g <- length(G)
+      for(i in off:g) {
+        z <- unmap(clss[, Glabels[i]])
+        for(modelName in emModelNames) {
+          temp <- me(modelName = modelName,
+                     data = data[I,  , drop = FALSE], z = z,
+                     eps = eps, tol = tol, itmax = itmax,
+                     equalPro = equalPro,
+                     warnSingular = warnSingular)
+          Bic <- do.call("bic", list(modelName = modelName,
+                                     loglik = temp$loglik,
+                                     n = n, d = p, G = G[i], 
+                                     equalPro = equalPro))
+          if(is.na(Bic))
+            next
+          if(Bic > bestBIC) {
+            bestBIC <- Bic
+            bestModel <- modelName
+            bestG <- G[i]
+            bestResult <- temp
+          }
+        }
+      }
+    }
+    S[l] <- bestG
+    M[l] <- bestModel
+    R[[l]] <- bestResult
+  }
+  names(S) <- M
+  if(verbose) print(S)
+  names(R) <- U
+  R <- lapply(R, function(x)
+              {
+		i <- charmatch("Vinv", names(x), nomatch = 0)
+		if(i) x[ - i]
+		else x
+              }
+              )
+  structure(R, G = G, emModelNames = emModelNames, eps = eps, tol = tol,
+            itmax = itmax, equalPro = equalPro, class = "mclustDAtrain")
+}
+
+"mclustDAtrainN" <- function(data, labels, emModelNames, G,
+                             hcModelName, equal = FALSE, noise, Vinv)
+{
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD && length(dimData) != 2)
+    stop("data must be a vector or a matrix")
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    p <- 1
+  }
+  else {
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+  }
+  if(missing(emModelNames)) {
+    if(p == 1) {
+      emModelNames <- c("E", "V")
+    }
+    else {
+      emModelNames <- mdModelNames
+    }
+  }
+  U <- unique(labels)
+  L <- length(U)
+  S <- rep(0, L)
+  M <- rep("XXX", L)
+  if(missing(noise)) {
+    noise <- FALSE
+    if(missing(G)) {
+      G <- 1:9
+    }
+    else {
+      G <- sort(G)
+    }
+    if(any(G) < 0)
+      stop("G must be non negative")
+    if(any(!G))
+      stop("G = 0 allowed only with noise")
+    R <- rep(list(matrix(0, n, max(G) + 1)), L)
+    Glabels <- as.character(G)
+    for(l in 1:L) {
+      I <- labels == U[l]
+      bestBIC <-  - Inf
+      if(G[1] == 1) {
+        for(mdl in emModelNames) {
+          temp <- mvn(modelName = mdl, data = data[I,  , drop = FALSE])
+          Bic <- bic(modelName = mdl, loglik = temp$loglik, n = n, d = p,
+                     G = 1, equal = equal)
+          if(is.na(Bic))
+            next
+          if(Bic > bestBIC) {
+            bestBIC <- Bic
+            bestModel <- mdl
+            bestG <- 1
+            bestResult <- temp
+          }
+        }
+        G <- G[-1]
+        Glabels <- Glabels[-1]
+      }
+      if(missing(hcModelName)) {
+        if(p != 1) {
+          hcPairs <- hcVVV(data = data[I,  , drop = FALSE])
+        }
+        else {
+          hcPairs <- hcV(data = data[I,  , drop = FALSE])
+        }
+      }
+      else {
+        hcPairs <- hc(modelName = hcModelName, data = data[I, ,drop = FALSE])
+      }
+      clss <- hclass(hcPairs, G)
+      g <- length(G)
+      for(i in 1:g) {
+        z <- unmap(clss[, Glabels[i]])
+        for(modelName in emModelNames) {
+          temp <- do.call("me", list(modelName = modelName,
+                                     data = data[I,  , drop = FALSE],
+                                     z = z, equal = equal))
+          Bic <- do.call("bic", list(modelName = 
+                                     modelName, loglik = temp$loglik,
+                                     n = n, d = p, G = G[i], equal = equal))
+          if(is.na(Bic))
+            next
+          if(Bic > bestBIC) {
+            bestBIC <- Bic
+            bestModel <- modelName
+            bestG <- G[i]
+            bestResult <- temp
+          }
+        }
+      }
+      S[l] <- bestG
+      M[l] <- bestModel
+      R[[l]] <- bestResult
+    }
+  }
+  else {
+    if(missing(G)) {
+      G <- 0:9
+    }
+    else {
+      G <- sort(G)
+    }
+    if(any(G) < 0)
+      stop("G must be non negative")
+    R <- rep(list(matrix(0, n, max(G) + 1)), L)
+    Glabels <- as.character(G)
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+    for(l in 1:L) {
+      I <- labels == U[l]
+      if(!G[1]) {
+        hood <- n * logb(Vinv)
+        Bic <- 2 * hood - logb(n)
+        if(Bic > bestBIC) {
+          bestBIC <- Bic
+          bestModel <- "noise"
+          bestG <- 0
+        }
+        G <- G[-1]
+        Glabels <- Glabels[-1]
+      }
+      if(missing(hcModelName)) {
+        if(p != 1) {
+          hcPairs <- hcVVV(data = data[subset,])
+        }
+        else {
+          hcPairs <- hcV(data = data[subset,])
+        }
+      }
+      else {
+        hcPairs <- hc(modelName = hcModelName,
+                      data = data[I,  , drop = FALSE])
+      }
+      clss <- hclass(hcPairs, G)
+      z <- matrix(0, n, max(G) + 1)
+      j <- 0
+      g <- length(G)
+      for(i in 1:g) {
+        k <- G[i]
+        k1 <- k + 1
+        z[!noise, 1:k] <- unmap(clss[, Glabels[i]])
+        z[!noise, k1] <- 0
+        z[noise, k1] <- 1
+        for(modelName in emModelNames) {
+          temp <- do.call("me", list(modelName = modelName,
+                                     data = data[I,  , drop = FALSE],
+                                     z = z, equal = equal,
+                                     noise = noise, Vinv = Vinv))
+          Bic <- do.call("bic", list(modelName = modelName,
+                                     loglik = temp$loglik,
+                                     n = n, d = p, G = G[i],
+                                     equal = equal, noise = noise))
+          if(is.na(Bic))
+            next
+          if(Bic > bestBIC) {
+            bestBIC <- Bic
+            bestModel <- modelName
+            bestG <- G[i]
+            bestResult <- temp
+          }
+        }
+      }
+      S[l] <- bestG
+      M[l] <- bestModel
+      R[[l]] <- bestResult
+    }
+  }
+  names(S) <- M
+  print(S)
+  names(R) <- U
+  structure(R, class = "mclustDAtrain")
+}
+
+"mclustOptions" <- function(eps = .Machine$double.eps,
+                            tol = c(1.0000000000000001e-05, 
+                              1.0000000000000001e-05),
+                            itmax = c(Inf, Inf), equalPro = FALSE, 
+                            warnSingular = TRUE, emModelNames,
+                            hcModelName = c("V", "VVV"),
+                            symbols) 
+{
+  if(missing(emModelNames))
+    emModelNames <- c("EII", "VII", "EEI", "VEI", "EVI", "VVI",
+                      "EEE", "EEV", "VEV", "VVV")
+  if(missing(symbols))
+    symbols <- c(17, 0, 10, 4, 11, 18, 6, 7, 3, 16, 2, 12, 8, 15,
+                 1, 9, 14, 13, 5)
+  list(tol = tol, eps = eps, itmax = itmax, equalPro = equalPro, 
+       emModelNames = emModelNames, hcModelName = hcModelName, 
+       warnSingular = warnSingular, symbols = symbols)
+}
+
+"mclustProjControl" <- 
+  function(what = "classification", projection = "coordinate", scale = FALSE, 
+           identify = TRUE, dimens = c(1, 2), quantiles = c(0.75, 0.95),
+           angles = seq(from = 0, to = pi, by = pi/3),
+           symbols = .Mclust$symbols, grid = 100, seeds = 0) 
+{
+  list(what = what, projection = projection, scale = scale, identify = 
+       identify, dimens = dimens, quantiles = quantiles, angles = 
+       angles, symbols = .Mclust$symbols, grid = grid, seeds = seeds)
+}
+
+"me" <- function(modelName, data, z, ...)
+{
+  ## ... z, eps, tol, itmax, equal = FALSE, noise = FALSE, Vinv
+  funcName <- paste("me", modelName, sep = "")
+  do.call(funcName, list(data = data, z = z, ...))
+}
+
+"meE" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
+                  noise = FALSE, Vinv)
+{
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD)
+    stop("data must be 1 dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal length of data")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = 1, G = G, z = z, mu = rep(NA, G),
+                          sigmasq = NA, pro = rep(NA, K), loglik = NA,
+                          modelName = "E"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("me1e",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(G),
+                   double(1),
+                   double(K))[6:12]
+  mu <- temp[[5]]
+  names(mu) <- as.character(1:G)
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  sigmasq <- temp[[6]]
+  pro <- temp[[7]]
+  warn <- NULL
+  if(is.infinite(loglik) || sigmasq <= max(eps, 0)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+  }
+  else if(its >= itmax) {
+    warning("iteration limit reached")
+    warn <- "iteration limit reached"
+    its <-  - its
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = 1, G = G, z = z, mu = mu, sigmasq = sigmasq,
+                 pro = pro, loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "E"), info = info, warn = warn)
+}
+
+"meEEE" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should in the form of a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  temp <- .Fortran("onexi",
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   double(p),
-		   double(1),
-		   double(1))[c(4:6)]
-  loglik <- temp[[3]]
-  temp[[3]] <- NULL
-  names(temp) <- c("mu", "sigsq")
-  sigsq <- temp$sigsq
-  attr(temp, "loglik") <- loglik
-  attr(temp, "rcond") <- sigsq/(1 + sigsq)
-  temp
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          Sigma = matrix(NA, p, p),
+                          cholSigma = matrix(NA, p, p), pro = rep(NA, K),
+                          loglik = NA, modelName = "EEE"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  storage.mode(z) <- "double"
+  temp <- .Fortran("meeee",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(p * p),
+                   double(K),
+                   double(p))[7:13]
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  cholSigma <- structure(matrix(temp[[6]], p, p), def = 
+                         "Sigma = t(cholSigma) %*% cholSigma")
+  Sigma <- unchol(cholSigma, upper = TRUE)
+  pro <- temp[[7]]
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- Sigma
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 Sigma = Sigma, cholSigma = cholSigma, pro = pro, loglik = 
+                 loglik, Vinv = if(noise) Vinv else NULL, modelName = "EEE"),
+            info = info, warn = warn)
 }
 
-"one.XXX" <- function(data)
+"meEEI" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data  should be in the form of a matrix")
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  temp <- .Fortran("onexxx",
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   double(p),
-		   double(p * p),
-		   double(1),
-		   double(1))[c(4:7)]
-  loglik <- temp[[3]]
-  rc <- temp[[4]]
-  temp[[3]] <- temp[[4]] <- NULL
-  temp[[2]] <- matrix(temp[[2]], p, p)
-  names(temp) <- c("mu", "sigma")
-  attr(temp, "loglik") <- loglik
-  attr(temp, "rcond") <- rc
-  temp
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          Sigma = matrix(NA, p, p),
+                          decomp = list(d = p, G = G,
+                            scale = NA, shape = rep(NA, p)),
+                          pro = rep(NA, K), loglik = NA,
+                          modelName = "EEI"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("meeei",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(1),
+                   double(p),
+                   double(K))[7:14]
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[6]]
+  shape <- temp[[7]]
+  pro <- temp[[8]]
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    sigma <- array(NA, c(p, p, G))
+    Sigma <- matrix(NA, p, p)
+    mu[] <- pro[] <- z[] <- loglik <- NA
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    Sigma <- diag(scale * shape)
+    for(k in 1:G)
+      sigma[,  , k] <- Sigma
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 Sigma = Sigma, decomp = decomp, pro = pro, loglik = loglik,
+                 Vinv = if(noise) Vinv else NULL, modelName = "EEI"), info = 
+            info, warn = warn)
 }
 
-"partconv" <- function(x, consec = T)
+"meEEV" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = NA,
+                            shape = rep(NA, p),
+                            orientation = array(NA, c(p, p, G))),
+                          pro = rep(NA, K), loglik = NA, modelName = "EEV"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  lwork <- max(4 * p, 5 * p - 4)
+  storage.mode(z) <- "double"
+  temp <- .Fortran("meeev",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   as.integer(lwork),
+                   double(p * G),
+                   double(1),
+                   double(p),
+                   double(p * p * G),
+                   double(K),
+                   double(lwork),
+                   double(p))[7:16]
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  lapackSVDinfo <- temp[[5]]
+  mu <- matrix(temp[[6]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[7]]
+  shape <- temp[[8]]
+  O <- array(temp[[9]], c(p, p, G))
+  pro <- temp[[10]]
+  warn <- NULL
+  if(lapackSVDinfo) {
+    if(lapackSVDinfo > 0) {
+      warning("LAPACK DGESVD fails to converge")
+      warn <- "LAPACK DGESVD fails to converge"
+    }
+    else {
+      warning("input error for LAPACK DGESVD")
+      warn <- "input error for LAPACK DGESVD"
+    }
+    z[] <- O[] <- shape[] <- NA
+    scale <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- scale * shapeO(shape, O, transpose = TRUE)
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "EEV"), info = info, warn
+            = warn)
+}
+
+"meEII" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)), sigmasq = NA,
+                          Sigma = matrix(NA, p, p),
+                          decomp = list(d = p, G = G, scale = NA),
+                          pro = rep(NA, K), loglik = NA, modelName = "EII"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("meeii",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(1),
+                   double(K))[7:13]
+  mu <- matrix(temp[[5]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  sigmasq <- temp[[6]]
+  Sigma <- diag(rep(sigmasq, p))
+  pro <- temp[[7]]
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax ||
+     sigmasq <= max(eps, 0)) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- Sigma
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = sigmasq)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 sigmasq = sigmasq, Sigma = Sigma, decomp = decomp, pro = pro,
+                 loglik = loglik, Vinv = if(noise) Vinv else NULL, info = info,
+                 modelName = "EII"), warn = warn)
+}
+
+"meEVI" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = NA,
+                            shape = matrix(NA, p, G)), pro = rep(NA, K),
+                          loglik = NA, modelName = "EVI"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("meevi",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(1),
+                   double(p * G),
+                   double(K))[7:14]
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  scale <- temp[[6]]
+  shape <- matrix(temp[[7]], p, G)
+  dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+  pro <- temp[[8]]
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "EVI"), info = info, warn
+            = warn)
+}
+
+"meV" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal length of data")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warning("z is missing")
+    warn <- "z is missing"
+    return(structure(list(n = n, d = 1, G = G, z = z, mu = rep(NA, G),
+                          sigmasq = rep(NA, G), pro = rep(NA, K), 
+                          modelName = "V"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("me1v",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(G),
+                   double(G),
+                   double(K))[6:12]
+  mu <- temp[[5]]
+  names(mu) <- as.character(1:G)
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  sigmasq <- temp[[6]]
+  pro <- temp[[7]]
+  warn <- NULL
+  if(is.infinite(loglik) || any(sigmasq <= max(eps, 0))) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+  }
+  else if(its >= itmax) {
+    warning("iteration limit reached")
+    warn <- "iteration limit reached"
+    its <-  - its
+  }
+  info <- c(iterations = its, error = err)
+  if(is.infinite(loglik))
+    loglik <- NA
+  structure(list(n = n, d = 1, G = G, z = z, mu = mu, sigmasq = sigmasq,
+                 pro = pro, loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "V"), info = info, warn = warn)
+}
+
+"meVEI" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G,
+                            scale = rep(NA, G), shape = rep(NA, p)),
+                          pro = rep(NA, K), loglik = NA, modelName = "VEI"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(length(tol) == 1)
+    tol <- c(tol, tol)
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  if(length(itmax) == 1)
+    itmax <- c(itmax, Inf)
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("mevei",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(G),
+                   double(p),
+                   double(K),
+                   double(G),
+                   double(p),
+                   double(p * G))[7:14]
+  z <- temp[[1]]
+  its <- temp[[2]][1]
+  inner <- temp[[2]][2]
+  err <- temp[[3]][1]
+  inerr <- temp[[3]][2]
+  loglik <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  scale <- temp[[6]]
+  shape <- temp[[7]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  pro <- temp[[8]]
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    sigma <- array(NA, c(p, p, G))
+    mu[] <- pro[] <- z[] <- loglik <- NA
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- diag(scale[k] * shape)
+    if(inner >= itmax[2]) {
+      warning("inner iteration limit reached")
+      warn <- "inner iteration limit reached"
+      inner <-  - inner
+    }
+    else if(its >= itmax[1]) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  attr(info, "inner") <- c(iterations = inner, error = inerr)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VEI"), info = info, warn
+            = warn)
+}
+
+"meVEV" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G,
+                            scale = rep(NA, G), shape = matrix(NA, p, G),
+                            orientation = array(NA, c(p, p, G))),
+                          pro = rep(NA, K), modelName = "VEV"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  if(length(tol) == 1)
+    tol <- c(tol, tol)
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  if(length(itmax) == 1)
+    itmax <- c(itmax, Inf)
+  itmax[is.infinite(itmax)] <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  lwork <- max(4 * p, 5 * p - 4, p + G)
+  storage.mode(z) <- "double"
+  temp <- .Fortran("mevev",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   as.integer(lwork),
+                   double(p * G),
+                   double(G),
+                   double(p),
+                   double(p * p * G),
+                   double(K),
+                   double(lwork),
+                   double(p))[7:16]
+  z <- temp[[1]]
+  its <- temp[[2]][1]
+  inner <- temp[[2]][2]
+  err <- temp[[3]][1]
+  inerr <- temp[[3]][2]
+  loglik <- temp[[4]]
+  lapackSVDinfo <- temp[[5]]
+  mu <- matrix(temp[[6]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[7]]
+  shape <- temp[[8]]
+  O <- array(temp[[9]], c(p, p, G))
+  pro <- temp[[10]]
+  warn <- NULL
+  if(lapackSVDinfo) {
+    if(lapackSVDinfo > 0) {
+      warning("LAPACK DGESVD fails to converge")
+      warn <- "LAPACK DGESVD fails to converge"
+    }
+    else {
+      warning("input error for LAPACK DGESVD")
+      warn <- "input error for LAPACK DGESVD"
+    }
+    O[] <- shape[] <- scale[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    Sigma <- array(NA, c(p, p, G))
+  }
+  else if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    O[] <- shape[] <- scale[] <- NA
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    Sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    Sigma <- shapeO(shape, O, transpose = TRUE)
+    Sigma <- sweep(Sigma, MARGIN = 3, STATS = scale, FUN = "*")
+    if(inner >= itmax[2]) {
+      warning("inner iteration limit reached")
+      warn <- "inner iteration limit reached"
+      inner <-  - inner
+    }
+    else if(its >= itmax[1]) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+  info <- structure(c(iterations = its, error = err),
+                    inner = c(iterations = inner, error = inerr))
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = Sigma,
+                 decomp = decomp, pro = pro, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VEV"), info = info, warn
+            = warn)
+}
+
+"meVII" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data must be in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          sigmasq = rep(NA, G),
+                          decomp = list(d = p, G = G, scale = rep(NA, G)),
+                          pro = rep(NA, K), loglik = NA, modelName = "VII"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("mevii",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(G),
+                   double(K))[7:13]
+  mu <- matrix(temp[[5]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  sigmasq <- temp[[6]]
+  pro <- temp[[7]]
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax ||
+     any(sigmasq <= max(eps, 0))) {
+    if(warnSingular)
+      warning("sigma-squared falls below threshold")
+    warn <- "sigma-squared falls below threshold"
+    mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- diag(rep(sigmasq[k], p))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = sigmasq)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 sigmasq = sigmasq, decomp = decomp, pro = pro,
+                 loglik = loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "VII"), info = info, warn = warn) 
+}
+
+"meVVI" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) > 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = rep(NA, G),
+                            shape = matrix(NA, p, G)), pro = rep(NA, K),
+                          loglik = NA, modelName = "VVI"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("mevvi",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(G),
+                   double(p * G),
+                   double(K))[7:14]
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  scale <- temp[[6]]
+  shape <- matrix(temp[[7]], p, G)
+  dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+  pro <- temp[[8]]
+  warn <- NULL
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    if(loglik < 0)
+      shape[] <- NA
+    sigma <- array(NA, c(p, p, G))
+    mu[] <- pro[] <- z[] <- loglik <- NA
+  }
+  else {
+    sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
+                               FUN = "*"), 2, diag), c(p, p, G))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VVI"), info = info, warn
+            = warn)
+}
+
+"meVVV" <- 
+  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should in the form of a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("data and z should have the same row dimension")
+  K <- dimz[2]
+                                        # number of groups
+  if(!noise) {
+    G <- K
+    Vinv <- -1
+  }
+  else {
+    G <- K - 1
+    if(missing(Vinv) || Vinv <= 0)
+      Vinv <- hypvol(data, reciprocal = TRUE)
+  }
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, z = z,
+                          mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          cholsigma = array(NA, c(p, p, G)),
+                          pro = rep(NA, K),
+                          loglik = NA, modelName = "VVV"), warn = warn)) 
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- .Mclust$tol
+  tol <- tol[1]
+  if(missing(itmax))
+    itmax <- .Mclust$itmax
+  itmax <- itmax[1]
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  storage.mode(z) <- "double"
+  temp <- .Fortran("mevvv",
+                   as.logical(equalPro),
+                   as.double(data),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(Vinv),
+                   z,
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(p * p * G),
+                   double(K),
+                   double(p))[7:13]
+  z <- temp[[1]]
+  its <- temp[[2]]
+  err <- temp[[3]]
+  loglik <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  cholsigma <- structure(array(temp[[6]], c(p, p, G)), def = 
+                         "Sigma = t(cholsigma) %*% cholsigma")
+  pro <- temp[[7]]
+  warn <- NULL
+  if(is.infinite(loglik) || loglik == .Machine$double.xmax) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- z[] <- loglik <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(cholsigma, 3, unchol), c(p, p, G))
+    if(its >= itmax) {
+      warning("iteration limit reached")
+      warn <- "iteration limit reached"
+      its <-  - its
+    }
+  }
+  info <- c(iterations = its, error = err)
+  structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = sigma,
+                 cholsigma = cholsigma, pro = pro, loglik = loglik,
+                 Vinv = if(noise) Vinv else NULL, modelName = "VVV"),
+            info = info, warn = warn)
+}
+
+"mstep" <- function(modelName, data, z, ...)
+{
+  ## ... eps, tol, itmax, equal = FALSE, noise = FALSE, Vinv
+  funcName <- paste("mstep", modelName, sep = "")
+  do.call(funcName, list(data = data, z = z, ...))
+}
+
+"mstepE" <- function(data, z, equalPro, noise = FALSE, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.vector(data)
+  n <- length(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
+                          sigmasq = NA, pro = rep(NA, K), modelName = "E"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  temp <- .Fortran("ms1e",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(G),
+                   double(G),
+                   double(1),
+                   double(G))[5:7]
+  mu <- temp[[1]]
+  names(mu) <- as.character(1:G)
+  sigmasq <- temp[[2]]
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[3]]
+    }
+    else {
+      pro <- c(temp[[3]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  structure(list(n = n, d = 1, G = G, mu = mu, sigmasq = sigmasq, pro = 
+                 pro, modelName = "E"))
+}
+
+"mstepEEE" <- function(data, z, equalPro, noise = FALSE, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          Sigma = matrix(NA, p, p),
+                          cholSigma = matrix(NA, p, p),
+                          pro = rep(NA, K), modelName = "EEE"),
+                     warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  temp <- .Fortran("mseee",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p),
+                   double(p * G),
+                   double(p * p),
+                   double(G))[7:9]
+  mu <- matrix(temp[[1]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  cholSigma <- structure(matrix(temp[[2]], p, p), def = 
+                         "Sigma = t(cholSigma) %*% cholSigma")
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[3]]
+    }
+    else {
+      pro <- c(temp[[3]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  sigma <- array(0, c(p, p, G))
+  Sigma <- unchol(cholSigma, upper = TRUE)
+  for(k in 1:G)
+    sigma[,  , k] <- Sigma
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 Sigma = Sigma, cholSigma = cholSigma, pro = pro,
+                 modelName = "EEE"))
+}
+
+"mstepEEI" <- function(data, z, equalPro, noise = FALSE, eps,
+                       warnSingular, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          Sigma = matrix(NA, p, p),
+                          decomp = list(d = p, G = G, scale = NA,
+                            shape = rep(NA, p)), pro = rep(NA, K),
+                          modelName = "EEI"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("mseei",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(p * G),
+                   double(1),
+                   double(p),
+                   double(G))[6:10]
+  icond <- temp[[1]]
+  mu <- matrix(temp[[2]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[3]]
+  shape <- temp[[4]]
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[5]]
+    }
+    else {
+      pro <- c(temp[[5]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  warn <- NULL
+  if(icond <= eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- scale <- shape[] <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    Sigma <- diag(scale * shape)
+    for(k in 1:G)
+      sigma[,  , k] <- Sigma
+  }
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, Sigma = 
+                 Sigma, decomp = decomp, pro = pro, modelName = "EEI"), warn = 
+            warn)
+}
+
+"mstepEEV" <- function(data, z, equalPro, noise = FALSE, eps,
+                       warnSingular, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = NA,
+                            shape = rep(NA, p),
+                            orientation = array(NA, c(p, p, G))),
+                          pro = rep(NA, K), modelName = "EEV"), warn = warn))
+  }
+  ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  lwork <- max(4 * p, 5 * p - 4, G)
+  temp <- .Fortran("mseev",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(lwork),
+                   as.integer(lwork),
+                   as.double(eps),
+                   double(p * G),
+                   double(1),
+                   double(p),
+                   double(p * p * G),
+                   double(G))[7:13]
+  lapackSVDinfo <- temp[[1]]
+  smin <- temp[[2]]
+  mu <- matrix(temp[[3]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[4]]
+  shape <- temp[[5]]
+  O <- array(temp[[6]], c(p, p, G))
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[7]]
+    }
+    else {
+      pro <- c(temp[[7]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+
+  warn <- NULL
+  if(lapackSVDinfo) {
+    if(lapackSVDinfo > 0) {
+      warning("LAPACK DGESVD fails to converge")
+      warn <- "LAPACK DGESVD fails to converge"
+    }
+    else {
+      warning("input error for LAPACK DGESVD")
+      warn <- "input error for LAPACK DGESVD"
+    }
+    O[] <- shape[] <- scale <- NA
+    Sigma <- array(NA, c(p, p, G))
+  }
+  else if(smin <= eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- scale <- O[] <- shape[] <- NA
+    Sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    Sigma <- scale * shapeO(shape, O, transpose = TRUE)
+  }
+  ## Old location of pro assignment
+  decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = Sigma, decomp = 
+                 decomp, pro = pro, modelName = "EEV"), warn = warn)
+}
+
+"mstepEII" <- function(data, z, equalPro, noise = FALSE, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)), sigmasq = NA,
+                          Sigma = matrix(NA, p, p),
+                          decomp = list(d = p, G = G, scale = NA),
+                          pro = rep(NA, K), modelName = "EII"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  temp <- .Fortran("mseii",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p * G),
+                   double(1),
+                   double(G))[6:8]
+  mu <- matrix(temp[[1]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  sigmasq <- temp[[2]]
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[3]]
+    }
+    else {
+      pro <- c(temp[[3]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  sigma <- array(0, c(p, p, G))
+  Sigma <- diag(rep(sigmasq, p))
+  for(k in 1:G)
+    sigma[,  , k] <- Sigma
+  decomp <- list(d = p, G = G, scale = sigmasq)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, sigmasq = 
+                 sigmasq, Sigma = Sigma, decomp = decomp, pro = pro, modelName
+		 = "EII"))
+}
+
+"mstepEVI" <- function(data, z, equalPro, noise = FALSE, eps, warnSingular, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = NA,
+                            shape = matrix(NA, p, G)), pro = rep(NA, K),
+                          modelName = "EVI"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("msevi",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(p * G),
+                   double(1),
+                   double(p * G),
+                   double(G))[6:10]
+  icond <- temp[[1]]
+  mu <- matrix(temp[[2]], p, G)
+  scale <- temp[[3]]
+  shape <- matrix(temp[[4]], p, G)
+  dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[5]]
+    }
+    else {
+      pro <- c(temp[[5]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  warn <- NULL
+  if(icond <= eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- scale <- shape[] <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
+  }
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, modelName = "EVI"), warn = warn)
+}
+
+"mstepV" <- function(data, z, equalPro, noise = FALSE, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one-dimensional")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.vector(data)
+  n <- length(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
+                          sigmasq = rep(NA, G), pro = rep(NA, K),
+                          modelName = "V"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  temp <- .Fortran("ms1v",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(G),
+                   double(G),
+                   double(G),
+                   double(G))[5:7]
+  mu <- temp[[1]]
+  names(mu) <- as.character(1:G)
+  sigmasq <- temp[[2]]
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[3]]
+    }
+    else {
+      pro <- c(temp[[3]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  structure(list(n = n, d = 1, G = G, mu = mu, sigmasq = sigmasq, pro = 
+                 pro, modelName = "V"))
+}
+
+"mstepVEI" <- function(data, z, equalPro, noise = FALSE, eps, tol, itmax,
+                       warnSingular, ...) 
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = rep(NA, p),
+                            shape = matrix(NA, p, G)), pro = rep(NA, K),
+                          modelName = "VEI"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- if(length(.Mclust$tol) > 1) .Mclust$tol[2] else .Mclust$
+  tol
+  if(missing(itmax))
+    itmax <- if(length(.Mclust$itmax) > 1) .Mclust$itmax[2] else 
+  Inf
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("msvei",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(G),
+                   double(p),
+                   double(G),
+                   double(G),
+                   double(p),
+                   double(p * G))[6:12]
+  inner <- temp[[1]]
+  inerr <- temp[[2]]
+  icond <- temp[[3]]
+  mu <- matrix(temp[[4]], p, G)
+  scale <- temp[[5]]
+  shape <- temp[[6]]
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[7]]
+    }
+    else {
+      pro <- c(temp[[7]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  warn <- NULL
+  if(icond <= eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- shape <- scale[] <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(0, c(p, p, G))
+    for(k in 1:G)
+      sigma[,  , k] <- diag(scale[k] * shape)
+    if(inner >= itmax) {
+      warning("inner iteration limit reached")
+      warn <- "inner iteration limit reached"
+      inner <-  - inner
+    }
+  }
+  info <- c(iterations = inner, error = inerr)
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, modelName = "VEI"),
+            info = info, warn = warn)
+}
+
+"mstepVEV" <- function(data, z, equalPro, noise = FALSE, eps, tol, itmax,
+                       warnSingular, ...) 
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G,
+                            scale = rep(NA, G), shape = rep(NA, p),
+                            orientation = array(NA, c(p, p, G))),
+                          pro = rep(NA, K), modelName = "VEV"), warn = warn))
+  }
+  ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(tol))
+    tol <- if(length(.Mclust$tol) > 1) .Mclust$tol[2] else .Mclust$
+  tol
+  if(missing(itmax))
+    itmax <- if(length(.Mclust$itmax) > 1) .Mclust$itmax[2] else 
+  .Mclust$itmax
+  if(is.infinite(itmax))
+    itmax <- .Machine$integer.max
+  lwork <- max(4 * p, 5 * p - 4, p + G)
+  temp <- .Fortran("msvev",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(lwork),
+                   as.integer(lwork),
+                   as.integer(itmax),
+                   as.double(tol),
+                   as.double(eps),
+                   double(p * G),
+                   double(G),
+                   double(p),
+                   double(p * p * G),
+                   double(G))[7:15]
+  lapackSVDinfo <- temp[[1]]
+  inner <- temp[[2]]
+  inerr <- temp[[3]]
+  smin <- temp[[4]]
+  mu <- matrix(temp[[5]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  scale <- temp[[6]]
+  shape <- temp[[7]]
+  O <- array(temp[[8]], c(p, p, G))
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[9]]
+    } else {
+      pro <- c(temp[[9]], sum(z[, K])/n)
+    }
+  } else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    } else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  
+  warn <- NULL
+  if(lapackSVDinfo) {
+    if(lapackSVDinfo > 0) {
+      warning("LAPACK DGESVD fails to converge")
+      warn <- "LAPACK DGESVD fails to converge"
+    }
+    else {
+      warning("input error for LAPACK DGESVD")
+      warn <- "input error for LAPACK DGESVD"
+    }
+    O[] <- shape[] <- scale[] <- NA
+    Sigma <- array(NA, c(p, p, G))
+  }
+  else if(smin <= eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
+    Sigma <- array(NA, c(p, p, G))
+  } else {
+    Sigma <- sweep(shapeO(shape, O, transpose = TRUE), MARGIN = 3,
+                   STATS = scale, FUN = "*")
+    if(inner >= itmax) {
+      warning("inner iteration limit reached")
+      warn <- "inner iteration limit reached"
+      inner <-  - inner
+    }
+  }
+  
+  ## Old location of pro assignemtns is here...
+  decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
+                           orientation = O),
+                      def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
+  info <- c(iteration = inner, error = inerr)
+
+  if (!exists("pro")) browser()
+  
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = Sigma,
+                 decomp = decomp, pro = pro, modelName = "VEV"),
+            info = info, warn = warn)
+}
+
+"mstepVII" <- function(data, z, equalPro, noise = FALSE, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          sigmasq = rep(NA, G),
+                          decomp = list(d = p, G = G, scale = rep(NA, G)),
+                          pro = rep(NA, K), modelName = "VII"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  temp <- .Fortran("msvii",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p * G),
+                   double(G),
+                   double(G))[6:8]
+  mu <- matrix(temp[[1]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  sigmasq <- temp[[2]]
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[3]]
+    }
+    else {
+      pro <- c(temp[[3]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  sigma <- array(0, c(p, p, G))
+  for(k in 1:G)
+    sigma[,  , k] <- diag(rep(sigmasq[k], p))
+  decomp <- list(d = p, G = G, scale = sigmasq)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, sigmasq = 
+                 sigmasq, decomp = decomp, pro = pro, modelName = "VII"))
+}
+
+"mstepVVI" <- function(data, z, equalPro, noise = FALSE, eps,
+                       warnSingular, ...) 
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          decomp = list(d = p, G = G, scale = rep(NA, p),
+                            shape = matrix(NA, p, G)), pro = rep(NA, K),
+                          modelName = "VVI"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  if(missing(eps))
+    eps <- .Mclust$eps
+  if(missing(warnSingular))
+    warnSingular <- .Mclust$warnSingular
+  temp <- .Fortran("msvvi",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   as.double(eps),
+                   double(p * G),
+                   double(G),
+                   double(p * G),
+                   double(G))[6:10]
+  icond <- temp[[1]]
+  mu <- matrix(temp[[2]], p, G)
+  scale <- temp[[3]]
+  shape <- matrix(temp[[4]], p, G)
+  dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[5]]
+    }
+    else {
+      pro <- c(temp[[5]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  warn <- NULL
+  if(icond <= eps) {
+    if(warnSingular)
+      warning("singular covariance")
+    warn <- "singular covariance"
+    mu[] <- pro[] <- shape <- scale[] <- NA
+    sigma <- array(NA, c(p, p, G))
+  }
+  else {
+    sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
+                               FUN = "*"), 2, diag), c(p, p, G))
+  }
+  decomp <- list(d = p, G = G, scale = scale, shape = shape)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, modelName = "VVI"), warn = warn)
+}
+
+"mstepVVV" <- function(data, z, equalPro, noise = FALSE, ...)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD || length(dimdat) != 2)
+    stop("data should be a matrix or a vector")
+  if(missing(equalPro))
+    equalPro <- .Mclust$equalPro
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  ##
+  z <- as.matrix(z)
+  dimz <- dim(z)
+  if(dimz[1] != n)
+    stop("row dimension of z should equal data length")
+                                        # number of groups
+  K <- dimz[2]
+  G <- if(noise) K - 1 else K
+  ##
+  if(all(is.na(z))) {
+    warn <- "z is missing"
+    warning("z is missing")
+    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+                          sigma = array(NA, c(p, p, G)),
+                          cholsigma = array(NA, c(p, p, G)),
+                          pro = rep(NA, K), modelName = "VVV"), warn = warn))
+  }
+  if(any(is.na(z)) || any(z < 0) || any(z > 1))
+    stop("improper specification of z")
+  temp <- .Fortran("msvvv",
+                   as.double(data),
+                   as.double(z),
+                   as.integer(n),
+                   as.integer(p),
+                   as.integer(G),
+                   double(p),
+                   double(p * G),
+                   double(p * p * G),
+                   double(G))[7:9]
+  mu <- matrix(temp[[1]], p, G)
+  dimnames(mu) <- list(NULL, as.character(1:G))
+  cholsigma <- structure(array(temp[[2]], c(p, p, G)), def = 
+                         "Sigma = t(cholsigma) %*% cholsigma")
+  sigma <- array(apply(cholsigma, 3, unchol), c(p, p, G))
+  if(!equalPro) {
+    if(!noise) {
+      pro <- temp[[3]]
+    }
+    else {
+      pro <- c(temp[[3]], sum(z[, K])/n)
+    }
+  }
+  else {
+    if(!noise) {
+      pro <- rep(1/G, G)
+    }
+    else {
+      pron <- sum(z[, K])/n
+      pro <- c(rep((1 - pron)/G, G), pron)
+    }
+  }
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, cholsigma
+		 = cholsigma, pro = pro, modelName = "VVV"))
+}
+
+"mvn" <- function(modelName, data)
+{
+  switch(EXPR=as.character(modelName),
+         E = , V = ,
+         X = mvnX(data),
+	 Spherical = , EII = , VII = ,
+         XII = mvnXII(data),
+	 Diagonal = , EEI = , VEI = , EVI = , VVI = ,
+         XXI = mvnXXI(data),
+	 Ellipsoidal = , EEE = , VEE = , EVE = , VVE = , EEV = , VEV = ,
+         VVV = , 
+         XXX = mvnXXX(data),
+	 stop("invalid model name"))
+}
+
+"mvn2plot" <- function(mu, sigma, k = 15., alone = FALSE)
+{
+  p <- length(mu)
+  if(p != 2.)
+    stop("two-dimensional case only")
+  if(any(unique(dim(sigma)) != p))
+    stop("mu and sigma are incompatible")
+  ev <- eigen(sigma, symmetric = TRUE)
+  s <- sqrt(rev(sort(ev$values)))
+  V <- t(ev$vectors[, rev(order(ev$values))])
+  theta <- (0.:k) * (pi/(2. * k))
+  x <- s[1.] * cos(theta)
+  y <- s[2.] * sin(theta)
+  xy <- cbind(c(x,  - x,  - x, x), c(y, y,  - y,  - y))
+  xy <- xy %*% V
+  xy <- sweep(xy, MARGIN = 2., STATS = mu, FUN = "+")
+  if(alone) {
+    xymin <- apply(xy, 2., FUN = "min")
+    xymax <- apply(xy, 2., FUN = "max")
+    r <- ceiling(max(xymax - xymin)/2.)
+    xymid <- (xymin + xymax)/2.
+    plot(xy[, 1.], xy[, 2.], xlim = c( - r, r) + xymid[1.], ylim = 
+         c( - r, r) + xymid[2.], xlab = "x", ylab = "y", type = 
+         "n")
+  }
+  l <- length(x)
+  i <- 1.:l
+  for(k in 1.:4.) {
+    lines(xy[i,  ])
+    i <- i + l
+  }
+                                        # semi-major axes
+  x <- s[1.]
+  y <- s[2.]
+  xy <- cbind(c(x,  - x, 0, 0), c(0, 0, y,  - y))
+  xy <- xy %*% V
+  xy <- sweep(xy, MARGIN = 2., STATS = mu, FUN = "+")
+  lines(xy[1:2,  ], lty = 2.)
+  lines(xy[3:4,  ], lty = 2.)
+  points(mu[1.], mu[2.], pch = "*")
+  invisible()
+}
+
+"mvnX" <- function(data)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(!oneD)
+    stop("data must be one dimensional")
+  data <- as.vector(data)
+  n <- length(data)
+  temp <- .Fortran("mvn1d",
+                   as.double(data),
+                   as.integer(n),
+                   double(1),
+                   double(1),
+                   double(1))[3:5]
+  mu <- temp[[1]]
+  sigmasq <- temp[[2]]
+  loglik <- temp[[3]]
+  list(n = n, d = 1, G = 1, mu = mu, sigmasq = sigmasq, loglik = loglik,
+       modelName = "X")
+}
+
+"mvnXII" <- function(data)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    temp <- .Fortran("mvn1d",
+                     as.double(data),
+                     as.integer(n),
+                     double(1),
+                     double(1),
+                     double(1))[3:5]
+    mu <- temp[[1]]
+    sigmasq <- temp[[2]]
+    loglik <- temp[[3]]
+    list(n = n, d = 1, G = 1, mu = mu, sigmasq = sigmasq, loglik = 
+         loglik, modelName = "X")
+  }
+  else {
+    if(length(dimdat) != 2)
+      stop("data must be a matrix")
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+    temp <- .Fortran("mvnxii",
+                     as.double(data),
+                     as.integer(n),
+                     as.integer(p),
+                     double(p),
+                     double(1),
+                     double(1))[4:6]
+    mu <- temp[[1]]
+    sigmasq <- temp[[2]]
+    loglik <- temp[[3]]
+    Sigma <- sigmasq * diag(p)
+    decomp <- list(d = p, G = 1, scale = sigmasq)
+    list(n = n, d = p, G = 1, mu = matrix(mu, ncol = 1), sigmasq = 
+         sigmasq, sigma = array(Sigma, c(p, p, 1)), Sigma = 
+         Sigma, decomp = decomp, loglik = loglik, modelName = 
+         "XII")
+  }
+}
+
+"mvnXXI" <- function(data)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    temp <- .Fortran("mvn1d",
+                     as.double(data),
+                     as.integer(n),
+                     double(1),
+                     double(1),
+                     double(1))[3:5]
+    mu <- temp[[1]]
+    sigmasq <- temp[[2]]
+    loglik <- temp[[3]]
+    list(n = n, d = 1, G = 1, mu = mu, sigmasq = sigmasq, loglik = 
+         loglik, modelName = "X")
+  }
+  else {
+    if(length(dimdat) != 2)
+      stop("data must be a matrix")
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+    temp <- .Fortran("mvnxxi",
+                     as.double(data),
+                     as.integer(n),
+                     as.integer(p),
+                     double(p),
+                     double(1),
+                     double(p),
+                     double(1))[4:7]
+    mu <- temp[[1]]
+    scale <- temp[[2]]
+    shape <- temp[[3]]
+    loglik <- temp[[4]]
+    Sigma <- diag(scale * shape)
+    decomp <- list(p = p, G = 1, scale = scale, shape = shape)
+    list(n = n, d = p, G = 1, mu = matrix(mu, ncol = 1), sigma = 
+         array(Sigma, c(p, p, 1)), Sigma = Sigma, decomp = 
+         decomp, loglik = loglik, modelName = "XXI")
+  }
+}
+
+"mvnXXX" <- function(data)
+{
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD) {
+    data <- as.vector(data)
+    n <- length(data)
+    temp <- .Fortran("mvn1d",
+                     as.double(data),
+                     as.integer(n),
+                     double(1),
+                     double(1),
+                     double(1))[c(3:5)]
+    mu <- temp[[1]]
+    sigmasq <- temp[[2]]
+    loglik <- temp[[3]]
+    list(n = n, d = 1, G = 1, mu = mu, sigmasq = sigmasq, loglik = 
+         loglik, modelName = "X")
+  }
+  else {
+    if(length(dimdat) != 2)
+      stop("data must be a matrix")
+    data <- as.matrix(data)
+    n <- nrow(data)
+    p <- ncol(data)
+    temp <- .Fortran("mvnxxx",
+                     as.double(data),
+                     as.integer(n),
+                     as.integer(p),
+                     double(p),
+                     double(p * p),
+                     double(1))[c(4:6)]
+    mu <- temp[[1]]
+    chol <- matrix(temp[[2]], p, p)
+    Sigma <- unchol(chol, upper = TRUE)
+    loglik <- temp[[3]]
+    list(n = n, d = p, G = 1, mu = matrix(mu, ncol = 1), sigma = 
+         array(Sigma, c(p, p,  , 1)), Sigma = Sigma, cholSigma
+         = structure(chol, def = "Sigma = t(chol) %*% chol"),
+         loglik = loglik, modelName = "XXX")
+  }
+}
+
+"partconv" <- function(x, consec = TRUE)
 {
   n <- length(x)
   y <- numeric(n)
@@ -3687,562 +7956,2344 @@ function(data, partition, min.clusters = 1, alpha = 1)
   y
 }
 
-"partuniq" <- function(x, sep = "001")
+"partuniq" <- function(x)
 {
+  "charconv" <- function(x, sep = "001")
+    {
+      if(!is.data.frame(x))
+        x <- data.frame(x)
+      do.call("paste", c(as.list(x), sep = sep))
+    }
+  
   ## finds the classification that removes duplicates from x
   n <- nrow(x)
-  ##  x <- charconv(x)
-  if(!is.data.frame(x))
-    x <- data.frame(x)
-  x <- do.call("paste", c(as.list(x), sep = sep))
-
+  x <- charconv(x)
   k <- duplicated(x)
-  partition <- 1:n
+  partition <- 1.:n
   partition[k] <- match(x[k], x)
   partition
 }
 
-"pcvol" <- function(data, reciprocal = F)
-{
-  ## hypervolume of the data region via principal components
-  data <- as.matrix(data)
-  dimd <- dim(data)
-  n <- dimd[1]
-  p <- dimd[2]
-#  if(F) {
-#    vol1 <- prod(apply(data, 2, function(z)
-#		       diff(range(z))))
-#    V <- matrix(temp[[1]], p, p)
-#    xbar <- apply(data, 2, mean)
-#    X <- sweep(data, 2, xbar)
-#    library(Matrix)
-#    print(V)
-#    print(eigen.Hermitian(crossprod(X))$vectors)
-#    X <- X %*% V
-#    vol <- prod(apply(X, 2, function(z)
-#		      diff(range(z))))
-#  }
-  lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)	# min
-  lwsyevd <- p * (3 * p + 2 * ceiling(log(p, base = 2)) + 5) + 1	# min
-  lisyevd <- 5 * p + 2	# minimum
-  lwsyevx <- 8 * p	# minimum
-  lisyevx <- 5 * p + p
-  lwork <- max(lwsyevd, lwsyevx, n)
-  liwork <- lisyevx
-  temp <- .Fortran("mclvol",
-		   as.double(data),
-		   as.integer(n),
-		   as.integer(p),
-		   double(p),
-		   double(p * p),
-		   double(p * p),
-		   double(lwork),
-		   as.integer(lwork),
-		   integer(liwork),
-		   as.integer(liwork),
-		   integer(1))[c(4, 11)]
-  if(temp[[2]])
-    stop("problem in computing principal components")
-  if(reciprocal)
-    prod(1/temp[[1]])
-  else prod(temp[[1]])
+### dots are not used but inserted to keep R from complaining
+### about generic/method consistency...
+### Somewhat simpler function using matplot... inserted 10/01/02,Ron
+"plot.EMclust" <- function(x, modelNames, G, symbols,
+                           xlab = "number of clusters",
+                           ylab = "BIC", ...)
+{ 
+  n <- ncol(x)
+  dnx <- dimnames(x)
+
+  x <- matrix(as.vector(x), ncol = n)
+  dimnames(x) <- dnx
+  if(missing(modelNames))
+    modelNames <- dimnames(x)[[2]]
+  if(missing(G))
+    G <- dimnames(x)[[1]]
+  else G <- as.character(G)
+  BIC <- x[G, modelNames, drop = FALSE]
+  X <- is.na(BIC)
+  nrowBIC <- nrow(BIC)
+  ncolBIC <- ncol(BIC)
+  if(missing(symbols)) {
+     if(n > 9) {
+       symbols <- LETTERS[1:n]
+     }
+     else {
+       symbols <- as.character(1:n)
+     }
+     names(symbols) <- dnx[[2]]
+     symbols <- symbols[modelNames]
+   }
+   xrange <-
+     if(!is.null(dn <- dimnames(BIC)[[1]])) as.numeric(dn) else 1:nrowBIC
+##   plot(xrange, BIC[, 1], type = "n", ylim = range(as.vector(BIC[!X])),
+##        xlim = range(xrange), xlab = "number of clusters", ylab = "BIC"
+##        )
+##   for(i in 1:ncolBIC) {
+##     x <- !X[, i]
+##     if(any(x)) {
+##       if(all(x)) {
+##         points(xrange, BIC[, i], pch = symbols[i])
+##         if(nrowBIC > 1)
+##           lines(xrange, BIC[, i], lty = i)
+##       }
+##       else {
+##         points(xrange[x], BIC[x, i], pch = symbols[
+##                                        i])
+##         v <- (1:nrowBIC)[x]
+##         n <- length(v)
+##         d <- c(diff(c(0, v)), 2)
+##         if(any(d) == 1) {
+##           f <- 1
+##           while(TRUE) {
+##             while(f <= n && d[f] != 1) f <-
+##               f + 1
+##             if(f > n)
+##               break
+##             l <- f
+##             while(d[l + 1] == 1) l <- l +
+##               1
+##             lines(xrange[v[f:l]], BIC[
+##                                       v[f:l], i], lty = i)
+##             if(l == n)
+##               break
+##             f <- l + 1
+##           }
+##         }
+##       }
+##     }
+##   }
+  matplot(xrange, BIC, type="b", xlab=xlab, ylab = ylab, pch=symbols, ...)
+            
+  symbols <- symbols[1:length(modelNames)]
+  names(symbols) <- modelNames
+  symbols
 }
 
-"plot.emclust" <- function(x, xlab="number of clusters", ylab="BIC",
-                           pch, ...)
+### dots are not used but inserted to keep R from complaining
+### about generic/method consistency...
+"plot.EMclustN" <- function(x, modelNames, G, symbols, ...)
 {
-  BIC <- as.matrix(x)
-  n <- nrow(BIC)
-  if (missing(pch))
-    pch <- if(n <= 9) as.character(1:n) else LETTERS[1:n]
-  xrange <- if(!is.null(dn <- dimnames(BIC)[[2]])) as.numeric(dn) else 1:
-    ncol(BIC)
-  matplot(xrange, t(BIC), type="b", xlab=xlab, ylab = ylab, pch=pch, ...)
-  invisible()
-}
-
-"plot.emclust1" <- function(x, xlab = "number of clusters", ylab="BIC", ...)
-{
-  N <- as.numeric(names(x))
-  plot(N, x, xlab=xlab, ylab = ylab, ...)
-  invisible()
-}
-
-"print.bic" <- function(x, ...)
-{
-  print(as.vector(x), ...)	
-  ##	cat("\n reciprocal condition estimate:\n")
-  ##	print(attr(x, "rcond"))
-  ##	cat("\n model:\n")
-  ##	print(attr(x, "model"))
-  invisible()
-}
-
-"print.emclust" <-
-function(x, ...)
-{
-  modelid <- dimnames(x)[[1]]
-  equal <- attr(x, "equal")
-  noise <- !is.null(attr(x, "noise"))
-  subset <- !is.null(attr(x, "subset"))
-  attr(x, "tree") <- attr(x, "subset") <- NULL
-  attr(x, "noise") <- attr(x, "Vinv") <- NULL
-  attr(x, "equal") <- attr(x, "rcond") <- attr(x, "class") <- NULL
-  cat("\n BIC:\n")
-  NextMethod("print")
-  cat("\n")
-  print(c(sample = subset, noise = noise, equal = equal), ...)
-  invisible()
-}
-
-"print.emclust1" <- function(x, ...)
-{
-  modelid <- attr(x, "modelid")
-  equal <- attr(x, "equal")
-  noise <- !is.null(attr(x, "noise"))
-  subset <- !is.null(attr(x, "subset"))
-  attr(x, "modelid") <- attr(x, "tree") <- attr(x, "subset") <- NULL
-  attr(x, "noise") <- attr(x, "Vinv") <- NULL
-  attr(x, "equal") <- attr(x, "rcond") <- attr(x, "class") <- NULL
-  cat("\n BIC:\n")
-  NextMethod("print")
-  cat("\n")
-  M <- c(HC = switch(modelid[1],
-	   EI = "uniform spherical",
-	   VI = "spherical",
-	   EEE = "uniform variance",
-	   VVV = "unconstrained variance",
-	   stop("invalid model id for HC")), 
-	 EM = switch(as.character(
-	   modelid[2]),
-	   EI = "uniform spherical",
-	   VI = "spherical",
-	   EEE = "uniform variance",
-	   VVV = "unconstrained variance",
-	   EEV = "uniform shape and volume",
-	   VEV = "uniform shape",
-	   stop("invalid model id for EM")))
-  if(subset)
-    M["HC"] <- paste(M["HC"], "(on a sample)")
-  if(noise)
-    M["EM"] <- paste(M["EM"], "(with noise)")
-  if(equal)
-    M["EM"] <- paste(M["EM"], "(equal mixing proportions)")
-  print(M, ...)
-  invisible()
-}
-
-#"print.mclust" <- function(x, ...)
-#{
-#  attributes(x) <- if(!is.null(dim(x))) attributes(x)[c("dim", "model")]
-#  else NULL
-#  NextMethod("print")
-#}
-
-"print.mhtree" <- function(x, ...)
-{
-  attributes(x) <- if(!is.null(dim(x))) attributes(x)[c("dim", "model")]
-  else NULL
-  NextMethod("print")
-}
-
-"print.summary.emclust" <- function(x, ...)
-{
-  bic <- attr(x, "bic")
-  l <- length(bic) > 1
-  if(l)
-    cat("\n best classification:\n")
-  else cat("\n classification:\n")
-  print(x$classification, ...)
-  cat("\n uncertainty (quantiles):\n")
-  print(quantile(x$uncertainty))
-  if(l)
-    cat("\n best BIC values:\n")
-  else cat("\n BIC value:\n")
-  print(bic)	
-  ##	cat("\n reciprocal condition estimates:\n")
-  ##	print(attr(x, "rcond"))
-  M <- switch(attr(x, "modelid"),
-	      EI = "uniform spherical",
-	      VI = "spherical",
-	      EEE = "uniform variance",
-	      VVV = "unconstrained variance",
-	      EEV = "uniform shape and volume",
-	      VEV = "uniform shape",
-	      stop("invalid model id for EM"))
-  cat("\n best model:", M, "\n\n")
-  print(attr(x, "options"))
-  invisible()
-}
-
-"print.summary.emclust1" <- function(x, ...)
-{
-  bic <- attr(x, "bic")
-  l <- length(bic) > 1
-  if(l)
-    cat("\n best classification:\n")
-  else cat("\n classification:\n")
-  print(x$classification, ...)
-  cat("\n uncertainty (quantiles):\n")
-  print(quantile(x$uncertainty))
-  if(l)
-    cat("\n best BIC values:\n")
-  else cat("\n BIC value:\n")
-  print(bic)	
-  ##	cat("\n reciprocal condition estimates:\n")
-  ##	print(attr(x, "rcond"))
-  cat("\n model:\n")
-  M <- c(HC = switch(attr(x, "modelid")[1],
-	   EI = "uniform spherical (EI)",
-	   VI = "spherical (VI)",
-	   EEE = "uniform variance (EEE)",
-	   VVV = "unconstrained variance (VVV)",
-	   stop("invalid model id for EM")), 
-	 EM = switch(attr(x, "model")[2],
-	   EI = "uniform spherical(EI)",
-	   VI = "spherical (VI)",
-	   EEE = "uniform variance (EEE)",
-	   VVV = "unconstrained variance (VVV)",
-	   EEV = "uniform shape and volume (EEV)",
-	   VEV = "uniform shape (VEV)",
-	   stop("invalid model id for EM")))
-  print(M)
-  cat("\n")
-  print(attr(x, "options"))
-  invisible()
-}
-
-"summary.emclust" <- function(object, data, nclus, modelid, ...)
-{
-  ### This is for compatibility reasons with other 'summary' functions
-  x <- object
-
-  rc <- attr(x, "rcond")
-  tree <- attr(x, "tree")
-  if(missing(modelid))
-    modelid <- dimnames(x)[[1]]
-  smpl <- attr(x, "subset")
-  equal <- attr(x, "equal")
-  noise <- attr(x, "noise")
-  Vinv <- attr(x, "Vinv")
-  attr(x, "tree") <- attr(x, "subset") <- attr(x, "noise") <- 
-    attr(x, "Vinv") <- attr(x, "equal") <- attr(x, "rcond") <- 
-      attr(x, "call") <- attr(x, "class") <- NULL
-  n <- nrow(data)
-  nclus <- 
-    if(missing(nclus)) dimnames(x)[[2]] 
-    else as.character(sort(unique(nclus)))
-  x <- x[modelid, nclus, drop = F]
-  rc <- rc[modelid, nclus, drop = F]
-  if(all(is.na(x))) {
-    warning("selected BIC values are all missing")
-    return(structure(rep(NA, n), modelid = modelid, 
-		     options = c(sample = !is.null(smpl), 
-		       noise = !is.null(noise), equal = equal), 
-		     class = "summary.emclust"))
+  n <- ncol(x)
+  dnx <- dimnames(x)
+  ##
+  x <- matrix(as.vector(x), ncol = n)
+  dimnames(x) <- dnx
+  if(missing(modelNames))
+    modelNames <- dimnames(x)[[2]]
+  if(missing(G))
+    G <- dimnames(x)[[1]]
+  else G <- as.character(G)
+  BIC <- x[G, modelNames, drop = FALSE]
+  X <- is.na(BIC)
+  nrowBIC <- nrow(BIC)
+  ncolBIC <- ncol(BIC)
+  if(missing(symbols)) {
+    if(n > 9) {
+      symbols <- LETTERS[1:n]
+    }
+    else {
+      symbols <- as.character(1:n)
+    }
+    names(symbols) <- dnx[[2]]
+    symbols <- symbols[modelNames]
   }
-  x[is.na(x)] <-  - Inf #.Machine$double.xmax
-  bicmax <- max(x)
-  n <- nrow(x)
-  l <- ncol(x)
-  if(min(n, l) > 1) {
-    I <- matrix(rep(1:n, l), n, l)
-    i <- I[x == bicmax][1]
-    j <- nclus[x[i,  ] == bicmax][1]
-    other <- if(any(!as.numeric(nclus))) max(x[ - i, -1]) else max(x[- i,])
-    best <- c(bicmax, max(x[i, nclus != j]), other)
-    J <- matrix(rep(nclus, n - 1), n - 1, l, byrow = T)
-    j <- J[x[ - i,  ] == other][1]
-    K <- matrix(rep(1:n, l), n, l)[ - i,  ]
-    k <- K[x[ - i,  ] == other][1]
-    rows <- dimnames(x)[[1]][c(i, i, k)]
-    cols <- c(nclus[x[i,  ] == best[1]], nclus[x[i,  ] == best[2]], j)
-    rcond <- c(rc[rows[1], cols[1]], 
-	       rc[rows[2], cols[2]], 
-	       rc[rows[3], cols[3]])
-    names(best) <- names(rcond) <- paste(rows, ",", cols[1:3], sep = "")
-    modelid <- rows[1]
-    k <- cols[1]
+  xrange <- if(!is.null(dn <- dimnames(BIC)[[1]])) as.numeric(dn) else 1:
+    nrowBIC
+  plot(xrange, BIC[, 1], type = "n", ylim = range(as.vector(BIC[!X])),
+       xlim = range(xrange), xlab = "number of clusters", ylab = "BIC"
+       )
+  for(i in 1:ncolBIC) {
+    x <- !X[, i]
+    if(any(x)) {
+      if(all(x)) {
+        points(xrange, BIC[, i], pch = symbols[i])
+        if(nrowBIC > 1)
+          lines(xrange, BIC[, i], lty = i)
+      }
+      else {
+        points(xrange[x], BIC[x, i], pch = symbols[i])
+        v <- (1:nrowBIC)[x]
+        n <- length(v)
+        d <- c(diff(c(0, v)), 2)
+        if(any(d) == 1) {
+          f <- 1
+          while(TRUE) {
+            while(f <= n && d[f] != 1) f <- f + 1
+            if(f > n)
+              break
+            l <- f
+            while(d[l + 1] == 1) l <- l + 1
+            lines(xrange[v[f:l]], BIC[v[f:l], i], lty = i)
+            if(l == n)
+              break
+            f <- l + 1
+          }
+        }
+      }
+    }
+  }
+  symbols <- symbols[1:length(modelNames)]
+  names(symbols) <- modelNames
+  symbols
+}
+
+"plot.Mclust" <- function(x, data, dimens = c(1, 2), scale = FALSE, ...)
+{
+  if(missing(data)) {
+    warning("data not supplied")
+    plot.EMclust(x$BIC)
+    return(invisible())
+  }
+  ### Ask for confirmation before showing the next plot, if users want
+  ### ALL plots...
+  parSave <- par(no.readonly=TRUE)
+  on.exit(par(parSave))
+  par(ask=TRUE)
+  
+  p <- ncol(as.matrix(data))
+  if(p > 2) {
+    choices <- c("BIC", "Pairs", "Classification (2-D projection)",
+                 "Uncertainty (2-D projection)", "All")
+    tmenu <- paste("plot:", choices)
+    while(TRUE) {
+      pick <- menu(tmenu, title = 
+                   "\nmake a plot selection (0 to exit):\n")
+      if(!pick)
+        break
+      ALL <- pick == 5
+      if(pick == 1 || ALL) {
+        plot.EMclust(x$BIC)
+      }
+      if(pick == 2 || ALL) {
+        ##        parSave <- par(no.readonly=TRUE)
+        clPairs(data, classification = x$classification, ...)
+        ##        par(parSave)
+      }
+      if(pick == 3 || ALL) {
+        do.call("coordProj",
+                c(list(data = data, dimens = dimens, scale = scale,
+                       identify = FALSE),
+                  x[c("classification", "mu", "sigma", "decomp")]))
+      }
+      if(pick == 4 || ALL) {
+        do.call("coordProj",
+                c(list(data = data, dimens = dimens, scale = scale,
+                       identify = FALSE), 
+                  x[c("uncertainty", "mu", "sigma", "decomp")]))
+      }
+    }
+  }
+  else if(p == 2) {
+    choices <- c("BIC", "Classification", "Uncertainty", "Density",
+                 "All")
+    tmenu <- paste("plot:", choices)
+    while(TRUE) {
+      pick <- menu(tmenu, title = 
+                   "\nmake a plot selection (0 to exit):\n")
+      if(!pick)
+        break
+      ALL <- pick == 5
+      if(pick == 1 || ALL) {
+        plot.EMclust(x$BIC)
+      }
+      if(pick == 2 || ALL) {
+        do.call("mclust2Dplot",
+                c(list(data = data, scale = scale, identify = FALSE),
+                  x[c("classification", "mu", "sigma", "decomp")]))
+      }
+      if(pick == 3 || ALL) {
+        do.call("mclust2Dplot",
+                c(list(data = data, scale = scale, identify = FALSE),
+                  x[c("uncertainty", "mu", "sigma", "decomp")]))
+      }
+      if(pick == 4 || ALL) {
+        do.call("surfacePlot",
+                c(list(data = data, type = "contour", what = "density",
+                       transformation = "none", grid = 100,
+                       scale = scale, identify = FALSE, verbose = FALSE),
+                  x[c("mu", "sigma", "decomp", "pro")]))
+      }
+    }
+  }
+  else {
+    ##
+    ## p == 1
+    ##
+    choices <- c("BIC", "Classification", "Uncertainty", "Density", "All")
+    tmenu <- paste("plot:", choices)
+    while(TRUE) {
+      pick <- menu(tmenu, title = 
+                   "\nmake a plot selection (0 to exit):\n")
+      if(!pick)
+        break
+      ALL <- pick == 5
+      if(pick == 1 || ALL) {
+        plot.EMclust(x$BIC)
+      }
+      if(pick == 2 || ALL) {
+        do.call("mclust1Dplot",
+                c(list(data = data, type = "classification", identify = FALSE),
+                  x))
+      }
+      if(pick == 3 || ALL) {
+        do.call("mclust1Dplot",
+                c(list(data = data, type = "uncertainty", identify = FALSE),
+                  x))
+      }
+      if(pick == 4 || ALL) {
+        do.call("mclust1Dplot",
+                c(list(data = data, type = "density", identify = FALSE), x))
+      }
+    }
+  }
+  invisible()
+}
+
+"plot.mclustDA" <- 
+  function(x, trainingData, labels, testData, dimens = c(1, 2), scale = FALSE, 
+           identify = FALSE, ...)
+{
+  if(A <- missing(trainingData)) {
+    warning("training data not supplied")
+  }
+  if(B <- missing(labels)) {
+    warning("training labels not supplied")
+  }
+  if(C <- missing(testData)) {
+    warning("test data not supplied")
+  }
+  if(A || B || C)
+    return(invisible())
+  p <- ncol(as.matrix(trainingData))
+  if(p > 2) {
+    if(is.null(dim(testData)))
+      testData <- matrix(testData, nrow = 1, ncol = p)
+    choices <- c("Training and Test Data (Pairs Plot)", 
+                 "Training and Test Data (2D projection)", 
+                 "Training Data - known classification", 
+                 "Test Data - mclustDA classification", 
+                 "Training Data - misclassified observations", "All")
+    tmenu <- paste("plot:", choices)
+    Data <- rbind(testData, trainingData)
+    xlim <- range((Data[, dimens])[, 1])
+    ylim <- range((Data[, dimens])[, 2])
+    cl <- c(rep(1, nrow(testData)), rep(2, nrow(trainingData)))
+    while(TRUE) {
+      pick <- menu(tmenu, title = 
+                   "\nplot.mclustDA : make a plot selection (0 to exit):\n"
+                   )
+      tmenu <- paste("plot:", choices)
+      if(!pick)
+        break
+      ALL <- pick == 6
+      if(pick == 1 || ALL) {
+        ##        parSave <- par(no.readonly=TRUE)
+        clPairs(Data, classification = cl, symbols = c(1, 3), ...)
+        ##        par(parSave)
+      }
+      if(pick == 2 || ALL) {
+        coordProj(data = Data, dimens = dimens, 
+                  classification = cl, scale = scale,
+                  identify = FALSE, symbols = c(1, 3), ...)
+        if(identify)
+          title("Training and Test Data", cex = 0.75)
+      }
+      if(pick == 3 || ALL) {
+        coordProj(data = trainingData, dimens = dimens,
+                  classification = labels, scale = scale,
+                  identify = FALSE, xlim = xlim, ylim = ylim, ...)
+        if(identify)
+          title("Training Data: known Classification", cex = 0.75)
+      }
+      if(pick == 4 || ALL) {
+        coordProj(data = testData, dimens = dimens,
+                  classification = x$testClass, scale = 
+                  scale, identify = FALSE, xlim = xlim, ylim = ylim, ...)
+        if(identify)
+          title("Test Data: mclustDA Classification", cex = 0.75)
+      }
+      if(pick == 5 || ALL) {
+        coordProj(data = trainingData, dimens = dimens,
+                  classification = x$trainingClass, truth = labels,
+                  type = "errors", scale = scale, identify = FALSE,
+                  xlim = xlim, ylim = ylim, ...)
+        if(identify)
+          title("Training Error", cex = 0.75)
+      }
+    }
+  }
+  else if(p == 2) {
+    if(is.null(dim(testData)))
+      testData <- matrix(testData, nrow = 1, ncol = p)
+    choices <- c("Training and Test Data", 
+                 "Training Data - known classification", 
+                 "Test Data - mclustDA classification", 
+                 "Training Data - misclassified observations", "All")
+    tmenu <- paste("plot:", choices)
+    Data <- rbind(testData, trainingData)
+    xlim <- range((Data[, dimens])[, 1])
+    ylim <- range((Data[, dimens])[, 2])
+    cl <- c(rep(1, nrow(testData)), rep(2, nrow(trainingData)))
+    while(TRUE) {
+      pick <- menu(tmenu, title = 
+                   "\nmake a plot selection (0 to exit):\n")
+      if(!pick)
+        break
+      ALL <- pick == 5
+      if(pick == 1 || ALL) {
+        mclust2Dplot(data = Data, classification = cl,
+                     scale = scale, identify = FALSE, symbols = 
+                     c(1, 3), ...)
+        if(identify)
+          title("Training and Test Data", cex = 
+                0.75)
+      }
+      if(pick == 2 || ALL) {
+        mclust2Dplot(data = trainingData, dimens = 
+                     dimens, classification = labels, scale
+                     = scale, identify = FALSE, xlim = xlim,
+                     ylim = ylim, ...)
+        if(identify)
+          title("Training Data: known Classification",
+                cex = 0.75)
+      }
+      if(pick == 3 || ALL) {
+        mclust2Dplot(data = testData, dimens = dimens,
+                     classification = x$testClass, scale = 
+                     scale, identify = FALSE, xlim = xlim, ylim
+                     = ylim, ...)
+        if(identify)
+          title("Test Data: mclustDA Classification",
+                cex = 0.75)
+      }
+      if(pick == 4 || ALL) {
+        mclust2Dplot(data = trainingData, dimens = 
+                     dimens, classification = x$
+                     trainingClass, truth = labels, type = 
+                     "errors", scale = scale, identify = FALSE,
+                     xlim = xlim, ylim = ylim, ...)
+        if(identify)
+          title("Training Error", cex = 0.75)
+      }
+    }
+  }
+  else {
+    ##
+    ## p == 1
+    ##
+    Data <- c(testData, trainingData)
+    xlim <- range(Data)
+    cl <- c(rep(1, length(testData)), rep(2, length(trainingData)))
+    choices <- c("Training and Test Data", 
+                 "Training Data - known classification", 
+                 "Test Data - mclustDA classification", 
+                 "Training Data - misclassified observations", "All")
+    tmenu <- paste("plot:", choices)
+    while(TRUE) {
+      pick <- menu(tmenu, if(identify) title = 
+                   "\nmake a plot selection (0 to exit):\n"
+                   )
+      if(!pick)
+        break
+      ALL <- pick == 5
+      if(pick == 1 || ALL) {
+        mclust1Dplot(data = Data, classification = cl,
+                     identify = FALSE, xlim = xlim, ...)
+        if(identify)
+          title("Training and Test Data", cex = 
+                0.75)
+      }
+      if(pick == 2 || ALL) {
+        mclust1Dplot(data = trainingData, 
+                     classification = labels, scale = scale,
+                     identify = FALSE, xlim = xlim, ...)
+        if(identify)
+          title("Training Data: known Classification",
+                cex = 0.75)
+      }
+      if(pick == 3 || ALL) {
+        mclust1Dplot(data = testData, classification = 
+                     x$testClass, scale = scale, identify = 
+                     FALSE, xlim = xlim, ...)
+        if(identify)
+          title("Test Data mclustDA Classification",
+                cex = 0.75)
+      }
+      if(pick == 4 || ALL) {
+        mclust1Dplot(data = trainingData, dimens = 
+                     dimens, classification = x$
+                     trainingClass, truth = labels, type = 
+                     "errors", identify = FALSE, xlim = xlim,
+                     ...)
+        if(identify)
+          title("Training Error", cex = 0.75)
+      }
+    }
+  }
+  invisible()
+}
+
+"print.EMclust" <- function(x, ...)
+{
+  subset <- !is.null(attr(x, "subset"))
+  class(x) <- attr(x, "args") <- NULL
+  attr(x, "hcPairs") <- attr(x, "attrHC") <- NULL
+  attr(x, "eps") <- attr(x, "tol") <- attr(x, "itmax") <- NULL
+  attr(x, "equalPro") <- attr(x, "subset") <- NULL
+  attr(x, "warnSingular") <- NULL
+  cat("\n BIC:\n")
+  NextMethod("print")
+  cat("\n")
+  invisible()
+}
+
+"print.EMclustN" <- function(x, ...)
+{
+  class(x) <- attr(x, "args") <- NULL
+  attr(x, "hcPairs") <- attr(x, "attrHC") <- NULL
+  attr(x, "eps") <- attr(x, "tol") <- attr(x, "itmax") <- NULL
+  attr(x, "equalPro") <- attr(x, "subset") <- NULL
+  attr(x, "warnSingular") <- NULL
+  attr(x, "noise") <- attr(x, "Vinv") <- NULL
+  cat("\n BIC:\n")
+  NextMethod("print")
+  cat("\n")
+  invisible()
+}
+
+"print.Mclust" <- function(x, ndigits = options()$digits, ...)
+{
+  M <- switch(EXPR=x$model,
+              E = "equal variance",
+              V = "unequal variance",
+              EII = "spherical, equal volume",
+              VII = "spherical, varying volume",
+              EEI = "diagonal, equal volume and shape",
+              VEI = "diagonal, equal shape",
+              EVI = "diagonal, equal volume",
+              VVI = "diagonal, varying volume and shape",
+              EEE = "elliposidal, equal variance",
+              VEE = "elliposidal, equal shape and orientation",
+              EVE = "elliposidal, equal volume and orientation",
+              VVE = "ellipsoidal, equal orientation",
+              EEV = "ellipsoidal, equal volume and shape",
+              VEV = "ellipsoidal, equal shape",
+              EVV = "elliposidal, equal volume",
+              VVV = "ellipsoidal, unconstrained",
+              stop("invalid model id for EM"))
+  G <- length(unique(x$classification))
+  cat("\n best model:", M, "with", G, "groups\n")
+  aveUncer <- round(mean(x$uncertainty), 3)
+  medUncer <- round(median(x$uncertainty), 3)
+  cat("\n averge/median classification uncertainty:", aveUncer, "/",
+      medUncer, "\n\n")
+  invisible()
+}
+
+"print.mclustDA" <- 
+  function(x, ndigits = options()$digits, ...)
+{
+  cat("\n")
+  print(x$summary)
+  cat("\n training error rate:", round(x$errorRate, 3), "\n")
+  ##
+  ## uncer <- 1 - apply(x$postProb, 1, max)
+  ## aveUncer <- round(mean(uncer), 3)
+  ## medUncer <- round(median(uncer), 3)
+  ##
+  invisible()
+}
+
+"print.summary.EMclust" <- function(x, ndigits = options()$digits, ...)
+{
+  bic <- x$bic
+  l <- length(bic) > 1
+  print(x$classification, ...)
+  cat("\n uncertainty (quartiles):\n")
+  print(quantile(x$uncertainty), digits = ndigits, ...)
+  if(l)
+    cat("\n best BIC values:\n")
+  else cat("\n best BIC value:\n")
+  print(round(bic, ndigits))
+  M <- switch(EXPR=x$model,
+              E = "equal variance",
+              V = "unequal variance",
+              EII = "spherical, equal volume",
+              VII = "spherical, varying volume",
+              EEI = "diagonal, equal volume and shape",
+              VEI = "diagonal, equal shape",
+              EVI = "diagonal, equal volume",
+              VVI = "diagonal, varying volume and shape",
+              EEE = "elliposidal, equal variance",
+              VEE = "elliposidal, equal shape and orientation",
+              EVE = "elliposidal, equal volume and orientation",
+              VVE = "ellipsoidal, equal orientation",
+              EEV = "ellipsoidal, equal volume and shape",
+              VEV = "ellipsoidal, equal shape",
+              EVV = "elliposidal, equal volume",
+              VVV = "ellipsoidal, unconstrained",
+              stop("invalid model id for EM"))
+  cat("\n best model:", M, "\n\n")
+  ##
+  ##	print(x$options)
+  invisible()
+}
+
+"print.summary.EMclustN" <- function(x, ndigits = options()$digits, ...)
+{
+  bic <- x$bic
+  l <- length(bic) > 1
+  print(x$classification, ...)
+  cat("\n uncertainty (quartiles):\n")
+  print(quantile(x$uncertainty), digits = ndigits, ...)
+  if(l)
+    cat("\n best BIC values:\n")
+  else cat("\n best BIC value:\n")
+  print(round(bic, ndigits))
+  M <- switch(EXPR=x$model,
+              E = "equal variance",
+              V = "unequal variance",
+              EII = "spherical, equal volume",
+              VII = "spherical, varying volume",
+              EEI = "diagonal, equal volume and shape",
+              VEI = "diagonal, equal shape",
+              EVI = "diagonal, equal volume",
+              VVI = "diagonal, varying volume and shape",
+              EEE = "elliposidal, equal variance",
+              VEE = "elliposidal, equal shape and orientation",
+              EVE = "elliposidal, equal volume and orientation",
+              VVE = "ellipsoidal, equal orientation",
+              EEV = "ellipsoidal, equal volume and shape",
+              VEV = "ellipsoidal, equal shape",
+              EVV = "elliposidal, equal volume",
+              VVV = "ellipsoidal, unconstrained",
+              stop("invalid model id for EM"))
+  cat("\n best model:", M, "\n\n")
+  ##
+  ##	print(x$options)
+  invisible()
+}
+
+"randProj" <- function(data, seeds = 0, ...,
+                       type = c("classification", "uncertainty", "errors"),
+                       ask = TRUE, quantiles = c(0.75, 0.95), symbols,
+                       scale = FALSE, identify = FALSE, CEX = 1, PCH = ".",
+                       XLIM, YLIM) 
+{
+  if(scale)
+    par(pty = "s")
+  aux <- list(...)
+  z <- aux$z
+  classification <- aux$classification
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  uncertainty <- aux$uncertainty
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  truth <- aux$truth
+  mu <- aux$mu
+  sigma <- aux$sigma
+  decomp <- aux$decomp
+  params <- !is.null(mu) && (!is.null(sigma) || !is.null(decomp))
+  if(!is.null(mu)) {
+    if(is.null(sigma)) {
+      if(is.null(decomp)) {
+        params <- FALSE
+        warning("covariance not supplied")
+      }
+      else {
+        sigma <- decomp2sigma(decomp)
+      }
+    }
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      params <- FALSE
+      warning("covariance improperly specified")
+    }
+    if(G != dimpar[3]) {
+      params <- FALSE
+      warning("mu and sigma are incompatible")
+    }
+  }
+  p <- ncol(data)
+  if(params)
+    cho <- array(apply(sigma, 3, chol), c(p, p, G))
+  if(!is.null(truth)) {
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
+    }
+    else {
+      if(length(unique(truth)) != length(unique(
+                 classification)))
+        truth <- NULL
+      else truth <- as.character(truth)
+    }
+  }
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- sort(unique(classification))
+    L <- length(U)
+    if(missing(symbols)) {
+      if(L <= length(.Mclust$symbols)) {
+        symbols <- .Mclust$symbols
+      }
+      else if(L <= 9) {
+        symbols <- as.character(1:9)
+      }
+      else if(L <= 26) {
+        symbols <- LETTERS
+      }
+    }
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification")
+      classification <- NULL
+    }
+  }
+  if(l <- length(type)) {
+    choices <- c("classification", "uncertainty", "density", 
+                 "errors")
+    m <- rep(0, l)
+    for(i in 1:l) {
+      m[i] <- charmatch(type[i], choices, nomatch = 0)
+    }
+    choices <- choices[unique(m)]
+    if(is.null(classification))
+      choices <- choices[choices != "classification"]
+    if(is.null(uncertainty))
+      choices <- choices[choices != "uncertainty"]
+    if(is.null(truth))
+      choices <- choices[choices != "errors"]
+  }
+  else choices <- NULL
+  if(length(choices) > 1 && ask)
+    choices <- c(choices, "all")
+  else if(length(choices) == 1)
+    ask <- FALSE
+  if(any(choices == "errors")) {
+    comp <- compClass(truth, classification)
+    tr <- comp$map[1,  ]
+    cl <- comp$map[2,  ]
+    TRUTH <- rep("0", length(truth))
+    for(k in 1:L) {
+      TRUTH[truth == tr[k]] <- cl[k]
+    }
+  }
+  if(!ask)
+    pick <- 1:length(choices)
+  ALL <- FALSE
+  orth2 <- function(n)
+    {
+      ## generates two random orthonormal n-vectors
+      u <- rnorm(n)
+      u <- u/vecnorm(u)
+      v <- rnorm(n)
+      v <- v/vecnorm(v)
+      Q <- cbind(u, v - sum(u * v) * u)
+      dimnames(Q) <- NULL
+      Q
+    }
+  for(seed in seeds) {
+    set.seed(seed)
+    Q <- orth2(p)
+    Data <- as.matrix(data) %*% Q
+    xlimMISS <- missing(XLIM)
+    ylimMISS <- missing(YLIM)
+    if(xlimMISS)
+      xlim <- range(Data[, 1])
+    else
+      xlim <- XLIM
+    if(ylimMISS)
+      ylim <- range(Data[, 2])
+    else
+      ylim <- YLIM
+    if(scale) {
+      d <- diff(xlim) - diff(ylim)
+      if(d > 0) {
+        ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
+      }
+      else {
+        xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
+      }
+    }
+    if(!length(choices)) {
+      plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab
+           = "", xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        Mu <- crossprod(Q, mu)
+        Sigma <- array(apply(cho, 3, function(R, Q)
+                             crossprod(R %*% Q), Q = Q), c(2, 2, G))
+        for(k in 1:G) {
+          mvn2plot(mu = Mu[, k], sigma = Sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
+      if(identify)
+        title(paste("Random Projection: seed = ", seed,
+                    collapse = ""), cex = 0.5)
+      next
+    }
+    while(TRUE) {
+      if(ask) {
+        pick <- menu(choices, title =
+                     paste("\nrandProj: make a plot selection (0 to exit)",
+                           "seed =", seed, "\n", collapse = ""))
+        if(!pick)
+          return(invisible())
+        ALL <- any(choices[pick] == "all")
+      }
+      if(any(choices[pick] == "classification") || (any(
+                      choices == "classification") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = 
+             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+        if(params) {
+          Mu <- crossprod(Q, mu)
+          Sigma <- array(apply(cho, 3, function(R, Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          for(k in 1:G) {
+            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+          }
+        }
+        for(k in 1:L) {
+          I <- classification == U[k]
+          points(Data[I, 1], Data[I, 2], pch = symbols[k], cex = CEX)
+        }
+        if(identify)
+          title(paste("Random Projection showing Classification: seed = ",
+                      seed, collapse = ""), cex = 0.5)
+      }
+      if(any(choices[pick] == "uncertainty") || (any(choices ==
+                      "uncertainty") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = 
+             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+        if(params) {
+          Mu <- crossprod(Q, mu)
+          Sigma <- array(apply(cho, 3, function(R, Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          for(k in 1:G) {
+            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+          }
+        }
+        breaks <- quantile(uncertainty, probs = sort(
+                                          quantiles))
+        I <- uncertainty < breaks[1]
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 
+               0.5 * CEX)
+        I <- uncertainty < breaks[2] & !I
+        points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 *
+               CEX)
+        I <- uncertainty >= breaks[2]
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 
+               1.5 * CEX)
+        if(identify)
+          title(paste("Random Projection showing Classification Uncertainty:",
+                      "seed = ", seed, collapse = ""), cex = 0.5)
+      }
+      if(any(choices[pick] == "errors") || (any(choices ==
+                      "errors") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = 
+             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+        if(params) {
+          Mu <- crossprod(Q, mu)
+          Sigma <- array(apply(cho, 3, function(R, Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          for(k in 1:G) {
+            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+          }
+        }
+        CLASSES <- unique(as.character(TRUTH))
+        symOpen <- c(2, 0, 1, 5)
+        symFill <- c(17, 15, 16, 18)
+        good <- classification == TRUTH
+        if(L > 4) {
+          points(Data[good, 1], Data[good, 2],
+                 pch = 1, cex = CEX)
+          points(Data[!good, 1], Data[!good,
+                                      2], pch = 16, cex = CEX)
+        }
+        else {
+          for(k in 1:L) {
+            K <- TRUTH == CLASSES[k]
+            points(Data[K, 1], Data[K,
+                                    2], pch = symOpen[
+                                          k], cex = CEX)
+            if(any(I <- (K & !good))) {
+              points(Data[I, 1],
+                     Data[I, 2],
+                     pch = symFill[
+                       k], cex = CEX)
+            }
+          }
+        }
+        if(identify)
+          title(paste("Random Projection showing Classification Errors:",
+                      " seed = ", seed, collapse = ""), cex = 0.5)
+      }
+      if(!ask)
+        break
+    }
+  }
+  invisible()
+}
+
+"shapeO" <- function(shape, O, transpose = FALSE)
+{
+  dimO <- dim(O)
+  if(dimO[1] != dimO[2])
+    stop("leading dimensions of O are unequal")
+  if((ldO <- length(dimO)) != 3) {
+    if(ldO == 2) {
+      dimO <- c(dimO, 1)
+      O <- array(O, dimO)
+    }
+    else stop("O must be a matrix or an array")
+  }
+  l <- length(shape)
+  if(l != dimO[1])
+    stop("dimension of O and length s are unequal")
+  storage.mode(O) <- "double"
+  .Fortran("shapeo",
+           as.integer(if(transpose) 1 else 0),
+           as.double(shape),
+           O,
+           as.integer(l),
+           as.integer(dimO[3]),
+           double(l * l),
+           integer(1))[[3]]
+}
+
+"sigma2decomp" <- function(sigma, G, tol, ...)
+{
+  dimSigma <- dim(sigma)
+  if(is.null(dimSigma))
+    stop("sigma improperly specified")
+  d <- dimSigma[1]
+  if(dimSigma[2] != d)
+    stop("sigma improperly specified")
+  l <- length(dimSigma)
+  if(l < 2 || l > 3)
+    stop("sigma improperly specified")
+  if(missing(G)) {
+    if(l == 2) {
+      G <- 1
+      sigma <- array(sigma, c(dimSigma, 1))
+    }
+    else {
+      G <- dimSigma[3]
+    }
+  }
+  else {
+    if(l == 3 && G != dimSigma[3])
+      stop("sigma and G are incompatible")
+    if(l == 2 && G != 1)
+      stop("sigma and G are incompatible")
+  }
+  decomp <- list(d = d, G = G, scale = rep(0, G),
+                 shape = matrix(0, d, G), orientation = array(0, c(d, d, G)))
+  for(k in 1:G) {
+    ev <- eigen(sigma[,  , k], symmetric = TRUE)
+    temp <- logb(ev$values)
+    logScale <- sum(temp)/d
+    decomp$scale[k] <- exp(logScale)
+    decomp$shape[, k] <- exp(temp - logScale)
+    decomp$orientation[,  , k] <- t(ev$vectors)
+  }
+  if(missing(tol))
+    tol <- sqrt(.Machine$double.eps)
+  scaleName <- "V"
+  shapeName <- "V"
+  orientName <- "V"
+  "uniq" <- 
+    function(x, tol = sqrt(.Machine$double.eps))
+      {
+        abs(max(x) - min(x)) < tol
+      }
+
+  if(uniq(decomp$scale)) {
+    decomp$scale <- decomp$scale[1]
+    scaleName <- "E"
+  }
+  if(all(apply(decomp$shape, 1, uniq, tol = tol))) {
+    decomp$shape <- decomp$shape[, 1]
+    if(all(uniq(decomp$shape, tol = tol))) {
+      shapeName <- "I"
+      decomp$shape <- rep(1, d)
+    }
+    else {
+      shapeName <- "E"
+    }
+  }
+  if(all(apply(matrix(decomp$orientation, nrow = d * d, ncol = G), 1,
+               uniq, tol = tol))) {
+    decomp$orientation = decomp$orientation[,  , 1]
+    if(all(apply(cbind(decomp$orientation, diag(d)), 1, uniq, tol
+                 = tol))) {
+      orientName <- "I"
+      decomp$orientation <- NULL
+    }
+    else {
+      orientName <- "E"
+    }
+  }
+  structure(decomp, modelName = paste(c(scaleName, shapeName, orientName),
+                      collapse = ""))
+}
+
+"sim" <- function(modelName, mu, ..., seed = 0)
+{
+  ## ... variance parameters, n
+  funcName <- paste("sim", modelName, sep = "")
+  do.call(funcName, list(mu = mu, ..., seed = seed))
+}
+
+"simE" <- function(mu, sigmasq, pro, ..., seed = 0)
+{
+  G <- length(mu)
+  n <- list(...)$n
+  if(all(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(rep(NA, n), modelName = "E"))
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- rep(0, n)
+  sd <- sqrt(sigmasq)
+  for(k in 1:G) {
+    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd)
+  }
+  structure(x, classification = clabels, modelName = "E")
+}
+
+"simEEE" <- function(mu, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  cholSigma <- list(...)$cholSigma
+  if(is.null(cholSigma)) {
+    if(!is.null(decomp <- list(...)$decomp)) {
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      cholSigma <- qr.R(qr(O * sqrt(scale * shape)))
+    }
+    else if(!is.null(Sigma <- list(...)$Sigma)) {
+      cholSigma <- chol(Sigma)
+    }
+    else if(!missing(sigma)) {
+      cholSigma <- chol(Sigma)
+    }
+    else stop("invalid specification for sigma")
+  }
+  if(all(is.na(c(mu, cholSigma)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EEE"))
+  }
+  if(any(is.na(c(mu, cholSigma)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+        FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "EEE")
+}
+
+"simEEI" <- function(mu, decomp, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(all(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EEI"))
+  }
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  shape <- decomp$shape
+  if(length(shape != d))
+    stop("shape incompatible with mu")
+  cholSigma <- diag(sqrt(decomp$scale * shape))
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+        FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "EEI")
+}
+
+"simEEV" <- function(mu, decomp, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(all(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EEV"))
+  }
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  sss <- sqrt(decomp$scale * decomp$shape)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    cholSigma <- decomp$orientation[,  , k] * sss
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+        FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "EEV")
+}
+
+"simEII" <- function(mu, sigmasq, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(sigmasq)) {
+    sigmasq <- list(...)$decomp$scale
+  }
+  if(all(is.na(c(mu, sigmasq)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EII"))
+  }
+  if(any(is.na(c(mu, sigmasq)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  cholSigma <- diag(rep(sqrt(sigmasq), d))
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+        FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "EII")
+}
+
+"simEVI" <- function(mu, decomp, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(all(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EVI"))
+  }
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  shape <- decomp$shape
+  if(nrow(shape) != d)
+    stop("shape incompatible with mu")
+  sss <- sqrt(decomp$scale * shape)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% diag(sss[, k]), MARGIN = 2, STAT = mu[
+                                                    , k], FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "EVI")
+}
+
+"simV" <- 
+  function(mu, sigmasq, pro, ..., seed = 0)
+{
+  G <- length(mu)
+  n <- list(...)$n
+  if(all(is.na(c(mu, sigmasq, pro)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(rep(NA, n), modelName = "V"))
+  }
+  if(any(is.na(c(mu, sigmasq, pro)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- rep(0, n)
+  sd <- sqrt(sigmasq)
+  for(k in 1:G) {
+    x[clabels == k] <- rnorm(ctabel[k], sd = sd[k])
+  }
+  structure(x, classification = clabels, modelName = "V")
+}
+
+"simVEI" <- 
+  function(mu, decomp, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(all(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VEI"))
+  }
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtscale <- sqrt(decomp$scale)
+  rtshape <- sqrt(decomp$shape)
+  if(length(rtshape) != d)
+    stop("shape incompatible with mu")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% diag(rtscale[k] * rtshape), MARGIN = 2,
+        STAT = mu[, k], FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "VEI")
+}
+
+"simVEV" <- 
+  function(mu, decomp, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(all(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VEV"))
+  }
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtscale <- sqrt(decomp$scale)
+  rtshape <- sqrt(decomp$shape)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    cholSigma <- decomp$orientation[,  , k] * (rtscale[k] * rtshape
+                                               )
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+        FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "VEV")
+}
+
+"simVII" <- function(mu, sigmasq, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(sigmasq)) {
+    sigmasq <- list(...)$decomp$scale
+  }
+  if(all(is.na(c(mu, sigmasq)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VII"))
+  }
+  if(any(is.na(c(mu, sigmasq)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% diag(rep(sqrt(sigmasq[k]), d)), MARGIN = 
+        2, STAT = mu[, k], FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "VII")
+}
+
+"simVVI" <- 
+  function(mu, decomp, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  if(missing(eps))
+    eps <- .Machine$double.eps
+  if(missing(decomp))
+    stop("decomp must be specified")
+  if(all(is.na(c(mu, unlist(decomp))))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VVI"))
+  }
+  if(any(is.na(c(mu, unlist(decomp))))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtscale <- sqrt(decomp$scale)
+  rtshape <- sqrt(decomp$shape)
+  if(nrow(rtshape) != d)
+    stop("shape incompatible with mu")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% diag(rtscale[k] * rtshape[, k]), MARGIN
+        = 2, STAT = mu[, k], FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "VVI")
+}
+
+"simVVV" <- 
+  function(mu, pro, ..., seed = 0)
+{
+  mu <- as.matrix(mu)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  n <- list(...)$n
+  cholsigma <- list(...)$cholsigma
+  if(is.null(cholsigma)) {
+    if(missing(sigma)) {
+      if(!is.null(sigma <- list(...)$sigma)) {
+        cholsigma <- apply(sigma, 3, chol)
+      }
+      else if(!is.null(decomp <- list(...)$decomp)) {
+        scale <- decomp$scale
+        shape <- decomp$shape
+        O <- decomp$orientation
+        cholsigma <- array(0, c(p, p, G))
+        shape <- sqrt(sweep(shape, MARGIN = 2, STATS = 
+                            scale, FUN = "*"))
+        for(k in 1:G)
+          cholsigma[,  , k] <- qr.R(qr(O[,  ,
+                                         k] * shape))
+      }
+      else stop("sigma improperly specified")
+    }
+    else {
+      cholsigma <- apply(sigma, 3, chol)
+    }
+  }
+  if(all(is.na(c(mu, cholsigma)))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VVV"))
+  }
+  if(any(is.na(c(mu, cholsigma)))) {
+    stop("parameters contain missing values")
+  }
+  if(missing(pro))
+    pro <- rep(1/G, G)
+  set.seed(seed)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+        ncol = d) %*% cholsigma[,  , k], MARGIN = 2, STAT = mu[
+                                                       , k], FUN = "+")
+  }
+  structure(x, classification = clabels, modelName = "VVV")
+}
+
+"spinProj" <- function(data, ..., angles = c(0, pi/3, (2 * pi)/3, pi),
+                       seed = 0, reflection = FALSE,
+                       type = c("classification", "uncertainty", "errors"),
+                       quantiles = c(0.75, 0.95),
+                       symbols, scale = FALSE, identify = FALSE, ask = TRUE,
+                       CEX = 1, PCH = ".", XLIM, YLIM) 
+{
+  if(scale)
+    par(pty = "s")
+  data <- as.matrix(data)
+  aux <- list(...)
+  z <- aux$z
+  classification <- aux$classification
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  uncertainty <- aux$uncertainty
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  truth <- aux$truth
+  mu <- aux$mu
+  sigma <- aux$sigma
+  decomp <- aux$decomp
+  params <- !is.null(mu) && (!is.null(sigma) || !is.null(decomp))
+  if(!is.null(mu)) {
+    if(is.null(sigma)) {
+      if(is.null(decomp)) {
+        params <- FALSE
+        warning("covariance not supplied")
+      }
+      else {
+        sigma <- decomp2sigma(decomp)
+      }
+    }
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      params <- FALSE
+      warning("covariance improperly specified")
+    }
+    if(G != dimpar[3]) {
+      params <- FALSE
+      warning("mu and sigma are incompatible")
+    }
+  }
+  p <- ncol(data)
+  if(params)
+    cho <- array(apply(sigma, 3, chol), c(p, p, G))
+  if(!is.null(truth)) {
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
+    }
+    else {
+      if(length(unique(truth)) != length(unique(
+                 classification)))
+        truth <- NULL
+      else truth <- as.character(truth)
+    }
+  }
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- sort(unique(classification))
+    L <- length(U)
+    if(missing(symbols)) {
+      if(L <= length(.Mclust$symbols)) {
+        symbols <- .Mclust$symbols
+      }
+      else if(L <= 9) {
+        symbols <- as.character(1:9)
+      }
+      else if(L <= 26) {
+        symbols <- LETTERS
+      }
+    }
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification")
+      classification <- NULL
+    }
+  }
+  if(l <- length(type)) {
+    choices <- c("classification", "uncertainty", "density", 
+                 "errors")
+    m <- rep(0, l)
+    for(i in 1:l) {
+      m[i] <- charmatch(type[i], choices, nomatch = 0)
+    }
+    choices <- choices[unique(m)]
+    if(is.null(classification))
+      choices <- choices[choices != "classification"]
+    if(is.null(uncertainty))
+      choices <- choices[choices != "uncertainty"]
+    if(is.null(truth))
+      choices <- choices[choices != "errors"]
+  }
+  if(length(choices) > 1 && ask)
+    choices <- c(choices, "all")
+  else if(length(choices) == 1)
+    ask <- FALSE
+  if(any(choices == "errors")) {
+    comp <- compClass(truth, classification)
+    tr <- comp$map[1,  ]
+    cl <- comp$map[2,  ]
+    U <- as.character(U)
+    TRUTH <- rep("0", length(truth))
+    for(k in 1:L) {
+      TRUTH[truth == tr[k]] <- cl[k]
+    }
+  }
+  if(!ask)
+    pick <- 1:length(choices)
+  all <- FALSE
+
+  set.seed(seed)
+  orth2 <- function(n)
+    {
+      ## generates two random orthonormal n-vectors
+      u <- rnorm(n)
+      u <- u/vecnorm(u)
+      v <- rnorm(n)
+      v <- v/vecnorm(v)
+      Q <- cbind(u, v - sum(u * v) * u)
+      dimnames(Q) <- NULL
+      Q
+    }
+  O <- orth2(p)
+  for(angle in angles) {
+    cosTheta <- cos(angle)
+    sinTheta <- sin(angle)
+    if(reflection) {
+      Q <- O %*% matrix(c(cosTheta, sinTheta, sinTheta,  -
+                          cosTheta), 2, 2)
+    }
+    else {
+      Q <- O %*% matrix(c(cosTheta,  - sinTheta, sinTheta,
+                          cosTheta), 2, 2)
+    }
+    Data <- data %*% Q
+    xlimMISS <- missing(XLIM)
+    ylimMISS <- missing(YLIM)
+    if(xlimMISS)
+      xlim <- range(Data[, 1])
+    else
+      xlim <- XLIM
+    if(ylimMISS)
+      ylim <- range(Data[, 2])
+    else
+      ylim <- YLIM
+    if(scale) {
+      d <- diff(xlim) - diff(ylim)
+      if(d > 0) {
+        ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
+      }
+      else {
+        xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
+      }
+    }
+    if(!length(choices)) {
+      plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab
+           = "", xlim = xlim, ylim = ylim)###, ...)
+      if(params) {
+        Mu <- crossprod(Q, mu)
+        Sigma <- array(apply(cho, 3, function(R, Q)
+                             crossprod(R %*% Q), Q = Q), c(2, 2, G))
+        for(k in 1:G) {
+          mvn2plot(mu = Mu[, k], sigma = Sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
+      if(identify)
+        title(paste("Spin Projection: seed/angle = ",
+                    seed, "/", round(angle, 3), collapse = 
+                    ""), cex = 0.5)
+      next
+    }
+    while(TRUE) {
+      if(ask) {
+        pick <-
+          menu(choices,
+               title = paste("\nspinProj: make a plot selection (0 to exit),",
+                 " seed/angle = ", seed, "/", round(angle, 3), "\n", 
+                 collapse = ""))
+        if(!pick)
+          break
+        ALL <- any(choices[pick] == "all")
+      }
+      if(!pick)
+        break
+      if(any(choices[pick] == "classification") ||
+         (any(choices == "classification") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab = "",
+             xlim = xlim, ylim = ylim)###, ...)
+        if(params) {
+          Mu <- crossprod(Q, mu)
+          Sigma <- array(apply(cho, 3, function(R, Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          for(k in 1:G) {
+            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+          }
+        }
+        for(k in 1:L) {
+          I <- classification == U[k]
+          points(Data[I, 1], Data[I, 2], pch = symbols[k], cex = CEX)
+        }
+        if(identify)
+          title(paste("Spin Projection showing Classification: seed/angle = ",
+                      seed, "/", round(angle, 3),
+                      collapse = ""), cex = 0.5)
+      }
+      if(any(choices[pick] == "uncertainty") || (any(choices ==
+                      "uncertainty") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = 
+             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+        if(params) {
+          Mu <- crossprod(Q, mu)
+          Sigma <- array(apply(cho, 3, function(R, Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          for(k in 1:G) {
+            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+          }
+        }
+        breaks <- quantile(uncertainty, probs = sort(quantiles))
+        I <- uncertainty < breaks[1]
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 0.5 * CEX)
+        I <- uncertainty < breaks[2] & !I
+        points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 * CEX)
+        I <- uncertainty >= breaks[2]
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 1.5 * CEX)
+        if(identify)
+          title(paste("Spin Projection showing Classification Uncertainty:",
+                      "seed/angle = ", seed, "/", round(angle, 3),
+                      collapse = ""), cex = 0.5)
+      }
+      if(any(choices[pick] == "errors") || (any(choices == "errors") && ALL))
+        {
+          plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab = "",
+               xlim = xlim, ylim = ylim)###, ...)
+          if(params) {
+            Mu <- crossprod(Q, mu)
+            Sigma <- array(apply(cho, 3, function(R, Q)
+                                 crossprod(R %*% Q), Q = Q), c(2, 2, G))
+            for(k in 1:G) {
+              mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+            }
+          }
+          CLASSES <- unique(as.character(TRUTH))
+          symOpen <- c(2, 0, 1, 5)
+          symFill <- c(17, 15, 16, 18)
+          good <- classification == TRUTH
+          if(L > 4) {
+            points(data[good, 1], data[good, 2],
+                   pch = 1, cex = CEX)
+            points(data[!good, 1], data[!good,
+                                        2], pch = 16, cex = CEX)
+          }
+          else {
+            for(k in 1:L) {
+              K <- TRUTH == CLASSES[k]
+              points(data[K, 1], data[K,
+                                      2], pch = symOpen[
+                                            k], cex = CEX)
+              if(any(I <- (K & !good))) {
+                points(data[I, 1],
+                       data[I, 2],
+                       pch = symFill[
+                         k], cex = CEX)
+              }
+            }
+          }
+          if(identify)
+            title(paste("Spin Projection showing Classification Errors:",
+                        "seed/angle = ", seed, "/", round(angle, 3),
+                        collapse = ""), cex = 0.5)
+        }
+      if(!ask)
+        break
+    }
+  }
+  invisible()
+}
+
+### dots are not used but inserted to keep R from complaining
+### about generic/method consistency...
+### x is renamed to object for the same reason...
+"summary.EMclust" <- function(object, data, G, modelNames, ...)
+{
+  x <- object
+  n <- if(is.null(dimData <- dim(data))) length(data) else dimData[1]
+  hcPairs <- attr(x, "hcPairs")
+  attr(hcPairs, "initialPartition") <- attr(x, "attrHC")$initialPartition
+  subset <- attr(x, "subset")
+  eps <- attr(x, "eps")
+  tol <- attr(x, "tol")
+  itmax <- attr(x, "itmax")
+  equalPro <- attr(x, "equalPro")
+  warnSingular <- attr(x, "warnSingular")
+  class(x) <- attr(x, "args") <- attr(x, "subset") <- NULL
+  attr(x, "hcPairs") <- attr(x, "attrHC") <- attr(x, "equalPro") <- NULL
+  attr(x, "warnSingular") <- attr(x, "attrHC") <- NULL
+  ##
+  options <- c(subset = !is.null(subset), equalPro = equalPro)
+  ##
+  if(missing(G)) {
+    G <- as.numeric(dimnames(x)[[1]])
+  }
+  else {
+    G <- sort(G)
+  }
+  Glabels <- as.character(G)
+  if(missing(modelNames))
+    modelNames <- dimnames(x)[[2]]
+  x <- x[Glabels, modelNames, drop = FALSE]
+  X <- is.na(x)
+  if(all(X))
+    stop("none of the selected models could be fitted")
+  x[X] <-  - .Machine$double.xmax
+  ##
+  l <- nrow(x)
+  m <- ncol(x)
+  best <- max(x)
+  rowsBest <- (matrix(rep(1:l, m), l, m)[x == best])[1]
+  colsBest <- (matrix(rep(1:m, rep(l, m)), l, m)[x == best])[1]
+  namesBest <- dimnames(x[rowsBest, colsBest, drop = FALSE])
+  bestG <- namesBest[[1]]
+  bestModel <- namesBest[[2]]
+  if(min(l, m) > 1) {
+    M <- modelNames[modelNames != bestModel]
+    y <- x[, M]
+    other <- max(y)
+    otherG <- (matrix(rep(Glabels, m - 1), l, m - 1)[y == other])[
+                                                       1]
+    otherModel <- (matrix(rep(M, rep(l, m - 1)), l, m - 1)[y == 
+                                                           other])[1]
+    y <- x[, bestModel]
+    w <- y[y != best]
+    if(length(w) == l - 1) {
+      same <- max(w)
+      sameG <- (Glabels[y == same])[1]
+    }
+    else {
+      same <- best
+      sameG <- (Glabels[y == same])[2]
+    }
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    nam2 <- paste(bestModel, sameG, sep = ",")
+    nam3 <- paste(otherModel, otherG, sep = ",")
+    bestBICs <- c(nam1 = best, nam2 = same, nam3 = other)
+    names(bestBICs) <- c(nam1, nam2, nam3)
   }
   else if(l != 1) {
-    dn <- dimnames(x)
-    x <- as.vector(x)
-    i <- (1:l)[x == bicmax][1]
-    nextbest <- max(x[ - i])
-    j <- 
-      if(nextbest == bicmax) (1:l)[x == bicmax][2] 
-      else (1:l)[x == nextbest][1]
-    best <- c(bicmax, nextbest)
-    rcond <- as.vector(rc)[c(i, j)]
-    modelid <- dn[[1]]
-    names(best) <- names(rcond) <- 
-      paste(modelid, ",", dn[[2]][c(i, j)], sep = "")
-### bug: in case of noise k should be possibly "0"    
-### k <- as.character(i)
-### replaced May 8, 2001 (RW) by
-    k <- nclus[i]
+    ## one model, more than one number of clusters
+    w <- x[x != best]
+    if(length(w) == l - 1) {
+      same <- max(w)
+      sameG <- (Glabels[x == same])[1]
+    }
+    else {
+      same <- best
+      sameG <- (Glabels[x == same])[2]
+    }
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    nam2 <- paste(bestModel, sameG, sep = ",")
+    bestBICs <- c(nam1 = best, nam2 = same)
+    names(bestBICs) <- c(nam1, nam2)
   }
-  else if(n != 1) {
-    dn <- dimnames(x)
-    x <- as.vector(x)
-    i <- (1:n)[x == bicmax][1]
-    nextbest <- max(x[ - i])
-    j <- 
-      if(nextbest == bicmax) (1:n)[x == bicmax][2] 
-      else (1:n)[x == nextbest][1]
-    best <- c(bicmax, nextbest)
-    rcond <- as.vector(rc)[c(i, j)]
-    names(best) <- names(rcond) <-
-      paste(dn[[1]][c(i, j)], ",", dn[[2]], sep = "")
-    modelid <- dn[[1]][i]
-    k <- nclus
+  else if(m != 1) {
+    ## one number of clusters, more than one model
+    M <- (1:m)[modelNames == bestModel]
+    y <- x[,  - M]
+    other <- max(y)
+    otherG <- (matrix(rep(Glabels, m - 1), l, m - 1)[y == other])[
+                                                       1]
+    otherModel <- (matrix(rep(modelNames[ - M], rep(l, m - 1)),
+                          l, m - 1)[y == other])[1]
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    nam3 <- paste(otherModel, otherG, sep = ",")
+    bestBICs <- c(best, other)
+    names(bestBICs) <- c(nam1, nam3)
   }
   else {
-    dn <- dimnames(x)
-    k <- nclus
-    rcond <- rc
-    best <- bicmax
-    names(best) <- names(rcond) <- paste(dn[[1]], ",", dn[[2]], sep = "")
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    bestBICs <- best
+    names(bestBICs) <- nam1
   }
-  if(is.null(smpl)) {
-    if(is.null(noise)) {
-      if(k == "1") {
-	z <- matrix(1, nrow(data), 1)
-	mu <- apply(data, 2, mean)
-	params <- c(mu = mu, sigma = crossprod(sweep(
-			       data, 2, mu)))
-      }
-      else {
-	cl <- mhclass(tree, as.numeric(k))
-	z <- me(data, modelid = modelid, ctoz(cl), 
-		equal = equal)
-	params <- mstep(data, modelid = modelid, z, 
-			equal = equal)[c("mu", "sigma", "prob")]
-      }
+  G <- as.numeric(bestG)
+  if(is.null(subset)) {
+    if(G == 1) {
+      out <- mvn(modelName = bestModel, data = data)
+      return(structure(c(list(bic = bestBICs, options = 
+                              options, classification = rep(1, n), 
+                              uncertainty = rep(0, n), class = 
+                              "summary.EMclust"), out)))
     }
-    else {               # noise
-      if(k == "0") {
-	z <- cbind(rep(0, n), rep(1, n))
-	params <- NULL
-      }
-      else {
-	cl <- numeric(n)
-	cl[!noise] <- mhclass(tree, as.numeric(k))
-	cl[noise] <- as.numeric(k) + 1
-	z <- me(data, modelid = modelid, ctoz(cl), 
-		equal = equal, noise = T, Vinv = Vinv)
-	params <- mstep(data, modelid = modelid, z, 
-			equal = equal, noise = T, Vinv = Vinv)
-      }
-    }
+    clss <- hclass(hcPairs, G)
+    z <- unmap(clss)
+    out <- me(modelName = bestModel, data = data, z = z, eps = eps,
+              tol = tol, itmax = itmax, equalPro = equalPro, 
+              warnSingular = warnSingular)
   }
   else {
-    ## a sample was used in the hierarchical clustering phase
-    if(is.null(noise)) {
-      if(k == "1") {
-	z <- matrix(1, nrow(data), 1)
-	mu <- apply(data, 2, mean)
-	params <- c(mu = mu, sigma = crossprod(sweep(data, 2, mu)))
-      }
-      else {
-	cl <- mhclass(tree, as.numeric(k))
-	params <- mstep(data[smpl,  ], modelid = modelid, ctoz(cl), 
-			equal = equal)[c("mu", "sigma", "prob")]
-	z <- do.call("estep", c(list(data, modelid = modelid), params))
-	z <- me(data, modelid = modelid, z, equal = 
-		equal)
-	params <- mstep(data, modelid = modelid, z, 
-			equal = equal)[c("mu", "sigma", "prob")]
-      }
-    }
-    else {                # noise
-      if(k == "0") {
-	z <- cbind(rep(0, n), rep(1, n))
-	params <- NULL
-      }
-      else {
-	cl <- mhclass(tree, as.numeric(k))
-	params <- mstep(data[smpl,  ], modelid = 
-			modelid, ctoz(cl), equal = equal)[c("mu", 
-					     "sigma", "prob")]
-	z <- do.call("estep", c(list(data[!noise,  ], 
-				     modelid = modelid), params))
-	cl <- numeric(n)
-	cl[!noise] <- z
-	cl[noise] <- as.numeric(k) + 1
-	z <- me(data, modelid = modelid, ctoz(cl), 
-		equal = equal, noise = T, Vinv = Vinv)
-	params <- mstep(data, modelid = modelid, z, 
-			equal = equal, noise = T, Vinv = Vinv)
-      }
-    }
+    clss <- hclass(hcPairs, G)
+    z <- unmap(clss)
+    ms <- mstep(modelName = bestModel, data = data[subset,  ],
+                z = z, eps = eps, tol = tol, itmax = itmax, equalPro = 
+                equalPro, warnSingular)
+    out <- do.call("em", c(list(data = data,
+                                eps = eps, tol = tol, itmax = itmax,
+                                equalPro = equalPro,
+                                warnSingular = warnSingular), ms)) 
   }
-  out <- list(classification = ztoc(z), uncertainty = 1 - apply(z, 1, max
-					  ), parameters = params, z = z)
-  attr(out, "modelid") <- modelid
-  attr(out, "options") <- c(sample = !is.null(smpl), 
-			    noise = !is.null(noise), equal = equal)	
-  ##---------------------------------------------------------------------------
-  attr(out, "bic") <- best
-  attr(out, "rcond") <- rc
-  class(out) <- "summary.emclust"
-  out
+  structure(c(list(bic = bestBICs, options = options, classification = 
+                   map(out$z), uncertainty = 1 - apply(out$z, 1, max)), out),
+            class = "summary.EMclust")
 }
 
-"summary.emclust1" <- function(object, data, nclus, ...)
+### dots are not used but inserted to keep R from complaining
+### about generic/method consistency...
+### x is renamed to object for the same reason...
+"summary.EMclustN" <- function(object, data, G, modelNames, ...)
 {
-  ### This is for compatibility reasons with other 'summary' functions
   x <- object
-
-  rc <- attr(x, "rcond")
-  tree <- attr(x, "tree")
-  modelid <- attr(x, "modelid")
-  smpl <- attr(x, "subset")
-  equal <- attr(x, "equal")
+  n <- if(is.null(dimData <- dim(data))) length(data) else dimData[1]
+  hcPairs <- attr(x, "hcPairs")
+  attr(hcPairs, "initialPartition") <- attr(x, "attrHC")$initialPartition
+  eps <- attr(x, "eps")
+  tol <- attr(x, "tol")
+  itmax <- attr(x, "itmax")
+  warnSingular <- attr(x, "warnSingular")
+  equalPro <- attr(x, "equalPro")
   noise <- attr(x, "noise")
   Vinv <- attr(x, "Vinv")
-  attr(x, "modelid") <- attr(x, "tree") <- attr(x, "subset") <- 
-    attr(x, "noise") <- attr(x, "Vinv") <- attr(x, "equal") <- 
-      attr(x, "rcond") <- attr(x, "call") <- attr(x, "class") <- NULL 
-  n <- nrow(data)
-  nclus <- 
-    if(missing(nclus)) names(x) 
-    else as.character(sort(unique(nclus)))
-  x <- x[nclus]
-  if(all(is.na(x))) {
-    warning("selected BIC values are all missing")
-    return(structure(rep(NA, n), modelid = modelid, 
-		     options = c(sample = !is.null(smpl), 
-		       noise = !is.null(noise), equal = equal), 
-		     class = "summary.emclust1"))
-  }
-  nclus <- nclus[!is.na(x)]
-  x <- x[!is.na(x)]
-  bicmax <- max(x)
-  k <- nclus[j <- ((1:length(x))[x == bicmax][1])]
-  if(is.null(smpl)) {
-    if(is.null(noise)) {
-      if(k == "1") {
-	z <- matrix(1, nrow(data), 1)
-	mu <- apply(data, 2, mean)
-	params <- c(mu = mu, sigma = crossprod(sweep(
-			       data, 2, mu)))
-      }
-      else {
-	cl <- mhclass(tree, as.numeric(k))
-	z <- me(data, modelid = modelid[2], ctoz(cl), 
-		equal = equal)
-	params <- mstep(data, modelid = modelid[2], z, 
-			equal = equal)[c("mu", "sigma", "prob")]
-      }
-    }
-    else {           # noise
-      if(k == "0") {
-	z <- cbind(rep(0, n), rep(1, n))
-	params <- NULL
-      }
-      else {
-	cl <- numeric(n)
-	cl[!noise] <- mhclass(tree, as.numeric(k))
-	cl[noise] <- as.numeric(k) + 1
-	z <- me(data, modelid = modelid[2], ctoz(cl), 
-		equal = equal, noise = T, Vinv = Vinv)
-	params <- mstep(data, modelid = modelid[2], z, 
-			equal = equal, noise = T, Vinv = Vinv)
-      }
-    }
+  
+  class(x) <- attr(x, "args") <- NULL
+  attr(x, "eps") <- attr(x, "tol") <- attr(x, "itmax") <- NULL
+  attr(x, "noise") <- attr(x, "Vinv") <- NULL
+  attr(x, "hcPairs") <- attr(x, "attrHC") <- attr(x, "equalPro") <- NULL
+  attr(x, "warnSingular") <- NULL
+  ##
+  options <- c(noise = TRUE, equalPro = equalPro)
+  ##
+  if(missing(G)) {
+    G <- as.numeric(dimnames(x)[[1]])
   }
   else {
-    ## a sample was used in the hierarchical clustering phase
-    if(is.null(noise)) {
-      if(k == "1") {
-	z <- matrix(1, nrow(data), 1)
-	mu <- apply(data, 2, mean)
-	params <- c(mu = mu, sigma = crossprod(sweep(
-			       data, 2, mu)))
-      }
-      else {
-	cl <- mhclass(tree, as.numeric(k))
-	params <- mstep(data[smpl,  ], modelid = 
-			modelid[2], ctoz(cl), equal = equal)[c("mu", 
-						"sigma", "prob")]
-	z <- do.call("estep", c(list(data, modelid = 
-				     modelid[2]), params))
-	z <- me(data, modelid = modelid[2], z, equal = 
-		equal)
-	params <- mstep(data, modelid = modelid[2], z, 
-			equal = equal)[c("mu", "sigma", "prob")]
-      }
-    }
-    else {               # noise
-      if(k == "0") {
-	z <- cbind(rep(0, n), rep(1, n))
-	params <- NULL
-      }
-      else {
-	cl <- mhclass(tree, as.numeric(k))
-	params <- mstep(data[smpl,  ], 
-			modelid = modelid[2], ctoz(cl), 
-			equal = equal)[c("mu", "sigma", "prob")]
-	z <- do.call("estep", c(list(data[!noise,  ], 
-				     modelid = modelid[2]), params))
-	cl <- numeric(n)
-	cl[!noise] <- z
-	cl[noise] <- as.numeric(k) + 1
-	z <- me(data, modelid = modelid[2], ctoz(cl), 
-		equal = equal, noise = T, Vinv = Vinv)
-	params <- mstep(data, modelid = modelid[2], z, 
-			equal = equal, noise = T, Vinv = Vinv)
-      }
-    }
+    G <- sort(G)
   }
-  out <- list(classification = ztoc(z), 
-	      uncertainty = 1 - apply(z, 1, max), 
-	      parameters = params, z = z) 
-  attr(out, "modelid") <- modelid
-  attr(out, "options") <- c(sample = !is.null(smpl), noise =
-			    !is.null(noise), equal = equal)	 
-##-----------------------------------------------------------------------------
-  if(length(nclus) > 1) {
-    nextbest <- max(x[ - j])
-    indx <- c(nclus[j], (nclus[x == nextbest])[1])
-    rc <- rc[indx]
-    best <- c(bicmax, nextbest)
-    names(best) <- names(rc) <- indx
+  Glabels <- as.character(G)
+  if(missing(modelNames))
+    modelNames <- dimnames(x)[[2]]
+  x <- x[Glabels, modelNames, drop = FALSE]
+  X <- is.na(x)
+  if(all(X))
+    stop("none of the selected models could be fitted")
+  x[X] <-  - .Machine$double.xmax
+  ##
+  l <- nrow(x)
+  m <- ncol(x)
+  best <- max(x)
+  rowsBest <- (matrix(rep(1:l, m), l, m)[x == best])[1]
+  colsBest <- (matrix(rep(1:m, rep(l, m)), l, m)[x == best])[1]
+  namesBest <- dimnames(x[rowsBest, colsBest, drop = FALSE])
+  bestG <- namesBest[[1]]
+  bestModel <- namesBest[[2]]
+  if(min(l, m) > 1) {
+    M <- modelNames[modelNames != bestModel]
+    y <- x[, M]
+    other <- max(y)
+    otherG <- (matrix(rep(Glabels, m - 1), l, m - 1)[y == other])[1]
+    otherModel <- (matrix(rep(M, rep(l, m - 1)), l, m - 1)[y == other])[1]
+    y <- x[, bestModel]
+    w <- y[y != best]
+    if(length(w) == l - 1) {
+      same <- max(w)
+      sameG <- (Glabels[y == same])[1]
+    }
+    else {
+      same <- best
+      sameG <- (Glabels[y == same])[2]
+    }
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    nam2 <- paste(bestModel, sameG, sep = ",")
+    nam3 <- paste(otherModel, otherG, sep = ",")
+    bestBICs <- c(nam1 = best, nam2 = same, nam3 = other)
+    names(bestBICs) <- c(nam1, nam2, nam3)
+  }
+  else if(l != 1) {
+    ## one model, more than one number of clusters
+    w <- x[x != best]
+    if(length(w) == l - 1) {
+      same <- max(w)
+      sameG <- (Glabels[x == same])[1]
+    }
+    else {
+      same <- best
+      sameG <- (Glabels[x == same])[2]
+    }
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    nam2 <- paste(bestModel, sameG, sep = ",")
+    bestBICs <- c(nam1 = best, nam2 = same)
+    names(bestBICs) <- c(nam1, nam2)
+  }
+  else if(m != 1) {
+    ## one number of clusters, more than one model
+    M <- (1:m)[modelNames == bestModel]
+    y <- x[,  - M]
+    other <- max(y)
+    otherG <- (matrix(rep(Glabels, m - 1), l, m - 1)[y == other])[
+                                                       1]
+    otherModel <- (matrix(rep(modelNames[ - M], rep(l, m - 1)),
+                          l, m - 1)[y == other])[1]
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    nam3 <- paste(otherModel, otherG, sep = ",")
+    bestBICs <- c(best, other)
+    names(bestBICs) <- c(nam1, nam3)
   }
   else {
-    best <- bicmax
-    rc <- rc[j]
-    names(best) <- names(rc) <- nclus
+    nam1 <- paste(bestModel, bestG, sep = ",")
+    bestBICs <- best
+    names(bestBICs) <- nam1
   }
-  attr(out, "bic") <- best
-  attr(out, "rcond") <- rc
-  class(out) <- "summary.emclust1"
-  out
+  G <- as.numeric(bestG)
+  if(G == 0) {
+    return(structure(list(Vinv = Vinv, loglik = n * logb(Vinv),
+                          options = options)), class = "summary.EMclustN")
+  }
+  clss <- hclass(hcPairs, G)
+  k <- as.numeric(bestG)
+  k1 <- k + 1
+  z <- matrix(0, n, k1)
+  z[!noise, 1:k] <- unmap(clss)
+  z[!noise, k1] <- 0
+  z[noise, k1] <- 1
+  out <- me(modelName = bestModel, data = data, z = z[, 1:k1], eps = eps,
+            tol = tol, itmax = itmax, equalPro = equalPro, warnSingular = 
+            warnSingular, noise = TRUE, Vinv = Vinv)
+  structure(c(list(bic = bestBICs, noise = TRUE, equalPro = equalPro,
+                   classification = map(out$z),
+                   uncertainty = 1 - apply(out$z, 1, max)), out),
+            class = "summary.EMclustN")
 }
 
-"traceW" <- function(x)
+### x is renamed to object to keep R from complaining
+### about generic/method consistency...
+"summary.Mclust" <- function(object, ...)
 {
-### sum(as.vector(sweep(x, 2, apply(x, 2, mean)))^2)
+  x <- object
+  M <- switch(EXPR=x$model,
+              E = "equal variance",
+              V = "unequal variance",
+              EII = "spherical, equal volume",
+              VII = "spherical, varying volume",
+              EEI = "diagonal, equal volume and shape",
+              VEI = "diagonal, equal shape",
+              EVI = "diagonal, equal volume",
+              VVI = "diagonal, varying volume and shape",
+              EEE = "elliposidal, equal variance",
+              VEE = "elliposidal, equal shape and orientation",
+              EVE = "elliposidal, equal volume and orientation",
+              VVE = "ellipsoidal, equal orientation",
+              EEV = "ellipsoidal, equal volume and shape",
+              VEV = "ellipsoidal, equal shape",
+              EVV = "elliposidal, equal volume",
+              VVV = "ellipsoidal, unconstrained",
+              stop("invalid model id for EM"))
+  G <- length(unique(x$classification))
+  cat("\n best model:", M, "with", G, "groups\n")
+  if(FALSE) {
+    aveUncer <- round(mean(x$uncertainty), 3)
+    medUncer <- round(median(x$uncertainty), 3)
+    cat("\n averge/median classification uncertainty:", aveUncer,
+        "/", medUncer, "\n\n")
+  }
+  invisible()
+}
+
+### dots are not used but inserted to keep R from complaining
+### about generic/method consistency...
+### test is renamed to object for the same reason...
+"summary.mclustDAtest" <- function(object, pro, ...)
+{
+  test <- object
+  clfun <- function(x)
+    {
+      cl <- names(x)[x == max(x)]
+      if(length(cl) > 1)
+        NA
+      else cl
+    }
+  if(!missing(pro)) {
+    if(length(pro) != ncol(test))
+      stop("wrong number of prior probabilities")
+    test <- sweep(test, MARGIN = 2, STATS = pro, FUN = "*")
+  }
+  cl <- apply(test, 1, clfun)
+  z <- sweep(test, MARGIN = 1, STATS = apply(test, 1, sum), FUN = "/")
+  attr(z, "class") <- NULL
+  list(classification = cl, z = z)
+}
+
+### dots are not used but inserted to keep R from complaining
+### about generic/method consistency...
+### x is renamed to object for the same reason...
+"summary.mclustDAtrain" <- function(object, ...)
+{
+  x <- object
+  L <- length(x)
+  M <- max(unlist(lapply(x, function(y)
+                         y$n)))
+  N <- names(x)
+  s <- rep(list(list(model = "XXX,00", classification = rep(0, M))),
+           times = L)
+  names(s) <- N
+  for(l in 1:L) {
+    s[[l]]$model <- paste(x[[l]]$modelName, x[[l]]$G, sep = ",")
+    cl <- if(!is.null(x[[l]]$z)) map(x[[l]]$z) else rep(1, x[[l]]$
+                                                        n)
+    s[[l]]$classification <- cl
+  }
+  s
+}
+
+"surfacePlot" <- function(data, mu, pro, ...,
+                          type = c("contour", "image", "persp"),
+                          what = c("density", "uncertainty", "skip"),
+                          transformation = c("none", "log", "sqrt"),
+                          grid = 50, nlevels = 20, scale = FALSE,
+                          identify = FALSE, verbose = FALSE, xlim,
+                          ylim, swapAxes = FALSE)
+{
+  data <- as.matrix(data)
+  p <- ncol(data)
+  if(p != 2)
+    stop("for two-dimensional data only")
+  densNuncer <- function(modelName, data, mu, pro, sigma)
+    {
+      ## ... sigmasq or sigma, pro, eps
+      cden <- do.call("cdens", list(modelName = modelName, data = 
+                                    data, mu = mu, sigma = sigma))
+      z <- sweep(cden, MARGIN = 2, FUN = "*", STATS = pro)
+      den <- apply(z, 1, sum)
+      z <- sweep(z, MARGIN = 1, FUN = "/", STATS = den)
+      data.frame(density = den, uncertainty = 1 - apply(z, 1, max))
+    }
+  if(scale)
+    par(pty = "s")
+  aux <- list(...)
+  sigma <- aux$sigma
+  decomp <- aux$decomp
+  params <- !is.null(mu) && (!is.null(sigma) || !is.null(decomp))
+  if(!is.null(mu)) {
+    if(is.null(sigma)) {
+      if(is.null(decomp)) {
+        params <- FALSE
+        warning("covariance not supplied")
+      }
+      else {
+        sigma <- decomp2sigma(decomp)
+      }
+    }
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      params <- FALSE
+      warning("covariance improperly specified")
+    }
+    if(G != dimpar[3]) {
+      params <- FALSE
+      warning("mu and sigma are incompatible")
+    }
+    cho <- array(apply(sigma, 3, chol), c(p, p, G))
+  }
+  if(length(grid) == 1)
+    grid <- c(grid, grid)
+  if(swapAxes) {
+    if(params) {
+      mu <- mu[2:1,  ]
+      sigma <- sigma[2:1, 2:1,  ]
+    }
+    data <- data[, 2:1]
+  }
+  if(!is.null(dnames <- dimnames(data)[[2]])) {
+    xlab <- dnames[1]
+    ylab <- dnames[2]
+  }
+  else xlab <- ylab <- ""
+  if(missing(xlim))
+    xlim <- range(data[, 1])
+  if(missing(ylim))
+    ylim <- range(data[, 2])
+  if(scale) {
+    d <- diff(xlim) - diff(ylim)
+    if(d > 0) {
+      ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
+    }
+    else {
+      xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
+    }
+  }
+  if(!params)
+    stop("need parameters to compute density")
+  if(missing(pro))
+    stop("need mixing proportions to compute density")
+  x <- grid1(n = grid[1], range = xlim, edge = TRUE)
+  y <- grid1(n = grid[2], range = ylim, edge = TRUE)
+  xy <- grid2(x, y)
+  if(verbose)
+    cat("\n computing density and uncertainty over grid ...\n")
+  Z <- densNuncer(modelName = "VVV", data = xy, mu = mu, pro = pro, sigma
+                  = sigma)
+  lx <- length(x)
+  ly <- length(y)
+  CI <- type
+  DU <- what
+  TRANS <- transformation
+  ask <- length(CI) > 1 || length(DU) > 1 || length(TRANS) > 1
+  while(TRUE) {
+    if(!length(DU))
+      break
+    if(!length(CI))
+      break
+    if(!length(TRANS))
+      break
+    if(length(DU) > 1) {
+      du <- menu(DU, title = 
+                 "\n density or uncertainty? (0 to exit)\n")
+      if(!du)
+        return(invisible())
+      du <- DU[du]
+    }
+    else du <- DU
+    if(mode(du) != "character")
+      break
+    if(du == "skip") {
+      plot(xy[, 1], xy[, 2], xlab = "", ylab = "", axes = FALSE,
+           type = "n")
+      next
+    }
+    if(length(CI) > 1) {
+      ci <- menu(CI, title = "\n plot type? (0 to exit):\n")
+      if(!ci)
+        return(invisible())
+      ci <- CI[ci]
+    }
+    else ci <- CI
+    if(length(TRANS) > 1) {
+      trans <- menu(TRANS, title = 
+                    "\n transformation? (0 to exit):\n")
+      if(!trans)
+        return(invisible())
+      trans <- TRANS[trans]
+    }
+    else trans <- TRANS
+    if(mode(trans) != "character")
+      break
+    if(du == "density") {
+      zz <- matrix(Z$density, lx, ly)
+      title2 <- "Density"
+    }
+    else {
+      zz <- matrix(Z$uncertainty, lx, ly)
+      title2 <- "Uncertainty"
+    }
+    if(trans == "log") {
+      z <- logb(zz)
+      title1 <- "Log"
+    }
+    else if(trans == "sqrt") {
+      z <- sqrt(zz)
+      title1 <- "Square Root"
+    }
+    else {
+      z <- zz
+      title1 <- ""
+    }
+    if(ci == "contour") {
+      title3 <- "Contour"
+      contour(x = x, y = y, z = z, nlevels = nlevels, xlab = 
+              xlab, ylab = ylab)#, labcex = 0)
+    }
+    else if(ci == "image") {
+      title3 <- "Image"
+      image(x = x, y = y, z = z, xlab = xlab, ylab = ylab)
+    }
+    else {
+      title3 <- "Perspective"
+      persp(x = x, y = y, z = z, xlab = xlab, ylab = ylab,
+            theta = 60, phi = 30, expand = .6)
+    }
+    if(identify) {
+      TITLE <- paste(c(title1, title2, title3, "Plot"), 
+                     collapse = " ")
+      title(TITLE, cex = 0.5)
+    }
+    if(!ask)
+      break
+  }
+  invisible(list(x = x, y = y, z = z))
+}
+
+"traceW" <- 
+  function(x)
+{
+  ## sum(as.vector(sweep(x, 2, apply(x, 2, mean)))^2)
   dimx <- dim(x)
-  n <- dimx[1]
-  p <- dimx[2]
+  n <- dimx[1.]
+  p <- dimx[2.]
   .Fortran("mcltrw",
-	   as.double(x),
-	   as.integer(n),
-	   as.integer(p),
-	   double(p),
-	   double(1))[[5]]
+           as.double(x),
+           as.integer(n),
+           as.integer(p),
+           double(p),
+           double(1.))[[5.]]
 }
 
-"ztoc" <- function(z)
+"uncerPlot" <- function(z, truth, ...)
 {
-### converts conditional probabilities to a classification
-  cl <- numeric(nrow(z))
-  for(i in 1:nrow(z)) {
-    cl[i] <- (1:ncol(z))[z[i,  ] == max(z[i,  ])]
+  parSave <- par(no.readonly=TRUE)
+##  par(pty = "n")
+  uncer <- 1 - apply(z, 1, max)
+  ord <- order(uncer)
+  ##	plot(uncer[ord], pch = ".", xlab = "", ylab = "uncertainty", 
+  ##      ylim = c(- (0.5/32), 0.5))
+  M <- max(uncer)
+  plot(uncer[ord], ylab = "uncertainty", ylim = c( - (M/32), M), xaxt = 
+       "n", type = "n")
+  points(uncer[ord], pch = 15, cex = 0.5)
+  lines(uncer[ord])
+  abline(h = c(0, 0), lty = 4)
+  if(!missing(truth)) {
+    n <- length(truth)
+    truth <- as.character(truth)
+    result <- as.character(map(z))
+    comp <- compClass(truth, result)
+    if(is.na(comp$error))
+      warning("unequal number of classes in z and truth")
+    MAP <- comp$map[2,  ]
+    names(MAP) <- comp$map[1,  ]
+    I <- (1:n)[apply(rbind(truth, result), 2, function(x, MAP)
+                     MAP[x[1]] != x[2], MAP = MAP)]
+    for(i in I) {
+      x <- (1:n)[ord == i]
+                                        #
+      lines(c(x, x), c( - (0.5/32), uncer[i]), lty = 1)
+    }
   }
-  cl
+  par(parSave)
+  invisible()
 }
 
+"unchol" <- function(x, upper)
+{
+  if(missing(upper)) {
+    upper <- any(x[row(x) < col(x)])
+    lower <- any(x[row(x) > col(x)])
+    if(upper && lower)
+      stop("not a triangular matrix")
+    if(!(upper || lower)) {
+      x <- diag(x)
+      return(diag(x * x))
+    }
+  }
+  dimx <- dim(x)
+  storage.mode(x) <- "double"
+  .Fortran("unchol",
+           as.integer(if(upper) 1 else 0),
+           x,
+           as.integer(nrow(x)),
+           as.integer(ncol(x)),
+           integer(1))[[2]]
+}
+
+"unmap" <- function(classification, noise, ...)
+{
+  ## converts a classificationassification to conditional probabilities
+  ## classes are arranged in sorted order
+  ## if a noise indicator is specified, that column is placed last
+  n <- length(classification)
+  u <- sort(unique(classification))
+  labs <- as.character(u)
+  k <- length(u)
+  if(!missing(noise)) {
+    l <- u == noise
+    if(any(l)) {
+      m <- max(u) + 1
+      u[l] <- m
+      labs <- labs[order(u)]
+      u <- sort(u)
+      classification[classification == noise] <- m
+    }
+  }
+  z <- matrix(0, n, k)
+  for(j in 1:k)
+    z[classification == u[j], j] <- 1
+  ##
+  ## z <- matrix(1, n, k)
+  ## for(j in 1:k) z[classification == u[j], j] <- k + 1
+  ## z <- sweep(z, 1, apply(z, 1, sum), "/")
+  ##
+  dimnames(z) <- list(NULL, labs)
+  z
+}
+
+"vecnorm" <- function(x, p = 2)
+{
+  if(is.character(p)) {
+    if(charmatch(p, "maximum", nomatch = 0) == 1)
+      p <- Inf
+    else if(charmatch(p, "euclidean", nomatch = 0) == 1)
+      p <- 2
+    else stop("improper specification of p")
+  }
+  if(!is.numeric(x) && !is.complex(x))
+    stop("mode of x must be either numeric or complex")
+  if(!is.numeric(p))
+    stop("improper specification of p")
+  if(p < 1)
+    stop("p must be greater than or equal to 1")
+  if(is.numeric(x))
+    x <- abs(x)
+  else x <- Mod(x)
+  if(p == 2)
+    return(.Fortran("d2norm",
+                    as.integer(length(x)),
+                    as.double(x),
+                    as.integer(1),
+                    double(1))[[4]])
+#                    value = double(1))$value)
+  if(p == Inf)
+    return(max(x))
+  if(p == 1)
+    return(sum(x))
+  xmax <- max(x)
+  if(!xmax)
+    xmax <- max(x)
+  if(!xmax)
+    return(xmax)
+  x <- x/xmax
+  xmax * sum(x^p)^(1/p)
+}
 

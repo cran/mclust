@@ -1,0 +1,8 @@
+R port of the 2002 version of MCLUST, by Fraley and Raftery
+(Dept. of Statistics, University of Washington) by Ron Wehrens.
+
+Note that this version differs considerably from the older version.
+
+The Splus functionality is fully present with (as yet) one exception:
+the "mclust" option for the Splus density function, as described in
+the technical report (contained in directory inst/doc/tr415.ps.gz).

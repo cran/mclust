@@ -1,5 +1,5 @@
 Package: 	mclust
-Version: 	2.1-7
+Version: 	2.1-8
 Author: 	C. Fraley and A.E. Raftery, Dept. of Statistics, 
 		University of Washington.
 		R port by Ron Wehrens.
@@ -9,4 +9,4 @@ Depends:	R (>= 1.7.0)
 License: 	See http://www.stat.washington.edu/mclust/license.txt
 Maintainer: 	Ron Wehrens <R.Wehrens@science.ru.nl>
 URL:		http://www.stat.washington.edu/mclust
-Packaged: Fri Dec 10 19:17:39 2004; hornik
+Packaged: Tue Jan 18 11:41:50 2005; rwehrens

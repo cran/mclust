@@ -3019,7 +3019,7 @@
     itmax <- .Mclust$itmax
   itmax <- itmax[1]
   if(is.infinite(itmax))
-    itmax <- .Mclust$integer.max
+    itmax <- .Machine$integer.max
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
@@ -5207,12 +5207,12 @@
                                         # min
   lwsyevd <- p * (3 * p + 2 * ceiling(logb(p, base = 2)) + 5) + 1
                                         # minimum
-  lisyevd <- 5 * p + 2
+  lisyevd <- 5 * p + 3
                                         # minimum
   lwsyevx <- 8 * p
   lisyevx <- 5 * p + p
   lwork <- max(lwsyevd, lwsyevx, n)
-  liwork <- lisyevx
+  liwork <- max(lisyevd,lisyevx)
   temp <- .Fortran("mclvol",
                    as.double(data),
                    as.integer(n),
@@ -5234,7 +5234,7 @@
     ans <- max(pcvol, bdvol)
   }
   else {
-    pcvol <- temp[[1]]
+    pcvol <- prod(temp[[1]])
     bdvol <- prod(apply(data, 2, max) - apply(data, 2, min))
     ans <- min(pcvol, bdvol)
   }

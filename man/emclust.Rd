@@ -82,7 +82,7 @@ bicvals _ emclust(chevron, noise=noisevec)
 sumry _ summary(bicvals, chevron)
 plot(chevron, col=ztoc(sumry$z), pch=ztoc(sumry$z))
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

@@ -78,7 +78,7 @@ mhtree.VFV(iris[,1:3], shape = shape)
 
 
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

@@ -31,7 +31,7 @@ iris.sc <- censcale(iris[,1:4])
 
 
 }
-\keyword{}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

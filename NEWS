@@ -1,3 +1,6 @@
+Version 1.1-4: 
+	- included correct keywords 'cluster' and 'dataset'
+
 Version 1.1-3:
 	- fixed bug in summary.emclust that caused the number of classes
 		different from the model with the optimal BIC value in

@@ -13,4 +13,4 @@
 data(iris)
 traceW(as.matrix(iris[,1:4]))
 }
-\keyword{clustering}
+\keyword{cluster}

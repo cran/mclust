@@ -35,7 +35,7 @@ the number of clusters.
 data(iris)
 mhclass(mhtree(iris[,1:4]), 2:6)
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

@@ -33,7 +33,7 @@ data(iris)
 cl <- mhclass(mhtree(iris[,1:4], modelid="VVV"), 3)
 clpairs(iris[,1:4],cl)
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

@@ -24,4 +24,4 @@ hypvol(iris[,1:4])
 pcvol(iris[,1:4])
 }
 
-\keyword{clustering}
+\keyword{cluster}

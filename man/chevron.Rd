@@ -7,5 +7,5 @@
   (1104 observations).}
 \references{C. Fraley and A.E. Raftery, \emph{Computer J.}, 41:578-588 (1998)}
 
-\keyword{dataset}
+\keyword{datasets}
 

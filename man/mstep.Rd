@@ -89,7 +89,7 @@ z <- me( iris[,1:4], modelid = "VVV", ctoz(cl))
 pars <- mstep(iris[,1:4], modelid="VVV", z)
 
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

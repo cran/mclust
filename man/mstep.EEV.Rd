@@ -77,7 +77,7 @@ mstep.EEV(iris[,1:4], z)
 
 
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

@@ -50,7 +50,7 @@ pars <- mstep(iris[,1:4], modelid="VVV", z)
 mixproj(iris[,1:4], ms=pars, partition=ztoc(z), dimens=c(1,2))
 
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

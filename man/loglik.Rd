@@ -48,7 +48,7 @@ sure to use the same scaling when supplying the data to \code{loglik}.
 data(iris)
 loglik(mhtree(iris[,1:4]),iris[,1:4])
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

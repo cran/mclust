@@ -28,4 +28,4 @@ partconv(cl, consec=F)
 partconv(cl, consec=T)
 }
 
-\keyword{clustering}
+\keyword{cluster}

@@ -17,4 +17,4 @@ print.bic(x, ...)
   \item{\dots}{Further arguments to print.default}
 }
 
-\keyword{clustering}
+\keyword{cluster}

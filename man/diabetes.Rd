@@ -10,4 +10,4 @@ variables. Three classes.
 \references{G.M. Reaven and R.G. Miller, \emph{Diabetologica} 16:17-24 (1979).
   }
 
-\keyword{dataset}
+\keyword{datasets}

@@ -21,4 +21,4 @@ data(iris)
 one.XI(iris[,1:4])
 one.XXX(iris[,1:4])
 }
-\keyword{clustering}
+\keyword{cluster}

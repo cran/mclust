@@ -21,4 +21,4 @@ data(iris)
 bicvals _ emclust(iris[,1:4], nclus=1:3, modelid=c("VVV","EEV","VEV"))
 plot(bicvals, col=c("red","cyan","purple"), lty=1)
 }
-\keyword{clustering}
+\keyword{cluster}

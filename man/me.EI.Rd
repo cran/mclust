@@ -73,7 +73,7 @@ estep.EI( iris[,1:4], Mstep$mu, Mstep$sigma, Mstep$prob)
 
 
 }
-\keyword{clustering}
+\keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.
 
 

@@ -97,8 +97,12 @@ mstepVVV(data, z, equalPro, noise = FALSE, \dots)
     mean of the \emph{k}th component of the mixture model.
   }
   \item{sigma}{
-    An array whose \code{[,,k]}th entry is the
-    the covariance matrix of the \emph{k}th component of the mixture.  
+    For multidimensional models, a three dimensional array 
+    in which the \code{[,,k]}th entry gives the
+    the covariance for the \emph{k}th group in the best model. <br>
+    For one-dimensional models, either a scalar giving a common variance for
+    the groups or a vector whose entries are the variances for each group
+    in the best model.
   }
   \item{pro}{
     A vector whose \emph{k}th component

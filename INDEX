@@ -14,8 +14,8 @@ cdensE                  Component Density for a Parameterized MVN
                         Mixture Model 
 chevron                 Simulated minefield data
 clPairs                 Pairwise Scatter Plots showing Classification 
-compClass               Compare classifications having the same number
-                        of groups. 
+classError              Classification error. 
+compareClass            Compare classifications. 
 coordProj               Coordinate projections of data in more than two
                         dimensions modelled by an MVN mixture. 
 cv1EMtrain              Select discriminant models using cross
@@ -39,6 +39,7 @@ hclass                  Classifications from Hierarchical Agglomeration
 hypvol                  Aproximate Hypervolume for Multivariate Data 
 lansing                 Maple trees in Lansing Woods
 map                     Classification given Probabilities 
+mapClass                Correspondence between classifications. 
 mclust-internal         Internal MCLUST functions
 mclust1Dplot            Plot one-dimensional data modelled by an MVN
                         mixture. 
@@ -47,7 +48,6 @@ mclust2Dplot            Plot two-dimensional data modelled by an MVN
 mclustDA                MclustDA discriminant analysis. 
 mclustDAtest            MclustDA Testing 
 mclustDAtrain           MclustDA Training 
-mclustDAtrainN          MclustDA training with noise
 mclustOptions           Set control values for use with MCLUST. 
 me                      EM algorithm starting with M-step for
                         parameterized MVN mixture models. 

@@ -20,18 +20,18 @@
   and number of mixture components in the model.
 }
 \usage{
-bicE(loglik, n, G, equalPro, noise = F, \dots)
-bicV(loglik, n, G, equalPro, noise = F, \dots)
-bicEII(loglik, n, d, G, equalPro, noise = F, \dots)
-bicVII(loglik, n, d, G, equalPro, noise = F, \dots)
-bicEEI(loglik, n, d, G, equalPro, noise = F, \dots)
-bicVEI(loglik, n, d, G, equalPro, noise = F, \dots)
-bicEVI(loglik, n, d, G, equalPro, noise = F, \dots)
-bicVVI(loglik, n, d, G, equalPro, noise = F, \dots)
-bicEEE(loglik, n, d, G, equalPro, noise = F, \dots)
-bicEEV(loglik, n, d, G, equalPro, noise = F, \dots)
-bicVEV(loglik, n, d, G, equalPro, noise = F, \dots)
-bicVVV(loglik, n, d, G, equalPro, noise = F, \dots)
+bicE(loglik, n, G, equalPro, noise = FALSE, \dots)
+bicV(loglik, n, G, equalPro, noise = FALSE, \dots)
+bicEII(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicVII(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicEEI(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicVEI(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicEVI(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicVVI(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicEEE(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicEEV(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicVEV(loglik, n, d, G, equalPro, noise = FALSE, \dots)
+bicVVV(loglik, n, d, G, equalPro, noise = FALSE, \dots)
 }
 \arguments{
   \item{loglik}{
@@ -98,7 +98,7 @@ G <- 3
 emEst <- meVVI(data=irisMatrix, unmap(irisClass))
 names(emEst)
 
-bicVVI(loglik=emEst$loglik,n=n,d=d,G=G)
+bicVVI(loglik=emEst$loglik, n=n, d=d, G=G)
 do.call("bicVVI", emEst)  ## alternative call
 }
 \keyword{cluster}

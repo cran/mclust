@@ -12,8 +12,8 @@
 \usage{
 spinProj(data, \dots, angles, seed = 0, reflection = FALSE, 
          type = c("classification", "uncertainty", "errors"), 
-         quantiles = c(0.75,0.95), symbols, scale = FALSE,
-         identify = FALSE, ask = TRUE, CEX = 1, PCH = ".", XLIM, YLIM)
+         ask = TRUE, quantiles = c(0.75,0.95), symbols, scale = FALSE,
+         identify = FALSE, CEX = 1, PCH = ".", xlim, ylim)
 }
 \arguments{
   \item{data}{
@@ -118,7 +118,7 @@ spinProj(data, \dots, angles, seed = 0, reflection = FALSE,
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{XLIM, YLIM }{
+  \item{xlim, ylim}{
     Arguments specifying bounds for the ordinate, abscissa of the plot.
     This may be useful for when comparing plots.
   }

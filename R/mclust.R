@@ -26,6 +26,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "EMclust" <- function(data, G, emModelNames, hcPairs, subset, eps,
                       tol, itmax, equalPro, warnSingular = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+## 
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
   if(!oneD && length(dimData) != 2)
@@ -75,8 +83,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     stop("G must be positive")
   l <- length(G)
   Glabels <- as.character(G)
-  BIC <- matrix(0, nrow = l, ncol = m, dimnames = list(Glabels, 
-                                         emModelNames))
+  BIC <- matrix(0, nrow = l, ncol = m, dimnames = list(Glabels, emModelNames))
   if(G[1] == 1) {
     for(mdl in emModelNames) {
       hood <- mvn(modelName = mdl, data = data)$loglik
@@ -84,26 +91,25 @@ cat("\nWarning: this is the 2002 version of mclust.",
                          n = n, d = p, G = 1, equalPro = equalPro)
     }
     if(l == 1) {
-      attrHC <- attributes(hcPairs)
-      attributes(hcPairs) <- NULL
-      hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(hcPairs)/2)
-      return(structure(BIC, subset = subset, equalPro = equalPro,
-                       hcPairs = hcPairs, attrHC = attrHC,
-                       args = as.list(match.call())[-1], class = "EMclust"))
+      return(structure(BIC, equalPro = equalPro, args = 
+                       as.list(match.call())[-1], class = "EMclust"))
     }
     G <- G[-1]
     Glabels <- Glabels[-1]
   }
   if(missing(subset)) {
     subset <- NULL
-#######################################################
-### all data in initial hierarchical clustering phase
-#######################################################
+    ## #####################################################
+    ## all data in initial hierarchical clustering phase
+    ## #####################################################
     if(missing(hcPairs)) {
       if(p != 1) {
-        hcPairs <- hc(modelName = .Mclust$hcModelName[2], data = data)
-      } else {
-        hcPairs <- hc(modelName = .Mclust$hcModelName[1], data = data)
+        hcPairs <- hc(modelName = .Mclust$hcModelName[
+                        2], data = data)
+      }
+      else {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[
+                        1], data = data)
       }
     }
     clss <- hclass(hcPairs, G)
@@ -115,22 +121,25 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    itmax, equalPro = equalPro, 
                    warnSingular = warnSingular)$loglik
         BIC[Glabels[i], modelName] <-
-          bic(modelName = modelName, loglik = hood, n = n, d = p,
-              G = G[i], equalPro = equalPro) 
+          bic(modelName = 
+              modelName, loglik = hood, n = n, d = p, G = G[i],
+              equalPro = equalPro)
       }
     }
-  } else {
-######################################################
-### sample for the initial hierarchical clustering phase
-######################################################
+  }
+  else {
+    ## ####################################################
+    ## sample for the initial hierarchical clustering phase
+    ## ####################################################
     if(is.logical(subset)) subset <- (1:n)[subset]
     if(missing(hcPairs)) {
       if(p != 1) {
-        hcPairs <- hc(modelName = .Mclust$hcModelName[2],
-                      data = data[subset,  ])
-      } else {
-        hcPairs <- hc(modelName = .Mclust$hcModelName[1],
-                      data = data[subset,  ])
+        hcPairs <- hc(modelName = .Mclust$hcModelName[
+                        2], data = data[subset,  ])
+      }
+      else {
+        hcPairs <- hc(modelName = .Mclust$hcModelName[
+                        1], data = data[subset,  ])
       }
     }
     clss <- hclass(hcPairs, G)
@@ -142,16 +151,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
       z <- unmap(clss[, Glabels[i]])
       dimnames(z) <- list(as.character(subset), NULL)
       for(modelName in emModelNames) {
-        ms <- mstep(modelName = modelName, data = data[subset,  ],
-                    z = z, eps = eps, tol = tol, 
+        ms <- mstep(modelName = modelName,
+                    data = data[subset,  ], z = z, eps = eps, tol = tol,
                     itmax = itmax, equalPro = equalPro,
                     warnSingular = warnSingular)
-        hood <- do.call("em",
-                        c(list(data = data,
-                               eps = eps, tol = tol, itmax = itmax,
-                               equalPro = equalPro,
-                               warnSingular = warnSingular), 
-                          ms))$loglik
+        hood <- do.call("em", c(list(data = data, eps = eps,
+                                     tol = tol, itmax = itmax, equalPro =
+                                     equalPro, warnSingular =
+                                     warnSingular), ms))$loglik 
         BIC[Glabels[i], modelName] <-
           bic(modelName = modelName, loglik = hood, n = n, d = p,
               G = G[i], equalPro = equalPro)
@@ -171,8 +178,17 @@ cat("\nWarning: this is the 2002 version of mclust.",
 }
 
 "EMclustN" <- function(data, G, emModelNames, noise, hcPairs, eps,
-                       tol, itmax, equalPro, warnSingular = FALSE, Vinv, ...)
+                       tol, itmax, equalPro, warnSingular = FALSE, Vinv,
+                       ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   ##
   ## noise  is a logical vector in which TRUE indicates noise
   ##
@@ -223,19 +239,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(Vinv) || Vinv <= 0)
     Vinv <- hypvol(data, reciprocal = TRUE)
   if(!is.logical(noise))
-        noise <- as.logical(match(1:n, noise, nomatch = 0))
+    noise <- as.logical(match(1:n, noise, nomatch = 0))
   if(!G[1]) {
     hood <- n * logb(Vinv)
     BIC[1,  ] <- 2 * hood - logb(n)
     if(l == 1) {
-      attrHC <- attributes(hcPairs)
-      attributes(hcPairs) <- NULL
-      hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(
-                                             hcPairs)/2)
-      return(structure(BIC, equalPro = equalPro, noise = noise,
-                       Vinv = Vinv, hcPairs = hcPairs,
-                       attrHC = attrHC, args = as.list(match.call())[-1],
-                       class = "EMclustN"))
+      return(structure(BIC, equalPro = equalPro, noise = 
+                       noise, Vinv = Vinv, args = as.list(match.call(
+                                             ))[-1], class = "EMclustN"))
     }
     G <- G[-1]
     Glabels <- Glabels[-1]
@@ -259,12 +270,12 @@ cat("\nWarning: this is the 2002 version of mclust.",
     z[noise, G1] <- 1
     for(modelName in emModelNames) {
       hood <- me(modelName = modelName, data = data, z = z[, 1:G1],
-                 eps = eps, tol = tol, itmax = itmax, 
+                 eps = eps, tol = tol, itmax = itmax,
                  equalPro = equalPro, noise = TRUE, Vinv = Vinv,
                  warnSingular = warnSingular)$loglik
       BIC[Glabels[i], modelName] <-
-        bic(modelName = modelName, loglik = hood, n = n, d = p,
-            G = G[i], equalPro = equalPro, noise = TRUE) 
+        bic(modelName = modelName, loglik = hood, n = n, d = p, G =
+            G[i], equalPro = equalPro, noise = TRUE)
     }
   }
   ##
@@ -275,12 +286,20 @@ cat("\nWarning: this is the 2002 version of mclust.",
   hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(hcPairs)/2)
   structure(BIC, eps = eps, tol = tol, itmax = itmax, equalPro = equalPro,
             warnSingular = warnSingular, noise = noise, Vinv = Vinv, 
-            hcPairs = hcPairs, attrHC = attrHC, args = as.list(match.call(
-                                                  ))[-1], class = "EMclustN")
+            hcPairs = hcPairs, attrHC = attrHC,
+            args = as.list(match.call())[-1], class = "EMclustN")
 }
 
 "Mclust" <- function(data, minG = 1, maxG = 9)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   emModelNames <- c("EII", "VII", "EEI", "VVI", "EEE", "VVV")
   G <- minG:maxG
   Bic <- EMclust(data, G = G, emModelNames = emModelNames)
@@ -305,6 +324,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "[.EMclust" <- function(x, i, j, drop = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+## 
   clx <- class(x)
   attrx <- attributes(x)[c("Vinv", "args", "class", "equal", "fuzzy",
                            "hc", "noise")]
@@ -315,6 +342,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "[.EMclustN" <- function(x, i, j, drop = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   clx <- class(x)
   attrx <- attributes(x)[c("Vinv", "args", "class", "equal", "fuzzy",
                            "hc", "noise")]
@@ -325,6 +360,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bic" <- function(modelName, loglik, n, d, G, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   modelName <- switch(modelName,
                       XII = "EII",
                       XXI = "EEI",
@@ -336,6 +379,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicE" <- function(loglik, n, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -355,6 +406,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicEEE" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -375,6 +434,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicEEI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -394,6 +461,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicEEV" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -414,6 +489,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicEII" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -433,6 +516,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicEMtrain" <- function(data, labels, modelNames)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   z <- unmap(as.numeric(labels))
   G <- ncol(z)
   dimData <- dim(data)
@@ -461,6 +552,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicEVI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##  
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -479,6 +578,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicV" <- function(loglik, n, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -498,6 +605,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicVEI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -517,6 +632,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicVEV" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -538,6 +661,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicVII" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -557,6 +688,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicVVI" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -576,6 +715,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "bicVVV" <- function(loglik, n, d, G, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(G == 0) {
@@ -596,6 +743,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "cdens" <- function(modelName, data, mu, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... sigmasq or sigma, eps
   modName <- switch(EXPR=modelName,
                     X = "E",
@@ -605,7 +760,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                     modelName)
   funcName <- paste("cdens", modName, sep = "")
   out <- do.call(funcName, list(data = data, mu = mu, ...))
-  modName <- switch(modelName,
+  modName <- switch(EXPR = modelName,
                     X = "X",
                     XII = "XII",
                     XXI = "XXI",
@@ -618,6 +773,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensE" <- function(data, mu, sigmasq, eps, warnSingular,
                      logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -661,6 +824,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "cdensEEE" <- function(data, mu, eps, warnSingular, logarithm=FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) > 2)
     stop("data must be a matrix or a vector")
@@ -740,6 +911,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensEEI" <- function(data, mu, decomp, eps, warnSingular,
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -784,6 +963,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensEEV" <- function(data, mu, decomp, eps, warnSingular,
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -831,6 +1018,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensEII" <- function(data, mu, sigmasq, eps, warnSingular,
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -882,6 +1077,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensEVI" <- function(data, mu, decomp, eps, warnSingular,
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -927,6 +1130,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensV" <- function(data, mu, sigmasq, eps, warnSingular, 
                      logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -973,6 +1184,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensVEI" <- function(data, mu, decomp, eps, warnSingular, 
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -1018,6 +1237,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensVEV" <- function(data, mu, decomp, eps, warnSingular, 
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -1066,6 +1293,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensVII" <- function(data, mu, sigmasq, eps, warnSingular,
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -1117,6 +1352,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensVVI" <- function(data, mu, decomp, eps, warnSingular, 
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -1162,6 +1405,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "cdensVVV" <- function(data, mu, eps, warnSingular, 
                        logarithm = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -1245,6 +1496,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "clPairs" <- function(data, classification, symbols,
                       labels = dimnames(data)[[2]], CEX = 1, col, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   data <- as.matrix(data)
   m <- nrow(data)
   n <- ncol(data)
@@ -1281,10 +1540,18 @@ cat("\nWarning: this is the 2002 version of mclust.",
   invisible()
 }
 
-
 ## "clPairs" <- function(data, classification, symbols, 
 ##                       labels = dimnames(x)[[2]], CEX = 1, PCH = ".", ...)
 ## {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+
 ##   par(pty = "s")
 ##   x <- as.matrix(data)
 ##   m <- nrow(x)
@@ -1376,85 +1643,47 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ## magnitude when each permutation is viewed as an integer in base 
 ## max(perm)+1 arithmetic.
 ##
-"nextPerm" <- function(perm)
-{
-  n <- length(perm)
-  if(n == 1)
-    return(perm)
-  i <- (n - 1):1
-  q <- perm[i + 1] > perm[i]
-  if(q[1])
-    return(replace(perm, c(n - 1, n), perm[c(n, n - 1)]))
-  if(all(!q))
-    return(rev(perm))
-  m <- i[q][1]
-  i <- (m + 1):n
-  perm[i] <- rev(perm[i])
-  l <- i[perm[i] > perm[m]][1]
-  replace(perm, c(m, l), perm[c(l, m)])
-}
-  
-"compClass" <- function(a, b)
-{
-  ## minimum error rate (fraction in 0,1) between classifications
-  if(any(is.na(a)) || any(is.na(b))) return(NA)
-  if(!length(a) || !length(b))
-    return(NA)
-  clconv <- function(z, v, lv)
-    {
-      (1:lv)[z == v]
-    }
-  errcomp <- function(a, b)
-    {
-      ## b gets permuted
-      x <- b
-      n <- length(a)
-      s <- u <- unique(a)
-      l <- length(s)
-      errsum <- errmin <- sum(as.numeric(a != x))/n
-      alias <- u
-      count <- 1
-      while(TRUE) {
-        u <- nextPerm(u)
-        if(all(u == s))
-          break
-        x <-  - b
-        for(k in 1:l)
-          x[x ==  - k] <- u[k]
-        if(any(x < 0))
-          stop("x < 0")
-        errsum <- sum(as.numeric(a != x))/n
-        if(errsum < errmin) {
-          alias <- u
-          errmin <- errsum
-        }
-      }
-      list(bperm = alias, error = errmin)
-    }
-  n <- length(a)
-  if(length(b) != n) {
-    warning("unequal lengths")
-    return(list(error = NA, map = NA))
-  }
-  ua <- unique(a)
-  lua <- length(ua)
-  A <- sapply(a, clconv, v = ua, lv = lua)
-  ub <- unique(b)
-  lub <- length(ub)
-  B <- sapply(b, clconv, v = ub, lv = lub)
-  temp <- if(lua >= lub) errcomp(A, B) else errcomp(B, A)
-  ub <- ub[temp$bperm]
-  correspondence <- rbind(ua, ub)
-  dimnames(correspondence) <- list(c("a", "b"), NULL)
-  list(error = temp$error, map = correspondence)
-}
+##"nextPerm" <- function(perm)
+##{
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+##
+##n <- length(perm)
+##if(n == 1)
+##return(perm)
+##i <- (n - 1):1
+##q <- perm[i + 1] > perm[i]
+##if(q[1])
+##  return(replace(perm, c(n - 1, n), perm[c(n, n - 1)]))
+##if(all(!q))
+##  return(rev(perm))
+##m <- i[q][1]
+##i <- (m + 1):n
+##perm[i] <- rev(perm[i])
+##l <- i[perm[i] > perm[m]][1]
+##replace(perm, c(m, l), perm[c(l, m)])
+##}
 
 "coordProj" <- function(data, ..., dimens = c(1, 2),
                         type = c("classification", "uncertainty", "errors"),
                         ask = TRUE, quantiles = c(0.75, 0.95), symbols,
-                        scale = FALSE, identify = FALSE, CEX = 1, PCH = ".",
-                        xlim, ylim, col) 
+                        scale = FALSE, identify = FALSE, CEX = 1,
+                        PCH = ".", xlim, ylim)  
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(scale)
     par(pty = "s")
   aux <- list(...)
@@ -1521,7 +1750,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
       truth <- NULL
     }
     else {
-      if(length(unique(truth)) != length(unique(classification)))
+      if(length(unique(truth)) != length(unique(
+                 classification)))
         truth <- NULL
       else truth <- as.character(truth)
     }
@@ -1567,29 +1797,25 @@ cat("\nWarning: this is the 2002 version of mclust.",
   else {
     if(!length(choices)) {
       plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
       }
       points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
       if(identify)
         title(paste("Coordinate Projection: dimens = ",
-                    paste(dimens, collapse = ",")), cex = 0.5)
+                    paste(dimens, collapse = ",")), cex = 
+              0.5)
       return(invisible())
     }
     if(length(choices) == 1)
       ask <- FALSE
   }
   if(any(choices == "errors")) {
-    comp <- compClass(truth, classification)
-    tr <- comp$map[1,  ]
-    cl <- comp$map[2,  ]
-    TRUTH <- rep("0", length(truth))
-    for(k in 1:L) {
-      TRUTH[truth == tr[k]] <- cl[k]
-    }
+    ERRORS <- classErrors(classification, truth)
   }
   if(!ask)
     pick <- 1:length(choices)
@@ -1603,79 +1829,88 @@ cat("\nWarning: this is the 2002 version of mclust.",
         return(invisible())
       ALL <- any(choices[pick] == "all")
     }
-    if(any(choices[pick] == "classification") ||
-       (any(choices == "classification") && ALL)) {
+    if(any(choices[pick] == "classification") || (any(choices ==
+                    "classification") && ALL)) {
       plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
-      }
-      if (missing(col)) col <- rep(1, L)
-      if (length(col) != L) {
-        warning(paste("Number of colors does not match number of classes!",
-                      "\nUsing only one color.", sep=""))
-        col <- rep(1, L)
       }
       for(k in 1:L) {
         I <- classification == U[k]
-        points(Data[I, 1], Data[I, 2], pch = symbols[k], cex = CEX, col=col[k])
+        points(Data[I, 1], Data[I, 2], pch = symbols[
+                                         k], cex = CEX)
       }
       if(identify)
-        title(paste("Coordinate Projection showing Classification: dimens = ",
-                    paste(dimens, collapse = ",")), cex = 0.5)
+        title(paste(
+                    "Coordinate Projection showing Classification: dimens = ",
+                    paste(dimens, collapse = ",")), cex = 
+              0.5)
     }
-    if(any(choices[pick] == "uncertainty") ||
-       (any(choices == "uncertainty") && ALL))
-      {
-        plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-             ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
-        if(params) {
-          for(k in 1:G) {
-            mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
-          }
-        }
-        breaks <- quantile(uncertainty, probs = sort(quantiles)
-                           )
-        I <- uncertainty < breaks[1]
-        points(Data[I, 1], Data[I, 2], pch = 16, cex = 0.5 * CEX)
-        I <- uncertainty < breaks[2] & !I
-        points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 * CEX)
-        I <- uncertainty >= breaks[2]
-        points(Data[I, 1], Data[I, 2], pch = 16, cex = 1.5 * CEX)
-        if(identify)
-          title(paste("Coordinate Projection showing Uncertainty: dimens = ",
-                      paste(dimens, collapse = ",")), cex = 0.5)
-      }
-    if(any(choices[pick] == "errors") || (any(choices == "errors") && ALL)) {
+    if(any(choices[pick] == "uncertainty") || (any(choices == 
+                    "uncertainty") && ALL)) {
       plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
       }
-      CLASSES <- unique(as.character(TRUTH))
+      breaks <- quantile(uncertainty, probs = sort(quantiles)
+                         )
+      I <- uncertainty < breaks[1]
+      points(Data[I, 1], Data[I, 2], pch = 16, cex = 0.5 *
+             CEX)
+      I <- uncertainty < breaks[2] & !I
+      points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 * CEX)
+      I <- uncertainty >= breaks[2]
+      points(Data[I, 1], Data[I, 2], pch = 16, cex = 1.5 *
+             CEX)
+      if(identify)
+        title(paste(
+                    "Coordinate Projection showing Uncertainty: dimens = ",
+                    paste(dimens, collapse = ",")), cex = 
+              0.5)
+    }
+    if(any(choices[pick] == "errors") || (any(choices == "errors") &&
+                    ALL)) {
+      plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
+      if(params) {
+        for(k in 1:G) {
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
+        }
+      }
+      CLASSES <- unique(as.character(truth))
       symOpen <- c(2, 0, 1, 5)
       symFill <- c(17, 15, 16, 18)
-      good <- classification == TRUTH
+      good <- !ERRORS
       if(L > 4) {
-        points(Data[good, 1], Data[good, 2], pch = 1, cex = CEX)
-        points(Data[!good, 1], Data[!good, 2], pch = 16, cex = CEX)
+        points(Data[good, 1], Data[good, 2], pch = 1,
+               cex = CEX)
+        points(Data[!good, 1], Data[!good, 2], pch = 16,
+               cex = CEX)
       }
       else {
         for(k in 1:L) {
-          K <- TRUTH == CLASSES[k]
-          points(Data[K, 1], Data[K, 2], pch = symOpen[k], cex = CEX)
-          if(any(I <- (K & !good))) {
-            points(Data[I, 1], Data[I, 2], pch = symFill[k], cex = CEX)
+          K <- truth == CLASSES[k]
+          points(Data[K, 1], Data[K, 2], pch = 
+                 symOpen[k], cex = CEX)
+          if(any(I <- (K & ERRORS))) {
+            points(Data[I, 1], Data[I,
+                                    2], pch = symFill[
+                                          k], cex = CEX)
           }
         }
       }
       if(identify)
-        title(paste("Coordinate Projection showing Classification Errors:",
-                    "dimens = ", paste(dimens, collapse = ",")), cex = 0.5)
+        title(paste("Coordinate Projection showing Classification Errors: dimens = ",
+                    paste(dimens, collapse = ",")), cex = 0.5)
     }
     if(!ask)
       break
@@ -1685,6 +1920,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "cv1EMtrain" <- function(data, labels, modelNames)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   z <- unmap(as.numeric(labels))
   G <- ncol(z)
   dimData <- dim(data)
@@ -1741,6 +1984,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "decomp2sigma" <- function(d, G, scale, shape, orientation = NULL, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   nod <- missing(d)
   noG <- missing(G)
   lenScale <- length(scale)
@@ -1816,30 +2067,40 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "dens" <- function(modelName, data, mu, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... sigmasq or sigma, pro, eps
   aux <- list(...)
-  logarithm <- aux$logarithm
+  logarithm <- aux$log
   aux$logarithm <- TRUE
   cden <- do.call("cdens", c(list(modelName = modelName, data = data,
                                   mu = mu), aux))
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   G <- if(oneD) length(mu) else ncol(as.matrix(mu))
-  if(is.null(pro <- aux$pro))
-    pro <- rep(1/G, G)
-  cat("\nHah!", dim(cden), pro)
+  pro <- aux$pro
+  if(G > 1) {
+    if(is.null(pro))
+      stop("mixing proportions must be supplied")
                                         #
-  ##	apply(sweep(cden, 2, FUN = "*", STATS = pro), 1, sum)
-  proz <- !pro
-  pro <- pro[!proz]
-  cden <- cden[, !proz, drop = FALSE]
-  cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
+    ##	if(is.null(pro <- aux$pro)) pro <- rep(1/G, G)
+    ##	apply(sweep(cden, 2, FUN = "*", STATS = pro), 1, sum)
+    proz <- !pro
+    pro <- pro[!proz]
+    cden <- cden[, !proz, drop = FALSE]
+    cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
+  }
   maxlog <- apply(cden, 1, max)
   cden <- sweep(cden, 1, FUN = "-", STATS = maxlog)
   den <- log(apply(exp(cden), 1, sum)) + maxlog
-  if(is.null(logarithm) || !logarithm) # default: FALSE
+  if(is.null(logarithm) || !logarithm)
     den <- exp(den)
-
   den
 }
 
@@ -1849,6 +2110,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "density" <- function(..., method, G)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   aux <- list(...)
 
   if (missing(G))
@@ -1904,6 +2173,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "em" <- function(modelName, data, mu, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... sigmasq or sigma, pro, eps, Vinv
   funcName <- paste("em", modelName, sep = "")
   do.call(funcName, list(data = data, mu = mu, ...))
@@ -1912,6 +2189,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emE" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
                   warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -2003,6 +2288,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emEEE" <- function(data, mu, Sigma, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -2147,6 +2440,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emEEI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -2256,6 +2557,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emEEV" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -2291,8 +2600,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
                           sigma = array(NA, c(p, p, G)),
                           decomp = list(p = p, G = G, scale = NA,
                             shape = rep(NA, p)),
-                          pro = pro, z = matrix(NA, n, K),
-                          loglik = NA, modelName = "EEV"), warn = warn))
+                          pro = pro, z = matrix(NA, n, K), loglik = NA,
+                          modelName = "EEV"), warn = warn))  
   }
   if(missing(eps))
     eps <- .Mclust$eps
@@ -2308,7 +2617,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
-  lwork <- max(4 * p, 5 * p - 4)
+  lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p))
   storage.mode(mu) <- "double"
   temp <- .Fortran("emeev",
                    as.integer(if (sigmaIND == "N") 0 else 1),
@@ -2372,18 +2681,26 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
   }
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
-                           orientation = O),
-                      def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
   info <- c(iterations = its, error = err)
-  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
-                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
-                 Vinv else NULL, modelName = "EEV"), info = info,
-            warn = warn)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, z = z, loglik =
+                 loglik, Vinv = if(noise) Vinv else NULL,
+                 modelName = "EEV"), info = info, warn = warn)
 }
 
 "emEII" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -2499,6 +2816,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emEVI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -2606,6 +2931,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emV" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
                   warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -2699,6 +3032,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emVEI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -2816,8 +3157,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
 }
 
 "emVEV" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
-                    warnSingular, Vinv, ...) 
+                    warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -2851,8 +3200,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
     warning("parameters are missing")
     return(structure(list(n = n, d = p, G = G, mu = mu,
                           sigma = array(NA, c(p, p, G)),
-                          decomp = list(p = p, G = G,
-                            scale = NA, shape = rep(NA, p)),
+                          decomp = list(p = p, G = G, scale = NA,
+                            shape = rep(NA, p)),
                           pro = rep(NA, K), z = matrix(NA, n, K),
                           loglik = NA, modelName = "VEV"),
                      warn = warn))
@@ -2872,7 +3221,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
-  lwork <- max(4 * p, 5 * p - 4, p + G)
+  lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
   storage.mode(mu) <- "double"
   temp <- .Fortran("emvev",
                    as.integer(if (sigmaIND == "N") 0 else 1),
@@ -2943,19 +3292,27 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
   }
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
-                           orientation = O),
-                      def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
   info <- structure(c(iterations = its, error = err),
                     inner = c(iterations = inner, error = inerr))
-  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
-                 decomp = decomp, pro = pro, z = z, loglik = loglik,
-                 Vinv = if(noise) Vinv else NULL, modelName = "VEV"),
-            info = info, warn = warn)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
+                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
+                 Vinv else NULL, modelName = "VEV"), info = info, warn
+            = warn)
 }
 
 "emVII" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -3071,6 +3428,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emVVI" <- function(data, mu, decomp, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -3177,6 +3542,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "emVVV" <- function(data, mu, sigma, pro, eps, tol, itmax, equalPro,
                     warnSingular, Vinv, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
   dimdat <- dim(data)
@@ -3319,12 +3692,28 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estep" <- function(modelName, data, mu, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   funcName <- paste("estep", modelName, sep = "")
   do.call(funcName, list(data = data, mu = mu, ...))
 }
 
 "estepE" <- function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -3388,6 +3777,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estepEEE" <- function(data, mu, Sigma, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) > 2)
     stop("data must be a matrix or a vector")
@@ -3484,6 +3881,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "estepEEI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
                        ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3546,6 +3951,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "estepEEV" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
                        ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3611,6 +4024,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "estepEII" <- 
   function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3681,6 +4102,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estepEVI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3741,6 +4170,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estepV" <- function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -3805,6 +4242,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "estepVEI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
                        ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3867,6 +4312,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "estepVEV" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
                        ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3931,6 +4384,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estepVII" <- function(data, mu, sigmasq, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -4001,6 +4462,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "estepVVI" <- function(data, mu, decomp, pro, eps, warnSingular, Vinv,
                        ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -4062,6 +4531,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estepVVV" <- function(data, mu, sigma, pro, eps, warnSingular, Vinv, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -4164,6 +4641,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "grid1" <- function(n, range = c(0., 1.), edge = TRUE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(any(n < 0. | round(n) != n))
     stop("n must be nonpositive and integer")
   G <- rep(0., n)
@@ -4182,6 +4667,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "grid2" <- function(x, y)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   lx <- length(x)
   ly <- length(y)
   xy <- matrix(0, nrow = lx * ly, ncol = 2)
@@ -4197,12 +4690,28 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hc" <- function(modelName, data, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... partition, minclus = 1, 
   do.call(paste("hc", modelName, sep = ""), list(data, ...))
 }
 
 "hcE" <- function(data, partition, minclus = 1, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(minclus < 1)
     stop("minclus must be positive")
   if(any(is.na(data)))
@@ -4244,6 +4753,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hcEEE" <- function(data, partition, minclus = 1, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(minclus < 1)
     stop("minclus must be positive")
   if(any(is.na(data)))
@@ -4303,6 +4820,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hcEII" <- function(data, partition, minclus = 1, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(minclus < 1)
     stop("minclus must be positive")
   if(any(is.na(data)))
@@ -4350,6 +4875,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hcV" <- function(data, partition, minclus = 1, alpha = 1, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(minclus < 1)
     stop("minclus must be positive")
   if(any(is.na(data)))
@@ -4394,6 +4927,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hcVII" <- function(data, partition, minclus = 1, alpha = 1, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(minclus < 1)
     stop("minclus must be positive")
   if(any(is.na(data)))
@@ -4445,6 +4986,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "hcVVV" <- function(data, partition, minclus = 1, alpha = 1, beta = 1,
                     ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(minclus < 1)
     stop("minclus must be positive")
   if(any(is.na(data)))
@@ -4501,6 +5050,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hclass" <- function(hcPairs, G)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   initial <- attributes(hcPairs)$init
   n <- length(initial)
   k <- length(unique(initial))
@@ -4538,6 +5095,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "hypvol" <- function(data, reciprocal = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## finds the minimum hypervolume between principal components and 
   ## variable bounds
   dimdat <- dim(data)
@@ -4612,6 +5177,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "map" <- function(z, warn=TRUE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ##
   ## converts conditional probabilities to a classification
   ##
@@ -4630,15 +5203,24 @@ cat("\nWarning: this is the 2002 version of mclust.",
   cl
 }
 
-"mclust1Dplot" <- function(data, ...,
-                           type = c("classification", "uncertainty",
-                             "density", "errors"),  
-                           ask = TRUE, symbols, grid = 100,
-                           identify = FALSE, CEX = 1, xlim) 
+"mclust1Dplot" <- function(data, ..., type = c("classification",
+                                        "uncertainty", "density",
+                                        "errors"),
+                           ask = TRUE, symbols, grid = 100, identify = FALSE,
+                           CEX = 1, xlim)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   densNuncer <- function(data, mu, sigmasq, pro)
     {
-      cden <- cdensV(data = data, mu = mu, sigmasq = sigmasq, pro = pro)
+      cden <- cdensV(data = data, mu = mu, sigmasq = sigmasq, pro = 
+                     pro)
       z <- sweep(cden, MARGIN = 2, FUN = "*", STATS = pro)
       den <- apply(z, 1, sum)
       z <- sweep(z, MARGIN = 1, FUN = "/", STATS = den)
@@ -4729,8 +5311,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
     choices <- c(choices, "all")
   else {
     if(!length(choices)) {
-      plot(data, rep(0, n), type = "n", xlab = "", ylab = "", xlim = xlim)
-      ##, ...)
+      plot(data, rep(0, n), type = "n", xlab = "", ylab = "",
+           xlim = xlim, ...)
       points(data, rep(0, n), pch = "|", cex = CEX)
       if(identify)
         title("Point Plot", cex = 0.5)
@@ -4740,14 +5322,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
       ask <- FALSE
   }
   if(any(choices == "errors")) {
-    comp <- compClass(truth, classification)
-    tr <- comp$map[1,  ]
-    cl <- comp$map[2,  ]
-    U <- as.character(U)
-    TRUTH <- rep("0", length(truth))
-    for(k in 1:L) {
-      TRUTH[truth == tr[k]] <- cl[k]
-    }
+    ERRORS <- classErrors(classification, truth)
   }
   if(!ask)
     pick <- 1:length(choices)
@@ -4765,9 +5340,9 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
     if(any(choices[pick] == "classification") || (any(choices ==
                     "classification") && ALL)) {
-      plot(data, seq(from = 0, to = L, length = n), type = "n",
-           xlab = "", ylab = "", xlim = xlim, yaxt = "n") 
-           ##, ...)
+      plot(data, seq(from = 0, to = L, length = n), type = 
+           "n", xlab = "", ylab = "", xlim = xlim, yaxt = 
+           "n", ...)
       for(k in 1:L) {
         I <- classification == U[k]
         points(data[I], rep(0, length(data[I])), pch = 
@@ -4780,10 +5355,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
     if(any(choices[pick] == "errors") || (any(choices == "errors") &&
                     ALL)) {
-      plot(data, seq(from = 0, to = L, length = n), type = "n",
-           xlab = "", ylab = "", xlim = xlim, yaxt = "n")
-      ##, ...)
-      good <- classification == truth
+      plot(data, seq(from = 0, to = L, length = n), type = 
+           "n", xlab = "", ylab = "", xlim = xlim, yaxt = 
+           "n", ...)
+      good <- !ERRORS
       sym <- "|"
       for(k in 1:L) {
         K <- classification == U[k]
@@ -4828,14 +5403,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
     if(any(choices[pick] == "uncertainty") || (any(choices == 
                     "uncertainty") && ALL)) {
       plot(x, Z$uncertainty, xlab = "", ylab = "uncertainty",
-           xlim = xlim, type = "l")##, ...)
+           xlim = xlim, type = "l", ...)
       if(identify)
         title("Uncertainty", cex = 0.5)
     }
     if(any(choices[pick] == "density") || (any(choices == "density"
                     ) && ALL)) {
       plot(x, Z$density, xlab = "", ylab = "density", xlim = 
-           xlim, type = "l")###, ...)
+           xlim, type = "l", ...)
       if(identify)
         title("Density", cex = 0.5)
     }
@@ -4845,12 +5420,20 @@ cat("\nWarning: this is the 2002 version of mclust.",
   invisible()
 }
 
-"mclust2Dplot" <- function(data, ...,
-                           type = c("classification", "uncertainty", "errors"),
-                           ask = TRUE, quantiles = c(0.75, 0.95), symbols,
-                           scale = FALSE, identify = FALSE, CEX = 1,
-                           PCH = ".", xlim, ylim, swapAxes = FALSE)
+"mclust2Dplot" <- function(data, ..., type = c("classification",
+                                        "uncertainty", "errors"),
+                           ask = TRUE, quantiles = c(0.75, 0.95),
+                           symbols, scale = FALSE, identify = FALSE,
+                           CEX = 1, PCH = ".", xlim, ylim, swapAxes = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(scale)
     par(pty = "s")
   data <- as.matrix(data)
@@ -4970,10 +5553,11 @@ cat("\nWarning: this is the 2002 version of mclust.",
   else {
     if(!length(choices)) {
       plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
       }
       points(data[, 1], data[, 2], pch = PCH, cex = CEX)
@@ -4985,13 +5569,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
       ask <- FALSE
   }
   if(any(choices == "errors")) {
-    comp <- compClass(truth, classification)
-    TR <- comp$map[1,  ]
-    CL <- comp$map[2,  ]
-    TRUTH <- rep("0", length(truth))
-    for(k in 1:L) {
-      TRUTH[truth == TR[k]] <- CL[k]
-    }
+    ERRORS <- classErrors(classification, truth)
   }
   if(!ask)
     pick <- 1:length(choices)
@@ -5008,10 +5586,11 @@ cat("\nWarning: this is the 2002 version of mclust.",
     if(any(choices[pick] == "classification") || (any(choices ==
                     "classification") && ALL)) {
       plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
       }
       for(k in 1:L) {
@@ -5025,10 +5604,11 @@ cat("\nWarning: this is the 2002 version of mclust.",
     if(any(choices[pick] == "uncertainty") || (any(choices == 
                     "uncertainty") && ALL)) {
       plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
       }
       breaks <- quantile(uncertainty, probs = sort(quantiles)
@@ -5047,16 +5627,17 @@ cat("\nWarning: this is the 2002 version of mclust.",
     if(any(choices[pick] == "errors") || (any(choices == "errors") &&
                     ALL)) {
       plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-           ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
+           ylab = ylab, xlim = xlim, ylim = ylim, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[
+                                   ,  , k], k = 15)
         }
       }
-      CLASSES <- unique(as.character(TRUTH))
+      CLASSES <- unique(as.character(truth))
       symOpen <- c(2, 0, 1, 5)
       symFill <- c(17, 15, 16, 18)
-      good <- classification == TRUTH
+      good <- ERRORS
       if(L > 4) {
         points(data[good, 1], data[good, 2], pch = 1,
                cex = CEX)
@@ -5065,10 +5646,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
       }
       else {
         for(k in 1:L) {
-          K <- TRUTH == CLASSES[k]
+          K <- truth == CLASSES[k]
           points(data[K, 1], data[K, 2], pch = 
                  symOpen[k], cex = CEX)
-          if(any(I <- (K & !good))) {
+          if(any(I <- (K & ERRORS))) {
             points(data[I, 1], data[I,
                                     2], pch = symFill[
                                           k], cex = CEX)
@@ -5084,45 +5665,50 @@ cat("\nWarning: this is the 2002 version of mclust.",
   invisible()
 }
 
-"mclust2DplotControl" <- function(what = "classification", scale = FALSE,
-                                  flip = FALSE, identify = TRUE,
-                                  quantiles = c(0.75, 0.95),
-                                  symbols = .Mclust$symbols, grid = 100,
-                                  contours = 20)
-{
-  list(what = what, scale = scale, flip = flip, identify = identify,
-       quantiles = quantiles, symbols = .Mclust$symbols, grid = grid,
-       contours = contours)
-}
-
 "mclustDA" <- function(trainingData, labels, testData, G = 1:6,
                        verbose = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(verbose)
     cat("training ...\n")
   emModelNames <- c("EII", "VII", "EEI", "VVI", "EEE", "VVV")
   trainingModels <- mclustDAtrain(data = trainingData, labels = labels,
-                                  G = G, emModelNames = emModelNames,
-                                  verbose = verbose) 
+                                  G = G, emModelNames = emModelNames, verbose = verbose)
   if(verbose)
     cat("testing ...\n")
   S <- data.frame(trainClass = as.factor(unique(labels)), mclustModel = 
                   as.factor(sapply(trainingModels, function(x)
-                                   x$modelName)),
-                  numGroups = sapply(trainingModels, function(x) x$G))
+                                   x$modelName)), numGroups = sapply(trainingModels, function(x)
+                                                    x$G))
   test <- mclustDAtest(testData, trainingModels)
   testSumry <- summary(test)
   train <- mclustDAtest(trainingData, trainingModels)
   trainSumry <- summary(train)
-  comp <- compClass(trainSumry$classification, labels)
   structure(list(testClassification = testSumry$classification, 
-                 trainingClassification = trainSumry$classification, errorRate
-		 = round(comp$error, 3), summary = S, models = trainingModels,
-                 postProb = testSumry$postProb), class = "mclustDA")
+                 trainingClassification = trainSumry$classification,
+                 summary = S, VofIindex =
+                 compareClass(map(trainSumry$z), labels), models
+		 = trainingModels, postProb = testSumry$postProb), class = 
+            "mclustDA")
 }
 
 "mclustDAtest" <- function(data, models)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   densfun <- function(model, data)
     {
       do.call("dens", c(list(data = data), model))
@@ -5136,6 +5722,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
                             itmax, equalPro, warnSingular = FALSE,
                             verbose = TRUE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
   if(!oneD && length(dimData) != 2)
@@ -5196,66 +5790,11 @@ cat("\nWarning: this is the 2002 version of mclust.",
   Glabels <- as.character(G)
   for(l in 1:L) {
     I <- labels == U[l]
-    bestBIC <-  - Inf
-    off <- 1
-    if(G[1] == 1) {
-      for(mdl in emModelNames) {
-        temp <- mvn(modelName = mdl, data = data[I, , drop = FALSE])
-        Bic <- bic(modelName = mdl, loglik = temp$loglik,
-                   n = n, d = p, G = 1, equalPro = equalPro)
-        if(is.na(Bic))
-          next
-        if(Bic > bestBIC) {
-          bestBIC <- Bic
-          bestModel <- mdl
-          bestG <- 1
-          bestResult <- temp
-        }
-      }
-      ##
-      ##			G <- G[-1]
-      ##		Glabels <- Glabels[-1]
-      ##
-      off <- 2
-    }
-    if(length(G) > 1) {
-      if(p != 1) {
-        hcPairs <- hc(modelName = .Mclust$hcModelName[2],
-                      data = data[I,  , drop = FALSE])
-      }
-      else {
-        hcPairs <- hc(modelName = .Mclust$hcModelName[1],
-                      data = data[I,  , drop = FALSE])
-      }
-
-      clss <- hclass(hcPairs, G)
-      g <- length(G)
-      for(i in off:g) {
-        z <- unmap(clss[, Glabels[i]])
-        for(modelName in emModelNames) {
-          temp <- me(modelName = modelName,
-                     data = data[I,  , drop = FALSE], z = z,
-                     eps = eps, tol = tol, itmax = itmax,
-                     equalPro = equalPro,
-                     warnSingular = warnSingular)
-          Bic <- do.call("bic", list(modelName = modelName,
-                                     loglik = temp$loglik,
-                                     n = n, d = p, G = G[i], 
-                                     equalPro = equalPro))
-          if(is.na(Bic))
-            next
-          if(Bic > bestBIC) {
-            bestBIC <- Bic
-            bestModel <- modelName
-            bestG <- G[i]
-            bestResult <- temp
-          }
-        }
-      }
-    }
-    S[l] <- bestG
-    M[l] <- bestModel
-    R[[l]] <- bestResult
+    BIC <- EMclust(data[I,  ], emModelNames = emModelNames, G = G)
+    SUMMARY <- summary(BIC, data[I,  ])
+    S[l] <- SUMMARY$G
+    M[l] <- SUMMARY$modelName
+    R[[l]] <- SUMMARY
   }
   names(S) <- M
   if(verbose) print(S)
@@ -5271,184 +5810,6 @@ cat("\nWarning: this is the 2002 version of mclust.",
             itmax = itmax, equalPro = equalPro, class = "mclustDAtrain")
 }
 
-"mclustDAtrainN" <- function(data, labels, emModelNames, G,
-                             hcModelName, equalPro = FALSE, noise, Vinv)
-{
-  dimData <- dim(data)
-  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
-  if(!oneD && length(dimData) != 2)
-    stop("data must be a vector or a matrix")
-  if(oneD) {
-    data <- as.vector(data)
-    n <- length(data)
-    p <- 1
-  }
-  else {
-    data <- as.matrix(data)
-    n <- nrow(data)
-    p <- ncol(data)
-  }
-  if(missing(emModelNames)) {
-    if(p == 1) {
-      emModelNames <- c("E", "V")
-    }
-    else {
-      emModelNames <- mdModelNames
-    }
-  }
-  U <- unique(labels)
-  L <- length(U)
-  S <- rep(0, L)
-  M <- rep("XXX", L)
-  if(missing(noise)) {
-    noise <- FALSE
-    if(missing(G)) {
-      G <- 1:9
-    }
-    else {
-      G <- sort(G)
-    }
-    if(any(G) < 0)
-      stop("G must be non negative")
-    if(any(!G))
-      stop("G = 0 allowed only with noise")
-    R <- rep(list(matrix(0, n, max(G) + 1)), L)
-    Glabels <- as.character(G)
-    for(l in 1:L) {
-      I <- labels == U[l]
-      bestBIC <-  - Inf
-      if(G[1] == 1) {
-        for(mdl in emModelNames) {
-          temp <- mvn(modelName = mdl, data = data[I,  , drop = FALSE])
-          Bic <- bic(modelName = mdl, loglik = temp$loglik, n = n, d = p,
-                     G = 1, equalPro = equalPro)
-          if(is.na(Bic))
-            next
-          if(Bic > bestBIC) {
-            bestBIC <- Bic
-            bestModel <- mdl
-            bestG <- 1
-            bestResult <- temp
-          }
-        }
-        G <- G[-1]
-        Glabels <- Glabels[-1]
-      }
-      if(missing(hcModelName)) {
-        if(p != 1) {
-          hcPairs <- hcVVV(data = data[I,  , drop = FALSE])
-        }
-        else {
-          hcPairs <- hcV(data = data[I,  , drop = FALSE])
-        }
-      }
-      else {
-        hcPairs <- hc(modelName = hcModelName, data = data[I, ,drop = FALSE])
-      }
-      clss <- hclass(hcPairs, G)
-      g <- length(G)
-      for(i in 1:g) {
-        z <- unmap(clss[, Glabels[i]])
-        for(modelName in emModelNames) {
-          temp <- do.call("me", list(modelName = modelName,
-                                     data = data[I,  , drop = FALSE],
-                                     z = z, equalPro = equalPro))
-          Bic <- do.call("bic", list(modelName = 
-                                     modelName, loglik = temp$loglik,
-                                     n = n, d = p, G = G[i], equalPro = equalPro))
-          if(is.na(Bic))
-            next
-          if(Bic > bestBIC) {
-            bestBIC <- Bic
-            bestModel <- modelName
-            bestG <- G[i]
-            bestResult <- temp
-          }
-        }
-      }
-      S[l] <- bestG
-      M[l] <- bestModel
-      R[[l]] <- bestResult
-    }
-  }
-  else {
-    if(missing(G)) {
-      G <- 0:9
-    }
-    else {
-      G <- sort(G)
-    }
-    if(any(G) < 0)
-      stop("G must be non negative")
-    R <- rep(list(matrix(0, n, max(G) + 1)), L)
-    Glabels <- as.character(G)
-    if(missing(Vinv) || Vinv <= 0)
-      Vinv <- hypvol(data, reciprocal = TRUE)
-    for(l in 1:L) {
-      I <- labels == U[l]
-      if(!G[1]) {
-        hood <- n * logb(Vinv)
-        Bic <- 2 * hood - logb(n)
-        if(Bic > bestBIC) {
-          bestBIC <- Bic
-          bestModel <- "noise"
-          bestG <- 0
-        }
-        G <- G[-1]
-        Glabels <- Glabels[-1]
-      }
-      if(missing(hcModelName)) {
-        if(p != 1) {
-          hcPairs <- hcVVV(data = data[subset,])
-        }
-        else {
-          hcPairs <- hcV(data = data[subset,])
-        }
-      }
-      else {
-        hcPairs <- hc(modelName = hcModelName,
-                      data = data[I,  , drop = FALSE])
-      }
-      clss <- hclass(hcPairs, G)
-      z <- matrix(0, n, max(G) + 1)
-      j <- 0
-      g <- length(G)
-      for(i in 1:g) {
-        k <- G[i]
-        k1 <- k + 1
-        z[!noise, 1:k] <- unmap(clss[, Glabels[i]])
-        z[!noise, k1] <- 0
-        z[noise, k1] <- 1
-        for(modelName in emModelNames) {
-          temp <- do.call("me", list(modelName = modelName,
-                                     data = data[I,  , drop = FALSE],
-                                     z = z, equalPro = equalPro,
-                                     noise = noise, Vinv = Vinv))
-          Bic <- do.call("bic", list(modelName = modelName,
-                                     loglik = temp$loglik,
-                                     n = n, d = p, G = G[i],
-                                     equalPro = equalPro, noise = noise))
-          if(is.na(Bic))
-            next
-          if(Bic > bestBIC) {
-            bestBIC <- Bic
-            bestModel <- modelName
-            bestG <- G[i]
-            bestResult <- temp
-          }
-        }
-      }
-      S[l] <- bestG
-      M[l] <- bestModel
-      R[[l]] <- bestResult
-    }
-  }
-  names(S) <- M
-  print(S)
-  names(R) <- U
-  structure(R, class = "mclustDAtrain")
-}
-
 "mclustOptions" <- function(eps = .Machine$double.eps,
                             tol = c(1.0000000000000001e-05, 
                               1.0000000000000001e-05),
@@ -5457,6 +5818,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
                             hcModelName = c("V", "VVV"),
                             symbols) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(emModelNames))
     emModelNames <- c("EII", "VII", "EEI", "VEI", "EVI", "VVI",
                       "EEE", "EEV", "VEV", "VVV")
@@ -5468,19 +5837,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
        warnSingular = warnSingular, symbols = symbols)
 }
 
-"mclustProjControl" <- 
-  function(what = "classification", projection = "coordinate", scale = FALSE, 
-           identify = TRUE, dimens = c(1, 2), quantiles = c(0.75, 0.95),
-           angles = seq(from = 0, to = pi, by = pi/3),
-           symbols = .Mclust$symbols, grid = 100, seeds = 0) 
-{
-  list(what = what, projection = projection, scale = scale, identify = 
-       identify, dimens = dimens, quantiles = quantiles, angles = 
-       angles, symbols = .Mclust$symbols, grid = grid, seeds = seeds)
-}
-
 "me" <- function(modelName, data, z, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... z, eps, tol, itmax, equal = FALSE, noise = FALSE, Vinv
   funcName <- paste("me", modelName, sep = "")
   do.call(funcName, list(data = data, z = z, ...))
@@ -5489,6 +5855,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meE" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
                   noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
   if(!oneD)
@@ -5576,6 +5950,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meEEE" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -5675,6 +6057,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meEEI" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -5780,9 +6170,17 @@ cat("\nWarning: this is the 2002 version of mclust.",
             info, warn = warn)
 }
 
-"meEEV" <- 
-  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+"meEEV" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
+                    noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -5833,7 +6231,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
-  lwork <- max(4 * p, 5 * p - 4)
+  lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p))
   storage.mode(z) <- "double"
   temp <- .Fortran("meeev",
                    as.logical(equalPro),
@@ -5908,6 +6306,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meEII" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -6011,6 +6417,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meEVI" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -6114,6 +6528,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meV" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
   if(!oneD)
@@ -6203,6 +6625,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meVEI" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -6320,6 +6750,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meVEV" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
                     noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -6345,12 +6783,11 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(all(is.na(z))) {
     warn <- "z is missing"
     warning("z is missing")
-    return(structure(list(n = n, d = p, G = G, z, mu = matrix(NA, p, G),
-                          sigma = array(NA, c(p, p, G)),
-                          decomp = list(d = p, G = G,
-                            scale = rep(NA, G), shape = matrix(NA, p, G),
-                            orientation = array(NA, c(p, p, G))),
-                          pro = rep(NA, K), modelName = "VEV"), warn = warn))
+    return(structure(list(n = n, d = p, G = G, z, mu = matrix(
+                                                    NA, p, G), sigma = array(NA, c(p, p, G)), decomp = list(
+                                                                                                d = p, G = G, scale = rep(NA, G), shape = matrix(NA,
+                                                                                                                                    p, G), orientation = array(NA, c(p, p, G))), pro = rep(
+                                                                                                                                                                                   NA, K), modelName = "VEV"), warn = warn))
   }
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
@@ -6369,7 +6806,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
-  lwork <- max(4 * p, 5 * p - 4, p + G)
+  lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
   storage.mode(z) <- "double"
   temp <- .Fortran("mevev",
                    as.logical(equalPro),
@@ -6442,17 +6879,25 @@ cat("\nWarning: this is the 2002 version of mclust.",
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
                            orientation = O), def = 
                       "Sigma = scale * t(O) %*% diag(shape) %*% O")
-  info <- structure(c(iterations = its, error = err),
-                    inner = c(iterations = inner, error = inerr))
+  info <- structure(c(iterations = its, error = err), inner = c(
+                                                        iterations = inner, error = inerr))
   structure(list(n = n, d = p, G = G, z = z, mu = mu, sigma = Sigma,
                  decomp = decomp, pro = pro, loglik = loglik, Vinv = if(noise) 
                  Vinv else NULL, modelName = "VEV"), info = info, warn
             = warn)
 }
 
-"meVII" <- 
-  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+"meVII" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
+                    noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -6555,6 +7000,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meVVI" <- 
   function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -6658,6 +7111,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "meVVV" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
                     noise = FALSE, Vinv)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -6756,6 +7217,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstep" <- function(modelName, data, z, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... eps, tol, itmax, equal = FALSE, noise = FALSE, Vinv
   funcName <- paste("mstep", modelName, sep = "")
   do.call(funcName, list(data = data, z = z, ...))
@@ -6763,6 +7232,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstepE" <- function(data, z, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -6823,6 +7300,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstepEEE" <- function(data, z, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -6896,6 +7381,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "mstepEEI" <- function(data, z, equalPro, noise = FALSE, eps,
                        warnSingular, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -6984,8 +7477,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
 }
 
 "mstepEEV" <- function(data, z, equalPro, noise = FALSE, eps,
-                       warnSingular, ...)
+                       warnSingular, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7007,12 +7508,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(all(is.na(z))) {
     warn <- "z is missing"
     warning("z is missing")
-    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+    return(structure(list(n = n, d = p, G = G,
+                          mu = matrix(NA, p, G),
                           sigma = array(NA, c(p, p, G)),
                           decomp = list(d = p, G = G, scale = NA,
                             shape = rep(NA, p),
                             orientation = array(NA, c(p, p, G))),
-                          pro = rep(NA, K), modelName = "EEV"), warn = warn))
+                          pro = rep(NA, K), modelName = "EEV"),
+                     warn = warn))
   }
   ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -7021,7 +7524,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     eps <- .Mclust$eps
   if(missing(warnSingular))
     warnSingular <- .Mclust$warnSingular
-  lwork <- max(4 * p, 5 * p - 4, G)
+  lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), G)
   temp <- .Fortran("mseev",
                    as.double(data),
                    as.double(z),
@@ -7060,7 +7563,6 @@ cat("\nWarning: this is the 2002 version of mclust.",
       pro <- c(rep((1 - pron)/G, G), pron)
     }
   }
-
   warn <- NULL
   if(lapackSVDinfo) {
     if(lapackSVDinfo > 0) {
@@ -7084,7 +7586,6 @@ cat("\nWarning: this is the 2002 version of mclust.",
   else {
     Sigma <- scale * shapeO(shape, O, transpose = TRUE)
   }
-  ## Old location of pro assignment
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
                            orientation = O), def = 
                       "Sigma = scale * t(O) %*% diag(shape) %*% O")
@@ -7094,6 +7595,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstepEII" <- function(data, z, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7164,6 +7673,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstepEVI" <- function(data, z, equalPro, noise = FALSE, eps, warnSingular, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7248,6 +7765,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstepV" <- function(data, z, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -7309,6 +7834,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "mstepVEI" <- function(data, z, equalPro, noise = FALSE, eps, tol, itmax,
                        warnSingular, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7415,9 +7948,17 @@ cat("\nWarning: this is the 2002 version of mclust.",
             info = info, warn = warn)
 }
 
-"mstepVEV" <- function(data, z, equalPro, noise = FALSE, eps, tol, itmax,
-                       warnSingular, ...) 
+"mstepVEV" <- function(data, z, equalPro, noise = FALSE, eps, tol,
+                       itmax, warnSingular, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7439,12 +7980,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(all(is.na(z))) {
     warn <- "z is missing"
     warning("z is missing")
-    return(structure(list(n = n, d = p, G = G, mu = matrix(NA, p, G),
+    return(structure(list(n = n, d = p, G = G,
+                          mu = matrix(NA, p, G),
                           sigma = array(NA, c(p, p, G)),
-                          decomp = list(d = p, G = G,
-                            scale = rep(NA, G), shape = rep(NA, p),
+                          decomp = list(d = p, G = G, scale = rep(NA, G),
+                            shape = rep(NA, p),
                             orientation = array(NA, c(p, p, G))),
-                          pro = rep(NA, K), modelName = "VEV"), warn = warn))
+                          pro = rep(NA, K), modelName = "VEV"),
+                     warn = warn))
   }
   ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -7452,14 +7995,13 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(eps))
     eps <- .Mclust$eps
   if(missing(tol))
-    tol <- if(length(.Mclust$tol) > 1) .Mclust$tol[2] else .Mclust$
-  tol
+    tol <- if(length(.Mclust$tol) > 1) .Mclust$tol[2] else .Mclust$tol
   if(missing(itmax))
     itmax <- if(length(.Mclust$itmax) > 1) .Mclust$itmax[2] else 
   .Mclust$itmax
   if(is.infinite(itmax))
     itmax <- .Machine$integer.max
-  lwork <- max(4 * p, 5 * p - 4, p + G)
+  lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
   temp <- .Fortran("msvev",
                    as.double(data),
                    as.double(z),
@@ -7488,18 +8030,20 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(!equalPro) {
     if(!noise) {
       pro <- temp[[9]]
-    } else {
+    }
+    else {
       pro <- c(temp[[9]], sum(z[, K])/n)
     }
-  } else {
+  }
+  else {
     if(!noise) {
       pro <- rep(1/G, G)
-    } else {
+    }
+    else {
       pron <- sum(z[, K])/n
       pro <- c(rep((1 - pron)/G, G), pron)
     }
   }
-  
   warn <- NULL
   if(lapackSVDinfo) {
     if(lapackSVDinfo > 0) {
@@ -7519,7 +8063,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
     warn <- "singular covariance"
     mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
     Sigma <- array(NA, c(p, p, G))
-  } else {
+  }
+  else {
     Sigma <- sweep(shapeO(shape, O, transpose = TRUE), MARGIN = 3,
                    STATS = scale, FUN = "*")
     if(inner >= itmax) {
@@ -7528,20 +8073,25 @@ cat("\nWarning: this is the 2002 version of mclust.",
       inner <-  - inner
     }
   }
-  
-  ## Old location of pro assignemtns is here...
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
-                           orientation = O),
-                      def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
+                           orientation = O), def = 
+                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
   info <- c(iteration = inner, error = inerr)
-  
-  structure(list(n = n, d = p, G = G, mu = mu, sigma = Sigma,
-                 decomp = decomp, pro = pro, modelName = "VEV"),
-            info = info, warn = warn)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = Sigma, decomp = 
+                 decomp, pro = pro, modelName = "VEV"), info = info,
+            warn = warn)
 }
 
 "mstepVII" <- function(data, z, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7611,6 +8161,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "mstepVVI" <- function(data, z, equalPro, noise = FALSE, eps,
                        warnSingular, ...) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7696,6 +8254,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mstepVVV" <- function(data, z, equalPro, noise = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7762,6 +8328,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mvn" <- function(modelName, data)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   switch(EXPR=as.character(modelName),
          E = , V = ,
          X = mvnX(data),
@@ -7777,6 +8351,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mvn2plot" <- function(mu, sigma, k = 15., alone = FALSE, col=1)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   p <- length(mu)
   if(p != 2.)
     stop("two-dimensional case only")
@@ -7820,6 +8402,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mvnX" <- function(data)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -7841,6 +8431,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mvnXII" <- function(data)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD) {
@@ -7885,6 +8483,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mvnXXI" <- function(data)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD) {
@@ -7930,6 +8536,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "mvnXXX" <- function(data)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD) {
@@ -7973,7 +8587,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "orth2" <- function(n)
 {
-  ## generates two random orthonormal n-vectors
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   u <- rnorm(n)
   u <- u/vecnorm(u)
   v <- rnorm(n)
@@ -7985,6 +8606,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "partconv" <- function(x, consec = TRUE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   n <- length(x)
   y <- numeric(n)
   u <- unique(x)
@@ -8006,6 +8635,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "charconv" <- function(x, sep = "001")
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(!is.data.frame(x))
     x <- data.frame(x)
   do.call("paste", c(as.list(x), sep = sep))
@@ -8013,7 +8650,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "partuniq" <- function(x)
 {
-  ## finds the classification that removes duplicates from x
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   n <- nrow(x)
   x <- charconv(x)
   k <- duplicated(x)
@@ -8103,6 +8747,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ### about generic/method consistency...
 "plot.EMclustN" <- function(x, modelNames, G, symbols, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   n <- ncol(x)
   dnx <- dimnames(x)
   ##
@@ -8169,6 +8821,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "plot.Mclust" <- function(x, data, dimens = c(1, 2), scale = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(data)) {
     warning("data not supplied")
     plot.EMclust(x$BIC)
@@ -8283,6 +8943,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
   function(x, trainingData, labels, testData, dimens = c(1, 2), scale = FALSE, 
            identify = FALSE, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(A <- missing(trainingData)) {
     warning("training data not supplied")
   }
@@ -8465,6 +9133,15 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "print.EMclust" <- function(x, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+
   subset <- !is.null(attr(x, "subset"))
   class(x) <- attr(x, "args") <- NULL
   attr(x, "hcPairs") <- attr(x, "attrHC") <- NULL
@@ -8493,11 +9170,22 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "print.Mclust" <- function(x, ndigits = options()$digits, ...)
 {
-  M <- switch(EXPR=x$model,
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+  M <- switch(EXPR = x$model,
+              X = "univariate normal",
               E = "equal variance",
               V = "unequal variance",
+              XII = "spherical multivariate normal",
               EII = "spherical, equal volume",
               VII = "spherical, varying volume",
+              XXI = "diagonal multivariate normal",
               EEI = "diagonal, equal volume and shape",
               VEI = "diagonal, equal shape",
               EVI = "diagonal, equal volume",
@@ -8509,6 +9197,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
               EEV = "ellipsoidal, equal volume and shape",
               VEV = "ellipsoidal, equal shape",
               EVV = "elliposidal, equal volume",
+              XXX = "elliposidal multivariate normal",
               VVV = "ellipsoidal, unconstrained",
               stop("invalid model id for EM"))
   G <- length(unique(x$classification))
@@ -8520,9 +9209,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
   invisible()
 }
 
-"print.mclustDA" <- 
-  function(x, ndigits = options()$digits, ...)
+"print.mclustDA" <- function(x, ndigits = options()$digits, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   cat("\n")
   print(x$summary)
   cat("\n training error rate:", round(x$errorRate, 3), "\n")
@@ -8534,22 +9230,35 @@ cat("\nWarning: this is the 2002 version of mclust.",
   invisible()
 }
 
+
 "print.summary.EMclust" <- function(x, ndigits = options()$digits, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   bic <- x$bic
   l <- length(bic) > 1
-  print(x$classification, ...)
-  cat("\n uncertainty (quartiles):\n")
+  cat("\nclassification table:\n")
+  print(table(x$classification), ...)
+  cat("\nuncertainty (quartiles):\n")
   print(quantile(x$uncertainty), digits = ndigits, ...)
   if(l)
-    cat("\n best BIC values:\n")
-  else cat("\n best BIC value:\n")
+    cat("\nbest BIC values:\n")
+  else cat("\nbest BIC value:\n")
   print(round(bic, ndigits))
-  M <- switch(EXPR=x$model,
+  M <- switch(EXPR = x$model,
+              X = "univariate normal",
               E = "equal variance",
               V = "unequal variance",
+              XII = "spherical multivariate normal",
               EII = "spherical, equal volume",
               VII = "spherical, varying volume",
+              XXI = "diagonal multivariate normal",
               EEI = "diagonal, equal volume and shape",
               VEI = "diagonal, equal shape",
               EVI = "diagonal, equal volume",
@@ -8561,30 +9270,49 @@ cat("\nWarning: this is the 2002 version of mclust.",
               EEV = "ellipsoidal, equal volume and shape",
               VEV = "ellipsoidal, equal shape",
               EVV = "elliposidal, equal volume",
+              XXX = "ellipsoidal multivariate normal",
               VVV = "ellipsoidal, unconstrained",
               stop("invalid model id for EM"))
-  cat("\n best model:", M, "\n\n")
+  cat("\nbest model:", M, "\n\n")
   ##
   ##	print(x$options)
   invisible()
 }
 
-"print.summary.EMclustN" <- function(x, ndigits = options()$digits, ...)
+"print.summary.EMclustN" <- 
+  function(x, ndigits = options()$digits, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   bic <- x$bic
   l <- length(bic) > 1
-  print(x$classification, ...)
-  cat("\n uncertainty (quartiles):\n")
+  cat("\nclassification table:\n")
+  G <- x$G
+  y <- rep(0, G)
+  names(y) <- as.numeric(1:G)
+  tab <- table(x$classification)
+  y[names(tab)] <- tab
+  print(y, ...)
+  cat("\nuncertainty (quartiles):\n")
   print(quantile(x$uncertainty), digits = ndigits, ...)
   if(l)
-    cat("\n best BIC values:\n")
-  else cat("\n best BIC value:\n")
+    cat("\nbest BIC values:\n")
+  else cat("\nbest BIC value:\n")
   print(round(bic, ndigits))
-  M <- switch(EXPR=x$model,
+  M <- switch(EXPR = x$model,
+              X = "univariate normal",
               E = "equal variance",
               V = "unequal variance",
+              XII = "spherical multivariate normal",
               EII = "spherical, equal volume",
               VII = "spherical, varying volume",
+              XXI = "diagonal multivariate normal",
               EEI = "diagonal, equal volume and shape",
               VEI = "diagonal, equal shape",
               EVI = "diagonal, equal volume",
@@ -8596,20 +9324,35 @@ cat("\nWarning: this is the 2002 version of mclust.",
               EEV = "ellipsoidal, equal volume and shape",
               VEV = "ellipsoidal, equal shape",
               EVV = "elliposidal, equal volume",
+              XXX = "ellipsoidal multivariate normal",
               VVV = "ellipsoidal, unconstrained",
               stop("invalid model id for EM"))
-  cat("\n best model:", M, "\n\n")
+  cat("\nbest model:", M, "\n\n")
   ##
   ##	print(x$options)
+  G <- x$G + 1
+  if(length(tab) != G) {
+    I <- (1:G)[!match(1:G, as.numeric(names(tab)), nomatch = 0)]
+    cat("***", paste("no assignment to", paste(I, collapse = ",")),
+        " ***\n\n")
+  }
   invisible()
 }
 
 "randProj" <- function(data, seeds = 0, ...,
                        type = c("classification", "uncertainty", "errors"),
                        ask = TRUE, quantiles = c(0.75, 0.95), symbols,
-                       scale = FALSE, identify = FALSE, CEX = 1, PCH = ".",
-                       XLIM, YLIM) 
+                       scale = FALSE, identify = FALSE, CEX = 1,
+                       PCH = ".", xlim, ylim) 
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(scale)
     par(pty = "s")
   aux <- list(...)
@@ -8702,42 +9445,21 @@ cat("\nWarning: this is the 2002 version of mclust.",
   else if(length(choices) == 1)
     ask <- FALSE
   if(any(choices == "errors")) {
-    comp <- compClass(truth, classification)
-    tr <- comp$map[1,  ]
-    cl <- comp$map[2,  ]
-    TRUTH <- rep("0", length(truth))
-    for(k in 1:L) {
-      TRUTH[truth == tr[k]] <- cl[k]
-    }
+    ERRORS <- classErrors(classification, truth)
   }
   if(!ask)
     pick <- 1:length(choices)
   ALL <- FALSE
-#   orth2 <- function(n)
-#     {
-#       ## generates two random orthonormal n-vectors
-#       u <- rnorm(n)
-#       u <- u/vecnorm(u)
-#       v <- rnorm(n)
-#       v <- v/vecnorm(v)
-#       Q <- cbind(u, v - sum(u * v) * u)
-#       dimnames(Q) <- NULL
-#       Q
-#     }
+  xlimMISS <- missing(xlim)
+  ylimMISS <- missing(ylim)
   for(seed in seeds) {
     set.seed(seed)
     Q <- orth2(p)
     Data <- as.matrix(data) %*% Q
-    xlimMISS <- missing(XLIM)
-    ylimMISS <- missing(YLIM)
     if(xlimMISS)
       xlim <- range(Data[, 1])
-    else
-      xlim <- XLIM
     if(ylimMISS)
       ylim <- range(Data[, 2])
-    else
-      ylim <- YLIM
     if(scale) {
       d <- diff(xlim) - diff(ylim)
       if(d > 0) {
@@ -8749,7 +9471,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
     if(!length(choices)) {
       plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab
-           = "", xlim = xlim, ylim = ylim)###, ...)
+           = "", xlim = xlim, ylim = ylim, ...)
       if(params) {
         Mu <- crossprod(Q, mu)
         Sigma <- array(apply(cho, 3, function(R, Q)
@@ -8767,9 +9489,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
     while(TRUE) {
       if(ask) {
-        pick <- menu(choices, title =
-                     paste("\nrandProj: make a plot selection (0 to exit)",
-                           "seed =", seed, "\n", collapse = ""))
+        pick <-
+          menu(choices,
+               title = paste("\nrandProj: make a plot selection (0 to exit) seed =",
+                 seed, "\n", collapse = ""))
         if(!pick)
           return(invisible())
         ALL <- any(choices[pick] == "all")
@@ -8777,33 +9500,44 @@ cat("\nWarning: this is the 2002 version of mclust.",
       if(any(choices[pick] == "classification") || (any(
                       choices == "classification") && ALL)) {
         plot(Data[, 1], Data[, 2], type = "n", xlab = 
-             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+             "", ylab = "", xlim = xlim, ylim = ylim,
+             ...)
         if(params) {
           Mu <- crossprod(Q, mu)
-          Sigma <- array(apply(cho, 3, function(R, Q)
-                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          Sigma <- array(apply(cho, 3, function(R,
+						Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2,
+                                                     G))
           for(k in 1:G) {
-            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+            mvn2plot(mu = Mu[, k], sigma = 
+                     Sigma[,  , k], k = 15)
           }
         }
         for(k in 1:L) {
           I <- classification == U[k]
-          points(Data[I, 1], Data[I, 2], pch = symbols[k], cex = CEX)
+          points(Data[I, 1], Data[I, 2], pch = 
+                 symbols[k], cex = CEX)
         }
         if(identify)
-          title(paste("Random Projection showing Classification: seed = ",
-                      seed, collapse = ""), cex = 0.5)
+          title(paste(
+                      "Random Projection showing Classification: seed = ",
+                      seed, collapse = ""), cex = 0.5
+                )
       }
       if(any(choices[pick] == "uncertainty") || (any(choices ==
                       "uncertainty") && ALL)) {
         plot(Data[, 1], Data[, 2], type = "n", xlab = 
-             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+             "", ylab = "", xlim = xlim, ylim = ylim,
+             ...)
         if(params) {
           Mu <- crossprod(Q, mu)
-          Sigma <- array(apply(cho, 3, function(R, Q)
-                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          Sigma <- array(apply(cho, 3, function(R,
+						Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2,
+                                                     G))
           for(k in 1:G) {
-            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+            mvn2plot(mu = Mu[, k], sigma = 
+                     Sigma[,  , k], k = 15)
           }
         }
         breaks <- quantile(uncertainty, probs = sort(
@@ -8818,25 +9552,31 @@ cat("\nWarning: this is the 2002 version of mclust.",
         points(Data[I, 1], Data[I, 2], pch = 16, cex = 
                1.5 * CEX)
         if(identify)
-          title(paste("Random Projection showing Classification Uncertainty:",
-                      "seed = ", seed, collapse = ""), cex = 0.5)
+          title(paste(
+                      "Random Projection showing Classification Uncertainty: seed = ",
+                      seed, collapse = ""), cex = 0.5
+                )
       }
       if(any(choices[pick] == "errors") || (any(choices ==
                       "errors") && ALL)) {
         plot(Data[, 1], Data[, 2], type = "n", xlab = 
-             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+             "", ylab = "", xlim = xlim, ylim = ylim,
+             ...)
         if(params) {
           Mu <- crossprod(Q, mu)
-          Sigma <- array(apply(cho, 3, function(R, Q)
-                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          Sigma <- array(apply(cho, 3, function(R,
+						Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2,
+                                                     G))
           for(k in 1:G) {
-            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+            mvn2plot(mu = Mu[, k], sigma = 
+                     Sigma[,  , k], k = 15)
           }
         }
-        CLASSES <- unique(as.character(TRUTH))
+        CLASSES <- unique(as.character(truth))
         symOpen <- c(2, 0, 1, 5)
         symFill <- c(17, 15, 16, 18)
-        good <- classification == TRUTH
+        good <- !ERRORS
         if(L > 4) {
           points(Data[good, 1], Data[good, 2],
                  pch = 1, cex = CEX)
@@ -8845,11 +9585,11 @@ cat("\nWarning: this is the 2002 version of mclust.",
         }
         else {
           for(k in 1:L) {
-            K <- TRUTH == CLASSES[k]
+            K <- truth == CLASSES[k]
             points(Data[K, 1], Data[K,
                                     2], pch = symOpen[
                                           k], cex = CEX)
-            if(any(I <- (K & !good))) {
+            if(any(I <- (K & ERRORS))) {
               points(Data[I, 1],
                      Data[I, 2],
                      pch = symFill[
@@ -8858,8 +9598,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
           }
         }
         if(identify)
-          title(paste("Random Projection showing Classification Errors:",
-                      " seed = ", seed, collapse = ""), cex = 0.5)
+          title(paste(
+                      "Random Projection showing Classification Errors: seed = ",
+                      seed, collapse = ""), cex = 0.5
+                )
       }
       if(!ask)
         break
@@ -8870,6 +9612,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "shapeO" <- function(shape, O, transpose = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimO <- dim(O)
   if(dimO[1] != dimO[2])
     stop("leading dimensions of O are unequal")
@@ -8896,6 +9646,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "sigma2decomp" <- function(sigma, G, tol, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   dimSigma <- dim(sigma)
   if(is.null(dimSigma))
     stop("sigma improperly specified")
@@ -8973,6 +9731,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "sim" <- function(modelName, mu, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## ... variance parameters, n
   funcName <- paste("sim", modelName, sep = "")
   do.call(funcName, list(mu = mu, ..., seed = seed))
@@ -8980,6 +9746,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simE" <- function(mu, sigmasq, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   G <- length(mu)
   n <- list(...)$n
   if(all(is.na(c(mu, sigmasq, pro)))) {
@@ -9005,6 +9779,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simEEE" <- function(mu, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9050,6 +9832,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simEEI" <- function(mu, decomp, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9085,6 +9875,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simEEV" <- function(mu, decomp, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9118,6 +9916,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simEII" <- function(mu, sigmasq, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9151,6 +9957,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simEVI" <- function(mu, decomp, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9187,6 +10001,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "simV" <- 
   function(mu, sigmasq, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   G <- length(mu)
   n <- list(...)$n
   if(all(is.na(c(mu, sigmasq, pro)))) {
@@ -9213,6 +10035,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "simVEI" <- 
   function(mu, decomp, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9248,6 +10078,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simVEV" <- function(mu, decomp, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9283,6 +10121,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "simVII" <- function(mu, sigmasq, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9316,6 +10162,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "simVVI" <- 
   function(mu, decomp, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9354,6 +10208,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "simVVV" <- 
   function(mu, pro, ..., seed = 0)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
@@ -9407,10 +10269,19 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "spinProj" <- function(data, ..., angles = c(0, pi/3, (2 * pi)/3, pi),
                        seed = 0, reflection = FALSE,
                        type = c("classification", "uncertainty", "errors"),
-                       quantiles = c(0.75, 0.95),
-                       symbols, scale = FALSE, identify = FALSE, ask = TRUE,
-                       CEX = 1, PCH = ".", XLIM, YLIM) 
+                       ask = TRUE,
+                       quantiles = c(0.75, 0.95), symbols,
+                       scale = FALSE, identify = FALSE, CEX = 1,
+                       PCH = ".", xlim, ylim)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(scale)
     par(pty = "s")
   data <- as.matrix(data)
@@ -9503,21 +10374,15 @@ cat("\nWarning: this is the 2002 version of mclust.",
   else if(length(choices) == 1)
     ask <- FALSE
   if(any(choices == "errors")) {
-    comp <- compClass(truth, classification)
-    tr <- comp$map[1,  ]
-    cl <- comp$map[2,  ]
-    U <- as.character(U)
-    TRUTH <- rep("0", length(truth))
-    for(k in 1:L) {
-      TRUTH[truth == tr[k]] <- cl[k]
-    }
+    ERRORS <- classErrors(classification, truth)
   }
   if(!ask)
     pick <- 1:length(choices)
   all <- FALSE
-
   set.seed(seed)
   O <- orth2(p)
+  xlimMISS <- missing(xlim)
+  ylimMISS <- missing(ylim)
   for(angle in angles) {
     cosTheta <- cos(angle)
     sinTheta <- sin(angle)
@@ -9530,16 +10395,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
                           cosTheta), 2, 2)
     }
     Data <- data %*% Q
-    xlimMISS <- missing(XLIM)
-    ylimMISS <- missing(YLIM)
     if(xlimMISS)
       xlim <- range(Data[, 1])
-    else
-      xlim <- XLIM
     if(ylimMISS)
       ylim <- range(Data[, 2])
-    else
-      ylim <- YLIM
     if(scale) {
       d <- diff(xlim) - diff(ylim)
       if(d > 0) {
@@ -9551,7 +10410,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
     if(!length(choices)) {
       plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab
-           = "", xlim = xlim, ylim = ylim)###, ...)
+           = "", xlim = xlim, ylim = ylim, ...)
       if(params) {
         Mu <- crossprod(Q, mu)
         Sigma <- array(apply(cho, 3, function(R, Q)
@@ -9570,103 +10429,122 @@ cat("\nWarning: this is the 2002 version of mclust.",
     }
     while(TRUE) {
       if(ask) {
-        pick <-
-          menu(choices,
-               title = paste("\nspinProj: make a plot selection (0 to exit),",
-                 " seed/angle = ", seed, "/", round(angle, 3), "\n", 
-                 collapse = ""))
+        pick <- menu(choices, title = paste(
+                                "\nspinProj: make a plot selection (0 to exit), seed/angle = ",
+                                seed, "/", round(angle, 3), "\n", 
+                                collapse = ""))
         if(!pick)
           break
         ALL <- any(choices[pick] == "all")
       }
       if(!pick)
         break
-      if(any(choices[pick] == "classification") ||
-         (any(choices == "classification") && ALL)) {
-        plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab = "",
-             xlim = xlim, ylim = ylim)###, ...)
+      if(any(choices[pick] == "classification") || (any(
+                      choices == "classification") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = 
+             "", ylab = "", xlim = xlim, ylim = ylim,
+             ...)
         if(params) {
           Mu <- crossprod(Q, mu)
-          Sigma <- array(apply(cho, 3, function(R, Q)
-                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          Sigma <- array(apply(cho, 3, function(R,
+						Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2,
+                                                     G))
           for(k in 1:G) {
-            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+            mvn2plot(mu = Mu[, k], sigma = 
+                     Sigma[,  , k], k = 15)
           }
         }
         for(k in 1:L) {
           I <- classification == U[k]
-          points(Data[I, 1], Data[I, 2], pch = symbols[k], cex = CEX)
+          points(Data[I, 1], Data[I, 2], pch = 
+                 symbols[k], cex = CEX)
         }
         if(identify)
-          title(paste("Spin Projection showing Classification: seed/angle = ",
+          title(paste(
+                      "Spin Projection showing Classification: seed/angle = ",
                       seed, "/", round(angle, 3),
                       collapse = ""), cex = 0.5)
       }
       if(any(choices[pick] == "uncertainty") || (any(choices ==
                       "uncertainty") && ALL)) {
         plot(Data[, 1], Data[, 2], type = "n", xlab = 
-             "", ylab = "", xlim = xlim, ylim = ylim)###, ...)
+             "", ylab = "", xlim = xlim, ylim = ylim,
+             ...)
         if(params) {
           Mu <- crossprod(Q, mu)
-          Sigma <- array(apply(cho, 3, function(R, Q)
-                               crossprod(R %*% Q), Q = Q), c(2, 2, G))
+          Sigma <- array(apply(cho, 3, function(R,
+						Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2,
+                                                     G))
           for(k in 1:G) {
-            mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
+            mvn2plot(mu = Mu[, k], sigma = 
+                     Sigma[,  , k], k = 15)
           }
         }
-        breaks <- quantile(uncertainty, probs = sort(quantiles))
+        breaks <- quantile(uncertainty, probs = sort(
+                                          quantiles))
         I <- uncertainty < breaks[1]
-        points(Data[I, 1], Data[I, 2], pch = 16, cex = 0.5 * CEX)
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 
+               0.5 * CEX)
         I <- uncertainty < breaks[2] & !I
-        points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 * CEX)
+        points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 *
+               CEX)
         I <- uncertainty >= breaks[2]
-        points(Data[I, 1], Data[I, 2], pch = 16, cex = 1.5 * CEX)
+        points(Data[I, 1], Data[I, 2], pch = 16, cex = 
+               1.5 * CEX)
         if(identify)
-          title(paste("Spin Projection showing Classification Uncertainty:",
-                      "seed/angle = ", seed, "/", round(angle, 3),
+          title(paste(
+                      "Spin Projection showing Classification Uncertainty: seed/angle = ",
+                      seed, "/", round(angle, 3),
                       collapse = ""), cex = 0.5)
       }
-      if(any(choices[pick] == "errors") || (any(choices == "errors") && ALL))
-        {
-          plot(Data[, 1], Data[, 2], type = "n", xlab = "", ylab = "",
-               xlim = xlim, ylim = ylim)###, ...)
-          if(params) {
-            Mu <- crossprod(Q, mu)
-            Sigma <- array(apply(cho, 3, function(R, Q)
-                                 crossprod(R %*% Q), Q = Q), c(2, 2, G))
-            for(k in 1:G) {
-              mvn2plot(mu = Mu[, k], sigma = Sigma[,  , k], k = 15)
-            }
+      if(any(choices[pick] == "errors") || (any(choices ==
+                      "errors") && ALL)) {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = 
+             "", ylab = "", xlim = xlim, ylim = ylim,
+             ...)
+        if(params) {
+          Mu <- crossprod(Q, mu)
+          Sigma <- array(apply(cho, 3, function(R,
+						Q)
+                               crossprod(R %*% Q), Q = Q), c(2, 2,
+                                                     G))
+          for(k in 1:G) {
+            mvn2plot(mu = Mu[, k], sigma = 
+                     Sigma[,  , k], k = 15)
           }
-          CLASSES <- unique(as.character(TRUTH))
-          symOpen <- c(2, 0, 1, 5)
-          symFill <- c(17, 15, 16, 18)
-          good <- classification == TRUTH
-          if(L > 4) {
-            points(data[good, 1], data[good, 2],
-                   pch = 1, cex = CEX)
-            points(data[!good, 1], data[!good,
-                                        2], pch = 16, cex = CEX)
-          }
-          else {
-            for(k in 1:L) {
-              K <- TRUTH == CLASSES[k]
-              points(data[K, 1], data[K,
-                                      2], pch = symOpen[
-                                            k], cex = CEX)
-              if(any(I <- (K & !good))) {
-                points(data[I, 1],
-                       data[I, 2],
-                       pch = symFill[
-                         k], cex = CEX)
-              }
-            }
-          }
-          if(identify)
-            title(paste("Spin Projection showing Classification Errors:",
-                        "seed/angle = ", seed, "/", round(angle, 3),
-                        collapse = ""), cex = 0.5)
         }
+        CLASSES <- unique(as.character(truth))
+        symOpen <- c(2, 0, 1, 5)
+        symFill <- c(17, 15, 16, 18)
+        good <- !ERRORS
+        if(L > 4) {
+          points(data[good, 1], data[good, 2],
+                 pch = 1, cex = CEX)
+          points(data[!good, 1], data[!good,
+                                      2], pch = 16, cex = CEX)
+        }
+        else {
+          for(k in 1:L) {
+            K <- truth == CLASSES[k]
+            points(data[K, 1], data[K,
+                                    2], pch = symOpen[
+                                          k], cex = CEX)
+            if(any(I <- (K & ERRORS))) {
+              points(data[I, 1],
+                     data[I, 2],
+                     pch = symFill[
+                       k], cex = CEX)
+            }
+          }
+        }
+        if(identify)
+          title(paste(
+                      "Spin Projection showing Classification Errors: seed/angle = ",
+                      seed, "/", round(angle, 3),
+                      collapse = ""), cex = 0.5)
+      }
       if(!ask)
         break
     }
@@ -9679,8 +10557,15 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ### x is renamed to object for the same reason...
 "summary.EMclust" <- function(object, data, G, modelNames, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   x <- object
-  n <- if(is.null(dimData <- dim(data))) length(data) else dimData[1]
   hcPairs <- attr(x, "hcPairs")
   attr(hcPairs, "initialPartition") <- attr(x, "attrHC")$initialPartition
   subset <- attr(x, "subset")
@@ -9717,13 +10602,22 @@ cat("\nWarning: this is the 2002 version of mclust.",
   colsBest <- (matrix(rep(1:m, rep(l, m)), l, m)[x == best])[1]
   namesBest <- dimnames(x[rowsBest, colsBest, drop = FALSE])
   bestG <- namesBest[[1]]
+  maxG <- max(G)
+  minG <- min(G)
+  if(minG != maxG) {
+    if(bestG == maxG) {
+      warning("BIC maximized at upper limit on G")
+    }
+    else if(minG != 1 && bestG == min(G)) {
+      warning("BIC maximized at lower limit on G")
+    }
+  }
   bestModel <- namesBest[[2]]
   if(min(l, m) > 1) {
     M <- modelNames[modelNames != bestModel]
     y <- x[, M]
     other <- max(y)
-    otherG <- (matrix(rep(Glabels, m - 1), l, m - 1)[y == other])[
-                                                       1]
+    otherG <- (matrix(rep(Glabels, m - 1), l, m - 1)[y == other])[1]
     otherModel <- (matrix(rep(M, rep(l, m - 1)), l, m - 1)[y == 
                                                            other])[1]
     y <- x[, bestModel]
@@ -9783,8 +10677,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
       out <- mvn(modelName = bestModel, data = data)
       return(structure(c(list(bic = bestBICs, options = 
                               options, classification = rep(1, n), 
-                              uncertainty = rep(0, n), class = 
-                              "summary.EMclust"), out)))
+                              uncertainty = rep(0, n)), out), class = 
+                       "summary.EMclust"))
     }
     clss <- hclass(hcPairs, G)
     z <- unmap(clss)
@@ -9798,11 +10692,13 @@ cat("\nWarning: this is the 2002 version of mclust.",
     ms <- mstep(modelName = bestModel, data = data[subset,  ],
                 z = z, eps = eps, tol = tol, itmax = itmax, equalPro = 
                 equalPro, warnSingular)
-    out <- do.call("em", c(list(data = data,
-                                eps = eps, tol = tol, itmax = itmax,
-                                equalPro = equalPro,
-                                warnSingular = warnSingular), ms)) 
+    out <- do.call("em", c(list(data = data, eps = eps, tol = tol,
+                                itmax = itmax, equalPro = equalPro,
+                                warnSingular = warnSingular), ms))
   }
+
+  bestBICs[bestBICs == -.Machine$double.xmax] <- NA
+
   structure(c(list(bic = bestBICs, options = options, classification = 
                    map(out$z), uncertainty = 1 - apply(out$z, 1, max)), out),
             class = "summary.EMclust")
@@ -9813,6 +10709,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ### x is renamed to object for the same reason...
 "summary.EMclustN" <- function(object, data, G, modelNames, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   x <- object
   n <- if(is.null(dimData <- dim(data))) length(data) else dimData[1]
   hcPairs <- attr(x, "hcPairs")
@@ -9855,6 +10759,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
   colsBest <- (matrix(rep(1:m, rep(l, m)), l, m)[x == best])[1]
   namesBest <- dimnames(x[rowsBest, colsBest, drop = FALSE])
   bestG <- namesBest[[1]]
+  maxG <- max(G)
+  minG <- min(G)
+  if(minG != maxG) {
+    if(bestG == maxG) {
+      warning("BIC maximized at upper limit on G")
+    }
+    else if(bestG == min(G)) {
+      warning("BIC maximized at lower limit on G")
+    }
+  }
   bestModel <- namesBest[[2]]
   if(min(l, m) > 1) {
     M <- modelNames[modelNames != bestModel]
@@ -9928,6 +10842,9 @@ cat("\nWarning: this is the 2002 version of mclust.",
   out <- me(modelName = bestModel, data = data, z = z[, 1:k1], eps = eps,
             tol = tol, itmax = itmax, equalPro = equalPro, warnSingular = 
             warnSingular, noise = TRUE, Vinv = Vinv)
+
+  bestBICs[bestBICs == -.Machine$double.xmax] <- NA
+
   structure(c(list(bic = bestBICs, noise = TRUE, equalPro = equalPro,
                    classification = map(out$z),
                    uncertainty = 1 - apply(out$z, 1, max)), out),
@@ -9938,6 +10855,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ### about generic/method consistency...
 "summary.Mclust" <- function(object, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   x <- object
   M <- switch(EXPR=x$model,
               E = "equal variance",
@@ -9973,6 +10898,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ### test is renamed to object for the same reason...
 "summary.mclustDAtest" <- function(object, pro, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   test <- object
   clfun <- function(x)
     {
@@ -9997,6 +10930,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ### x is renamed to object for the same reason...
 "summary.mclustDAtrain" <- function(object, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   x <- object
   L <- length(x)
   M <- max(unlist(lapply(x, function(y)
@@ -10022,6 +10963,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
                           identify = FALSE, verbose = FALSE, xlim,
                           ylim, swapAxes = FALSE)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   data <- as.matrix(data)
   p <- ncol(data)
   if(p != 2)
@@ -10195,6 +11144,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 "traceW" <- 
   function(x)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   ## sum(as.vector(sweep(x, 2, apply(x, 2, mean)))^2)
   dimx <- dim(x)
   n <- dimx[1.]
@@ -10209,8 +11166,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "uncerPlot" <- function(z, truth, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   parSave <- par(no.readonly=TRUE)
-##  par(pty = "n")
+  par(pty = "m")
   uncer <- 1 - apply(z, 1, max)
   ord <- order(uncer)
   ##	plot(uncer[ord], pch = ".", xlab = "", ylab = "uncertainty", 
@@ -10223,19 +11188,16 @@ cat("\nWarning: this is the 2002 version of mclust.",
   abline(h = c(0, 0), lty = 4)
   if(!missing(truth)) {
     n <- length(truth)
-    truth <- as.character(truth)
-    result <- as.character(map(z))
-    comp <- compClass(truth, result)
-    if(is.na(comp$error))
-      warning("unequal number of classes in z and truth")
-    MAP <- comp$map[2,  ]
-    names(MAP) <- comp$map[1,  ]
-    I <- (1:n)[apply(rbind(truth, result), 2, function(x, MAP)
-                     MAP[x[1]] != x[2], MAP = MAP)]
-    for(i in I) {
-      x <- (1:n)[ord == i]
+    result <- map(z)
+    ERRORS <- classErrors(result, truth)
+    if(any(ERRORS)) {
+      I <- (1:n)[ERRORS]
+      for(i in I) {
+        x <- (1:n)[ord == i]
                                         #
-      lines(c(x, x), c( - (0.5/32), uncer[i]), lty = 1)
+        lines(c(x, x), c( - (0.5/32), uncer[i]), lty = 
+              1)
+      }
     }
   }
   par(parSave)
@@ -10244,6 +11206,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "unchol" <- function(x, upper)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(missing(upper)) {
     upper <- any(x[row(x) < col(x)])
     lower <- any(x[row(x) > col(x)])
@@ -10266,7 +11236,15 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "unmap" <- function(classification, noise, ...)
 {
-  ## converts a classificationassification to conditional probabilities
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+  ## converts a classification to conditional probabilities
   ## classes are arranged in sorted order
   ## if a noise indicator is specified, that column is placed last
   n <- length(classification)
@@ -10297,6 +11275,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "vecnorm" <- function(x, p = 2)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   if(is.character(p)) {
     if(charmatch(p, "maximum", nomatch = 0) == 1)
       p <- Inf
@@ -10335,6 +11321,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 "estep2" <- function(logCden, pro, ...)
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
   aux <- list(...)
   n <- nrow(logCden)
   ncolz <- ncol(logCden)
@@ -10347,5 +11341,152 @@ cat("\nWarning: this is the 2002 version of mclust.",
                   as.double(logCden),
                   double(1))[c(4, 5)]
   list(z = matrix(out[[1]], n, ncolz), loglik = out[[2]])
+}
+
+"compareClass" <- function(a, b)
+{
+  if((l <- length(a)) != length(b))
+    stop("unequal lengths")
+  ta <- table(a)
+  na <- length(ta)
+  tb <- table(b)
+  nb <- length(tb)
+  Pa <- ta/l
+  Pb <- tb/l
+  Tab <- table(a, b)
+  Pab <- Tab/l
+  Ha <-  - sum(Pa * log(Pa))
+  Hb <-  - sum(Pb * log(Pb))
+  Iab <- Pab
+  Iab <- sweep(Iab, MARGIN = 1, FUN = "/", STATS = Pa)
+  Iab <- sweep(Iab, MARGIN = 2, FUN = "/", STATS = Pb)
+  Z <- Pab == 0
+  Iab <- sum(log(Iab)[!Z] * Pab[!Z])
+  ((Ha + Hb) - 2 * Iab)/log(l)
+}
+
+"mapClass" <- function(a, b)
+{
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+  l <- length(a)
+  x <- y <- rep(NA, l)
+  if(l != length(b)) {
+    warning("unequal lengths")
+    return(x)
+  }
+  aChar <- as.character(a)
+  bChar <- as.character(b)
+  Tab <- table(a, b)
+  Ua <- dimnames(Tab)[[1]]
+  Ub <- dimnames(Tab)[[2]]
+  aTOb <- rep(list(Ub), length(Ua))
+  names(aTOb) <- Ua
+  bTOa <- rep(list(Ua), length(Ub))
+  names(bTOa) <- Ub
+  ## -------------------------------------------------------------
+  k <- nrow(Tab)
+  Map <- rep(0, k)
+  Max <- apply(Tab, 1, max)
+  for(i in 1:k) {
+    I <- match(Max[i], Tab[i,  ], nomatch = 0)
+    aTOb[[i]] <- Ub[I]
+  }
+  if(is.numeric(b))
+    aTOb <- lapply(aTOb, as.numeric)
+  k <- ncol(Tab)
+  Map <- rep(0, k)
+  Max <- apply(Tab, 2, max)
+  for(j in (1:k)) {
+    J <- match(Max[j], Tab[, j])
+    bTOa[[j]] <- Ua[J]
+  }
+  if(is.numeric(a))
+    bTOa <- lapply(bTOa, as.numeric)
+  list(aTOb = aTOb, bTOa = bTOa)
+}
+
+"classError" <- function(classification, truth)
+{
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+  sum(as.numeric(classErrors(classification, truth)))/length(truth)
+}
+
+"classErrors" <- function(classification, truth)
+{
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+# Distribution of MCLUST is prohibited except by agreement with the 
+# University of Washington.
+##
+  q <- function(map, len, x)
+    {
+      x <- as.character(x)
+      map <- lapply(map, as.character)
+      y <- sapply(map, function(x)
+                  x[1])
+      best <- y != x
+      if(all(len) == 1)
+        return(best)
+      errmin <- sum(as.numeric(best))
+      z <- sapply(map, function(x)
+                  x[length(x)])
+      mask <- len != 1
+      counter <- rep(0, length(len))
+      k <- sum(as.numeric(mask))
+      j <- 0
+      while(y != z) {
+        i <- k - j
+        m <- mask[i]
+        counter[m] <- (counter[m] %% len[m]) + 1
+        y[x == name(map)[m]] <- map[[m]][counter[m]]
+        temp <- y != x
+        err <- sum(as.numeric(temp))
+        if(err < errmin) {
+          errmin <- err
+          best <- temp
+        }
+        j <- (j + 1) %% k
+      }
+      best
+    }
+  MAP <- mapClass(classification, truth)
+  len <- sapply(MAP[[1]], length)
+  if(all(len) == 1) {
+    CtoT <- unlist(MAP[[1]])
+    I <- match(as.character(classification), names(CtoT))
+    one <- CtoT[I] != truth
+  }
+  else {
+    one <- q(MAP[[1]], len, truth)
+  }
+  len <- sapply(MAP[[2]], length)
+  if(all(len) == 1) {
+    TtoC <- unlist(MAP[[2]])
+    I <- match(as.character(truth), names(TtoC))
+    two <- TtoC[I] != classification
+  }
+  else {
+    two <- q(MAP[[2]], len, classification)
+  }
+  if(sum(as.numeric(one)) > sum(as.numeric(two)))
+    as.vector(one)
+  else as.vector(two)
 }
 

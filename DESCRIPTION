@@ -1,8 +1,8 @@
 Package: 	mclust
-Version: 	2.0-3
+Version: 	2.1-0
 Author: 	C. Fraley and A.E. Raftery, Dept. of Statistics, 
 		University of Washington.
-		R port by Ron Wehrens <rwehrens@sci.kun.nl>
+		R port by Ron Wehrens.
 Title: 		Model-based cluster analysis
 Description: 	Model-based cluster analysis: the 2002 version of MCLUST
 Depends:	R (>= 1.5.0)

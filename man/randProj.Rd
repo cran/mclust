@@ -12,7 +12,7 @@
 randProj(data, seeds = 0, \dots, 
          type = c("classification", "uncertainty", "errors"), ask = TRUE,
          quantiles = c(0.75,0.95), symbols, scale = FALSE, identify = TRUE, 
-         CEX = 1, PCH = ".", XLIM, YLIM)
+         CEX = 1, PCH = ".", xlim, ylim)
 }
 \arguments{
   \item{data}{
@@ -65,12 +65,12 @@ randProj(data, seeds = 0, \dots,
     Any subset of \code{c("classification","uncertainty","errors")}. The
     function will produce the corresponding plot if it has been supplied
     sufficient information to do so. If more than one plot is possible
-    then users will be asked to choose from a menu if \code{ask=T}.
+    then users will be asked to choose from a menu if \code{ask=TRUE}.
   }
   \item{ask}{
     A logical variable indicating whether or not a menu should be produced
     when more than one plot is possible. 
-    The default is \code{ask=T}.
+    The default is \code{ask=TRUE}.
   }
   \item{quantiles}{
     A vector of length 2 giving quantiles used in plotting
@@ -94,7 +94,7 @@ randProj(data, seeds = 0, \dots,
     A logical variable indicating whether or not the two chosen
     dimensions should be plotted on the same scale, and
     thus preserve the shape of the distribution.
-    Default: \code{scale=F} 
+    Default: \code{scale=FALSE} 
   }
   \item{identify}{
     A logical variable indicating whether or not to add a title to the plot
@@ -108,7 +108,7 @@ randProj(data, seeds = 0, \dots,
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{XLIM, YLIM }{
+  \item{xlim, ylim }{
     Arguments specifying bounds for the ordinate, abscissa of the plot.
     This may be useful for when comparing plots.
   }

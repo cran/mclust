@@ -1,143 +1,6 @@
-      subroutine mclvol( x, n, p, u, v, w,
-     *                   work, lwork, iwork, liwork, 
-     *                   info)
-
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c Computes quantities whose product is an approximation to the hypervolume for
-c of a data region via principal components.
-
-      implicit double precision (a-h,o-z)
-
-c     integer            n, p, iwork(liwork)
-      integer            n, p, iwork(*)
-
-c     double precision   x(n,p), u(p), v(p,p), w(p,p), work(lwork),
-      double precision   x(n,*), u(*), v(p,*), w(p,p), work(*)
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, x is overwritten.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  u       output  (scratch) (p) Positive quantities whose product is an
-c                   approximate volume of the data region.
-c  w       double  (scratch) (p*p)
-c  v       double  (scratch) (p*p)
-c  work    double  (scratch) (lwork)
-c  lwork   integer
-c  iwork   integer  (scratch) (liwork)
-c  liwork  integer
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-      double precision    EPSMAX
-      parameter          (EPSMAX = 2.2204460492503131d-16)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157D+308)
-
-c     double precision        d1mach
-
-c------------------------------------------------------------------------------
-
-c form mean
-      s = one / dble(n)
-      call dcopy( p, zero, 0, u, 1)
-      do i = 1, n
-        call daxpy( p, s, x(i,1), n, u, 1)
-      end do
-
-c subtract mean
-      do j = 1, p
-        call daxpy( n, (-one), u(j), 0, x(1,j), 1)
-      end do
-
-c     if (.false.) then
-c this gets the eigenvectors but x is overwritten
-
-c get right singular vectors
-c       call dgesvd( 'N', 'A', n, p, x, n, u, 
-c    *                dummy, 1, w, p, work, lwork, info)
-
-c       if (info .lt. 0) return
-
-c       if (info .eq. 0) then
-c         lwork = int(work(1))
-c         do i = 1, p
-c           v(i,i) = w(i,i)
-c           if (i .gt. 1) then
-c             do j = 1, (i-1)
-c               v(i,j) = w(j,i)
-c               v(j,i) = w(i,j)
-c             end do
-c           end if
-c         end do
-c         goto 100
-c       end if
-
-c     end if
-
-c form crossproduct
-      call dsyrk( 'U', 'T', p, n, one, x, n, zero, w, p)
-
-c get eigenvectors
- 
-      do j = 1, p
-        do i = 1, j
-          v(i,j) = w(i,j)
-        end do
-      end do
-
-      call dsyevd( 'V', 'U', p, v, p, u, 
-     *              work, lwork, iwork, liwork, info)
-
-      if (info .lt. 0) return
-
-      if (info .eq. 0) then
-        lwork  = int(work(1))
-        liwork = iwork(1)
-        goto 100
-      end if
-
-c     EPSMAX = d1mach(4)
-
-      call dsyevx( 'V', 'A', 'U', p, w, p, dummy, dummy, i, i,
-     *              sqrt(EPSMAX), j, u, v, p,
-     *              work, lwork, iwork(p+1), iwork, info)
-          
-      if (info .ne. 0) return
-
-      lwork  = int(work(1))
-      liwork = -1 
-
- 100  continue
-  
-c      FLMAX = d1mach(2)
-
-c form xv
-
-c     vol = one
-      do j = 1, p
-        call dgemv( 'N', n, p, one, x, n, v(1,j), 1, zero, work, 1)
-        cmax = -FLMAX
-        cmin =  FLMAX
-        do i = 1, n
-          temp = work(i)
-          if (temp .gt. cmax) cmax = temp
-          if (temp .lt. cmin) cmin = temp
-        end do
-        u(j) = cmax - cmin
-c       vol  = vol * (cmax - cmin)
-      end do
-
-      return
-
-      end
+c     mclust.f for R: changed passing of characters from R to fortran
+c     to passing of integers: emeee, emeev, emvev, emvvv, shapeo, unchol,
+c     denvvv, deneee
       SUBROUTINE DORGQL( M, N, K, A, LDA, TAU, WORK, LWORK, INFO )
 *
 *  -- LAPACK routine (version 3.0) --
@@ -1309,6270 +1172,15 @@ c       vol  = vol * (cmax - cmin)
 *     End of DSYEVX
 *
       END
-      subroutine den1e ( x, mu, sigsq, n, G, eps, dens)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for 1-dimensional constant variance Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   sigsq, eps
-
-c     double precision   x(n), mu(G), dens(n,G)
-      double precision   x(*), mu(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n)    data vector.
-c  mu      double  (input) (p,G)  mean for each group.
-c  sigsq   double  (input)        common variance for the groups.
-c  n       integer (input)        number of data points.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  eps     double  (input/output) On input, lower bound for sigsq.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point
-c                                 not including mixing proportions.
-
-      integer                 i, k
-
-      double precision        sumz, temp, const
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps   = max(eps,zero)
-
-      if (sigsq .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = sigsq
-
-      const = pi2log+log(sigsq)
-
-      do i = 1, n
-        sumz = zero
-        do k = 1, G
-          temp      = x(i) - mu(k)
-          temp      = temp*temp
-          dens(i,k) = -(const+temp/sigsq)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine den1v ( x, mu, sigsq, n, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for general one-dimensional Gaussian mixtures 
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   eps
-
-c     double precision   x(n), mu(G), sigsq(G), dens(n,G)
-      double precision   x(*), mu(*), sigsq(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  data vector.
-c  mu      double  (input) (p,G)  mean for each group.
-c  sigsq   double  (input) (G)    variance for each group.
-c  n       integer (input)        number of data points.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  eps     double  (input/output) On input, lower bound for sigsq.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point
-c                                 not including mixing proportions.
-
-      integer                 i, k
-
-      double precision        temp, const, muk, sigsqk
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps  = max(eps,zero)
-
-      temp = sigsq(1)
-
-      if (G .gt. 1) then
-        do k = 2, G
-          temp = min(temp,sigsq(k))
-        end do
-      end if
-
-      if (temp .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = temp
-
-      do k = 1, G
-        sigsqk = sigsq(k)
-        const  = pi2log+log(sigsqk)
-        muk    = mu(k)
-        do i = 1, n
-          temp      = x(i) - muk
-          dens(i,k) = -(const+(temp*temp)/sigsqk)/two
-        end do
-      end do
-
-      return
-      end
-
-
-
-      subroutine deneee( CHOL, x, mu, Sigma, n, p, G, w, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for constant-variance Gaussian mixtures
-
-      implicit NONE
-
-      character          CHOL
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   eps
-
-c     double precision   x(n,p), mu(p,G), Sigma(p,p)
-      double precision   x(n,*), mu(p,*), Sigma(p,*)
-
-c     double precision   w(p), dens(n,G)
-      double precision   w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  CHOL  char    (input) 'N': full Sigma given rather than Cholesky factor.
-c  x     double  (input) (n,p) data matrix.
-c  mu    double  (input) (p,G) mean for each group.
-c  Sigma double  (input) (p,p) On input, common covariance matrix or its upper
-c                              triangular Cholesky factor.
-c        On output, the upper triangle is overwritten by the Cholesky factor.
-c  n     integer (input) number of data points.
-c  p     integer (input) dimension of the data.
-c  G     integer (input) number of Gaussian clusters in the mixture.
-c  eps   double  (input/output) On input, lower bound on the reciprocal 
-c                 condition estimate of the Cholesky factor of the covariance.
-c                 On output, actual reciprocal condition estimate.
-c  w     double  (scratch/output) (p) workspace.  On output, w(1) is the
-c                 error code for the LAPACK Cholesky decomposition.
-c  dens  double  (output) (n,G) log component density for each data point
-c                               not including mixing proportions.
-
-      integer                 info, i, j, k
-
-      double precision        detlog, const, temp
-      double precision        umin, umax, rc
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      if (CHOL .eq. 'N') then
-
-c Cholesky factorization
-        call dpotrf( 'U', p, Sigma, p, info)
-
-        w(1) = dble(info)
-
-        if (info .ne. 0) then
-          w(1)  = FLMAX
-          return
-        end if
-
-      end if
-
-      call drnge( p, Sigma, (p+1), umin, umax)
-
-      eps = max(eps,zero)
-      eps = sqrt(eps)
-
-      rc  = umin/(one+umax)
-
-      if (rc .le. eps) then
-        eps = rc
-        return
-      end if
-
-      eps = rc
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(Sigma(j,j)))
-      end do
-
-      const = dble(p)*pi2log/two + detlog
-
-      do k = 1, G
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
-          temp      = ddot( p, w, 1, w, 1)/two
-          dens(i,k) = -(const+temp)
-        end do
-      end do
-
-      w(1) = zero
-
-      return
-      end
-      subroutine deneei ( x, mu, scale, shape, n, p, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for diagonal, constant-variance Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, eps
-
-c     double precision   x(n,p), mu(p,G), shape(p)
-      double precision   x(n,*), mu(p,*), shape(*)
-
-c     double precision   dens(n,G)
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  data matrix.
-c  n       integer (input)        number of data points.
-c  p       integer (input)        dimension of the data.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G)  mean for each group.
-c  scale   double  (input)        common scale factor for group covariance.
-c  shape   double  (input) (p)    common shape for group covariance,
-c          normalized so that the product of the elements is 1 (destroyed).
-c  eps     double  (input/ouput)  On input, lower bound for scale / shape.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point,
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const, smin, smax
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps = max(eps,zero)
-
-      if (scale .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. sqrt(eps)) then
-c       FLMAX = d1mach(2)
-        eps   = FLMAX
-        return
-      end if
-
-      eps = smin*smin
-
-      const = dble(p)*(pi2log+log(scale)) 
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine deneev( x, mu, scale, shape, O, n, p, G, 
-     *                   v, w, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for Gaussian mixtures with equal shape and volume
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   scale, eps
-
-c     double precision   x(n,p), mu(p,G), shape(p), O(p,p,G)
-      double precision   x(n,*), mu(p,*), shape(*), O(p,p,*)
-
-c     double precision   v(p), w(p), dens(n,G)
-      double precision   v(*), w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  matrix of data points.
-c  mu      double  (input) (p,G)  mean for each group.
-c scale    double  (input) common scale factor for the covariances,
-c             defined so that shape is normalized to have unit determinant.
-c shape    double  (input) (p) common shape vector for covariances,
-c   normalized so that the product of the elements equals 1 (destroyed).
-c  O       double  (input) (p,p,G) orientation for each group.
-c                           Sigma = scale * t(O) %*% diag(shape) %*%   O
-c  n       integer (input) number of data points.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  v       double  (scratch) (p)  workspace.
-c  w       double  (scratch) (p)  workspace. 
-c  eps    double  (input/output)  On input, lower bound on the scale / shape.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density of each data point,
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        const, temp, smin, smax
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(eps, zero)
-  
-      if (scale .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-  
-      if (smin .le. sqrt(eps)) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin*smin
-        
-      const = dble(p)*(pi2log + log(scale))/two
-
-      do k = 1, G
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp      = ddot( p, v, 1, v, 1)/two
-          dens(i,k) = -(const+temp)
-        end do
-
-      end do
-
-      return
-      end
-      subroutine deneii( x, mu, sigsq, n, p, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for spherical, constant-volume Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   sigsq, eps
-
-c     double precision   x(n,p), mu(p,G), dens(n, G)
-      double precision   x(n,*), mu(p,*), dens(n, *)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  data matrix.
-c  n       integer (input)        number of data points.
-c  p       integer (input)        dimension of the data.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G)  mean for each group.
-c  sigsq   double  (input)        common variance for the groups.
-c  eps     double  (input/ouput)  On input, lower bound for sigma squared.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        sum, sumz, temp, const
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps   = max(eps,zero)
-
-      if (sigsq .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = sigsq
-
-      const = dble(p)*(pi2log+log(sigsq))
-
-      do i = 1, n
-        sumz = zero
-        do k = 1, G
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum/sigsq)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine denevi( x, mu, scale, shape, n, p, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for diagonal Gaussian mixtures
-c with equal volume and varying shape
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, eps
-
-c     double precision   x(n,p), mu(p,G), shape(p,G)
-      double precision   x(n,*), mu(p,*), shape(p,*)
-
-c     double precision   dens(n,G)
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  data matrix.
-c  n       integer (input)        number of data points.
-c  p       integer (input)        dimension of the data.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G)  mean for each group.
-c  scale   double  (input)        common scale factor for group covariances.
-c  shape   double  (output) (p,G) shape vector for each group covariance,
-c         normalized so that the product of the elements is 1 (destroyed).
-c  eps     double  (input/output) On input, lower bound for scale and shape.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point,
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const
-      double precision        smin, smax, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(eps, zero)
-      rteps = sqrt(eps)
-    
-      if (scale .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do k = 1, G
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-        call drnge( p, shape(1,k), 1, smin, smax)
-        if (smin .le. rteps) then
-          eps = FLMAX
-          return
-        end if
-      end do
-
-      const  = dble(p)*(pi2log+log(scale))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine denvei( x, mu, scale, shape, n, p, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for diagonal Gaussian mixtures
-c with varying volume and equal shape
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps
-
-c     double precision   x(n,p), mu(p,G), scale(G), shape(p)
-      double precision   x(n,*), mu(p,*), scale(*), shape(*)
-
-c     double precision   dens(n,G)
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  data matrix.
-c  n       integer (input)        number of data points.
-c  p       integer (input)        dimension of the data.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G)  mean for each group.
-c  scale   double  (input) (G)    scale factor for each group covariance.
-c  shape   double  (output) (p)   common shape vector for the covariances,
-c        normalized so that the product of the elements is 1 (destroyed).
-c  eps     double  (input/output) On input, lower bound for scale and shape.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point,
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const, smin, smax, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
- 
-      eps   = max(eps,zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine denvev( x, mu, scale, shape, O, n, p, G, 
-     *                   v, w, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for Gaussian mixtures with equal shape.
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   eps
-
-c     double precision   x(n,p), mu(p,G)
-      double precision   x(n,*), mu(p,*)
-
-c     double precision   scale(G), shape(p), O(p,p,G)
-      double precision   scale(*), shape(*), O(p,p,*)
-
-c     double precision   v(p), w(p), dens(n,G)
-      double precision   v(*), w(*), dens(n,*)
-
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  matrix of data points.
-c  mu      double  (input) (p,G)  mean for each group.
-c scale    double  (input) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape    double  (input) (p) common shape vector for covariances,
-c   normalized so that the product of the elements equals 1 (destroyed).
-c  O       double  (input) (p,p,G) orientation for each group.
-c                            Sigma = scale * t(O) %*% diag(shape) %*%   O
-c  n       integer (input) number of data points.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  v       double  (scratch) (p)  workspace.
-c  w       double  (scratch) (p)  workspace.  
-c  eps     double  (input/output) On input, lower bound on scale / shape.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        const, temp, smin, smax, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(eps, zero)
-
-      call drnge( p, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-
-        scalek = scale(k)
-        
-        const = dble(p)*(pi2log+log(scalek))
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp      = ddot( p, v, 1, v, 1)/scalek
-          dens(i,k) = -(const+temp)/two
-        end do
-
-      end do
-
-      return
-      end
-      subroutine denvii( x, mu, sigsq, n, p, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for spherical, varying-volume Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, p, G
-
-c     double precision   sigsq(G)
-      double precision   sigsq(*), eps
-
-c     double precision   x(n,p), mu(p,G), dens(n,G)
-      double precision   x(n,*), mu(p,*), dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x      double  (input) (n,p)  data matrix.
-c  n      integer (input)        number of data points.
-c  p      integer (input)        dimension of the data.
-c  G      integer (input)        number of Gaussian clusters in the mixture.
-c  mu     double  (input) (p,G)  mean for each group.
-c  sigsq  double  (input) (G)    variance for each group.
-c  eps    double  (input/ouput)  On input, lower bound for sigsq.
-c                                On output, FLMAX if below threshold.
-c  dens   double  (output) (n,G) log component density for each data point
-c                                not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        sum, sigsqk, temp, const
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps  = max(eps,zero)
-
-      temp = sigsq(1)
-
-      if (G .gt. 1) then
-        do k = 2, G
-          temp = min(temp,sigsq(k))
-        end do
-      end if
-
-      if (temp .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = temp
-
-      do k = 1, G
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsq(k)))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum/sigsqk)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine denvvi( x, mu, scale, shape, n, p, G, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for diagonal Gaussian mixtures
-c with varying volume and shape
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps
-
-c     double precision   x(n,p), mu(p,G), scale(G), shape(p,G)
-      double precision   x(n,*), mu(p,*), scale(*), shape(p,*)
-
-c     double precision   dens(n,G)
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p)  data matrix.
-c  n       integer (input)        number of data points.
-c  p       integer (input)        dimension of the data.
-c  G       integer (input)        number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G)  mean for each group.
-c  scale   double  (input) (G)    scale factor for each group covariance.
-c  shape   double  (output) (p,G) shape vector for each group covariance,
-c                 normalized so that the product of the elements is 1.
-c  eps     double  (input/output) On input, lower bound on scale and shape.
-c                                 On output, FLMAX if below threshold.
-c  dens    double  (output) (n,G) log component density for each data point,
-c                                 not including mixing proportions.
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const
-      double precision        smin, smax, scalek, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(eps, zero)
-      rteps = sqrt(eps)
-
-      do k = 1, G
-        temp = sqrt(scale(k))
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-      end do
-
-      do k = 1, G
-       
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. rteps) then
-          eps = FLMAX
-          return
-        end if
-
-      end do
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin
-
-      do k = 1, G
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine denvvv( CHOL, x, mu, Sigma, n, p, G, w, eps, dens)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c log component densities for unconstrained Gaussian mixtures
-
-      implicit NONE
-
-      character          CHOL
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   eps
-
-c     double precision   x(n,p), mu(p,G), Sigma(p,p,G)
-      double precision   x(n,*), mu(p,*), Sigma(p,p,*)
-
-c     double precision   w(p), dens(n,G)
-      double precision   w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-c
-c  CHOL    char    (input) 'N': full Sigma given rather than Cholesky factor.
-c  x       double  (input) (n,p)  data matrix.
-c  mu      double  (input) (p,G)  mean for each group.
-c  Sigma   double  (input) (p,p,G) On input, covariance matrix or its upper
-c                  triangular Cholesky factor for each group. 
-c                  On output, upper triangle overwritten by Cholesky factor.
-c  n       integer (input) number of data points.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  eps     double  (input/output) On input, lower bound on reciprocal 
-c                 condition estimate of the Cholesky factor of the covariances.
-c                   On output, minimum reciprocal condition estimate.
-c  w       double  (scratch/output) (p) workspace.  On output, w(1) is the
-c                   error code for the LAPACK Cholesky decomposition.
-c  dens    double  (output) (n,G) log component density for each data point
-c                                 not including mixing proportions.
-
-      integer                 p1, info, i, j, k
-
-      double precision        const, detlog, temp
-      double precision        umin, umax, rc
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      p1    = p + 1
-
-c     FLMAX = d1mach(2)
-
-      if (CHOL .eq. 'N') then
-
-        do k = 1, G
-
-          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
-
-          w(1) = dble(info)
-
-          if (info .ne. 0) then
-            w(1) = FLMAX
-            return
-          end if
-       
-        end do
-
-      end if
-
-      eps = max(eps,zero)
-      eps = sqrt(eps)
-
-      rc   = FLMAX
-      do k = 1, G
-        call drnge( p, Sigma(1,1,k), p1, umin, umax)
-        rc  = min(rc,umin/(one+umax))
-      end do
-
-      if (rc .le. eps) then
-        eps = rc
-        return
-      end if
- 
-      eps = rc
-
-      do k = 1, G
-
-        detlog = zero
-        do j = 1, p
-          detlog = detlog + log(abs(Sigma(j,j,k)))
-        end do
-
-        const = dble(p)*pi2log/two + detlog
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
-          temp      = ddot( p, w, 1, w, 1)/two
-          dens(i,k) = -(const+temp)
-        end do
-
-      end do
-
-      w(1) = zero
-
-      return
-      end
-      subroutine em1e ( EQPRO, x, n, G, Vinv, mu, sigsq, pro,
-     *                  maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for one-dimensional Gaussian mixtures with equal variance
-
-      implicit NONE
-
-      logical            EQPRO
-
-      integer             n, G, maxi
-
-      double precision    tol, eps, Vinv
-
-c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
-      double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                        the data region for Poisson noise term.
-c mu    double  (input/output) (G) mean for each group.
-c sigsq double  (input/output) variance for the groups.
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                                On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                loglikelihood. On output, maximum relative error for ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer                 nz, iter, k, i
-
-      double precision        hold, hood, err, tmin, tmax, ViLog
-      double precision        const, sum, sumz, temp, muk, prok
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      if (sigsq .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter  = iter + 1
-
-      const = pi2log+log(sigsq)
-
-      do k = 1, G
-        muk  = mu(k)
-c       prok = pro(k)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
-          z(i,k) = -(const+(temp*temp)/sigsq)/two
-        end do
-      end do
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sumz  = zero
-
-      sigsq = zero
-
-      do k = 1, G
-        muk = zero
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          muk  = muk + temp*x(i)
-        end do
-        sumz   = sumz + sum
-        muk    = muk / sum
-        mu(k)  = muk
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          temp   = x(i) - muk
-          temp   = temp*temp
-          sigsq  = sigsq + z(i,k)*temp
-        end do
-      end do
-
-      if (Vinv .le. zero) then
-        sigsq  = sigsq / dble(n)
-      else
-        sigsq  = sigsq / sumz
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-      subroutine em1v ( EQPRO, x, n, G, Vinv, mu, sigsq, pro,
-     *                  maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM iteration (E-step first) for general one-dimensional Gaussian mixtures
-
-      implicit NONE
-
-      logical              EQPRO
-
-      integer              n, G, maxi
-
-      double precision     Vinv, tol, eps
-
-c     double precision     x(n), z(n,G[+1])
-      double precision     x(*), z(n,  *  )
-
-c     double precision     mu(G), sigsq(G), pro(G[+1])
-      double precision     mu(*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c mu    double (input/output) (G) initial/final mean for each group.
-c sigsq double (input/output) (G) variance for each group.
-c pro   double (input/output) (G[+1]) initial/final mixing proportions 
-c                                    (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c            loglikelihood. On output, maximum relative error for the ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer                 nz, iter, k, i
-
-      double precision        hold, hood, err, const, sum
-      double precision        temp, sigmin, muk, sigsqk
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      err    = FLMAX
-
-      do k = 1, G
-        if (sigsq(k) .le. eps) then
-          tol = FLMAX
-          eps = FLMAX
-          maxi = 0
-        end if
-      end do
-
-      iter   = 0
-
-100   continue
-
-      iter   = iter + 1
-
-      do k = 1, G
-        muk    = mu(k)
-c       prok   = pro(k)
-        sigsqk = sigsq(k)
-        const  = pi2log + log(sigsqk)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+((temp*temp)/sigsqk))/two)           
-          z(i,k) = -(const+((temp*temp)/sigsqk))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum) + tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sum = zero
-        muk = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          muk  = muk + temp*x(i)
-        end do
-        muk    = muk / sum
-        mu(k)  = muk
-        sigsqk = zero
-        do i = 1, n
-          temp   = x(i) - muk
-          temp   = temp*temp
-          sigsqk = sigsqk + z(i,k)*temp
-          z(i,k) = temp
-        end do
-        sigsqk   = sigsqk / sum
-        sigmin   = min(sigmin,sigsqk)
-        sigsq(k) = sigsqk
-        if (.not. EQPRO) pro(k)   = sum / dble(n)
-      end do
-
-      if (sigmin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emeee ( CHOL, EQPRO, x, n, p, G, Vinv, 
-     *                   mu, U, pro, maxi, tol, eps, w, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for constant-variance Gaussian mixtures
-
-      implicit NONE
-
-c      character          CHOL
-      integer            CHOL
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi
-
-      double precision   Vinv, tol, eps
-
-c     double precision   x(n,p), z(n,G[+1]), w(p)
-      double precision   x(n,*), z(n,  *  ), w(*)
-
-c     double precision   mu(p,G), U(p,p), pro(G[+1])
-      double precision   mu(p,*), U(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c R: CHOL changed to integer rather than character: 0 ~ 'N'
-c CHOL  char    (input) 'N' full Sigma given rather than Cholesky factor.
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c mu    double  (input/output) (p,G) means for each group.
-c U     double  (input/output) (p,p) On input, either an estimate of Sigma 
-c (CHOL .eq. 'N') or of the upper triangular Cholesky factor of Sigma. 
-c  On output, final estimate of the upper triangular Cholesky factor of Sigma.
-c pro   double  (input/output) (G) mixing proportions (used even if equal).
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on the reciprocal
-c           condition estimate of the Cholesky factor of the covariance.
-c                              On output, the loglikelihood.
-c w     double  (scratch/output) (p) On output, w(1) is error code for the 
-c                              LAPACK Cholesky decomposition.
-c z     double  (output) (n,G) conditional probabilities. 
-
-      integer                 nz, info, p1, iter, i, j, k, j1
-
-      double precision        piterm, sclfac, sum, sumz
-      double precision        temp, cs, sn, umin, umax, rc, rteps
-      double precision        const, hold, hood, err, detlog
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-c     FLMAX = d1mach(2)
-
-c      if (CHOL .eq. 'N') then
-      if (CHOL .eq. 0) then
-
-c Cholesky factorization
-        call dpotrf( 'U', p, U, p, info)
-
-        if (info .ne. 0) then
-c         w(1) = FLMAX
-          w(1) = dble(info)
-          tol  = FLMAX
-          eps  = FLMAX
-          return
-        end if
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      piterm = dble(p)*pi2log/two
-
-      p1     = p + 1
-
-      sclfac = one/sqrt(dble(n))
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-c condition number
-
-      call drnge( p, U, p1, umin, umax)
-
-      rc = umin/(one+umax)
-
-      if (rc .le. rteps) then
-c       w(1) = rc
-        w(1) = zero
-        eps  = FLMAX
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-      iter = iter + 1
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(U(j,j)))
-      end do
-
-      const = piterm + detlog
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
-          sum    = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = temp * exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy (G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sumz = zero
-
-      do j = 1, p
-        call dcopy( j, zero, 0, U(1,j), 1)
-      end do
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j), w(j), cs, sn)
-            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( U(p,p), w(p), cs, sn)
-        end do
-
-      end do
-
-      if (Vinv .le. zero) then
-        do j = 1, p
-          call dscal( j, sclfac, U(1,j), 1)
-        end do
-      else 
-        do j = 1, p
-          call dscal( j, one/sqrt(sumz), U(1,j), 1)
-        end do
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      call drnge( p, U, p1, umin, umax)
-
-      rc = umin/(one+umax)
-
-c     w(1) = rc
-      w(1) = zero
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-      subroutine emeei ( EQPRO, x, n, p, G, Vinv, 
-     *                   mu, scale, shape, pro, maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for diagonal, constant-volume Gaussian mixtures
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    tol, eps, Vinv, scale
-
-c     double precision    x(n,p), z(n,G), mu(p,G), shape(p), pro(G)
-      double precision    x(n,*), z(n,*), mu(p,*), shape(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c mu    double  (input/output) (G) mean for each group.
-c scale double  (input/output) common scale factor for group covariance.
-c shape double  (input/output) (p) common shape for group covariance,
-c              normalized so that the product of the elements is 1.
-
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, temp, sumz, const
-      double precision    hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (scale .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      const = dble(p)*(pi2log + log(scale))
-
-      iter = iter + 1
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
-          z(i,k) = -(const+(sum/scale))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-	hood = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      sumz  = zero
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum/dble(n)
-        do j = 1, p
-          sum = zero
-          do i = 1, n
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + z(i,k)*temp*temp
-          end do
-          shape(j) = shape(j) + sum
-        end do
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        scale = zero
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (Vinv .le. zero) then
-        scale  = temp / dble(n)
-      else
-        scale  = temp / sumz
-      end if
-
-      if (temp .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emeev ( SIGMA, EQPRO, x, n, p, G, Vinv, mu,
-     *                   scale, shape, O, pro, maxi, tol, eps,
-     *                   lwork, w, z, s)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for Gaussian mixtures with equal shape and volume
-
-      implicit NONE
-
-      integer            SIGMA
-c      character          SIGMA
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi, lwork
-
-      double precision	 Vinv, eps, tol, scale
-
-c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
-
-c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
-      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-
-c------------------------------------------------------------------------------
-c R: Sigma is an integer... N ~ 0, U ~ 1, else ...
-c SIGMA char    (input) 'N' Sigma = scale * t(O) %*% diag(shape) %*% 0
-c                       'U' upper triangular Cholesky factor
-c                      else: full covariance
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c mu    double  (input/output) (p,G) mean for each group
-c scale double  (input/output) common scale factor for the covariances,
-c             defined so that shape is normalized to have unit determinant.
-c shape double  (input/output) (p) common shape vector for covariances,
-c               normalized so that the product of the elements equals 1.
-c O     double  (input/output) (p,p,G) On input: if scale >= 0, orthogonal 
-c   orientation matrix for each group; if scale < 0 full covariance matrix
-c   for eadch group. On output, orthonal orientation matrix
-c                  Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (input/output) (G) mixing proportions (used even if equal).
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                   loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, tolerance on the reciporcal condition
-c           estimate for the covariance matrices. On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4) workspace 
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c w     double  (scratch) (lwork)
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c s     double  (scratch) (p) 
-
-      integer                 nz, p1, iter, i, j, k, l, j1, info
-
-      double precision        dnp, dummy, temp, rteps
-      double precision        sumz, sum, smin, smax, cs, sn
-      double precision        const, rc, hood, hold, err
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-c     FLMAX  = d1mach(2)
-
-      p1 = p + 1
-
-      if (SIGMA .ne. 0) then
-
-c Cholesky factorization and singular value decomposition
-
-        call dcopy( p, zero, 0, shape, 1)
-
-        temp = zero
-
-        l = 0
-        do k = 1, G
-          if (SIGMA .ne. 1) then
-            call dpotrf( 'U', p, O(1,1,k), p, info)
-            if (info .ne. 0) then
-              temp = dble(info)
-              goto 10
-            end if
-          end if
-          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
-     *                  dummy, 1, dummy, 1, w, lwork, info)
-          if (info .ne. 0) then
-            l = info
-            goto 10
-          end if
-          do j = 1, p
-            temp     = s(j)
-            shape(j) = shape(j) + temp*temp
-          end do
-        end do
-
-   10   continue
-
-        if (temp .ne. zero .or. l .ne. 0) then
-          lwork = l
-c         w(1)  = FLMAX
-c         w(2)  = temp
-          tol   = FLMAX
-          eps   = FLMAX
-          err   = FLMAX
-          return
-        end if
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-          lwork = 0
-c         w(1)  = smin
-c         w(2)  = zero
-          tol   = err
-          eps   = FLMAX
-          maxi  = iter
-          return
-        end if
-
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp  = exp(sum/dble(p))
-
-        if (Vinv .le. zero) then
-          scale = temp/dble(n)
-        else
-          scale = temp/sumz
-        end if
-
-        if (temp .le. eps) then
-          lwork = 0
-c         w(1)  = temp
-c         w(2)  = zero
-          tol   = err
-          eps   = FLMAX
-          maxi  = iter
-          return
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      dnp    = dble(n*p)
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      temp = sqrt(scale)
-      do j = 1, p
-        w(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, w, 1, smin, smax)
-      
-      rc = smin / (one+smax)
-
-      if (rc .le. rteps) then
-        lwork = 0
-c       w(1)  = rc
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      iter = iter + 1
-
-      const = dble(p)*(pi2log + log(scale))/two
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w(p1), 1)
-          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, s, 1)
-          do j = 1, p
-            s(j) = s(j) / w(j)
-          end do
-          sum    = ddot( p, s, 1, s, 1)/two
-c         z(i,k) = temp*exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      sumz = zero
-
-      l    = 0
-
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( O(j,j,k), w(j), cs, sn)
-            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( O(p,p,k), w(p), cs, sn)
-        end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
-     *                dummy, 1, dummy, 1, w, lwork, info)
-        if (info .ne. 0) then
-          l = info
-        else 
-          do j = 1, p
-            temp     = s(j)
-            shape(j) = shape(j) + temp*temp
-          end do
-        end if
-      end do
-
- 110  continue
-
-      if (l .ne. 0) then
-        lwork = l        
-c       w(1)  = FLMAX
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        lwork = 0
-c       w(1)  = smin
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (Vinv .le. zero) then
-        scale = temp/dble(n)
-      else
-        scale = temp/sumz
-      end if
-
-      if (temp .le. eps) then
-        lwork = 0
-c       w(1)  = temp
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      lwork = 0
-
-c     w(1)  = rc
-c     w(2)  = zero
-
-      tol   = err
-      eps   = hood
-      maxi  = iter
-
-      return
-      end
-
-      subroutine emeii ( EQPRO, x, n, p, G, Vinv, mu, sigsq, pro,
-     *                   maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for spherical, constant-volume Gaussian mixtures
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    tol, eps, Vinv, sigsq
-
-c     double precision    x(n,p), z(n,G), mu(p,G), pro(G)
-      double precision    x(n,*), z(n,*), mu(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c mu    double  (input/output) (G) mean for each group.
-c sigsq double  (input/output) common variance for the groups.
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer             nz, iter, i, j, k
-
-      double precision    dnp, sum, temp, sumz, tmin, tmax
-      double precision    const, hold, hood, err, prok, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      dnp    = dble(n*p)
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (sigsq .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter = iter + 1
-
-      const  = dble(p)*(pi2log+log(sigsq))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/sigsq))/two)
-          z(i,k) = -(const+(sum/sigsq))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sumz  = zero
-
-      sigsq = zero
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum/dble(n)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsq  = sigsq + z(i,k)*sum
-        end do
-      end do
-
-      if (Vinv .le. zero) then
-        sigsq  = sigsq / dnp
-      else
-        sigsq  = sigsq / (dble(p)*sumz)
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-      subroutine emevi ( EQPRO, x, n, p, G, Vinv, 
-     *                   mu, scale, shape, pro, maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for diagonal Gaussian mixtures
-c with equal volume and varying shape
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    scale, tol, eps, Vinv
-
-c     double precision    x(n,p), z(n,G)
-      double precision    x(n,*), z(n,*)
-
-c     double precision    mu(p,G), shape(p,G), pro(G)
-      double precision    mu(p,*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c mu    double  (input/output) (G) mean for each group.
-c scale double  (input/output) common scale factor for group covariances.
-c shape double  (input/output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, sumz, temp, const, epsmin
-      double precision    hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (scale .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. eps) then
-          tol  = err
-          eps  = FLMAX
-          maxi = iter
-          return
-        end if
-
-      end do
-
-      iter = iter + 1
-
-      const = dble(p)*(pi2log + log(scale))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j,k)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
-          z(i,k) = -(const+(sum/scale))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      sumz = zero
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      epsmin = FLMAX
-      scale  = zero
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .ne. zero) then
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do
-          temp   = exp(sum/dble(p))
-          scale  = scale + temp
-          epsmin = min(temp,epsmin)
-          if (temp .gt. eps)
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-
-      if (Vinv .gt. zero) then
-        scale = scale / sumz
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        scale = scale / dble(n)
-      end if
-
-      if (epsmin .le. eps) then
-        scale = zero
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-      subroutine emvei ( EQPRO, x, n, p, G, Vinv, mu, scale, shape, pro,
-     *                   maxi, tol, eps, z, scl, shp, w)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (MEstep first) for diagonal Gaussian mixtures
-c with varying volume and shape
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi(2)
-
-      double precision    Vinv, eps, tol(2)
-
-c     double precision    x(n,p), z(n,G[+1]), scl(G), shp(p), w(p,G)
-      double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
-
-c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
-      double precision    mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c mu    double  (input/output) (G) mean for each group.
-c scale double  (input/output) (G) scale factor for each group covariances.
-c shape double  (input/output) (p) common shape for the group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-C                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c z     double  (output) (n,G[+1]) init/final conditional probabilities.
-c scl   double  (scratch) (G)
-c shp   double  (scratch) (p)
-c w     double  (scratch) (p*G)
-
-      integer             nz, i, j, k
-      integer             iter, maxi1, maxi2, inner, inmax
-
-      double precision    tol1, tol2, sum, temp, tmax, tmin
-      double precision    prok, scalek, smin, smax, const
-      double precision    hold, hood, err, errin, dnp, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-     
-      maxi1  = maxi(1)
-      maxi2  = maxi(2)
-
-      if (maxi1 .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-
-      tol1   = max(tol(1),zero)
-      tol2   = max(tol(2),zero)
-
-      dnp    = dble(n*p)
-
-c     FLMAX  = d1mach(2)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-      errin  = FLMAX
-
-      inmax  = 0
-
-      iter   = 0
-
-100   continue
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = inmax
-        eps     = hood
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        maxi(1) = iter
-        maxi(2) = inmax
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = hood
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j)
-          end do
-c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
-          z(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do j = 1, p
-          sum = zero
-          do i = 1, n
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + z(i,k)*(temp*temp)
-          end do
-          w(j,k) = sum
-        end do
-      end do
-
-      call dscal( G, dble(p), pro, 1)
-
-c inner iteration to estimate scale and shape
-c prob now contains n*prob
-
-      iter = iter + 1
-
-      inner = 0
-
-      if (maxi2 .le. 0) goto 120
-
-110   continue
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = smin
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      inner = inner + 1
-
-c scale estimate
-
-      call dcopy( G, scale, 1, scl, 1)
-
-      do k = 1, G
-        sum = zero
-        do j = 1, p
-          sum = sum + w(j,k)/shape(j)
-        end do
-        scale(k) = sum/pro(k)
-      end do
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = smin
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-c shape estimate
-
-      call dcopy( p, shape, 1, shp, 1)
-
-      do j = 1, p
-        sum = zero
-        do k = 1, G
-          sum = sum + w(j,k)/scale(k)
-        end do
-        shape(j) = sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = smin
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (temp .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = temp
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      errin = zero
-
-      do k = 1, G
-        errin = max(errin, abs(scl(k)-scale(k))/(one + scale(k)))
-      end do
-
-      do j = 1, p
-        errin = max(errin, abs(shp(j)-shape(j))/(one + shape(j)))
-      end do
-
-      if (errin .gt. tol2 .and. inner .le. maxi2) goto 110
-
-120   continue
-
-      inmax = max(inner, inmax)
-
-      if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      if (err  .gt. tol1 .and. iter .lt. maxi1) goto 100
-
-      maxi(1) = iter
-      maxi(2) = inmax
-
-      tol(1)  = err
-      tol(2)  = errin
-
-      eps     = hood
-
-      return
-      end
-
-      subroutine emvev ( SIGMA, EQPRO, x, n, p, G, Vinv, mu, 
-     *                   scale, shape, O, pro, maxi, tol, eps, 
-     *                   lwork, w, z, s)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for Gaussian mixtures with equal shape and volume
-
-      implicit NONE
-
-c      character          SIGMA
-      integer            SIGMA
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi(2), lwork
-
-      double precision   Vinv, eps, tol(2)
-
-c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p, G)
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(p, *)
-
-c     double precision   mu(p,G), pro(G[+1])
-      double precision   mu(p,*), pro(  *  )
-
-c     double precision   scale(G), shape(p), O(p,p,G)
-      double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-c R: SIGMA integer 0, 1, else for 'N', 'U', else, respectively
-c SIGMA char    (input) 'N' Sigma = scale * t(O) %*% diag(shape) %*% 0
-c                       'U' upper triangular Cholesky factor
-c                      else: full covariance
-c          unless Sigma .eq. 'N' scale and shape estimates are needed 
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                       of the data region for Poisson noise term.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (input/output) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (input/output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, tolerance on the reciprocal condition
-c           estimate for the covariance matrices. On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4,p+G) workspace
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c w     double  (scratch) (lwork) 
-c z     double  (input/output) (n,G[+1]) conditional probabilities.
-c s     double  (scratch) (p)
-
-      integer                 maxi1, maxi2, nz, p1, inmax, iter
-      integer                 i, j, k, l, j1, info, inner
-
-      double precision        tol1, tol2, dnp, rteps, ViLog
-      double precision        rcmin, errin, smin, smax, tmin, tmax
-      double precision        cs, sn, dummy, hold, hood, err
-      double precision        const, temp, sum, prok, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-     
-      maxi1  = maxi(1)
-      maxi2  = maxi(2)
-
-c     FLMAX  = d1mach(2)
-
-      if (maxi1 .le. 0) return
-
-      if (SIGMA .ne. 0) then
-
-c Cholesky factorization and singular value decomposition
-
-        temp = zero
-
-        l = 0
-        do k = 1, G
-          
-          if (SIGMA .ne. 1) then
-            call dpotrf( 'U', p, O(1,1,k), p, info)
-            if (info .ne. 0) then
-              l = info
-              goto 10
-            end if
-          end if
-          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s,
-     *                  dummy, 1, dummy, 1, w, lwork, info)
-          if (info .ne. 0) then
-            l = info
-            goto 10
-          end if
-
-          do j = 1, p
-            temp     = s(j,1)
-            shape(j) = shape(j) + temp*temp
-          end do
-
-          call drnge( p, s, 1, smin, smax)
-          if (smin .eq. zero) then
-            scale(k) = zero
-          else 
-            sum = zero
-            do j = 1, p
-              sum = sum + log(s(j,1))
-            end do
-            scale(k) = exp(sum)
-          end if
-
-        end do
-
-   10   continue
-
-        if (l .ne. 0) then
-          lwork   = l
-          maxi(1) = -1
-          maxi(2) = -1
-          tol(1)  = FLMAX
-          tol(2)  = FLMAX
-          eps     = FLMAX
-          return
-        end if
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-          lwork   = 0
-c         w(1)    = smin
-          tol(1)  = FLMAX
-          tol(2)  = FLMAX
-          eps     = FLMAX
-          maxi(1) = -1
-          maxi(2) = -1
-          return
-        end if
-
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp  = exp(sum/dble(p))
-
-        if (temp .le. eps) then
-          lwork   = 0
-c         w(1)    = temp
-c         w(2)    = zero
-          tol(1)  = FLMAX
-          tol(2)  = FLMAX
-          eps     = FLMAX
-          maxi(1) = -1
-          maxi(2) = -1
-          return
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol1   = max(tol(1),zero)
-      tol2   = max(tol(2),zero)
-
-      p1     = p + 1
-
-      dnp    = dble(n*p)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-      errin  = FLMAX
-
-      inmax  = 0
-
-      iter   = 0
-
-100   continue
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        lwork   = 0
-c       w(1)    = smin
-c       w(2)    = zero
-        maxi(1) = iter
-        maxi(2) = inmax
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        return
-      end if
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        lwork   = 0
-        w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do j = 1, p
-        s(j,1) = sqrt(shape(j))
-      end do
-
-      call drnge( p, s, 1, smin, smax)
-
-      if (smin .le. rteps) then
-        lwork   = 0
-c       w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const = dble(p)*(pi2log + log(scalek))
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w(p1), 1)
-          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, 
-     *                 zero, w, 1)
-          do j = 1, p
-            w(j) = w(j) / s(j,1)
-          end do
-          sum    = ddot(p,w,1,w,1)/scalek
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      iter = iter + 1
-
-      l = 0
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( O(j,j,k), w(j), cs, sn)
-            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( O(p,p,k), w(p), cs, sn)
-        end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s(1,k),
-     *                dummy, 1, dummy, 1, w, lwork, info)
-        if (info .ne. 0) then
-          l = info
-        else
-          do j = 1, p
-            temp   = s(j,k)
-            s(j,k) = temp*temp
-          end do
-        end if
-      end do
-
-      if (l .ne. 0) then
-        if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        lwork   = l
-c       w(1)    = FLMAX
-c       w(2)    = zero
-        maxi(1) = iter
-        maxi(2) = inner
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        return
-      end if
-
-c inner iteration to estimate scale and shape
-c prob now contains n*prob
-
-      inner = 0
-
-      if (maxi2 .le. 0) goto 120
-
-110   continue
-
-        call dcopy( p, shape, 1, w    , 1)
-        call dcopy( G, scale, 1, w(p1), 1)
-
-        call dcopy( p, zero, 0, shape, 1)
-
-        do k = 1, G
-          sum = zero
-          do j = 1, p
-            sum = sum + s(j,k)/w(j)
-          end do
-          temp     = (sum/pro(k))/dble(p)
-          scale(k) = temp
-          if (temp .le. eps) then
-            if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-            if (Vinv .gt. zero) then
-              sum = zero
-              do i = 1, n
-                sum = sum + z(i,nz)
-              end do
-              pro(nz) = sum / dble(n)
-              if (EQPRO) then
-                temp = (one - pro(nz))/dble(G)
-                call dcopy( G, temp, 0, pro, 1)
-              end if
-            else 
-              if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-            end if
-            lwork   = 0
-c           w(1)    = temp
-c           w(2)    = zero
-            maxi(1) = iter
-            maxi(2) = max(inner, inmax)
-            tol(1)  = err
-            tol(2)  = errin
-            eps     = FLMAX
-            return
-          end if
-          do j = 1, p
-            shape(j) = shape(j) + s(j,k)/temp
-          end do
-        end do
-
-        inner  = inner + 1
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-          if (Vinv .gt. zero) then
-            sum = zero
-            do i = 1, n
-              sum = sum + z(i,nz)
-            end do
-            pro(nz) = sum / dble(n)
-            if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
-            end if
-          else 
-            if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = smin
-c         w(2)    = zero
-          maxi(1) = iter
-          maxi(2) = max(inner,inmax)
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = hood
-          return
-        end if
-
-c normalize the shape matrix
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp = exp(sum/dble(p))
-
-        if (temp .le. eps) then
-          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-          if (Vinv .gt. zero) then
-            sum = zero
-            do i = 1, n
-              sum = sum + z(i,nz)
-            end do
-            pro(nz) = sum / dble(n)
-            if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
-            end if
-          else 
-            if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = temp
-c         w(2)    = zero
-          maxi(1) = iter
-          maxi(2) = max(inner,inmax)
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = FLMAX
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-        smin = smin/temp
-        smax = smax/temp
-
-        errin = zero
-        do j = 1, p
-          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
-        end do
-
-        do k = 1, G
-          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
-        end do
-
-        if (errin .ge. tol2 .and. inner .lt. maxi2) goto 110
-
-120   continue
-
-      inmax = max(inner, inmax)
-
-      if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-
-      if (Vinv .gt. zero) then
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      if (err  .gt. tol1 .and. iter .lt. maxi1) goto 100
-
-      lwork = 0
-
-      smin  = sqrt(smin)
-      smax  = sqrt(smax)
-
-      rcmin = FLMAX
-      do k = 1, G
-        temp = sqrt(scale(k))
-        rcmin = min(rcmin,(temp*smin)/(one+temp*smax))
-      end do
-
-      lwork   = 0
-     
-c     w(1)    = rcmin
-c     w(2)    = zero
-
-      maxi(1) = iter
-      maxi(2) = inmax
-
-      tol(1)  = err
-      tol(2)  = errin
-
-      eps     = hood
-
-      return
-      end
-      subroutine emvii ( EQPRO, x, n, p, G, Vinv, mu, sigsq, pro, 
-     *                   maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for spherical Gaussian mixtures with varying volumes
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, tol, eps
-
-c     double precision    x(n,p), z(n,G[+1])
-      double precision    x(n,*), z(n,  *  )
-
-c     double precision    mu(p,G), sigsq(G), pro(G[+1])
-      double precision    mu(p,*), sigsq(*), pro(  *  )
-
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noisGe term.
-c mu    double  (input/output) (G) mean for each group.
-c sigsq double  (input/output) (G) variance for each group.
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer             nz, iter, i, j, k
-
-      double precision    sumz, sum, temp, const, err, tmin, tmax
-      double precision    sigmin, sigsqk, prok, hold, hood, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-      sigmin = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (sigmin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter   = iter + 1
-
-      do k = 1, G
-c       prok   = pro(k)
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsqk))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+(sum/sigsqk))/two)           
-          z(i,k) = -(const+(sum/sigsqk))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sumz = sumz + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sumz), mu(1,k), 1)
-        sigsqk = zero
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsqk = sigsqk + z(i,k)*sum
-        end do
-        sigsqk   = (sigsqk/sumz)/dble(p)
-        sigsq(k) = sigsqk
-        sigmin   = min(sigsqk,sigmin)
-        if (.not. EQPRO) pro(k) = sumz / dble(n)
-      end do
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emvvi ( EQPRO, x, n, p, G, Vinv, 
-     *                   mu, scale, shape, pro, maxi, tol, eps, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (E-step first) for diagonal Gaussian mixtures
-c with varying volume and shape
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    tol, eps, Vinv
-
-c     double precision    x(n,p), z(n,G)
-      double precision    x(n,*), z(n,*)
-
-c     double precision    mu(p,G), scale(G), shape(p,G), pro(G)
-      double precision    mu(p,*), scale(*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c mu    double  (input/output) (G) mean for each group.
-c scale double  (input/output) (G) scale factor for each group covariances.
-c shape double  (input/output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (input/output) (G[+1]) mixing proportions (used even if equal).
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c z     double  (output) (n,G[+1]) conditional probabilities. 
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, temp, const, epsmin
-      double precision    hold, hood, err, smin, smax, scalek
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. eps) then
-          tol  = err
-          eps  = FLMAX
-          maxi = iter
-          return
-        end if
-
-      end do
-
-      iter = iter + 1
-
-      do k = 1, G
-        scalek = scale(k)
-        const = dble(p)*(pi2log + log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j,k)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
-          z(i,k) = -(const+(sum/scalek))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      epsmin = FLMAX
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .eq. zero) then
-          scale(k) = zero
-        else
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do
-          temp     = exp(sum/dble(p))
-          scale(k) = temp/pro(k)
-          epsmin   = min(temp,epsmin)
-          if (temp .gt. eps)
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-
-      if (.not. EQPRO) then
-        call dscal( G, one/dble(n), pro, 1)
-      else if (Vinv .le. zero) then
-        call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      end if
-
-      if (epsmin .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emvvv ( CHOL, EQPRO, x, n, p, G, Vinv, mu, U, pro,
-     *                   maxi, tol, eps, w, z) 
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for unconstrained Gaussian mixtures
-
-      implicit NONE
-
-      integer            CHOL
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi
-
-      double precision   Vinv, eps, tol
-
-c     double precision   x(n,p), z(n,G), w(p)
-      double precision   x(n,*), z(n,*), w(*)
-
-c     double precision   mu(p,G), U(p,p,G), pro(G)
-      double precision   mu(p,*), U(p,p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c R: CHOL integer, 'N' ~ 0
-c CHOL  char    (input) 'N' full Sigma given rather than Cholesky factor.
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                       of the data region for Poisson noise term.
-c mu    double  (output) (p,G) mean for each group.
-c U     double  (output) (p,p,G)
-c pro   double  (output) (G) conditional probabilities (used even if unequal).
-c z     double  (input/output) (n,G) conditional probabilities. 
-c eps   double  (input/output) On input, lower bound for reciprocal
-c      condition estimates of the Cholesky factors of the covariances. 
-c                              On output, the loglikelihood.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c            loglikelihood. On output, maximum relative error for the ll.
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c w     double  (scratch/output) (p) On output w(1) is the error code
-c                              for the LAPACK Cholesky decomposition.
-
-      integer                 nz, info, p1, iter, i, j, k, j1
-
-      double precision        piterm, hold, rcmin
-      double precision        temp, cs, sn, umin, umax, rteps
-      double precision        sum, detlog, const, hood, err
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-c     FLMAX = d1mach(2)
-
-      if (CHOL .eq. 0) then
-
-c Cholesky factorization
-
-        temp  = zero
-        do k = 1, G
-          call dpotrf( 'U', p, U(1,1,k), p, info)
-          if (info .ne. 0) temp = dble(info)
-        end do
-
-        if (temp .ne. zero) then
-c         w(1)  = FLMAX
-          w(1)  = temp
-          tol   = FLMAX
-          eps   = FLMAX
-          maxi  = -1
-          return
-        end if
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      piterm = dble(p)*pi2log/two
-
-      p1     = p + 1
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      rcmin  = FLMAX
-
-      do k = 1, G
-        call drnge( p, U(1,1,k), p1, umin, umax)
-        rcmin = min(umin/(one+umax),rcmin)
-      end do
-
-      if (rcmin .le. rteps) then
-c       w(1) = rcmin
-        w(1) = zero
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter  = iter + 1
-
-      do k = 1, G
-
-        detlog = zero
-        do j = 1, p
-          detlog = detlog + log(abs(U(j,j,k)))
-        end do
-
-        const = piterm+detlog
-
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U(1,1,k), p, w, 1)
-          sum    = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = temp*exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( j, zero, 0, U(1,j,k), 1)
-        end do
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j,k), w(j), cs, sn)
-            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( U(p,p,k), w(p), cs, sn)
-        end do
-
-        do j = 1, p
-          call dscal( j, one/sqrt(sum), U(1,j,k), 1)
-        end do
-
-      end do
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-c     w(1) = rcmin
-      w(1) = zero
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-      subroutine es1e ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for one-dimensional Gaussian mixtures 
-c with constant variance
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   sigsq, hood, Vinv
-
-c     double precision   x(n), mu(G), pro(G[+1]), z(n,G[+1])
-      double precision   x(*), mu(*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n) vector of observations.
-c  n       integer (input) number of observations.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (G) mean for each group.
-c  sigsq   double  (input) common variance for the groups.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for sigsq.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, k, nz
-
-      double precision        temp, const, muk, prok, tmin, tmax, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (sigsq .le. max(hood,zero)) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      const = pi2log + log(sigsq)
-
-      do k = 1, G
-        muk  = mu(k)
-c       prok = pro(k)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
-          z(i,k) = -(const+(temp*temp)/sigsq)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       temp = zero
-c       do k = 1, nz
-c         temp = temp + z(i,k)
-c       end do
-c       hood = hood + log(temp)
-c       call dscal( nz, (one/temp), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine es1v  ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood one-dimensional Gaussian mixtures 
-c with unrestricted variances
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n), mu(G), sigsq(G), pro(G[+1]), z(n,G[+1])
-      double precision   x(*), mu(*), sigsq(*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) vector of observations.
-c  n       integer (input) number of observations.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  sigsq   double  (input) (G) variance for each group.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for sigsq.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, k, nz
-
-      double precision        temp, const, tmin, tmax, sum
-      double precision        muk, sigsqk, prok, sigmin
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sigmin = min(sigmin,sigsq(k))
-      end do
-
-      if (sigmin .le. max(hood,zero)) then
-        hood  = FLMAX
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        muk    = mu(k)
-        sigsqk = sigsq(k)
-        const  = pi2log + log(sigsqk)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsqk)/two)
-          z(i,k) = -(const+(temp*temp)/sigsqk)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       temp = zero
-c       do k = 1, nz
-c         temp = temp + z(i,k)
-c       end do
-c       hood = hood + log(temp)
-c       call dscal( nz, (one/temp), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine eseee ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv,
-     *                   w, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for constant-variance Gaussian mixtures
-
-      implicit NONE
-
-      integer          CHOL
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n,p), w(p), z(n,G[+1])
-      double precision   x(n,*), w(*), z(n,  *  )
-
-c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
-      double precision   mu(p,*), Sigma(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  CHOL  char    (input) 'N': full Sigma given rather than Cholesky factor.
-c  x     double  (input) (n,p) matrix of observations.
-c  mu    double  (input) (p,G) mean for each group.
-c  Sigma double  (input) (p,p) On input, common covariance matrix or its upper
-c                              triangular Cholesky factor.
-c        On output, the upper triangle is overwritten by the Cholesky factor.
-c  pro   double  (input) (G[+1]) mixing proportions.
-c  n     integer (input) number of observations.
-c  p     integer (input) dimension of the data.
-c  G     integer (input) number of Gaussian clusters in the mixture.
-c  Vinv  double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  w     double  (scratch/output) (p) workspace.  On output, w(1) is the
-c                 the error code for the LAPACK Cholesky decomposition.
-c  hood  double  (input/output) On input, lower bound for the reciprocal 
-c                condition number of the Cholesky factor of the covariance.
-c              On output, FLMAX if ill conditioned else loglikelihood.
-c  z     double  (output) (n,G[+1]) conditional probabilities.
-
-      integer                 info, i, j, k, nz
-
-      double precision        eps, rteps, detlog, prok, tmin, tmax
-      double precision        umin, umax, const, temp, rc, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-      
-      eps   = max(hood,zero)
-      rteps = sqrt(eps)
-
-      if (CHOL .eq. 0) then
-
-c Cholesky factorization
-        call dpotrf( 'U', p, Sigma, p, info)
-
-        w(1) = dble(info)
-
-        if (info .ne. 0) then
-          hood  = FLMAX
-          return
-        end if
-
-      end if
-
-      call drnge( p, Sigma, (p+1), umin, umax)
-
-      rc   = umin/(one+umax)
-
-      if (rc .le. rteps) then
-        w(1)  = zero
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(Sigma(j,j)))
-      end do
-
-      const = dble(p)*pi2log/two + detlog
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
-          temp   = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = prok*exp(-(const+temp))
-          z(i,k) = -(const+temp)
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      w(1) = zero
-
-      return
-      end
-
-      subroutine eseei ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for diagonal, constant-variance Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, hood, Vinv
-
-c     double precision   x(n,p), z(n,G[+1])
-      double precision   x(n,*), z(n,  *  )
-
-c     double precision   mu(p,G), shape(p), pro(G[+1])
-      double precision   mu(p,*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) common scale factor for group covariance.
-c  shape   double  (input) (p) common shape for group covariance,
-c          normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound on scale / shape.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, tmin, tmax
-      double precision        eps, rteps, smin, smax, prok
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      eps   = max(hood, zero)
-      rteps = sqrt(eps)
-
-      if (scale .le. eps) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. rteps) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      const = dble(p)*(pi2log+log(scale)) 
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-      subroutine eseev ( x, mu, scale, shape, O, pro, n, p, G, 
-     *                   Vinv, v, w, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for Gaussian mixtures with equal shape and volume
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   scale, Vinv, hood
-
-c     double precision   x(n,p), v(p), w(p), z(n,G[+1])
-      double precision   x(n,*), v(*), w(*), z(n,  *  )
-
-c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
-      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  mu      double  (input) (p,G) mean for each group.
-c scale    double  (input) common scale factor for the covariances,
-c             defined so that shape is normalized to have unit determinant.
-c shape    double  (input) (p) common shape vector for covariances,
-c   normalized so that the product of the elements equals 1 (destroyed).
-c  O       double  (input) (p,p,G) orientation for each group.
-c                           Sigma = scale * t(O) %*% diag(shape) %*%   O
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  v       double  (scratch) (p) workspace.
-c  w       double  (scratch) (p) workspace.  
-c  hood    double  (input/output) On input, lower bound on scale / shape.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-      integer                 i, j, k, nz
-
-      double precision        const, temp, rteps, tmin, tmax
-      double precision        smin, smax, prok, eps, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(hood, zero)
-      rteps  = sqrt(eps)
-  
-      if (scale .le. eps) then
-        hood = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-  
-      if (smin .le. rteps) then
-        hood = FLMAX
-        return
-      end if
-        
-      const = dble(p)*(pi2log + log(scale))
-
-      do k = 1, G
-
-c       prok = pro(k)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp   = ddot( p, v, 1, v, 1)
-c         z(i,k) = prok*exp(-(const+temp)/two)
-          z(i,k) = -(const+temp)/two
-        end do
-
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-      subroutine eseii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for spherical, constant-volume Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   sigsq, hood, Vinv
-
-c     double precision   x(n,p), mu(p,G), pro(G[+1]), z(n,G[+1])
-      double precision   x(n,*), mu(p,*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  sigsq   double  (input) common variance for the groups.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for sigsq.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, prok, tmin, tmax
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (sigsq .le. max(hood,zero)) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      const = dble(p)*(pi2log+log(sigsq))
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum/sigsq)/two)
-          z(i,k) = -(const+sum/sigsq)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-      subroutine esevi ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for diagonal Gaussian mixtures
-c with equal volume and varying shape
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, hood, Vinv
-
-c     double precision   x(n,p), z(n,G[+1])
-      double precision   x(n,*), z(n,  *  )
-
-c     double precision   mu(p,G), shape(p,G), pro(G[+1])
-      double precision   mu(p,*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) common scale factor for group covariances.
-c  shape   double  (output) (p,G) shape vector for each group covariance,
-c        normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for scale / shape.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood, zero)
-      rteps = sqrt(eps)
-    
-      if (scale .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do k = 1, G
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-        call drnge( p, shape(1,k), 1, smin, smax)
-        if (smin .le. rteps) then
-          hood  = FLMAX
-          return
-        end if
-      end do
-
-      const  = dble(p)*(pi2log+log(scale))
-
-      do k = 1, G
-c       prok   = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-      subroutine esvei ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for diagonal Gaussian mixtures
-c with varying volume and equal shape
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n,p), z(n,G[+1])
-      double precision   x(n,*), z(n,  *  )
-
-c     double precision   mu(p,G), scale(G), shape(p), pro(G[+1])
-      double precision   mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) (G) scale factor for each group covariance.
-c  shape   double  (output) (p) common shape vector for the covariances,
-c        normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for scale / shape.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood, zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
-          z(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-      subroutine esvev ( x, mu, scale, shape, O, pro, n, p, G, 
-     *                   Vinv, v, w, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for Gaussian mixtures with equal shape.
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   Vinv, hood
-
-c     double precision   x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
-      double precision   x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
-
-c     double precision   v(p), w(p)
-      double precision   v(*), w(*)
-
-c     double precision   scale(G), shape(p), O(p,p,G)
-      double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  mu      double  (input) (p,G) mean for each group.
-c scale    double  (input) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape    double  (input) (p) common shape vector for covariances,
-c   normalized so that the product of the elements equals 1 (destroyed).
-c  O       double  (input) (p,p,G) orientation for each group.
-c                            Sigma = scale * t(O) %*% diag(shape) %*%   O
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  v       double  (scratch) (p) workspace.
-c  w       double  (scratch) (p) workspace.  
-c  hood    double  (input/output) On input, lower bound on scale / shape.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-      integer                 i, j, k, nz
-
-      double precision        const, temp, eps, tmin, tmax
-      double precision        smin, smax, scalek, prok, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(hood, zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood = FLMAX
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood = FLMAX
-        return
-      end if
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-
-        scalek = scale(k)
-        
-        const = dble(p)*(pi2log+log(scalek))
-
-c       prok  = pro(k)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp   = ddot( p, v, 1, v, 1)/scalek
-c         z(i,k) = prok*exp(-(const+temp)/two)
-          z(i,k) = -(const+temp)/two
-        end do
-
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      smin = FLMAX
-      smax = zero
-      do k = 1, G
-        scalek = sqrt(scale(k))
-        do j = 1, p
-          temp = scalek*shape(j)
-          smin = min(temp, smin)
-          smax = min(temp, smax)
-        end do
-      end do
-
-      w(1) = smin / (one+smax)
-
-      return
-      end
-      subroutine esvii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for spherical, varying-volume Gaussian mixtures
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n,p), z(n,G[+1])
-      double precision   x(n,*), z(n,  *  )
-
-c     double precision   mu(p,G), sigsq(G), pro(G[+1])
-      double precision   mu(p,*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  sigsq   double  (input) (G) variance for each group.
-c  pro     double  (input) (G[+1]) mixing proportions (used if equal).
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for sigsq.
-c                 On output, FLMAX if below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, tmin, tmax
-      double precision        prok, sigsqk, sigmin
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sigmin = min(sigmin,sigsq(k))
-      end do
-
-      if (sigmin .le. max(hood,zero)) then
-        hood  = FLMAX
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsq(k)))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum/sigsqk)/two)
-          z(i,k) = -(const+sum/sigsqk)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end 
-      subroutine esvvi ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for diagonal Gaussian mixtures
-c with varying volume and shape
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n,p), z(n,G[+1])
-      double precision   x(n,*), z(n,  *  )
-
-c     double precision   mu(p,G), scale(G), shape(p,G), pro(G[+1])
-      double precision   mu(p,*), scale(*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) (G) scale factor for each group covariance.
-c  shape   double  (output) (p,G) shape vector for each group covariance,
-c         normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) On input, lower bound for scale / shape.
-c                 On output, FLMAX is below threshold else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, scalek, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood, zero)
-      rteps = sqrt(eps)
-
-      do k = 1, G
-        temp = sqrt(scale(k))
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-      end do
-
-      do k = 1, G
-       
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. rteps) then
-          hood  = FLMAX
-          return
-        end if
-
-      end do
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-      subroutine esvvv ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv, 
-     *                   w, hood, z)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c E-step and loglikelihood for unconstrained Gaussian mixtures
-
-      implicit NONE
-
-      integer          CHOL
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n,p), w(p), z(n,G[+1])
-      double precision   x(n,*), w(*), z(n,  *  )
-
-c     double precision   mu(p,G), Sigma(p,p,G), pro(G[+1])
-      double precision   mu(p,*), Sigma(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  CHOL    char    (input) 'N': full Sigma given rather than Cholesky factor.
-c  x       double  (input) (n,p) matrix of observations.
-c  mu      double  (input) (p,G) mean for each group.
-c  Sigma   double  (input) (p,p,G) On input, covariance matrix or its upper
-c                  triangular Cholesky factor for each group. 
-c                  On output, upper triangle overwritten by Cholesky factor.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  w       double  (scratch/output) (p) workspace.  On output, w(1) is the
-c   error code for the LAPACK Cholesky decomposition.
-c  hood    double  (input/output) On input, lower bound on the reciprocal
-c               condition number of the Cholesky factor of any covariance.
-c               On output, FLMAX if ill conditioned else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
-      integer                 nz, p1, info, i, j, k
-
-      double precision        const, detlog, temp, prok, tmin, tmax
-      double precision        umin, umax, rcmin, eps, rteps, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      p1    = p + 1
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood,zero)
-      rteps = sqrt(eps)
-
-      if (CHOL .eq. 0) then
-
-        do k = 1, G
-
-          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
-
-          w(1) = dble(info)
-
-          if (info .ne. 0) then
-            hood = FLMAX
-            return
-          end if
-       
-        end do
-
-      end if
-
-      rcmin = FLMAX
-      do k = 1, G
-        call drnge( p, Sigma(1,1,k), p1, umin, umax)
-        rcmin = min(rcmin,umin/(one+umax))
-      end do
-
-      if (rcmin .le. rteps) then
-        w(1) = zero
-        hood = FLMAX
-        return
-      end if
-
-      do k = 1, G
-
-        detlog = zero
-        do j = 1, p
-          detlog = detlog + log(abs(Sigma(j,j,k)))
-        end do
-
-        const = dble(p)*pi2log/two + detlog
-
-c       prok  = pro(k)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
-          temp   = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = prok*exp(-(const+temp))
-          z(i,k) = -(const+temp)
-        end do
-
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      w(1) = zero
-
-      return
-      end
       subroutine wardsw( i, n, d)
 
-c Copies row n into row i and puts FLMAX in row n.
-c Note : i > 1, i < n, n > 2 required.
-c Used in spherical, constant volume methods (E, EII)
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-*-----------------------------------------------------------------------------
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -7586,7 +1194,6 @@ c the University of Washington.
 
       double precision    FLMAX
       parameter          (FLMAX = 1.7976931348623157D+308)
-
 
 *-----------------------------------------------------------------------------
 
@@ -7630,10 +1237,12 @@ c     d(nn) = FLMAX
 
       subroutine mclrup( l, n, v, r, lr)
 
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
 c rank one row update of n by n upper triangular factor r
 
@@ -7684,16 +1293,14 @@ c     double precision v(n), r(lr,n)
       return  
       end 
 
-
-
       double precision function detmc2( n, u)
 
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c safeguarded computation for determinant of triangular matrix u
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit double precision (a-h,o-z)
 
@@ -7725,14 +1332,15 @@ c safeguarded computation for determinant of triangular matrix u
 
       return  
       end 
+
       double precision function det2mc( n, u, s)
 
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c safeguarded computation for determinant of triangular matrix r
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit double precision (a-h,o-z)
 
@@ -7764,38 +1372,23 @@ c safeguarded computation for determinant of triangular matrix r
 
       return  
       end 
+
       subroutine hc1e  ( x, n, ic, ng, ns, nd, d)
 
-c Gaussian model-based clustering algorithm in which shape and orientation
-c are fixed in advance, while cluster volumes are also equal but unknown.
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
       integer             n, ic(n), ng, ns, nd
 
-c     double precision    x(n), d(ng*(ng-1)/2)
       double precision    x(*), d(*)
 
 c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, an n vector containing the
-c                   observations. On output, the first ns entries contain a
-c                   merge index.
-c  n       integer (input) number of observations
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively. On output the first ns entries
-c                   contain one of the merge indexes.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns entries are proportional to the change in
-c                   loglikelihood associated with each merge.
 
       integer             lg, ld, ll, lo, ls
       integer             i, j, k, m 
@@ -8110,55 +1703,23 @@ c update d and find max
       return
       end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       subroutine hc1v  ( x, n, ic, ng, ns, ALPHA, nd, d)
 
-c Gaussian model-based clustering algorithms in which shape and orientation 
-c are fixed in advance, while volume may vary among clusters.
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
 c     integer             n, ic(n), ng, ns, nd
       integer             n, ic(*), ng, ns, nd
 
-c     double precision    x(n), ALPHA, d(ng*(ng-1)/2)
       double precision    x(*), ALPHA, d(*)
 
 c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, an n vector containing the
-c                   observations. On output, the first ns entries contain
-c                   one of the merge indexes.
-c  n       integer (input) number of observations
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively. On output the first ns entries
-c                   contain one of the merge indexes.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  ALPHA   double  (input) Additive quantity used to resolve degeneracies. 
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(n,((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in 
-c                   loglikelihood associated with each merge.
 
       integer             lg, ld, ll, lo, ls, i, j, k, m
       integer             ni, nj, nij, nopt, niop, njop  
@@ -8692,66 +2253,22 @@ c       trop  = (tracei + tracej) + ddot(p,v,1,v,1)
       return
       end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       subroutine hceee ( x, n, p, ic, ng, ns, io, jo, v, s, u, r)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c Gaussian model-based clustering algorithm in clusters share a common
-c variance (shape, volume, and orientation are the same for all clusters).
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
       integer            n, p, ic(n), ng, ns, io(*), jo(*)
 
-c     double precision   x(n,p), v(p), s(p,p), u(p,p), r(p,p)
       double precision   x(n,*), v(*), s(*), u(*), r(*)
 
 c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, the first two columns
-c                   and ns rows contain the determinant and trace of the
-c                   sum of the sample cross product matrices. Columns 3 and 4
-c                   contain the merge indices if p .ge. 4
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  io,jo   integer (output [p .le. 3]) If p .lt. 3, both io and jo must be of
-c                   length ns and contain the indices of the merged pairs on
-c                   output. If p .eq. 3, jo must be of length ns and contains
-c                   an index of each merged on output pair. Otherwise io and
-c                   jo are not used and can be of length 1.
-c  v       double  (scratch/output) (p) On output, algorithm breakpoints;
-c                   tells where the algorithm switches from using trace
-c                   to trace + det, and from trace + det to det as criterion.
-c  s       double  (scratch/output) (p,p) On output the first column contains
-c                   the initial trace and determinant of the sum of sample
-c                   cross product matrices.
-c  u,r      double  (scratch) (p,p)
 
       integer                 q, i, j, k, l, m, i1, i2, l1, l2
       integer                 ni, nj, nij, lw, ls, lg, ici, icj
@@ -9268,40 +2785,22 @@ c decode
       return
       end
 
-
       subroutine hceii ( x, n, p, ic, ng, ns, v, nd, d)
 
-c Gaussian model-based clustering algorithm in which shape and orientation
-c are fixed in advance, while cluster volumes are also equal but unknown.
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
       integer             n, p, ic(n), ng, ns, nd
 
-c     double precision    x(n,p), v(p), d(ng*(ng-1)/2)
       double precision    x(n,*), v(*), d(*)
 
 *------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, the first two columns
-c                   and ns rows contain the merge indices.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  v       double  (scratch) (p)
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in
-c                   loglikelihood associated with each merge.
 
       integer             lg, ld, ll, lo, ls
       integer             i, j, k, m
@@ -9600,40 +3099,22 @@ c update d and find max
 
       return
       end
+
       subroutine hcvii ( x, n, p, ic, ng, ns, ALPHA, v, nd, d)
 
-c Gaussian model-based clustering algorithms in which shape and orientation 
-c are fixed in advance, while volume may vary among clusters.
-
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
       integer             n, p, ic(n), ng, ns, nd
 
-c     double precision    x(n,p), v(p). d(*), ALPHA
       double precision    x(n,*), v(*), d(*), ALPHA
 
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, the first two columns
-c                   and ns rows contain the merge indices.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  ALPHA   double  (input) Additive quantity used to resolve degeneracies. 
-c  v       double  (scratch) (p).
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(n,((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in 
-c                   loglikelihood associated with each merge.
 c------------------------------------------------------------------------------
 
       integer             lg, ld, ll, lo, ls, i, j, k, m
@@ -10132,32 +3613,15 @@ c       tmop  = rij*log(trop+ALPHA)
       return
       end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       subroutine hcvvv ( x, n, p, ic, ng, ns, ALPHA, BETA, 
      *                   v, u, s, r, nd, d)
 
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c Gaussian model-based clustering algorithm in which shape, volume, and
-c orientation are allowed to vary between clusters.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -10165,32 +3629,10 @@ c orientation are allowed to vary between clusters.
 
       double precision   ALPHA, BETA
 
-c     double precision   x(n,p+1), v(p), u(p,p), s(p,p)
-c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision   x(n,*), v(*), u(p,*), s(p,*)
       double precision   r(p,*), d(*)
 
 c------------------------------------------------------------------------------
-
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations with a column appended for scratch use.
-c                   On output, the first two columns and ns rows contain the 
-c                   merge indices.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ALPHA   double  (input) Additive quantity used to resolve degeneracies.
-c  BETA    double  (input) Factor by which to multiply the trace which is used
-c                   additively to help resolve degeneracies.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  v       double  (scratch) (p) 
-c  u,s,r   double  (scratch) (p*p)
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(p*p+n,((ng*(ng-1))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in
-c                   loglikelihood associated with each merge.
 
       integer                 psq, pm1, pp1
       integer                 i, j, k, l, m, ij, iold
@@ -11035,10 +4477,12 @@ c           call vvvget(i,ni,n,p,ic,x,traci,termi)
 
       double precision function vvvtij( l, p, r, s, trac)
 
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N-00014-88-K-0265 and N-00014-91-J-1074
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -11083,15 +4527,3082 @@ c the University of Washington.
 
       return
       end
+
+      subroutine em1e ( EQPRO, x, n, G, Vinv, mu, sigsq, pro,
+     *                  maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer             n, G, maxi
+
+      double precision    tol, eps, Vinv
+
+      double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 nz, iter, k, i
+
+      double precision        hold, hood, err, tmin, tmax, ViLog
+      double precision        const, sum, sumz, temp, muk, prok
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      if (sigsq .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      iter  = iter + 1
+
+      const = pi2log+log(sigsq)
+
+      do k = 1, G
+        muk  = mu(k)
+c       prok = pro(k)
+        do i = 1, n
+          temp   = x(i) - muk
+c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
+          z(i,k) = -(const+(temp*temp)/sigsq)/two
+        end do
+      end do
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      sumz  = zero
+
+      sigsq = zero
+
+      do k = 1, G
+        muk = zero
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          muk  = muk + temp*x(i)
+        end do
+        sumz   = sumz + sum
+        muk    = muk / sum
+        mu(k)  = muk
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        do i = 1, n
+          temp   = x(i) - muk
+          temp   = temp*temp
+          sigsq  = sigsq + z(i,k)*temp
+        end do
+      end do
+
+      if (Vinv .le. zero) then
+        sigsq  = sigsq / dble(n)
+      else
+        sigsq  = sigsq / sumz
+      end if
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine em1v ( EQPRO, x, n, G, Vinv, mu, sigsq, pro,
+     *                  maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical              EQPRO
+
+      integer              n, G, maxi
+
+      double precision     Vinv, tol, eps
+
+      double precision     x(*), z(n,  *  )
+
+      double precision     mu(*), sigsq(*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 nz, iter, k, i
+
+      double precision        hold, hood, err, const, sum
+      double precision        temp, sigmin, muk, sigsqk
+      double precision        prok, tmin, tmax, ViLog
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      err    = FLMAX
+
+      do k = 1, G
+        if (sigsq(k) .le. eps) then
+          tol = FLMAX
+          eps = FLMAX
+          maxi = 0
+        end if
+      end do
+
+      iter   = 0
+
+100   continue
+
+      iter   = iter + 1
+
+      do k = 1, G
+        muk    = mu(k)
+c       prok   = pro(k)
+        sigsqk = sigsq(k)
+        const  = pi2log + log(sigsqk)
+        do i = 1, n
+          temp   = x(i) - muk
+c         z(i,k) = prok*exp(-(const+((temp*temp)/sigsqk))/two)           
+          z(i,k) = -(const+((temp*temp)/sigsqk))/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum) + tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      sigmin = FLMAX
+
+      do k = 1, G
+        sum = zero
+        muk = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          muk  = muk + temp*x(i)
+        end do
+        muk    = muk / sum
+        mu(k)  = muk
+        sigsqk = zero
+        do i = 1, n
+          temp   = x(i) - muk
+          temp   = temp*temp
+          sigsqk = sigsqk + z(i,k)*temp
+          z(i,k) = temp
+        end do
+        sigsqk   = sigsqk / sum
+        sigmin   = min(sigmin,sigsqk)
+        sigsq(k) = sigsqk
+        if (.not. EQPRO) pro(k)   = sum / dble(n)
+      end do
+
+      if (sigmin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine emeee ( CHOL, EQPRO, x, n, p, G, Vinv, 
+     *                   mu, U, pro, maxi, tol, eps, w, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+c      character          CHOL
+      integer            CHOL
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi
+
+      double precision   Vinv, tol, eps
+
+      double precision   x(n,*), z(n,  *  ), w(*)
+
+      double precision   mu(p,*), U(p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 nz, info, p1, iter, i, j, k, j1
+
+      double precision        piterm, sclfac, sum, sumz
+      double precision        temp, cs, sn, umin, umax, rc, rteps
+      double precision        const, hold, hood, err, detlog
+      double precision        prok, tmin, tmax, ViLog
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+c     FLMAX = d1mach(2)
+
+c     if (CHOL .eq. 'N') then
+      if (CHOL .eq. 0) then
+
+
+c Cholesky factorization
+        call dpotrf( 'U', p, U, p, info)
+
+        if (info .ne. 0) then
+c         w(1) = FLMAX
+          w(1) = dble(info)
+          tol  = FLMAX
+          eps  = FLMAX
+          return
+        end if
+
+      end if
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      piterm = dble(p)*pi2log/two
+
+      p1     = p + 1
+
+      sclfac = one/sqrt(dble(n))
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+c condition number
+
+      call drnge( p, U, p1, umin, umax)
+
+      rc = umin/(one+umax)
+
+      if (rc .le. rteps) then
+c       w(1) = rc
+        w(1) = zero
+        eps  = FLMAX
+        tol  = err
+        maxi = iter
+        return
+      end if
+
+      iter = iter + 1
+
+      detlog = zero
+      do j = 1, p
+        detlog = detlog + log(abs(U(j,j)))
+      end do
+
+      const = piterm + detlog
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
+          sum    = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = temp * exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy (G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      sumz = zero
+
+      do j = 1, p
+        call dcopy( j, zero, 0, U(1,j), 1)
+      end do
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        call dscal( p, (one/sum), mu(1,k), 1)
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dscal( p, sqrt(z(i,k)), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( U(j,j), w(j), cs, sn)
+            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( U(p,p), w(p), cs, sn)
+        end do
+
+      end do
+
+      if (Vinv .le. zero) then
+        do j = 1, p
+          call dscal( j, sclfac, U(1,j), 1)
+        end do
+      else 
+        do j = 1, p
+          call dscal( j, one/sqrt(sumz), U(1,j), 1)
+        end do
+      end if
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      call drnge( p, U, p1, umin, umax)
+
+      rc = umin/(one+umax)
+
+c     w(1) = rc
+      w(1) = zero
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine emeei ( EQPRO, x, n, p, G, Vinv, 
+     *                   mu, scale, shape, pro, maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    tol, eps, Vinv, scale
+
+      double precision    x(n,*), z(n,*), mu(p,*), shape(*), pro(*)
+
+c------------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, temp, sumz, const
+      double precision    hold, hood, err, smin, smax
+      double precision    prok, tmin, tmax, ViLog
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz    = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      if (scale .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      const = dble(p)*(pi2log + log(scale))
+
+      iter = iter + 1
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
+          z(i,k) = -(const+(sum/scale))/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+	hood = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      sumz  = zero
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        call dscal( p, (one/sum), mu(1,k), 1)
+        if (.not. EQPRO) pro(k) = sum/dble(n)
+        do j = 1, p
+          sum = zero
+          do i = 1, n
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + z(i,k)*temp*temp
+          end do
+          shape(j) = shape(j) + sum
+        end do
+      end do
+
+      call drnge(p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+        scale = zero
+        tol   = err
+        eps   = -FLMAX
+        maxi  = iter
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp  = exp(sum/dble(p))
+
+      if (Vinv .le. zero) then
+        scale  = temp / dble(n)
+      else
+        scale  = temp / sumz
+      end if
+
+      if (temp .le. eps) then
+        tol   = err
+        eps   = -FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine emeev ( SIGMA, EQPRO, x, n, p, G, Vinv, mu,
+     *                   scale, shape, O, pro, maxi, tol, eps,
+     *                   lwork, w, z, s)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            SIGMA
+c      character          SIGMA
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi, lwork
+
+      double precision	 Vinv, eps, tol, scale
+
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
+
+      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 nz, p1, iter, i, j, k, l, j1, info
+
+      double precision        dnp, dummy, temp, rteps
+      double precision        sumz, sum, smin, smax, cs, sn
+      double precision        const, rc, hood, hold, err
+      double precision        prok, tmin, tmax, ViLog
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+c     FLMAX  = d1mach(2)
+
+      p1 = p + 1
+
+      if (SIGMA .ne. 0) then
+
+c Cholesky factorization and singular value decomposition
+
+        call dcopy( p, zero, 0, shape, 1)
+
+        temp = zero
+
+        l = 0
+        do k = 1, G
+          if (SIGMA .ne. 1) then
+            call dpotrf( 'U', p, O(1,1,k), p, info)
+            if (info .ne. 0) then
+              temp = dble(info)
+              goto 10
+            end if
+          end if
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+            goto 10
+          end if
+          do j = 1, p
+            temp     = s(j)
+            shape(j) = shape(j) + temp*temp
+          end do
+        end do
+
+   10   continue
+
+        if (temp .ne. zero .or. l .ne. 0) then
+          lwork = l
+c         w(1)  = FLMAX
+c         w(2)  = temp
+          tol   = FLMAX
+          eps   = FLMAX
+          err   = FLMAX
+          return
+        end if
+
+        call drnge( p, shape, 1, smin, smax)
+
+        if (smin .eq. zero) then
+          lwork = 0
+c         w(1)  = smin
+c         w(2)  = zero
+          tol   = err
+          eps   = FLMAX
+          maxi  = iter
+          return
+        end if
+
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+        temp  = exp(sum/dble(p))
+
+        if (Vinv .le. zero) then
+          scale = temp/dble(n)
+        else
+          scale = temp/sumz
+        end if
+
+        if (temp .le. eps) then
+          lwork = 0
+c         w(1)  = temp
+c         w(2)  = zero
+          tol   = err
+          eps   = FLMAX
+          maxi  = iter
+          return
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+
+      end if
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+
+      dnp    = dble(n*p)
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      temp = sqrt(scale)
+      do j = 1, p
+        w(j) = temp*sqrt(shape(j))
+      end do
+
+      call drnge( p, w, 1, smin, smax)
+      
+      rc = smin / (one+smax)
+
+      if (rc .le. rteps) then
+        lwork = 0
+c       w(1)  = rc
+c       w(2)  = zero
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      iter = iter + 1
+
+      const = dble(p)*(pi2log + log(scale))/two
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w(p1), 1)
+          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, s, 1)
+          do j = 1, p
+            s(j) = s(j) / w(j)
+          end do
+          sum    = ddot( p, s, 1, s, 1)/two
+c         z(i,k) = temp*exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      sumz = zero
+
+      l    = 0
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, zero, 0, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        call dscal( p, (one/sum), mu(1,k), 1)
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dscal( p, sqrt(z(i,k)), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( O(j,j,k), w(j), cs, sn)
+            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( O(p,p,k), w(p), cs, sn)
+        end do
+        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
+     *                dummy, 1, dummy, 1, w, lwork, info)
+        if (info .ne. 0) then
+          l = info
+        else 
+          do j = 1, p
+            temp     = s(j)
+            shape(j) = shape(j) + temp*temp
+          end do
+        end if
+      end do
+
+ 110  continue
+
+      if (l .ne. 0) then
+        lwork = l        
+c       w(1)  = FLMAX
+c       w(2)  = zero
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+        lwork = 0
+c       w(1)  = smin
+c       w(2)  = zero
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp  = exp(sum/dble(p))
+
+      if (Vinv .le. zero) then
+        scale = temp/dble(n)
+      else
+        scale = temp/sumz
+      end if
+
+      if (temp .le. eps) then
+        lwork = 0
+c       w(1)  = temp
+c       w(2)  = zero
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      lwork = 0
+
+c     w(1)  = rc
+c     w(2)  = zero
+
+      tol   = err
+      eps   = hood
+      maxi  = iter
+
+      return
+      end
+
+      subroutine emeii ( EQPRO, x, n, p, G, Vinv, mu, sigsq, pro,
+     *                   maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    tol, eps, Vinv, sigsq
+
+      double precision    x(n,*), z(n,*), mu(p,*), pro(*)
+
+c------------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    dnp, sum, temp, sumz, tmin, tmax
+      double precision    const, hold, hood, err, prok, ViLog
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      dnp    = dble(n*p)
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      if (sigsq .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      iter = iter + 1
+
+      const  = dble(p)*(pi2log+log(sigsq))
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/sigsq))/two)
+          z(i,k) = -(const+(sum/sigsq))/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      sumz  = zero
+
+      sigsq = zero
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        call dscal( p, (one/sum), mu(1,k), 1)
+        if (.not. EQPRO) pro(k) = sum/dble(n)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+          sigsq  = sigsq + z(i,k)*sum
+        end do
+      end do
+
+      if (Vinv .le. zero) then
+        sigsq  = sigsq / dnp
+      else
+        sigsq  = sigsq / (dble(p)*sumz)
+      end if
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine emevi ( EQPRO, x, n, p, G, Vinv, 
+     *                   mu, scale, shape, pro, maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    scale, tol, eps, Vinv
+
+      double precision    x(n,*), z(n,*)
+
+      double precision    mu(p,*), shape(p,*), pro(*)
+
+c------------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumz, temp, const, epsmin
+      double precision    hold, hood, err, smin, smax
+      double precision    prok, tmin, tmax, ViLog
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz    = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      if (scale .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+
+        call drnge( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. eps) then
+          tol  = err
+          eps  = FLMAX
+          maxi = iter
+          return
+        end if
+
+      end do
+
+      iter = iter + 1
+
+      const = dble(p)*(pi2log + log(scale))
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j,k)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
+          z(i,k) = -(const+(sum/scale))/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      sumz = zero
+      do k = 1, G
+        call dcopy( p, zero, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        sumz = sumz + sum
+        call dscal( p, (one/sum), mu(1,k), 1)
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+      end do
+
+c pro(k) now contains n_k
+
+      do j = 1, p
+        do k = 1, G
+          sum = zero
+          do i = 1, n
+            temp = z(i,k)*(x(i,j) - mu(j,k))
+            sum  = sum + temp*temp
+          end do
+          shape(j,k) = shape(j,k) + sum
+        end do
+      end do
+
+      epsmin = FLMAX
+      scale  = zero
+      do k = 1, G
+        call drnge(p, shape(1,k), 1, smin, smax)
+        epsmin = min(smin,epsmin)
+        if (smin .ne. zero) then
+          sum = zero
+          do j = 1, p
+            sum = sum + log(shape(j,k))
+          end do
+          temp   = exp(sum/dble(p))
+          scale  = scale + temp
+          epsmin = min(temp,epsmin)
+          if (temp .gt. eps)
+     *      call dscal( p, one/temp, shape(1,k), 1)
+        end if
+      end do
+
+      if (Vinv .gt. zero) then
+        scale = scale / sumz
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else 
+        scale = scale / dble(n)
+      end if
+
+      if (epsmin .le. eps) then
+        scale = zero
+        tol   = err
+        eps   = -FLMAX
+        maxi  = iter
+        return
+      end if
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine emvei ( EQPRO, x, n, p, G, Vinv, mu, scale, shape, pro,
+     *                   maxi, tol, eps, z, scl, shp, w)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi(2)
+
+      double precision    Vinv, eps, tol(2)
+
+      double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
+
+      double precision    mu(p,*), scale(*), shape(*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer             nz, i, j, k
+      integer             iter, maxi1, maxi2, inner, inmax
+
+      double precision    tol1, tol2, sum, temp, tmax, tmin
+      double precision    prok, scalek, smin, smax, const
+      double precision    hold, hood, err, errin, dnp, ViLog
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+     
+      maxi1  = maxi(1)
+      maxi2  = maxi(2)
+
+      if (maxi1 .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz    = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+
+      tol1   = max(tol(1),zero)
+      tol2   = max(tol(2),zero)
+
+      dnp    = dble(n*p)
+
+c     FLMAX  = d1mach(2)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+
+      err    = FLMAX
+      errin  = FLMAX
+
+      inmax  = 0
+
+      iter   = 0
+
+100   continue
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = inmax
+        eps     = hood
+        return
+      end if
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        maxi(1) = iter
+        maxi(2) = inmax
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = hood
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j)
+          end do
+c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
+          z(i,k) = -(const+sum/scalek)/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        call dscal( p, (one/sum), mu(1,k), 1)
+        pro(k) = sum
+        do j = 1, p
+          sum = zero
+          do i = 1, n
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + z(i,k)*(temp*temp)
+          end do
+          w(j,k) = sum
+        end do
+      end do
+
+      call dscal( G, dble(p), pro, 1)
+
+c inner iteration to estimate scale and shape
+c prob now contains n*prob
+
+      iter = iter + 1
+
+      inner = 0
+
+      if (maxi2 .le. 0) goto 120
+
+110   continue
+
+      call drnge(p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+        if (Vinv .gt. zero) then
+          sum = zero
+          do i = 1, n
+            sum = sum + z(i,nz)
+          end do
+          pro(nz) = sum / dble(n)
+          if (EQPRO) then
+            temp = (one - pro(nz))/dble(G)
+            call dcopy( G, temp, 0, pro, 1)
+          end if
+        else 
+          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+        end if
+        eps     = smin
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      inner = inner + 1
+
+c scale estimate
+
+      call dcopy( G, scale, 1, scl, 1)
+
+      do k = 1, G
+        sum = zero
+        do j = 1, p
+          sum = sum + w(j,k)/shape(j)
+        end do
+        scale(k) = sum/pro(k)
+      end do
+
+      if (smin .le. eps) then
+        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+        if (Vinv .gt. zero) then
+          sum = zero
+          do i = 1, n
+            sum = sum + z(i,nz)
+          end do
+          pro(nz) = sum / dble(n)
+          if (EQPRO) then
+            temp = (one - pro(nz))/dble(G)
+            call dcopy( G, temp, 0, pro, 1)
+          end if
+        else 
+          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+        end if
+        eps     = smin
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+c shape estimate
+
+      call dcopy( p, shape, 1, shp, 1)
+
+      do j = 1, p
+        sum = zero
+        do k = 1, G
+          sum = sum + w(j,k)/scale(k)
+        end do
+        shape(j) = sum
+      end do
+
+      call drnge(p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+        if (Vinv .gt. zero) then
+          sum = zero
+          do i = 1, n
+            sum = sum + z(i,nz)
+          end do
+          pro(nz) = sum / dble(n)
+          if (EQPRO) then
+            temp = (one - pro(nz))/dble(G)
+            call dcopy( G, temp, 0, pro, 1)
+          end if
+        else 
+          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+        end if
+        eps     = smin
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp  = exp(sum/dble(p))
+
+      if (temp .le. eps) then
+        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+        if (Vinv .gt. zero) then
+          sum = zero
+          do i = 1, n
+            sum = sum + z(i,nz)
+          end do
+          pro(nz) = sum / dble(n)
+          if (EQPRO) then
+            temp = (one - pro(nz))/dble(G)
+            call dcopy( G, temp, 0, pro, 1)
+          end if
+        else 
+          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+        end if
+        eps     = temp
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      errin = zero
+
+      do k = 1, G
+        errin = max(errin, abs(scl(k)-scale(k))/(one + scale(k)))
+      end do
+
+      do j = 1, p
+        errin = max(errin, abs(shp(j)-shape(j))/(one + shape(j)))
+      end do
+
+      if (errin .gt. tol2 .and. inner .le. maxi2) goto 110
+
+120   continue
+
+      inmax = max(inner, inmax)
+
+      if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else 
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      if (err  .gt. tol1 .and. iter .lt. maxi1) goto 100
+
+      maxi(1) = iter
+      maxi(2) = inmax
+
+      tol(1)  = err
+      tol(2)  = errin
+
+      eps     = hood
+
+      return
+      end
+
+      subroutine emvev ( SIGMA, EQPRO, x, n, p, G, Vinv, mu, 
+     *                   scale, shape, O, pro, maxi, tol, eps, 
+     *                   lwork, w, z, s)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+c      character          SIGMA
+      integer            SIGMA
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi(2), lwork
+
+      double precision   Vinv, eps, tol(2)
+
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(p, *)
+
+      double precision   mu(p,*), pro(  *  )
+
+      double precision   scale(*), shape(*), O(p,p,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 maxi1, maxi2, nz, p1, inmax, iter
+      integer                 i, j, k, l, j1, info, inner
+
+      double precision        tol1, tol2, dnp, rteps, ViLog
+      double precision        rcmin, errin, smin, smax, tmin, tmax
+      double precision        cs, sn, dummy, hold, hood, err
+      double precision        const, temp, sum, prok, scalek
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+     
+      maxi1  = maxi(1)
+      maxi2  = maxi(2)
+
+c     FLMAX  = d1mach(2)
+
+      if (maxi1 .le. 0) return
+
+      if (SIGMA .ne. 0) then
+
+c Cholesky factorization and singular value decomposition
+
+        temp = zero
+
+        l = 0
+        do k = 1, G
+          
+          if (SIGMA .ne. 1) then
+            call dpotrf( 'U', p, O(1,1,k), p, info)
+            if (info .ne. 0) then
+              l = info
+              goto 10
+            end if
+          end if
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s,
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+            goto 10
+          end if
+
+          do j = 1, p
+            temp     = s(j,1)
+            shape(j) = shape(j) + temp*temp
+          end do
+
+          call drnge( p, s, 1, smin, smax)
+          if (smin .eq. zero) then
+            scale(k) = zero
+          else 
+            sum = zero
+            do j = 1, p
+              sum = sum + log(s(j,1))
+            end do
+            scale(k) = exp(sum)
+          end if
+
+        end do
+
+   10   continue
+
+        if (l .ne. 0) then
+          lwork   = l
+          maxi(1) = -1
+          maxi(2) = -1
+          tol(1)  = FLMAX
+          tol(2)  = FLMAX
+          eps     = FLMAX
+          return
+        end if
+
+        call drnge( p, shape, 1, smin, smax)
+
+        if (smin .eq. zero) then
+          lwork   = 0
+c         w(1)    = smin
+          tol(1)  = FLMAX
+          tol(2)  = FLMAX
+          eps     = FLMAX
+          maxi(1) = -1
+          maxi(2) = -1
+          return
+        end if
+
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+        temp  = exp(sum/dble(p))
+
+        if (temp .le. eps) then
+          lwork   = 0
+c         w(1)    = temp
+c         w(2)    = zero
+          tol(1)  = FLMAX
+          tol(2)  = FLMAX
+          eps     = FLMAX
+          maxi(1) = -1
+          maxi(2) = -1
+          return
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+
+      end if
+
+      if (Vinv .gt. zero) then
+        nz    = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol1   = max(tol(1),zero)
+      tol2   = max(tol(2),zero)
+
+      p1     = p + 1
+
+      dnp    = dble(n*p)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+
+      err    = FLMAX
+      errin  = FLMAX
+
+      inmax  = 0
+
+      iter   = 0
+
+100   continue
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        lwork   = 0
+c       w(1)    = smin
+c       w(2)    = zero
+        maxi(1) = iter
+        maxi(2) = inmax
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        return
+      end if
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        lwork   = 0
+        w(1)    = -smin
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      do j = 1, p
+        s(j,1) = sqrt(shape(j))
+      end do
+
+      call drnge( p, s, 1, smin, smax)
+
+      if (smin .le. rteps) then
+        lwork   = 0
+c       w(1)    = -smin
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const = dble(p)*(pi2log + log(scalek))
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w(p1), 1)
+          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, 
+     *                 zero, w, 1)
+          do j = 1, p
+            w(j) = w(j) / s(j,1)
+          end do
+          sum    = ddot(p,w,1,w,1)/scalek
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      iter = iter + 1
+
+      l = 0
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, zero, 0, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        call dscal( p, (one/sum), mu(1,k), 1)
+        pro(k) = sum
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dscal( p, sqrt(z(i,k)), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( O(j,j,k), w(j), cs, sn)
+            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( O(p,p,k), w(p), cs, sn)
+        end do
+        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s(1,k),
+     *                dummy, 1, dummy, 1, w, lwork, info)
+        if (info .ne. 0) then
+          l = info
+        else
+          do j = 1, p
+            temp   = s(j,k)
+            s(j,k) = temp*temp
+          end do
+        end if
+      end do
+
+      if (l .ne. 0) then
+        if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+        if (Vinv .gt. zero) then
+          sum = zero
+          do i = 1, n
+            sum = sum + z(i,nz)
+          end do
+          pro(nz) = sum / dble(n)
+          if (EQPRO) then
+            temp = (one - pro(nz))/dble(G)
+            call dcopy( G, temp, 0, pro, 1)
+          end if
+        else 
+          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+        end if
+        lwork   = l
+c       w(1)    = FLMAX
+c       w(2)    = zero
+        maxi(1) = iter
+        maxi(2) = inner
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        return
+      end if
+
+c inner iteration to estimate scale and shape
+c prob now contains n*prob
+
+      inner = 0
+
+      if (maxi2 .le. 0) goto 120
+
+110   continue
+
+        call dcopy( p, shape, 1, w    , 1)
+        call dcopy( G, scale, 1, w(p1), 1)
+
+        call dcopy( p, zero, 0, shape, 1)
+
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            sum = sum + s(j,k)/w(j)
+          end do
+          temp     = (sum/pro(k))/dble(p)
+          scale(k) = temp
+          if (temp .le. eps) then
+            if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+            if (Vinv .gt. zero) then
+              sum = zero
+              do i = 1, n
+                sum = sum + z(i,nz)
+              end do
+              pro(nz) = sum / dble(n)
+              if (EQPRO) then
+                temp = (one - pro(nz))/dble(G)
+                call dcopy( G, temp, 0, pro, 1)
+              end if
+            else 
+              if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+            end if
+            lwork   = 0
+c           w(1)    = temp
+c           w(2)    = zero
+            maxi(1) = iter
+            maxi(2) = max(inner, inmax)
+            tol(1)  = err
+            tol(2)  = errin
+            eps     = FLMAX
+            return
+          end if
+          do j = 1, p
+            shape(j) = shape(j) + s(j,k)/temp
+          end do
+        end do
+
+        inner  = inner + 1
+
+        call drnge( p, shape, 1, smin, smax)
+
+        if (smin .eq. zero) then
+          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+          if (Vinv .gt. zero) then
+            sum = zero
+            do i = 1, n
+              sum = sum + z(i,nz)
+            end do
+            pro(nz) = sum / dble(n)
+            if (EQPRO) then
+              temp = (one - pro(nz))/dble(G)
+              call dcopy( G, temp, 0, pro, 1)
+            end if
+          else 
+            if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+          end if
+          lwork   = 0
+c         w(1)    = smin
+c         w(2)    = zero
+          maxi(1) = iter
+          maxi(2) = max(inner,inmax)
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = hood
+          return
+        end if
+
+c normalize the shape matrix
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+        temp = exp(sum/dble(p))
+
+        if (temp .le. eps) then
+          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+          if (Vinv .gt. zero) then
+            sum = zero
+            do i = 1, n
+              sum = sum + z(i,nz)
+            end do
+            pro(nz) = sum / dble(n)
+            if (EQPRO) then
+              temp = (one - pro(nz))/dble(G)
+              call dcopy( G, temp, 0, pro, 1)
+            end if
+          else 
+            if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+          end if
+          lwork   = 0
+c         w(1)    = temp
+c         w(2)    = zero
+          maxi(1) = iter
+          maxi(2) = max(inner,inmax)
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+        smin = smin/temp
+        smax = smax/temp
+
+        errin = zero
+        do j = 1, p
+          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
+        end do
+
+        do k = 1, G
+          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
+        end do
+
+        if (errin .ge. tol2 .and. inner .lt. maxi2) goto 110
+
+120   continue
+
+      inmax = max(inner, inmax)
+
+      if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+
+      if (Vinv .gt. zero) then
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else 
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      if (err  .gt. tol1 .and. iter .lt. maxi1) goto 100
+
+      lwork = 0
+
+      smin  = sqrt(smin)
+      smax  = sqrt(smax)
+
+      rcmin = FLMAX
+      do k = 1, G
+        temp = sqrt(scale(k))
+        rcmin = min(rcmin,(temp*smin)/(one+temp*smax))
+      end do
+
+      lwork   = 0
+     
+c     w(1)    = rcmin
+c     w(2)    = zero
+
+      maxi(1) = iter
+      maxi(2) = inmax
+
+      tol(1)  = err
+      tol(2)  = errin
+
+      eps     = hood
+
+      return
+      end
+
+      subroutine emvii ( EQPRO, x, n, p, G, Vinv, mu, sigsq, pro, 
+     *                   maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    Vinv, tol, eps
+
+      double precision    x(n,*), z(n,  *  )
+
+      double precision    mu(p,*), sigsq(*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sumz, sum, temp, const, err, tmin, tmax
+      double precision    sigmin, sigsqk, prok, hold, hood, ViLog
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+      sigmin = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      if (sigmin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      iter   = iter + 1
+
+      do k = 1, G
+c       prok   = pro(k)
+        sigsqk = sigsq(k)
+        const  = dble(p)*(pi2log+log(sigsqk))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+(sum/sigsqk))/two)           
+          z(i,k) = -(const+(sum/sigsqk))/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      sigmin = FLMAX
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        call dscal( p, (one/sumz), mu(1,k), 1)
+        sigsqk = zero
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+          sigsqk = sigsqk + z(i,k)*sum
+        end do
+        sigsqk   = (sigsqk/sumz)/dble(p)
+        sigsq(k) = sigsqk
+        sigmin   = min(sigsqk,sigmin)
+        if (.not. EQPRO) pro(k) = sumz / dble(n)
+      end do
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine emvvi ( EQPRO, x, n, p, G, Vinv, 
+     *                   mu, scale, shape, pro, maxi, tol, eps, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    tol, eps, Vinv
+
+      double precision    x(n,*), z(n,*)
+
+      double precision    mu(p,*), scale(*), shape(p,*), pro(*)
+
+c------------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, temp, const, epsmin
+      double precision    hold, hood, err, smin, smax, scalek
+      double precision    prok, tmin, tmax, ViLog
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+
+        call drnge( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. eps) then
+          tol  = err
+          eps  = FLMAX
+          maxi = iter
+          return
+        end if
+
+      end do
+
+      iter = iter + 1
+
+      do k = 1, G
+        scalek = scale(k)
+        const = dble(p)*(pi2log + log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j,k)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
+          z(i,k) = -(const+(sum/scalek))/two
+        end do
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      do k = 1, G
+        call dcopy( p, zero, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        call dscal( p, (one/sum), mu(1,k), 1)
+        pro(k) = sum
+      end do
+
+c pro(k) now contains n_k
+
+      do j = 1, p
+        do k = 1, G
+          sum = zero
+          do i = 1, n
+            temp = z(i,k)*(x(i,j) - mu(j,k))
+            sum  = sum + temp*temp
+          end do
+          shape(j,k) = shape(j,k) + sum
+        end do
+      end do
+
+      epsmin = FLMAX
+      do k = 1, G
+        call drnge(p, shape(1,k), 1, smin, smax)
+        epsmin = min(smin,epsmin)
+        if (smin .eq. zero) then
+          scale(k) = zero
+        else
+          sum = zero
+          do j = 1, p
+            sum = sum + log(shape(j,k))
+          end do
+          temp     = exp(sum/dble(p))
+          scale(k) = temp/pro(k)
+          epsmin   = min(temp,epsmin)
+          if (temp .gt. eps)
+     *      call dscal( p, one/temp, shape(1,k), 1)
+        end if
+      end do
+
+      if (.not. EQPRO) then
+        call dscal( G, one/dble(n), pro, 1)
+      else if (Vinv .le. zero) then
+        call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      end if
+
+      if (epsmin .le. eps) then
+        tol   = err
+        eps   = -FLMAX
+        maxi  = iter
+        return
+      end if
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
+      subroutine emvvv ( CHOL, EQPRO, x, n, p, G, Vinv, mu, U, pro,
+     *                   maxi, tol, eps, w, z) 
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+c      character          CHOL
+      integer            CHOL
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi
+
+      double precision   Vinv, eps, tol
+
+      double precision   x(n,*), z(n,*), w(*)
+
+      double precision   mu(p,*), U(p,p,*), pro(*)
+
+c------------------------------------------------------------------------------
+
+      integer                 nz, info, p1, iter, i, j, k, j1
+
+      double precision        piterm, hold, rcmin
+      double precision        temp, cs, sn, umin, umax, rteps
+      double precision        sum, detlog, const, hood, err
+      double precision        prok, tmin, tmax, ViLog
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+c     FLMAX = d1mach(2)
+
+      if (CHOL .eq. 0) then
+
+c Cholesky factorization
+
+        temp  = zero
+        do k = 1, G
+          call dpotrf( 'U', p, U(1,1,k), p, info)
+          if (info .ne. 0) temp = dble(info)
+        end do
+
+        if (temp .ne. zero) then
+c         w(1)  = FLMAX
+          w(1)  = temp
+          tol   = FLMAX
+          eps   = FLMAX
+          maxi  = -1
+          return
+        end if
+
+      end if
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+
+      piterm = dble(p)*pi2log/two
+
+      p1     = p + 1
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      rcmin  = FLMAX
+
+      do k = 1, G
+        call drnge( p, U(1,1,k), p1, umin, umax)
+        rcmin = min(umin/(one+umax),rcmin)
+      end do
+
+      if (rcmin .le. rteps) then
+c       w(1) = rcmin
+        w(1) = zero
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      iter  = iter + 1
+
+      do k = 1, G
+
+        detlog = zero
+        do j = 1, p
+          detlog = detlog + log(abs(U(j,j,k)))
+        end do
+
+        const = piterm+detlog
+
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, U(1,1,k), p, w, 1)
+          sum    = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = temp*exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+
+      end do
+
+      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (Vinv .gt. zero) then
+
+        sum = zero
+        do i = 1, n
+          sum = sum + z(i,nz)
+        end do
+        pro(nz) = sum / dble(n)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( j, zero, 0, U(1,j,k), 1)
+        end do
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        call dscal( p, (one/sum), mu(1,k), 1)
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dscal( p, sqrt(z(i,k)), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( U(j,j,k), w(j), cs, sn)
+            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( U(p,p,k), w(p), cs, sn)
+        end do
+
+        do j = 1, p
+          call dscal( j, one/sqrt(sum), U(1,j,k), 1)
+        end do
+
+      end do
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+c     w(1) = rcmin
+      w(1) = zero
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+
       subroutine me1e ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps, 
      *                  mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -11101,27 +7612,9 @@ c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
 
       double precision    Vinv, eps, tol
 
-c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
       double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                  loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -11272,15 +7765,16 @@ c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)
 
       return
       end
+
       subroutine me1v ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps,
      *                  mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for general one-dimensional Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -11290,27 +7784,9 @@ c EM (M-step first) for general one-dimensional Gaussian mixtures
 
       double precision     Vinv, eps, tol
 
-c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
       double precision     x(*), z(n,  *  ), mu(*), sigsq(*), pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c            loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double (output) (G) mean for each group.
-c sigsq double (output) (G) variance for each group.
-c pro   double (output) (G[+1]) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -11461,12 +7937,12 @@ c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsqk))/two)
       subroutine meeee ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
      *                   mu, U, pro, w)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for constant-variance Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -11483,26 +7959,6 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision   mu(p,*), U(p,*), pro(*)
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on the reciprocal
-c           condition estimate of the Cholesky factor of the covariance.
-c           On output, the loglikelihood.
-c mu    double  (output) (p,G) means for each group.
-c U     double  (output) (p,p) Cholesky factor of the covariance.
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, j1
 
@@ -11693,15 +8149,16 @@ c         z(i,k) = temp * exp(-(const+sum))
 
       return
       end
+
       subroutine meeei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for diagonal, constant-volume Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -11711,33 +8168,11 @@ c EM (M-step first) for diagonal, constant-volume Gaussian mixtures
 
       double precision    Vinv, eps, tol, scale
 
-c     double precision    x(n,p), z(n,G[+1])
       double precision    x(n,*), z(n,  *  )
 
-c     double precision    mu(p,G), shape(p), pro(G[+1])
       double precision    mu(p,*), shape(*), pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for group covariance.
-c shape double  (output) (p) common shape for group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -11925,12 +8360,12 @@ c         z(i,k) = prok*exp(-(const+(sum/scale))/two)
       subroutine meeev ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
      *                   lwork, mu, scale, shape, O, pro, w, s)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for Gaussian mixtures with equal shape and volume
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -11940,41 +8375,11 @@ c EM (M-step first) for Gaussian mixtures with equal shape and volume
 
       double precision	 Vinv, eps, tol, scale
 
-c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
       double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
 
-c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
 
-
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                   loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, tolerance to avoid division by 0.
-c                              On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4) workspace 
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (utput) common scale factor for the covariances,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, l, j1, info
 
@@ -12235,15 +8640,16 @@ c     w(1)  = rc
 
       return
       end
+
       subroutine meeii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for spherical, constant-volume Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -12253,28 +8659,9 @@ c EM (M-step first) for spherical, constant-volume Gaussian mixtures
 
       double precision    Vinv, eps, tol, sigsq
 
-c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       double precision    x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -12426,16 +8813,16 @@ c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)
 
       return
       end
+
       subroutine meevi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with equal volume and varying shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -12445,33 +8832,11 @@ c with equal volume and varying shape
 
       double precision    Vinv, eps, tol, scale
 
-c     double precision    x(n,p), z(n,G[+1])
       double precision    x(n,*), z(n,  *  )
 
-c     double precision    mu(p,G), shape(p,G), pro(G[+1])
       double precision    mu(p,*), shape(p,*), pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for the group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -12665,16 +9030,16 @@ c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
 
       return
       end
+
       subroutine mevei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro, scl, shp, w)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with varying volume and shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -12684,37 +9049,11 @@ c with varying volume and shape
 
       double precision    Vinv, eps, tol(2)
 
-c     double precision    x(n,p), z(n,G[+1]), scl(G), shp(p), w(p,G)
       double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
 
-c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision    mu(p,*), scale(*), shape(*), pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p) common shape for the group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
-c scl   double  (scratch) (G)
-c shp   double  (scratch) (p)
-c w     double  (scratch) (p*G)
 
       integer             nz, i, j, k
       integer             iter, maxi1, maxi2, inner, inmax
@@ -13069,18 +9408,17 @@ c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
 
       return
       end
+
       subroutine mevev ( EQPRO, x, n, p, G, Vinv, z, 
      *                   maxi, tol, eps, lwork,
      *                   mu, scale, shape, O, pro, w, s)
 
-c assumes that n .ge. p
-
-c copyright 1997 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for Gaussian mixtures with equal shape and volume
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -13090,44 +9428,13 @@ c EM (M-step first) for Gaussian mixtures with equal shape and volume
 
       double precision   Vinv, eps, tol(2)
 
-c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
       double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
 
-c     double precision   mu(p,G), pro(G[+1])
       double precision   mu(p,*), pro(  *  )
 
-c     double precision   scale(G), shape(p), O(p,p,G)
       double precision   scale(*), shape(*), O(p,p,*)
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                       of the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities.
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, tolerance to avoid division by 0.
-c                              On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4,G) workspace
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (output) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p)
 
       integer                 maxi1, maxi2, p1, inmax, iter
       integer                 nz, i, j, k, l, j1, info, inner
@@ -13610,23 +9917,15 @@ c     w(1)    = rcmin
       return
       end
 
-
-
-
-
-
-
-
-
       subroutine mevii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for spherical Gaussian mixtures with varying volumes
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -13636,32 +9935,11 @@ c EM (M-step first) for spherical Gaussian mixtures with varying volumes
 
       double precision    Vinv, eps, tol
 
-c     double precision    x(n,p), z(n,G[+1])
       double precision    x(n,*), z(n,  *  )
 
-c     double precision    mu(p,G), sigsq(G), pro(G[+1])
       double precision    mu(p,*), sigsq(*), pro(  *  )
 
-
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) (G) variance for each group.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -13816,13 +10094,12 @@ c         z(i,k) = temp*exp(-(const+z(i,k)/sigsqk)/two)
       subroutine mevvi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with varying volume and shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -13832,33 +10109,11 @@ c with varying volume and shape
 
       double precision    Vinv, eps, tol
 
-c     double precision    x(n,p), z(n,G[+1])
       double precision    x(n,*), z(n,  *  )
 
-c     double precision    mu(p,G), scale(G), shape(p,G), pro(G[+1])
       double precision    mu(p,*), scale(*), shape(p,*), pro(  *  )
 
 c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -14057,15 +10312,16 @@ c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
 
       return
       end
+
       subroutine mevvv ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, U, pro, w)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c EM (M-step first) for unconstrained Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -14075,33 +10331,11 @@ c EM (M-step first) for unconstrained Gaussian mixtures
 
       double precision   Vinv, eps, tol
 
-c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
 
 c------------------------------------------------------------------------------
-c
-c  EQPRO   logical (input) .TRUE. if equal mixing proportions.
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c  z       double  (input/output) (n,G[+1]) conditional probabilities. 
-c  maxi    integer (input/output) On input, upper limit on iterations.
-c                                 On output, number of iterations.
-c  tol     double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c  eps     double  (input/output) On input, lower bound for reciprocal
-c          condition estimates of the Cholesky factors of the covariances. 
-c          On output, the loglikelihood.
-c  mu      double  (output) (p,G) mean for each group.
-c  U       double  (output) (p,p,G)
-c  pro     double  (output) (G) mixing proportions (used even if equal).
-c  w       double  (scratch) (p)
 
       integer                 nz, p1, iter, i, j, k, j1
 
@@ -14293,21 +10527,1678 @@ c     w(1) = rcmin
 
       return
       end
+
+      subroutine es1e ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, G
+
+      double precision   sigsq, hood, Vinv
+
+      double precision   x(*), mu(*), pro(  *  ), z(n,  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, k, nz
+
+      double precision        temp, const, muk, prok, tmin, tmax, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (sigsq .le. max(hood,zero)) then
+c       FLMAX = d1mach(2)
+        hood  = FLMAX
+        return
+      end if
+
+      const = pi2log + log(sigsq)
+
+      do k = 1, G
+        muk  = mu(k)
+c       prok = pro(k)
+        do i = 1, n
+          temp   = x(i) - muk
+c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
+          z(i,k) = -(const+(temp*temp)/sigsq)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       temp = zero
+c       do k = 1, nz
+c         temp = temp + z(i,k)
+c       end do
+c       hood = hood + log(temp)
+c       call dscal( nz, (one/temp), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine es1v  ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n), mu(G), sigsq(G), pro(G[+1]), z(n,G[+1])
+      double precision   x(*), mu(*), sigsq(*), pro(  *  ), z(n,  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, k, nz
+
+      double precision        temp, const, tmin, tmax, sum
+      double precision        muk, sigsqk, prok, sigmin
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX  = d1mach(2)
+
+      sigmin = FLMAX
+
+      do k = 1, G
+        sigmin = min(sigmin,sigsq(k))
+      end do
+
+      if (sigmin .le. max(hood,zero)) then
+        hood  = FLMAX
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        muk    = mu(k)
+        sigsqk = sigsq(k)
+        const  = pi2log + log(sigsqk)
+        do i = 1, n
+          temp   = x(i) - muk
+c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsqk)/two)
+          z(i,k) = -(const+(temp*temp)/sigsqk)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       temp = zero
+c       do k = 1, nz
+c         temp = temp + z(i,k)
+c       end do
+c       hood = hood + log(temp)
+c       call dscal( nz, (one/temp), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine eseee ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv,
+     *                   w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      character          CHOL
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n,p), w(p), z(n,G[+1])
+      double precision   x(n,*), w(*), z(n,  *  )
+
+c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
+      double precision   mu(p,*), Sigma(p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 info, i, j, k, nz
+
+      double precision        eps, rteps, detlog, prok, tmin, tmax
+      double precision        umin, umax, const, temp, rc, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+      
+      eps   = max(hood,zero)
+      rteps = sqrt(eps)
+
+      if (CHOL .eq. 'N') then
+
+c Cholesky factorization
+        call dpotrf( 'U', p, Sigma, p, info)
+
+        w(1) = dble(info)
+
+        if (info .ne. 0) then
+          hood  = FLMAX
+          return
+        end if
+
+      end if
+
+      call drnge( p, Sigma, (p+1), umin, umax)
+
+      rc   = umin/(one+umax)
+
+      if (rc .le. rteps) then
+        w(1)  = zero
+c       FLMAX = d1mach(2)
+        hood  = FLMAX
+        return
+      end if
+
+      detlog = zero
+      do j = 1, p
+        detlog = detlog + log(abs(Sigma(j,j)))
+      end do
+
+      const = dble(p)*pi2log/two + detlog
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
+          temp   = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = prok*exp(-(const+temp))
+          z(i,k) = -(const+temp)
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      w(1) = zero
+
+      return
+      end
+
+      subroutine eseei ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, hood, Vinv
+
+c     double precision   x(n,p), z(n,G[+1])
+      double precision   x(n,*), z(n,  *  )
+
+c     double precision   mu(p,G), shape(p), pro(G[+1])
+      double precision   mu(p,*), shape(*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, tmin, tmax
+      double precision        eps, rteps, smin, smax, prok
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      eps   = max(hood, zero)
+      rteps = sqrt(eps)
+
+      if (scale .le. eps) then
+c       FLMAX = d1mach(2)
+        hood  = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        shape(j) = temp*sqrt(shape(j))
+      end do
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. rteps) then
+c       FLMAX = d1mach(2)
+        hood  = FLMAX
+        return
+      end if
+
+      const = dble(p)*(pi2log+log(scale)) 
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine eseev ( x, mu, scale, shape, O, pro, n, p, G, 
+     *                   Vinv, v, w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   scale, Vinv, hood
+
+      double precision   x(n,*), v(*), w(*), z(n,  *  )
+
+      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        const, temp, rteps, tmin, tmax
+      double precision        smin, smax, prok, eps, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+c     FLMAX  = d1mach(2)
+
+      eps    = max(hood, zero)
+      rteps  = sqrt(eps)
+  
+      if (scale .le. eps) then
+        hood = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        shape(j) = temp*sqrt(shape(j))
+      end do
+
+      call drnge( p, shape, 1, smin, smax)
+  
+      if (smin .le. rteps) then
+        hood = FLMAX
+        return
+      end if
+        
+      const = dble(p)*(pi2log + log(scale))
+
+      do k = 1, G
+
+c       prok = pro(k)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, 
+     *                 w, 1, zero, v, 1)
+          do j = 1, p
+            v(j) = v(j)/shape(j)
+          end do
+          temp   = ddot( p, v, 1, v, 1)
+c         z(i,k) = prok*exp(-(const+temp)/two)
+          z(i,k) = -(const+temp)/two
+        end do
+
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine eseii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   sigsq, hood, Vinv
+
+c     double precision   x(n,p), mu(p,G), pro(G[+1]), z(n,G[+1])
+      double precision   x(n,*), mu(p,*), pro(  *  ), z(n,  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, prok, tmin, tmax
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+      if (sigsq .le. max(hood,zero)) then
+c       FLMAX = d1mach(2)
+        hood  = FLMAX
+        return
+      end if
+
+      const = dble(p)*(pi2log+log(sigsq))
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum/sigsq)/two)
+          z(i,k) = -(const+sum/sigsq)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine esevi ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, hood, Vinv
+
+      double precision   x(n,*), z(n,  *  )
+
+      double precision   mu(p,*), shape(p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, eps, tmin, tmax
+      double precision        smin, smax, prok, rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+
+      eps   = max(hood, zero)
+      rteps = sqrt(eps)
+    
+      if (scale .le. eps) then
+        hood  = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do k = 1, G
+        do j = 1, p
+          shape(j,k) = temp*sqrt(shape(j,k))
+        end do
+        call drnge( p, shape(1,k), 1, smin, smax)
+        if (smin .le. rteps) then
+          hood  = FLMAX
+          return
+        end if
+      end do
+
+      const  = dble(p)*(pi2log+log(scale))
+
+      do k = 1, G
+c       prok   = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine estep2( n, ncolz, pro, z, hood)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, ncolz
+
+      double precision   pro(  *  ), z(n,  *  ), hood
+
+c------------------------------------------------------------------------------
+
+      integer                 i, k
+
+      double precision        temp, tmin, tmax, sum, prok
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157D+308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+c     hood = zero
+c     do i = 1, n
+c       temp = zero
+c       do k = 1, ncolz
+c         temp = temp + z(i,k)
+c       end do
+c       hood = hood + log(temp)
+c       call dscal( ncolz, (one/temp), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, ncolz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, ncolz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( ncolz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine esvei ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+      double precision   x(n,*), z(n,  *  )
+
+      double precision   mu(p,*), scale(*), shape(*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, eps, tmin, tmax
+      double precision        smin, smax, prok, scalek
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+
+      eps   = max(hood, zero)
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        hood  = FLMAX
+        return
+      end if
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        hood  = FLMAX
+        return
+      end if
+
+      do j = 1, p
+        shape(j) = sqrt(shape(j))
+      end do
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
+          z(i,k) = -(const+sum/scalek)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine esvev ( x, mu, scale, shape, O, pro, n, p, G, 
+     *                   Vinv, v, w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   Vinv, hood
+
+      double precision   x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
+
+      double precision   v(*), w(*)
+
+      double precision   scale(*), shape(*), O(p,p,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        const, temp, eps, tmin, tmax
+      double precision        smin, smax, scalek, prok, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+c     FLMAX  = d1mach(2)
+
+      eps    = max(hood, zero)
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        hood = FLMAX
+        return
+      end if
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        hood = FLMAX
+        return
+      end if
+
+      do j = 1, p
+        shape(j) = sqrt(shape(j))
+      end do
+
+      do k = 1, G
+
+        scalek = scale(k)
+        
+        const = dble(p)*(pi2log+log(scalek))
+
+c       prok  = pro(k)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, 
+     *                 w, 1, zero, v, 1)
+          do j = 1, p
+            v(j) = v(j)/shape(j)
+          end do
+          temp   = ddot( p, v, 1, v, 1)/scalek
+c         z(i,k) = prok*exp(-(const+temp)/two)
+          z(i,k) = -(const+temp)/two
+        end do
+
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      smin = FLMAX
+      smax = zero
+      do k = 1, G
+        scalek = sqrt(scale(k))
+        do j = 1, p
+          temp = scalek*shape(j)
+          smin = min(temp, smin)
+          smax = min(temp, smax)
+        end do
+      end do
+
+      w(1) = smin / (one+smax)
+
+      return
+      end
+
+      subroutine esvii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+      double precision   x(n,*), z(n,  *  )
+
+      double precision   mu(p,*), sigsq(*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, tmin, tmax
+      double precision        prok, sigsqk, sigmin
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX  = d1mach(2)
+
+      sigmin = FLMAX
+
+      do k = 1, G
+        sigmin = min(sigmin,sigsq(k))
+      end do
+
+      if (sigmin .le. max(hood,zero)) then
+        hood  = FLMAX
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        sigsqk = sigsq(k)
+        const  = dble(p)*(pi2log+log(sigsq(k)))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum/sigsqk)/two)
+          z(i,k) = -(const+sum/sigsqk)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end 
+
+      subroutine esvvi ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+      double precision   x(n,*), z(n,  *  )
+
+      double precision   mu(p,*), scale(*), shape(p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, eps, tmin, tmax
+      double precision        smin, smax, prok, scalek, rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+
+      eps   = max(hood, zero)
+      rteps = sqrt(eps)
+
+      do k = 1, G
+        temp = sqrt(scale(k))
+        do j = 1, p
+          shape(j,k) = temp*sqrt(shape(j,k))
+        end do
+      end do
+
+      do k = 1, G
+       
+        call drnge( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. rteps) then
+          hood  = FLMAX
+          return
+        end if
+
+      end do
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        hood  = FLMAX
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+
+      subroutine esvvv ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv, 
+     *                   w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
+
+      implicit NONE
+
+      character          CHOL
+
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+      double precision   x(n,*), w(*), z(n,  *  )
+
+      double precision   mu(p,*), Sigma(p,p,*), pro(  *  )
+
+c------------------------------------------------------------------------------
+
+      integer                 nz, p1, info, i, j, k
+
+      double precision        const, detlog, temp, prok, tmin, tmax
+      double precision        umin, umax, rcmin, eps, rteps, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMLOG
+      parameter              (SMLOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+      p1    = p + 1
+
+c     FLMAX = d1mach(2)
+
+      eps   = max(hood,zero)
+      rteps = sqrt(eps)
+
+      if (CHOL .eq. 'N') then
+
+        do k = 1, G
+
+          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
+
+          w(1) = dble(info)
+
+          if (info .ne. 0) then
+            hood = FLMAX
+            return
+          end if
+       
+        end do
+
+      end if
+
+      rcmin = FLMAX
+      do k = 1, G
+        call drnge( p, Sigma(1,1,k), p1, umin, umax)
+        rcmin = min(rcmin,umin/(one+umax))
+      end do
+
+      if (rcmin .le. rteps) then
+        w(1) = zero
+        hood = FLMAX
+        return
+      end if
+
+      do k = 1, G
+
+        detlog = zero
+        do j = 1, p
+          detlog = detlog + log(abs(Sigma(j,j,k)))
+        end do
+
+        const = dble(p)*pi2log/two + detlog
+
+c       prok  = pro(k)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
+          temp   = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = prok*exp(-(const+temp))
+          z(i,k) = -(const+temp)
+        end do
+
+      end do
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      w(1) = zero
+
+      return
+      end
+
       subroutine ms1e ( x, z, n, G, mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for one-dimensional Gaussian mixtures with equal variance
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
       integer             n, G
 
-c     double precision    x(n), z(n,G), mu(G), sigsq, pro(G)
       double precision    x(*), z(n,*), mu(*), sigsq, pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, k
 
@@ -14349,19 +12240,20 @@ c sumz .eq. n when no noise
 
       subroutine ms1v ( x, z, n, G, mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for spherical Gaussian mixtures with varying volumes
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
       integer            n, G
 
-c     double precision   x(n), z(n,G), mu(G), sigsq(G), pro(G)
       double precision   x(*), z(n,*), mu(*), sigsq(*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, k
      
@@ -14397,22 +12289,22 @@ c------------------------------------------------------------------------------
 
       subroutine mseee ( x, z, n, p, G, w, mu, U, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for constant-variance Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
       integer            n, p, G
 
-c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p), pro(G)
       double precision   mu(p,*), U(p,*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k, j1
 
@@ -14464,12 +12356,12 @@ c sumz .eq. n when no noise
 
       subroutine mseei ( x, z, n, p, G, eps, mu, scale, shape, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for diagonal Gaussian mixtures with equal volume and shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -14477,11 +12369,11 @@ c M-step for diagonal Gaussian mixtures with equal volume and shape
 
       double precision   eps
 
-c     double precision   x(n,p), z(n,G)
       double precision   x(n,*), z(n,*)
 
-c     double precision   mu(p,G), scale, shape(p), pro(G)
       double precision   mu(p,*), scale, shape(*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k
 
@@ -14551,12 +12443,12 @@ c------------------------------------------------------------------------------
       subroutine mseev ( x, z, n, p, G, w, lwork, eps, 
      *                   mu, scale, shape, O, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for Gaussian mixtures with equal shape and constant volume
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -14564,11 +12456,11 @@ c M-step for Gaussian mixtures with equal shape and constant volume
 
       double precision   eps, scale
 
-c     double precision   x(n,p), z(n,G), w(lwork)
       double precision   x(n,*), z(n,*), w(  *  )
 
-c     double precision   shape(p), O(p,p,G), mu(p,G), pro(G)
       double precision   shape(*), O(p,p,*), mu(p,*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k, j1, l, info
       double precision        dummy, sum, sumz, temp, const
@@ -14660,19 +12552,20 @@ c sumz .eq. n when no noise
 
       subroutine mseii ( x, z, n, p, G, mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for spherical, equal-volume Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
       integer            n, p, G
 
-c     double precision   x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
       double precision   x(n,*), z(n,*), mu(p,*), sigsq, pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k
 
@@ -14716,12 +12609,12 @@ c sumz .eq. n when no noise
 
       subroutine msevi ( x, z, n, p, G, eps, mu, scale, shape, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for diagonal Gaussian mixtures with equal scale and varying shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -14729,11 +12622,11 @@ c M-step for diagonal Gaussian mixtures with equal scale and varying shape
 
       double precision   eps, scale
 
-c     double precision   x(n,p), z(n,G)
       double precision   x(n,*), z(n,*)
 
-c     double precision   mu(p,G), shape(p,G), pro(G)
       double precision   mu(p,*), shape(p,*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k
 
@@ -14811,12 +12704,12 @@ c pro(k) now contains n_k
       subroutine msvei ( x, z, n, p, G, maxi, tol, eps,
      *                   mu, scale, shape, pro, scl, shp, w)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for diagonal Gaussian mixtures with varying volume and equal shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -14824,11 +12717,11 @@ c M-step for diagonal Gaussian mixtures with varying volume and equal shape
 
       double precision   eps, tol
 
-c     double precision   x(n,p), z(n,G), scl(G), shp(p), w(p,G)
       double precision   x(n,*), z(n,*), scl(*), shp(*), w(p,*)
 
-c     double precision   mu(p,G), scale(G), shape(p), pro(G)
       double precision   mu(p,*), scale(*), shape(*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k, iter
 
@@ -15016,12 +12909,12 @@ c shape estimate
       subroutine msvev ( x, z, n, p, G, w, lwork, maxi, tol, eps,
      *                   mu, scale, shape, O, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for Gaussian mixtures with prescribed shape and constant volume
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -15029,11 +12922,11 @@ c M-step for Gaussian mixtures with prescribed shape and constant volume
 
       double precision   eps, tol
 
-c     double precision   x(n,p), z(n,G), w(max(4*p,5*p-4,p+G))
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   scale(G), shape(p), O(p,p,G), mu(p,G), pro(G)
       double precision   scale(*), shape(*), O(p,p,*), mu(p,*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 p1, i, j, k, j1, inner, info
 
@@ -15232,19 +13125,20 @@ c normalize the shape matrix
 
       subroutine msvii ( x, z, n, p, G, mu, sigsq, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for spherical Gaussian mixtures with varying volumes
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
       integer            n, p, G
 
-c     double precision   x(n,p), z(n,G), mu(p,G), sigsq(G), pro(G)
       double precision   x(n,*), z(n,*), mu(p,*), sigsq(*), pro(*)
+
+c------------------------------------------------------------------------------
       
       integer                 i, j, k
      
@@ -15282,12 +13176,12 @@ c------------------------------------------------------------------------------
 
       subroutine msvvi ( x, z, n, p, G, eps, mu, scale, shape, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for diagonal Gaussian mixtures with varying scale and shape
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the
+c University of Washington.
 
       implicit NONE
 
@@ -15295,11 +13189,11 @@ c M-step for diagonal Gaussian mixtures with varying scale and shape
 
       double precision   eps
 
-c     double precision   x(n,p), z(n,G)
       double precision   x(n,*), z(n,*)
 
-c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
       double precision   mu(p,*), scale(*), shape(p,*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k
 
@@ -15369,22 +13263,22 @@ c pro(k) now contains n_k
 
       subroutine msvvv ( x, z, n, p, G, w, mu, U, pro)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for unconstrained Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
       integer            n, p, G
 
-c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, k, j1
 
@@ -15427,14 +13321,15 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mvn1d ( x, n, mu, sigsq, hood)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c mean, variancee and loglikelihood for a single 1-D Gaussian 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -15443,8 +13338,9 @@ c     integer            n
 
       double precision   mu,  sigsq, hood
 
-c     double precision   x(n)
       double precision   x(*)
+
+c------------------------------------------------------------------------------
 
       double precision        dn, scl
 
@@ -15482,24 +13378,25 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mvnxii( x, n, p, mu, sigsq, hood)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c parameters and loglikelihood for a single spherical Gaussian
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
-c     integer            n, p
       integer            n, p
 
       double precision   sigsq, hood
 
-c     double precision   x(n,p), mu(p)
       double precision   x(n,*), mu(*)
+
+c------------------------------------------------------------------------------
 
       integer                 j
 
@@ -15546,12 +13443,12 @@ c------------------------------------------------------------------------------
 
       subroutine mvnxxi( x, n, p, mu, scale, shape, hood)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c parameters and loglikelihood for a single diagonal Gaussian
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -15560,8 +13457,9 @@ c     integer            n, p
 
       double precision   scale, hood
 
-c     double precision   x(n,p), mu(p), shape(p)
       double precision   x(n,*), mu(*), shape(*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j
 
@@ -15621,22 +13519,22 @@ c------------------------------------------------------------------------------
 
       subroutine mvnxxx( x, n, p, mu, U, hood)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c parameters and loglikelihood for a single ellipsoidal Gaussian
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
-c     integer            n, p
       integer            n, p
 
       double precision   hood
 
-c     double precision   x(n,p), mu(p), U(p,p)
       double precision   x(n,*), mu(*), U(p,*)
+
+c------------------------------------------------------------------------------
 
       integer                 i, j, j1
 
@@ -15707,9 +13605,15 @@ c     end do
 
       return
       end
+
       subroutine drnge( l, v, i, vmin, vmax)
 
-c finds the max and min elements in absolute value of a vector
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -15745,30 +13649,23 @@ c----------------------------------------------------------------------------
 
       return  
       end 
+
       subroutine mcltrw( x, n, p, u, ss)
 
-c copyright 1996 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c Computes the trace of the sample cross product matrix.
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit double precision (a-h,o-z)
 
-c     integer            n, p
       integer            n, p
 
-c     double precision   x(n,p), u(p)
       double precision   x(n,*), u(*)
+
 c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, x is overwritten.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  u       output  (scratch) (p) 
-c  ss output
 
       double precision        zero, one
       parameter              (zero = 0.d0, one = 1.d0)
@@ -15791,14 +13688,142 @@ c subtract mean and form sum of squares
 
       return
       end
+
+      subroutine mclvol( x, n, p, u, v, w,
+     *                   work, lwork, iwork, liwork, 
+     *                   info)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit double precision (a-h,o-z)
+
+c     integer            n, p, iwork(liwork)
+      integer            n, p, iwork(*)
+
+      double precision   x(n,*), u(*), v(p,*), w(p,p), work(*)
+
+c------------------------------------------------------------------------------
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision    EPSMAX
+      parameter          (EPSMAX = 2.2204460492503131d-16)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157D+308)
+
+c     double precision        d1mach
+
+c------------------------------------------------------------------------------
+
+c form mean
+      s = one / dble(n)
+      call dcopy( p, zero, 0, u, 1)
+      do i = 1, n
+        call daxpy( p, s, x(i,1), n, u, 1)
+      end do
+
+c subtract mean
+      do j = 1, p
+        call daxpy( n, (-one), u(j), 0, x(1,j), 1)
+      end do
+
+c     if (.false.) then
+c this gets the eigenvectors but x is overwritten
+
+c get right singular vectors
+c       call dgesvd( 'N', 'A', n, p, x, n, u, 
+c    *                dummy, 1, w, p, work, lwork, info)
+
+c       if (info .lt. 0) return
+
+c       if (info .eq. 0) then
+c         lwork = int(work(1))
+c         do i = 1, p
+c           v(i,i) = w(i,i)
+c           if (i .gt. 1) then
+c             do j = 1, (i-1)
+c               v(i,j) = w(j,i)
+c               v(j,i) = w(i,j)
+c             end do
+c           end if
+c         end do
+c         goto 100
+c       end if
+
+c     end if
+
+c form crossproduct
+      call dsyrk( 'U', 'T', p, n, one, x, n, zero, w, p)
+
+c get eigenvectors
+ 
+      do j = 1, p
+        do i = 1, j
+          v(i,j) = w(i,j)
+        end do
+      end do
+
+      call dsyevd( 'V', 'U', p, v, p, u, 
+     *              work, lwork, iwork, liwork, info)
+
+      if (info .lt. 0) return
+
+      if (info .eq. 0) then
+        lwork  = int(work(1))
+        liwork = iwork(1)
+        goto 100
+      end if
+
+c     EPSMAX = d1mach(4)
+
+      call dsyevx( 'V', 'A', 'U', p, w, p, dummy, dummy, i, i,
+     *              sqrt(EPSMAX), j, u, v, p,
+     *              work, lwork, iwork(p+1), iwork, info)
+          
+      if (info .ne. 0) return
+
+      lwork  = int(work(1))
+      liwork = -1 
+
+ 100  continue
+  
+c      FLMAX = d1mach(2)
+
+c form xv
+
+c     vol = one
+      do j = 1, p
+        call dgemv( 'N', n, p, one, x, n, v(1,j), 1, zero, work, 1)
+        cmax = -FLMAX
+        cmin =  FLMAX
+        do i = 1, n
+          temp = work(i)
+          if (temp .gt. cmax) cmax = temp
+          if (temp .lt. cmin) cmin = temp
+        end do
+        u(j) = cmax - cmin
+c       vol  = vol * (cmax - cmin)
+      end do
+
+      return
+
+      end
+
       subroutine shapeo( TRANSP, s, O, l, m, w, info)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c O * diag(s) * t(O) or t(O) * diag(s) * O
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -15807,20 +13832,9 @@ c      character          TRANSP
 
       integer            l, m, info
 
-c     double precision   s(l), O(l,l,m), w(l,l)
       double precision   s(*), O(l,l,*), w(l,*)
 
 c------------------------------------------------------------------------------
-c
-c  TRANSP character (input) indicates treatment of O.
-c Comment Ron: Transp is now integer, 'N' is 0, 'T' is 1
-c  s      double    (input) (l) a vector. 
-c  O      double    (input/output) (l,l, m) On input, m l by l matrices.
-c                      On output, t(O) * diag(s) *   O  if TRANSP = 'T'.
-c                                   O  * diag(s) * t(O) if TRANSP = 'N'.
-c  l      integer   (input) dimension of s.
-c  m      integer   (input) number of matrices.
-c  info   integer   (output) error indicator.
 
       integer                 j, k
 
@@ -15881,14 +13895,15 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine unchol ( UPLO, T, l, n, info)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
-
-c M-step for constant-variance Gaussian mixtures
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
@@ -15901,15 +13916,6 @@ c     double precision   T(abs(n), abs(n))
       double precision   T(  l   ,   *   )
 
 c------------------------------------------------------------------------------
-c
-c  UPLO  character (input) 'U'/'L' for upper/lower triangular.
-c Comment Ron: 'L' is 0, 'U' is 1... No character passes from R...
-c  T     double    (input/output) (n,n) On input, triangular matrix.
-c                   On output, if upper triangular transpose(T) * T; 
-c                              if lower triangular T * transpose(T).
-c  l     integer (input) leading dimension of T.
-c  n     integer (input) effective dimension of T.
-c  info  integer (output) nonzero indicates UPLO incorrectly specified.
 
        integer            i, j, k
 
@@ -15960,88 +13966,934 @@ c------------------------------------------------------------------------------
       info = -1
       return
       end
-      subroutine estep2( n, ncolz, pro, z, hood)
 
-c copyright 2001 Department of Statistics, University of Washington
-c funded by ONR contracts N00014-96-1-0192 and N-00014-96-1-0330
-c Commercial use or distribution prohibited except by agreement with
-c the University of Washington.
+      subroutine den1e ( x, mu, sigsq, n, G, eps, dens)
 
-c E-step and loglikelihood given mixing proportions and log component 
-c densities
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
 
       implicit NONE
 
-      integer            n, ncolz
+      integer            n, G
 
-c     double precision   pro(ncolz), z(n,ncolz), hood
-      double precision   pro(  *  ), z(n,  *  ), hood
+      double precision   sigsq, eps
+
+      double precision   x(*), mu(*), dens(n,*)
 
 c------------------------------------------------------------------------------
-c
-c  n       integer (input) number of observations.
-c  ncolz   integer (input) number of components.
-c  pro     double  (input) (ncolz) mixing proportions.
-c  z       double  (output) (n,ncolz) log component densities
-c  hood    double  (output) loglikelihood.
 
       integer                 i, k
 
-      double precision        temp, tmin, tmax, sum, prok
+      double precision        sumz, temp, const
 
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157D+308)
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
 
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
 
 c------------------------------------------------------------------------------
 
-c     hood = zero
-c     do i = 1, n
-c       temp = zero
-c       do k = 1, ncolz
-c         temp = temp + z(i,k)
-c       end do
-c       hood = hood + log(temp)
-c       call dscal( ncolz, (one/temp), z(i,1), n)
-c     end do
+      eps   = max(eps,zero)
 
-      hood = zero
+      if (sigsq .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = sigsq
+
+      const = pi2log+log(sigsq)
+
       do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, ncolz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
+        sumz = zero
+        do k = 1, G
+          temp      = x(i) - mu(k)
+          temp      = temp*temp
+          dens(i,k) = -(const+temp/sigsq)/two
         end do
-        sum   = zero
-        do k = 1, ncolz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( ncolz, (one/sum), z(i,1), n)
       end do
 
       return
       end
 
+      subroutine den1v ( x, mu, sigsq, n, G, eps, dens)
 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, G
+
+      double precision   eps
+
+      double precision   x(*), mu(*), sigsq(*), dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, k
+
+      double precision        temp, const, muk, sigsqk
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+      eps  = max(eps,zero)
+
+      temp = sigsq(1)
+
+      if (G .gt. 1) then
+        do k = 2, G
+          temp = min(temp,sigsq(k))
+        end do
+      end if
+
+      if (temp .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = temp
+
+      do k = 1, G
+        sigsqk = sigsq(k)
+        const  = pi2log+log(sigsqk)
+        muk    = mu(k)
+        do i = 1, n
+          temp      = x(i) - muk
+          dens(i,k) = -(const+(temp*temp)/sigsqk)/two
+        end do
+      end do
+
+      return
+      end
+
+      subroutine deneee( CHOL, x, mu, Sigma, n, p, G, w, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            CHOL
+c      character          CHOL
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   eps
+
+      double precision   x(n,*), mu(p,*), Sigma(p,*)
+
+      double precision   w(*), dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 info, i, j, k
+
+      double precision        detlog, const, temp
+      double precision        umin, umax, rc
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+
+      if (CHOL .eq. 0) then
+
+c Cholesky factorization
+        call dpotrf( 'U', p, Sigma, p, info)
+
+        w(1) = dble(info)
+
+        if (info .ne. 0) then
+          w(1)  = FLMAX
+          return
+        end if
+
+      end if
+
+      call drnge( p, Sigma, (p+1), umin, umax)
+
+      eps = max(eps,zero)
+      eps = sqrt(eps)
+
+      rc  = umin/(one+umax)
+
+      if (rc .le. eps) then
+        eps = rc
+        return
+      end if
+
+      eps = rc
+
+      detlog = zero
+      do j = 1, p
+        detlog = detlog + log(abs(Sigma(j,j)))
+      end do
+
+      const = dble(p)*pi2log/two + detlog
+
+      do k = 1, G
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
+          temp      = ddot( p, w, 1, w, 1)/two
+          dens(i,k) = -(const+temp)
+        end do
+      end do
+
+      w(1) = zero
+
+      return
+      end
+
+      subroutine deneei ( x, mu, scale, shape, n, p, G, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, eps
+
+      double precision   x(n,*), mu(p,*), shape(*)
+
+      double precision   dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, temp, const, smin, smax
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+      eps = max(eps,zero)
+
+      if (scale .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        shape(j) = temp*sqrt(shape(j))
+      end do
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. sqrt(eps)) then
+c       FLMAX = d1mach(2)
+        eps   = FLMAX
+        return
+      end if
+
+      eps = smin*smin
+
+      const = dble(p)*(pi2log+log(scale)) 
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j)
+            sum  = sum + temp*temp
+          end do
+          dens(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      return
+      end
+
+      subroutine deneev( x, mu, scale, shape, O, n, p, G, 
+     *                   v, w, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, eps
+
+      double precision   x(n,*), mu(p,*), shape(*), O(p,p,*)
+
+      double precision   v(*), w(*), dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        const, temp, smin, smax
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+c     FLMAX  = d1mach(2)
+
+      eps    = max(eps, zero)
+  
+      if (scale .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        shape(j) = temp*sqrt(shape(j))
+      end do
+
+      call drnge( p, shape, 1, smin, smax)
+  
+      if (smin .le. sqrt(eps)) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = smin*smin
+        
+      const = dble(p)*(pi2log + log(scale))/two
+
+      do k = 1, G
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, 
+     *                 w, 1, zero, v, 1)
+          do j = 1, p
+            v(j) = v(j)/shape(j)
+          end do
+          temp      = ddot( p, v, 1, v, 1)/two
+          dens(i,k) = -(const+temp)
+        end do
+
+      end do
+
+      return
+      end
+
+      subroutine deneii( x, mu, sigsq, n, p, G, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   sigsq, eps
+
+      double precision   x(n,*), mu(p,*), dens(n, *)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, sumz, temp, const
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+      eps   = max(eps,zero)
+
+      if (sigsq .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = sigsq
+
+      const = dble(p)*(pi2log+log(sigsq))
+
+      do i = 1, n
+        sumz = zero
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+          dens(i,k) = -(const+sum/sigsq)/two
+        end do
+      end do
+
+      return
+      end
+
+      subroutine denevi( x, mu, scale, shape, n, p, G, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, eps
+
+      double precision   x(n,*), mu(p,*), shape(p,*)
+
+      double precision   dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, temp, const
+      double precision        smin, smax, rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+
+      eps   = max(eps, zero)
+      rteps = sqrt(eps)
+    
+      if (scale .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do k = 1, G
+        do j = 1, p
+          shape(j,k) = temp*sqrt(shape(j,k))
+        end do
+        call drnge( p, shape(1,k), 1, smin, smax)
+        if (smin .le. rteps) then
+          eps = FLMAX
+          return
+        end if
+      end do
+
+      const  = dble(p)*(pi2log+log(scale))
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j,k)
+            sum  = sum + temp*temp
+          end do
+          dens(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      return
+      end
+
+      subroutine denvei( x, mu, scale, shape, n, p, G, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   eps
+
+      double precision   x(n,*), mu(p,*), scale(*), shape(*)
+
+      double precision   dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, temp, const, smin, smax, scalek
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+ 
+      eps   = max(eps,zero)
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = smin
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      do j = 1, p
+        shape(j) = sqrt(shape(j))
+      end do
+
+      do k = 1, G
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j)
+            sum  = sum + temp*temp
+          end do
+          dens(i,k) = -(const+sum/scalek)/two
+        end do
+      end do
+
+      return
+      end
+
+      subroutine denvev( x, mu, scale, shape, O, n, p, G, 
+     *                   v, w, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   eps
+
+      double precision   x(n,*), mu(p,*)
+
+      double precision   scale(*), shape(*), O(p,p,*)
+
+      double precision   v(*), w(*), dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        const, temp, smin, smax, scalek
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+c     FLMAX  = d1mach(2)
+
+      eps    = max(eps, zero)
+
+      call drnge( p, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      call drnge( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = smin
+
+      do j = 1, p
+        shape(j) = sqrt(shape(j))
+      end do
+
+      do k = 1, G
+
+        scalek = scale(k)
+        
+        const = dble(p)*(pi2log+log(scalek))
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, 
+     *                 w, 1, zero, v, 1)
+          do j = 1, p
+            v(j) = v(j)/shape(j)
+          end do
+          temp      = ddot( p, v, 1, v, 1)/scalek
+          dens(i,k) = -(const+temp)/two
+        end do
+
+      end do
+
+      return
+      end
+
+      subroutine denvii( x, mu, sigsq, n, p, G, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   sigsq(*), eps
+
+      double precision   x(n,*), mu(p,*), dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, sigsqk, temp, const
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+      eps  = max(eps,zero)
+
+      temp = sigsq(1)
+
+      if (G .gt. 1) then
+        do k = 2, G
+          temp = min(temp,sigsq(k))
+        end do
+      end if
+
+      if (temp .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = temp
+
+      do k = 1, G
+        sigsqk = sigsq(k)
+        const  = dble(p)*(pi2log+log(sigsq(k)))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+          dens(i,k) = -(const+sum/sigsqk)/two
+        end do
+      end do
+
+      return
+      end
+      subroutine denvvi( x, mu, scale, shape, n, p, G, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   eps
+
+      double precision   x(n,*), mu(p,*), scale(*), shape(p,*)
+
+      double precision   dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, temp, const
+      double precision        smin, smax, scalek, rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+c     FLMAX = d1mach(2)
+
+      eps   = max(eps, zero)
+      rteps = sqrt(eps)
+
+      do k = 1, G
+        temp = sqrt(scale(k))
+        do j = 1, p
+          shape(j,k) = temp*sqrt(shape(j,k))
+        end do
+      end do
+
+      do k = 1, G
+       
+        call drnge( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. rteps) then
+          eps = FLMAX
+          return
+        end if
+
+      end do
+
+      call drnge( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps = FLMAX
+        return
+      end if
+
+      eps = smin
+
+      do k = 1, G
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = (x(i,j) - mu(j,k))/shape(j,k)
+            sum  = sum + temp*temp
+          end do
+          dens(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      return
+      end
+
+      subroutine denvvv( CHOL, x, mu, Sigma, n, p, G, w, eps, dens)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+c Distribution of MCLUST is prohibited except by agreement with the 
+c University of Washington.
+
+      implicit NONE
+
+      character          CHOL
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   eps
+
+      double precision   x(n,*), mu(p,*), Sigma(p,p,*)
+
+      double precision   w(*), dens(n,*)
+
+c------------------------------------------------------------------------------
+
+      integer                 p1, info, i, j, k
+
+      double precision        const, detlog, temp
+      double precision        umin, umax, rc
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      external                ddot
+      double precision        ddot
+
+c------------------------------------------------------------------------------
+
+      p1    = p + 1
+
+c     FLMAX = d1mach(2)
+
+      if (CHOL .eq. 'N') then
+
+        do k = 1, G
+
+          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
+
+          w(1) = dble(info)
+
+          if (info .ne. 0) then
+            w(1) = FLMAX
+            return
+          end if
+       
+        end do
+
+      end if
+
+      eps = max(eps,zero)
+      eps = sqrt(eps)
+
+      rc   = FLMAX
+      do k = 1, G
+        call drnge( p, Sigma(1,1,k), p1, umin, umax)
+        rc  = min(rc,umin/(one+umax))
+      end do
+
+      if (rc .le. eps) then
+        eps = rc
+        return
+      end if
+ 
+      eps = rc
+
+      do k = 1, G
+
+        detlog = zero
+        do j = 1, p
+          detlog = detlog + log(abs(Sigma(j,j,k)))
+        end do
+
+        const = dble(p)*pi2log/two + detlog
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
+          temp      = ddot( p, w, 1, w, 1)/two
+          dens(i,k) = -(const+temp)
+        end do
+
+      end do
+
+      w(1) = zero
+
+      return
+      end

@@ -84,7 +84,7 @@ testMclustDA <- mclustDA(trainingData = x[odd, ], labels = xclass[odd],
                          testData = x[even,])
 
 clEven <- testMclustDA$testClassification ## classify training set
-compClass(clEven,xclass[even])$error
+compareClass(clEven,xclass[even])
 
 \dontrun{
 plot(testMclustDA, trainingData = x[odd, ], labels = xclass[odd], 

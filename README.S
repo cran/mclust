@@ -61,6 +61,8 @@ ftp.u.washington.edu in the directory public/mclust. There is a gzipped tar
 file `MCLUST.tar.gz' for UNIX users, and a WinZip file `mclust.zip' for
 Windows users.
 
+The 2002 version of MCLUST is not backwrd compatible.
+
 ---------------------------------------------------------------------------
 MCLUST Installation:
 ---------------------------------------------------------------------------
@@ -101,9 +103,10 @@ where .../ indicates the path to the directory MCLUST.
 Windows (S-PLUS 6):
 ----------------------------
 
-The file `mclust.zip' contains the necessary files for running MCLUST
-with S-PLUS 6 for Windows. To install MCLUST on Windows, unzip this file
-to obtain a directory called `mclust'. That directory needs to be 
+The file `Mclust.zip' contains the necessary files for running MCLUST
+with S-PLUS 6 for Windows. To install MCLUST on Windows, extract the
+contents of `Mclust.zip' to a directory called `mclust'. 
+That directory needs to be 
 attached in S-PLUS in order to access the MCLUST functions. 
 To use the MCLUST help files, either click on the file `mclust.chm'
 included in the folder, or else execute it as a command from a DOS prompt.

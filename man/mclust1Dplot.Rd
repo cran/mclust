@@ -109,14 +109,16 @@ mclust1Dplot(data, \dots,
   See \url{http://www.stat.washington.edu/mclust}.
 }
 \seealso{
-  \code{\link{mclust2Dplot}}, \code{\link{clPairs}}, \code{\link{coordProj}},
+  \code{\link{mclust2Dplot}},
+  \code{\link{clPairs}},
+  \code{\link{coordProj}},
   \code{\link{do.call}}
 }
 \examples{
 n <- 250 ## create artificial data
 set.seed(0)
-y <- c(rnorm(n,-5),rnorm(n,0),rnorm(n,5))
-yclass <- c(rep(1,n),rep(2,n),rep(3,n))
+y <- c(rnorm(n,-5), rnorm(n,0), rnorm(n,5))
+yclass <- c(rep(1,n), rep(2,n), rep(3,n))
 
 yEMclust <- summary(EMclust(y),y)
 

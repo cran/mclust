@@ -34,7 +34,7 @@ uncerPlot(z, truth, \dots)
 }
 \details{
   When \code{truth} is provided and the number of classes is compatible
-  with \code{z}, the function \code{compClass} is used to to find best
+  with \code{z}, the function \code{compareClass} is used to to find best
   correspondence between classes in \code{truth} and \code{z}.
 }
 \section{References}{
@@ -53,7 +53,7 @@ uncerPlot(z, truth, \dots)
   \code{\link{EMclust}},
   \code{\link{em}},
   \code{\link{me}},
-  \code{\link{compClass}}
+  \code{\link{mapClass}}
 }
 \examples{
 data(iris)

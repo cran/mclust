@@ -110,7 +110,7 @@ summary(train)
 even <- odd + 1
 test <- mclustDAtest(x[even, ], train) ## compute model densities
 clEven <- summary(test)$class ## classify training set
-compClass(clEven,xclass[even])
+compareClass(clEven,xclass[even])
 }
 \keyword{cluster}
 % docclass is function

@@ -90,7 +90,9 @@ mclustDA(trainingData, labels, testData, G=1:6, verbose = FALSE)
 \seealso{
   \code{\link{plot.mclustDA}}, 
   \code{\link{mclustDAtrain}}, 
-  \code{\link{mclustDAtest}}
+  \code{\link{mclustDAtest}},
+  \code{\link{compareClass}}, 
+  \code{\link{classError}}
 }
 \examples{
 n <- 250 ## create artificial data
@@ -110,7 +112,7 @@ testMclustDA <- mclustDA(trainingData = x[odd, ], labels = xclass[odd],
                          testData = x[even,])
 
 clEven <- testMclustDA$testClassification ## classify training set
-compClass(clEven,xclass[even])$error
+compareClass(clEven,xclass[even])
 \dontrun{plot(testMclustDA, trainingData = x[odd, ], labels = xclass[odd], 
               testData = x[even,])}
 }

@@ -12,7 +12,7 @@
 coordProj(data, \dots, dimens = c(1, 2),
           type = c("classification","uncertainty","errors"), ask = TRUE,
           quantiles = c(0.75, 0.95), symbols, scale = FALSE, identify = TRUE, 
-          CEX = 1, PCH = ".", xlim, ylim, col)
+          CEX = 1, PCH = ".", xlim, ylim)
 }
 \arguments{
   \item{data}{
@@ -113,11 +113,9 @@ coordProj(data, \dots, dimens = c(1, 2),
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{xlim, ylim, col}{
+  \item{xlim, ylim}{
     Arguments specifying bounds for the ordinate, abscissa of the plot.
-    This may be useful for when comparing plots. The \code{col} argument
-    can be in the "classification"-type plots: the number of colors
-    should match the number of classes. Default: black.
+    This may be useful for when comparing plots.
   }
 }
 \section{Side Effects}{

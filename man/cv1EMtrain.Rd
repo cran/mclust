@@ -28,11 +28,11 @@ round(cv1EMtrain(data=lansing[odd,-3], labels=lansing[odd,3]), 3)
 
 cv1Modd <- mstepEEV(data=lansing[odd,-3], z=unmap(lansing[odd,3]))
 cv1Zodd <- do.call("estepEEV", c(cv1Modd, list(data=lansing[odd,-3])))$z
-compClass(map(cv1Zodd), lansing[odd,3])
+compareClass(map(cv1Zodd), lansing[odd,3])
 
 even <- (1:nrow(lansing))[-odd]
 cv1Zeven <- do.call("estepEEV", c(cv1Modd, list(data=lansing[even,-3])))$z
-compClass(map(cv1Zodd), lansing[odd,3])$error
+compareClass(map(cv1Zodd), lansing[odd,3])$error
 }
 \keyword{cluster}
 

@@ -23,7 +23,7 @@ bicEMtrain(data, labels, modelNames)
 \seealso{\code{\link{cv1EMtrain}}}
 \examples{
 data(lansing)
-odd_seq(from=1, to=nrow(lansing), by=2)
+odd <- seq(from=1, to=nrow(lansing), by=2)
 round(bicEMtrain(lansing[odd,-3], labels=lansing[odd, 3]), 1)
 }
 \keyword{cluster}

@@ -43,10 +43,9 @@ EMclustN(data, G, emModelNames, noise, hcPairs, eps, tol, itmax,
     The default is \code{.Mclust\$emModelNames}.
   }
   \item{noise}{
-    A logical vector indicating whether or not observations are initially 
-    estimated to noise in the data.
-    If there is no noise \code{EMclust}
-    should be use rather than \code{EMclustN}.
+    A logical or numeric vector indicating whether or not observations
+    are initially estimated to noise in the data. If there is no noise
+    \code{EMclust} should be use rather than \code{EMclustN}.
   }
   \item{hcPairs}{
     A matrix of merge pairs for hierarchical clustering such as produced

@@ -18,18 +18,18 @@
   Computes component densities for points in a parameterized MVN mixture model.
 }
 \usage{
-cdensE(data, mu, sigmasq, eps, warnSingular, \dots)
-cdensV(data, mu, sigmasq, eps, warnSingular, \dots)
-cdensEII(data, mu, sigmasq, eps, warnSingular, \dots)
-cdensVII(data, mu, sigmasq, eps, warnSingular, \dots)
-cdensEEI(data, mu, decomp, eps, warnSingular, \dots)
-cdensVEI(data, mu, decomp, eps, warnSingular, \dots)
-cdensEVI(data, mu, decomp, eps, warnSingular, \dots)
-cdensVVI(data, mu, decomp, eps, warnSingular, \dots)
-cdensEEE(data, mu, eps, warnSingular, \dots)
-cdensEEV(data, mu, decomp, eps, warnSingular, \dots)
-cdensVEV(data, mu, decomp, eps, warnSingular, \dots)
-cdensVVV(data, mu, eps, warnSingular, \dots)
+cdensE(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
+cdensV(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
+cdensEII(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
+cdensVII(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
+cdensEEI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
+cdensVEI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
+cdensEVI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
+cdensVVI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
+cdensEEE(data, mu, eps, warnSingular, logarithm = FALSE, \dots)
+cdensEEV(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
+cdensVEV(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
+cdensVVV(data, mu, eps, warnSingular, logarithm = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -54,6 +54,12 @@ cdensVVV(data, mu, eps, warnSingular, \dots)
     for the diagonal models ("EEI", "VEI", "EVI", "VVI") and some
     ellipsoidal models ("EEV", "VEV"). This is a list described in more
     detail in \code{\link{cdens}}.
+  }
+  \item{logarithm}{
+    A logical value indicating whether or not the logarithm of the
+    component densities should be returned.
+    The default is to return the component densities,
+    obtained from the log component densities by exponentiation.
   }
   \item{\dots}{
     An argument giving the variance that takes one of the following forms:

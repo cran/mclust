@@ -23,15 +23,15 @@ cv1EMtrain(data, labels, modelNames)
 \seealso{\code{\link{bicEMtrain}}}
 \examples{
 data(lansing)
-odd_seq(from=1, to=nrow(lansing), by=2)
+odd <- seq(from=1, to=nrow(lansing), by=2)
 round(cv1EMtrain(data=lansing[odd,-3], labels=lansing[odd,3]), 3)
 
 cv1Modd <- mstepEEV(data=lansing[odd,-3], z=unmap(lansing[odd,3]))
 cv1Zodd <- do.call("estepEEV", c(cv1Modd, list(data=lansing[odd,-3])))$z
 compClass(map(cv1Zodd), lansing[odd,3])
 
-even _ (1:nrow(lansing))[-odd]
-cv1Zeven _ do.call("estepEEV", c(cv1Modd, list(data=lansing[even,-3])))$z
+even <- (1:nrow(lansing))[-odd]
+cv1Zeven <- do.call("estepEEV", c(cv1Modd, list(data=lansing[even,-3])))$z
 compClass(map(cv1Zodd), lansing[odd,3])$error
 }
 \keyword{cluster}

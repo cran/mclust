@@ -12,10 +12,11 @@
 \alias{[.EMclustN}
 \alias{nextPerm}
 \alias{charconv}
+\alias{estep2}
 \description{
   Internal tools functions.
 }
 \details{
-  These are not to be called by the user.
+  These are not to be called by the user directly.
 }
 \keyword{internal}

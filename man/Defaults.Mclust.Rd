@@ -1,4 +1,5 @@
 \name{Defaults.Mclust}
+\alias{Defaults.Mclust}
 \alias{.Mclust}
 \title{
   List of values controlling defaults for some MCLUST functions.
@@ -95,6 +96,16 @@
   \code{\link{mstep}}
 }
 \examples{
+n <- 250 ## create artificial data
+set.seed(0)
+x <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
+           matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
+xclass <- c(rep(1,n),rep(2,n))
+odd <- seq(1, 2*n, 2)
+train <- mclustDAtrain(x[odd, ], labels = xclass[odd]) ## training step
+even <- odd + 1
+test <- mclustDAtest(x[even, ], train) ## compute model densities
+
 data(iris)
 irisMatrix <- iris[,1:4]
 irisClass <- iris[,5]

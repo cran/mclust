@@ -23,7 +23,6 @@ mclustDA(trainingData, labels, testData, G=1:6, verbose = FALSE)
     training observation.
   }
   \item{testData}{
-    
     A numeric vector, matrix, or data frame of training observations.
     Categorical variables are not allowed.
     If a matrix or data frame, rows correspond to observations and
@@ -72,7 +71,7 @@ mclustDA(trainingData, labels, testData, G=1:6, verbose = FALSE)
   "VVI": diagonal, varying volume, varying shape \cr
   "EEE": ellipsoidal, equal volume, shape, and orientation \cr
   "VVV": ellipsoidal, varying volume, shape, and orientation 
-
+  
   \code{mclustDA} is a simplified function combining
   \code{mclustDAtrain} and \code{mclustDAtest} and their summaries.
 }
@@ -99,10 +98,12 @@ set.seed(0)
 x <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
            matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
 xclass <- c(rep(1,n),rep(2,n))
+
 \dontrun{
 par(pty = "s")
 mclust2Dplot(x, classification = xclass, type="classification", ask=FALSE)
 }
+
 odd <- seq(from = 1, to = 2*n, by = 2)
 even <- odd + 1
 testMclustDA <- mclustDA(trainingData = x[odd, ], labels = xclass[odd], 
@@ -110,7 +111,6 @@ testMclustDA <- mclustDA(trainingData = x[odd, ], labels = xclass[odd],
 
 clEven <- testMclustDA$testClassification ## classify training set
 compClass(clEven,xclass[even])$error
-
 \dontrun{plot(testMclustDA, trainingData = x[odd, ], labels = xclass[odd], 
               testData = x[even,])}
 }

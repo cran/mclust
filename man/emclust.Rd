@@ -51,7 +51,7 @@ EMclust(data, G, emModelNames, hcPairs, subset, eps, tol, itmax, equalPro,
     clustering results are used as starting values for EM.  
   }
   \item{subset}{
-    A numeric vector specifying the indices of a subset of the data
+    A logical or numeric vector specifying the indices of a subset of the data
     to be used in the initial hierarchical clustering phase.
   }
   \item{eps}{

@@ -40,7 +40,8 @@ dens(modelName, data, mu, \dots)
     \code{mu} is a matrix whose columns are the means of the components.
   }
   \item{\dots}{
-    An argument describing the variance. See \code{\link{cdens}}.
+    Other arguments, such as a logical \code{logarithm} (default:
+    FALSE), and an argument describing the variance. See \code{\link{cdens}}.
   }
 }
 \value{

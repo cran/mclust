@@ -8,13 +8,18 @@
   into the nearest matrix of \emph{(0,1)} indicator variables.
 }
 \usage{
-map(z, \dots)
+map(z, warn=TRUE, \dots)
 }
 \arguments{
   \item{z}{
-    A matrix in which each row sums to \emph{1} (for example a matrix of
-    conditional probabilities as produced by the E-step of the EM
-    algorithm).
+    A matrix (for example a matrix of conditional
+    probabilities  in which each row sums to 1
+    as produced by the E-step of the EM algorithm).
+  }
+  \item{warn}{
+    A logical variable indicating whether or not a warning should be
+    issued when there are some columns of \code{z} for which no row
+    attains a maximum.
   }
   \item{\dots }{
     Provided to allow lists with elements other than the arguments can
@@ -22,9 +27,10 @@ map(z, \dots)
   }
 }
 \value{
-  A matrix of \emph{(0,1)} indicator variables in which the
-  \code{[i,j]}th entry is \emph{1} if \code{z[i,j]} attains a maximum at
-  index \emph{j} and \emph{0} otherwise. 
+  A integer vector with one entry for each row of z,
+  in which the \emph{i}-th value is the column index at which the
+  \emph{i}-th row of \code{z} attains a maximum.
+  
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002a).

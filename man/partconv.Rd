@@ -23,7 +23,7 @@ partconv(x, consec=TRUE)
 data(iris)
 partconv(iris[,5])
 
-cl _ sample(1:10, 25, replace=TRUE)
+cl <- sample(1:10, 25, replace=TRUE)
 partconv(cl, consec=FALSE)
 partconv(cl, consec=TRUE)
 }

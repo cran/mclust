@@ -101,9 +101,6 @@ mstep(modelName, data, z, \dots)
     conditional probability of the \emph{i}th observation belonging to
     the \emph{k}th component of the mixture.  
   }
-  \item{loglik}{
-    The logliklihood for the data in the mixture model. 
-  }
   \item{modelName}{
     A character string identifying the model (same as the input argument).
   }

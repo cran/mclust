@@ -7,7 +7,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     "\n\nIt is not backwards compatible with the previous version,",
     "\nso old scripts will no longer work. The previous version",
     "\nof mclust is still available as mclust1998.",
-    "\n\nSince mclust1998 is not actively supported any more,\n",
+    "\n\nSince mclust1998 is not actively supported any more,",
     "\nplease change to the new version.\n\n") 
 
 
@@ -123,6 +123,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ######################################################
 ### sample for the initial hierarchical clustering phase
 ######################################################
+    if(is.logical(subset)) subset <- (1:n)[subset]
     if(missing(hcPairs)) {
       if(p != 1) {
         hcPairs <- hc(modelName = .Mclust$hcModelName[2],
@@ -221,6 +222,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
                                          emModelNames))
   if(missing(Vinv) || Vinv <= 0)
     Vinv <- hypvol(data, reciprocal = TRUE)
+  if(!is.logical(noise))
+        noise <- as.logical(match(1:n, noise, nomatch = 0))
   if(!G[1]) {
     hood <- n * logb(Vinv)
     BIC[1,  ] <- 2 * hood - logb(n)
@@ -229,9 +232,9 @@ cat("\nWarning: this is the 2002 version of mclust.",
       attributes(hcPairs) <- NULL
       hcPairs <- matrix(hcPairs, nrow = 2, ncol = length(
                                              hcPairs)/2)
-      return(structure(BIC, equalPro = equalPro, noise = 
-                       noise, Vinv = Vinv, hcPairs = hcPairs, attrHC
-                       = attrHC, args = as.list(match.call())[-1],
+      return(structure(BIC, equalPro = equalPro, noise = noise,
+                       Vinv = Vinv, hcPairs = hcPairs,
+                       attrHC = attrHC, args = as.list(match.call())[-1],
                        class = "EMclustN"))
     }
     G <- G[-1]
@@ -612,7 +615,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   out
 }
 
-"cdensE" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+"cdensE" <- function(data, mu, sigmasq, eps, warnSingular,
+                     logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
@@ -644,7 +648,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[6:7]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -655,7 +659,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "E", warn = warn)
 }
 
-"cdensEEE" <- function(data, mu, eps, warnSingular, ...)
+"cdensEEE" <- function(data, mu, eps, warnSingular, logarithm=FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) > 2)
@@ -710,7 +714,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    double(n * G))[8:10]
   lapackCholInfo <- temp[[1]][1]
   eps <- temp[[2]]
-  cden <- matrix(temp[[3]], n, G)
+  cden <- matrix(if(logarithm) temp[[3]] else exp(temp[[3]]), n, G)
   warn <- NULL
   if(lapackCholInfo) {
     if(lapackCholInfo > 0) {
@@ -733,7 +737,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "EEE", warn = warn)
 }
 
-"cdensEEI" <- function(data, mu, decomp, eps, warnSingular, ...)
+"cdensEEI" <- function(data, mu, decomp, eps, warnSingular,
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -765,7 +770,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[8:9]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -776,7 +781,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "EEI", warn = warn)
 }
 
-"cdensEEV" <- function(data, mu, decomp, eps, warnSingular, ...)
+"cdensEEV" <- function(data, mu, decomp, eps, warnSingular,
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -811,7 +817,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[11:12]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -822,7 +828,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "EEV", warn = warn)
 }
 
-"cdensEII" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+"cdensEII" <- function(data, mu, sigmasq, eps, warnSingular,
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -861,7 +868,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[7:8]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -872,7 +879,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "EII", warn = warn)
 }
 
-"cdensEVI" <- function(data, mu, decomp, eps, warnSingular, ...)
+"cdensEVI" <- function(data, mu, decomp, eps, warnSingular,
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -905,7 +913,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[8:9]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -916,7 +924,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "EVI", warn = warn)
 }
 
-"cdensV" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+"cdensV" <- function(data, mu, sigmasq, eps, warnSingular, 
+                     logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
@@ -950,7 +959,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[6:7]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -961,7 +970,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "V", warn = warn)
 }
 
-"cdensVEI" <- function(data, mu, decomp, eps, warnSingular, ...)
+"cdensVEI" <- function(data, mu, decomp, eps, warnSingular, 
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -994,7 +1004,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[8:9]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -1005,7 +1015,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "VEI", warn = warn)
 }
 
-"cdensVEV" <- function(data, mu, decomp, eps, warnSingular, ...)
+"cdensVEV" <- function(data, mu, decomp, eps, warnSingular, 
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -1041,7 +1052,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[11:12]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -1052,7 +1063,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "VEV", warn = warn)
 }
 
-"cdensVII" <- function(data, mu, sigmasq, eps, warnSingular, ...)
+"cdensVII" <- function(data, mu, sigmasq, eps, warnSingular,
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -1091,7 +1103,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[7:8]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -1102,7 +1114,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "VII", warn = warn)
 }
 
-"cdensVVI" <- function(data, mu, decomp, eps, warnSingular, ...)
+"cdensVVI" <- function(data, mu, decomp, eps, warnSingular, 
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -1135,7 +1148,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    as.double(eps),
                    double(n * G))[8:9]
   eps <- temp[[1]]
-  cden <- matrix(temp[[2]], n, G)
+  cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
   if(is.infinite(eps) || eps == .Machine$double.xmax) {
     if(warnSingular)
@@ -1146,7 +1159,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(cden, modelName = "VVI", warn = warn)
 }
 
-"cdensVVV" <- function(data, mu, eps, warnSingular, ...)
+"cdensVVV" <- function(data, mu, eps, warnSingular, 
+                       logarithm = FALSE, ...)
 {
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
@@ -1202,7 +1216,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
                    double(n * G))[8:10]
   lapackCholInfo <- temp[[1]][1]
   eps <- temp[[2]]
-  cden <- matrix(temp[[3]], n, G)
+  cden <- matrix(if(logarithm) temp[[3]] else exp(temp[[3]]), n, G)
   warn <- NULL
   if(lapackCholInfo) {
     if(lapackCholInfo > 0) {
@@ -1556,8 +1570,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
            ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[
-                                   ,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
         }
       }
       points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
@@ -1796,21 +1809,38 @@ cat("\nWarning: this is the 2002 version of mclust.",
     sigma[,  , k] <- crossprod(orientation[,  , k] *
                                sqrt(scale[k] * shape[, k]))
   }
-  structure(sigma, modelName = paste(c(scaleName, shapeName, orientName),
-                     collapse = ""))
+  structure(sigma,
+            modelName = paste(c(scaleName, shapeName, orientName),
+              collapse = ""))
 }
 
 "dens" <- function(modelName, data, mu, ...)
 {
   ## ... sigmasq or sigma, pro, eps
-  cden <- do.call("cdens", list(modelName = modelName, data = data, mu = 
-                                mu, ...))
+  aux <- list(...)
+  logarithm <- aux$logarithm
+  aux$logarithm <- TRUE
+  cden <- do.call("cdens", c(list(modelName = modelName, data = data,
+                                  mu = mu), aux))
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   G <- if(oneD) length(mu) else ncol(as.matrix(mu))
-  if(is.null(pro <- list(...)$pro))
+  if(is.null(pro <- aux$pro))
     pro <- rep(1/G, G)
-  apply(sweep(cden, 2, FUN = "*", STATS = pro), 1, sum)
+  cat("\nHah!", dim(cden), pro)
+                                        #
+  ##	apply(sweep(cden, 2, FUN = "*", STATS = pro), 1, sum)
+  proz <- !pro
+  pro <- pro[!proz]
+  cden <- cden[, !proz, drop = FALSE]
+  cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
+  maxlog <- apply(cden, 1, max)
+  cden <- sweep(cden, 1, FUN = "-", STATS = maxlog)
+  den <- log(apply(exp(cden), 1, sum)) + maxlog
+  if(is.null(logarithm) || !logarithm) # default: FALSE
+    den <- exp(den)
+
+  den
 }
 
 
@@ -1821,12 +1851,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
 {
   aux <- list(...)
 
-  haveG <- FALSE
-  if(!is.null(aux$G)) {
+  if (missing(G))
+    haveG <- FALSE
+  else
     haveG <- TRUE
-    G <- aux$G
-    aux$G <- NULL
-  }
   
   densfun <- get("density", envir=.BaseNamespaceEnv)
   val <- do.call("densfun", aux)
@@ -1861,7 +1889,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
     
     name <- deparse(substitute(x))
 
-    modl <- if (haveG) summary(EMclust(x, G=G), x) else summary(EMclust(x), x)
+    if (haveG)
+      modl <- summary(EMclust(x, G=G), x)
+    else
+      modl <- summary(EMclust(x), x)
 
     x <- seq(min(val$x), max(val$x), length = val$n)
     y <- do.call("dens", c(list(data = x, warnSingular=FALSE), modl))
@@ -2193,7 +2224,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   loglik <- temp[[7]]
   z <- matrix(temp[[8]], n, K)
   warn <- NULL
-  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
     if(warnSingular)
       warning("singular covariance")
     warn <- "singular covariance"
@@ -2547,7 +2578,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   loglik <- temp[[7]]
   z <- matrix(temp[[8]], n, K)
   warn <- NULL
-  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
     if(warnSingular)
       warning("singular covariance")
     warn <- "singular covariance"
@@ -2751,7 +2782,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   loglik <- temp[[7]]
   z <- matrix(temp[[8]], n, K)
   warn <- NULL
-  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
     if(warnSingular)
       warning("singular covariance")
     warn <- "singular covariance"
@@ -3117,7 +3148,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   loglik <- temp[[7]]
   z <- matrix(temp[[8]], n, K)
   warn <- NULL
-  if(is.infinite(loglik) || abs(loglik) == .Machine$double.eps) {
+  if(is.infinite(loglik) || abs(loglik) == .Machine$double.xmax) {
     if(warnSingular)
       warning("singular covariance")
     warn <- "singular covariance"
@@ -3173,12 +3204,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   }
   cholsigma <- list(...)$cholsigma
   if(is.null(cholsigma)) {
-    sigma <- list(...)$sigma
-    if(!missing(sigma)) {
-      sig <- sigma
-      cholIND <- "N"
-    }
-    else {
+    if(missing(sigma)) {
       decomp$list(...)$decomp
       if(is.null(decomp))
         stop("covariance improperly specified")
@@ -3191,6 +3217,9 @@ cat("\nWarning: this is the 2002 version of mclust.",
       for(k in 1:G)
         sig[,  , k] <- qr.R(qr(O[,  , k] * shape))
       cholIND <- "U"
+    } else {
+      sig <- sigma
+      cholIND <- "N"
     }
   }
   else {
@@ -3274,7 +3303,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     sigma <- array(NA, c(p, p, G))
   }
   else {
-    sigma <- array(apply(cholsigma, 3, unchol), c(p, p, G))
+    sigma <- array(apply(cholsigma, 3, unchol, TRUE), c(p, p, G))
     if(its >= itmax) {
       warning("iteration limit reached")
       warn <- "iteration limit reached"
@@ -4581,15 +4610,22 @@ cat("\nWarning: this is the 2002 version of mclust.",
 }
 
 
-"map" <- function(z, ...)
+"map" <- function(z, warn=TRUE, ...)
 {
   ##
   ## converts conditional probabilities to a classification
-  ## z <- sweep(z, 1, apply(z, 1, sum), "/")
   ##
-  cl <- numeric(nrow(z))
-  for(i in 1:nrow(z)) {
-    cl[i] <- (1.:ncol(z))[z[i,  ] == max(z[i,  ])]
+  nrowz <- nrow(z)
+  cl <- numeric(nrowz)
+  I <- 1:nrowz
+  J <- 1:ncol(z)
+  for(i in I) {
+    cl[i] <- (J[z[i,  ] == max(z[i,  ])])[1]
+  }
+  if(warn) {
+    K <- as.logical(match(J, sort(unique(cl)), nomatch = 0))
+    if(any(!K))
+      warning(paste("no assignment to", paste(J[!K], collapse = ",")))
   }
   cl
 }
@@ -4937,8 +4973,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
            ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[
-                                   ,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
         }
       }
       points(data[, 1], data[, 2], pch = PCH, cex = CEX)
@@ -4976,8 +5011,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
            ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[
-                                   ,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
         }
       }
       for(k in 1:L) {
@@ -4994,8 +5028,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
            ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[
-                                   ,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
         }
       }
       breaks <- quantile(uncertainty, probs = sort(quantiles)
@@ -5017,8 +5050,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
            ylab = ylab, xlim = xlim, ylim = ylim)###, ...)
       if(params) {
         for(k in 1:G) {
-          mvn2plot(mu = mu[, k], sigma = sigma[
-                                   ,  , k], k = 15)
+          mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
         }
       }
       CLASSES <- unique(as.character(TRUTH))
@@ -5100,9 +5132,9 @@ cat("\nWarning: this is the 2002 version of mclust.",
   structure(den, class = "mclustDAtest")
 }
 
-"mclustDAtrain" <-
-  function(data, labels, G, emModelNames, eps, tol, itmax,
-           equalPro, warnSingular = FALSE, verbose = TRUE) 
+"mclustDAtrain" <- function(data, labels, G, emModelNames, eps, tol,
+                            itmax, equalPro, warnSingular = FALSE,
+                            verbose = TRUE)
 {
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
@@ -6285,8 +6317,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
             = warn)
 }
 
-"meVEV" <- 
-  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+"meVEV" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
+                    noise = FALSE, Vinv)
 {
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
@@ -6623,8 +6655,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
             = warn)
 }
 
-"meVVV" <- 
-  function(data, z, eps, tol, itmax, equalPro, warnSingular, noise = FALSE, Vinv)
+"meVVV" <- function(data, z, eps, tol, itmax, equalPro, warnSingular,
+                    noise = FALSE, Vinv)
 {
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
@@ -6708,7 +6740,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
     sigma <- array(NA, c(p, p, G))
   }
   else {
-    sigma <- array(apply(cholsigma, 3, unchol), c(p, p, G))
+    sigma <- array(apply(cholsigma, 3, unchol, TRUE), c(p, p, G))
     if(its >= itmax) {
       warning("iteration limit reached")
       warn <- "iteration limit reached"
@@ -7502,8 +7534,6 @@ cat("\nWarning: this is the 2002 version of mclust.",
                            orientation = O),
                       def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
   info <- c(iteration = inner, error = inerr)
-
-  if (!exists("pro")) browser()
   
   structure(list(n = n, d = p, G = G, mu = mu, sigma = Sigma,
                  decomp = decomp, pro = pro, modelName = "VEV"),
@@ -7708,7 +7738,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   dimnames(mu) <- list(NULL, as.character(1:G))
   cholsigma <- structure(array(temp[[2]], c(p, p, G)), def = 
                          "Sigma = t(cholsigma) %*% cholsigma")
-  sigma <- array(apply(cholsigma, 3, unchol), c(p, p, G))
+  sigma <- array(apply(cholsigma, 3, unchol, TRUE), c(p, p, G))
   if(!equalPro) {
     if(!noise) {
       pro <- temp[[3]]
@@ -7745,7 +7775,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
 	 stop("invalid model name"))
 }
 
-"mvn2plot" <- function(mu, sigma, k = 15., alone = FALSE)
+"mvn2plot" <- function(mu, sigma, k = 15., alone = FALSE, col=1)
 {
   p <- length(mu)
   if(p != 2.)
@@ -7773,7 +7803,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   l <- length(x)
   i <- 1.:l
   for(k in 1.:4.) {
-    lines(xy[i,  ])
+    lines(xy[i,  ], col=col)
     i <- i + l
   }
                                         # semi-major axes
@@ -7782,9 +7812,9 @@ cat("\nWarning: this is the 2002 version of mclust.",
   xy <- cbind(c(x,  - x, 0, 0), c(0, 0, y,  - y))
   xy <- xy %*% V
   xy <- sweep(xy, MARGIN = 2., STATS = mu, FUN = "+")
-  lines(xy[1:2,  ], lty = 2.)
-  lines(xy[3:4,  ], lty = 2.)
-  points(mu[1.], mu[2.], pch = "*")
+  lines(xy[1:2,  ], lty = 2., col=col)
+  lines(xy[3:4,  ], lty = 2., col=col)
+  points(mu[1.], mu[2.], pch = 8, col=col)
   invisible()
 }
 
@@ -10301,5 +10331,21 @@ cat("\nWarning: this is the 2002 version of mclust.",
     return(xmax)
   x <- x/xmax
   xmax * sum(x^p)^(1/p)
+}
+
+"estep2" <- function(logCden, pro, ...)
+{
+  aux <- list(...)
+  n <- nrow(logCden)
+  ncolz <- ncol(logCden)
+  if(missing(pro))
+    pro <- rep(1/ncolz, ncolz)
+  out <- .Fortran("estep2",
+                  as.integer(n),
+                  as.integer(ncolz),
+                  as.double(pro),
+                  as.double(logCden),
+                  double(1))[c(4, 5)]
+  list(z = matrix(out[[1]], n, ncolz), loglik = out[[2]])
 }
 

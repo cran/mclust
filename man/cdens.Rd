@@ -43,6 +43,10 @@ cdens(modelName, data, mu, \dots)
   \item{\dots}{
     Arguments for model-specific functions. Specifically:
     \itemize{
+      \item \code{logarithm}: A logical value indicating whether or not
+      the logarithm of the component densities should be returned. The
+      default is to return the component densities, obtained from the
+      log component densities by exponentiation.
       \item An argument describing the variance (depends on the model):
       \describe{
 	\item{sigmasq}{

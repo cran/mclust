@@ -178,8 +178,10 @@ cbind(class = xclass[even], temp)
 
 ## alternative call 
 
+\dontrun{
 temp <- do.call( "cdens", c(list(data = x[even, ]), oddSumry))
 cbind(class = xclass[even], temp)
+}
 }
 \keyword{cluster}
 % docclass is function

@@ -158,7 +158,9 @@ names(msEst)
 
 estepEII(data = irisMatrix, mu = msEst$mu, pro = msEst$pro, 
          sigmasq = msEst$sigmasq)
+\dontrun{
 do.call("estepEII", c(list(data=irisMatrix), msEst)) ## alternative call
+}
 }
 \keyword{cluster}
 % docclass is function

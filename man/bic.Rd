@@ -91,13 +91,11 @@ n <- nrow(irisMatrix)
 d <- ncol(irisMatrix)
 G <- 3
 
-emEst <- me(modelName="VVI",data=irisMatrix, unmap(irisClass))
+emEst <- me(modelName="VVI", data=irisMatrix, unmap(irisClass))
 names(emEst)
 
 args(bic)
 bic(modelName="VVI",loglik=emEst$loglik,n=n,d=d,G=G)
-do.call("bic", emEst)    ## alternative call
+\dontrun{do.call("bic", emEst)    ## alternative call}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -273,6 +273,7 @@
   z <- matrix(0, n, max(G) + 1)
   for(i in seq(along = G)) {
     z[!noise, 1:G[i]] <- unmap(clss[, Glabels[i]])
+    z[noise, 1:G[i]] <- 0
     G1 <- G[i] + 1
     z[!noise, G1] <- 0
     z[noise, G1] <- 1
@@ -9070,7 +9071,7 @@
                  "Test Data - mclustDA classification", 
                  "Training Data - misclassified observations", "All")
     tmenu <- paste("plot:", choices)
-    Data <- rbind(testData, trainingData)
+    Data <- rbind(as.matrix(testData), as.matrix(trainingData))
     xlim <- range((Data[, dimens])[, 1])
     ylim <- range((Data[, dimens])[, 2])
     cl <- c(rep(1, nrow(testData)), rep(2, nrow(trainingData)))
@@ -9126,7 +9127,7 @@
                  "Test Data - mclustDA classification", 
                  "Training Data - misclassified observations", "All")
     tmenu <- paste("plot:", choices)
-    Data <- rbind(testData, trainingData)
+    Data <- rbind(as.matrix(testData), as.matrix(trainingData))
     xlim <- range((Data[, dimens])[, 1])
     ylim <- range((Data[, dimens])[, 2])
     cl <- c(rep(1, nrow(testData)), rep(2, nrow(trainingData)))
@@ -9294,8 +9295,8 @@
               VVE = "ellipsoidal, equal orientation",
               EEV = "ellipsoidal, equal volume and shape",
               VEV = "ellipsoidal, equal shape",
-              EVV = "elliposidal, equal volume",
-              XXX = "elliposidal multivariate normal",
+              EVV = "ellipsoidal, equal volume",
+              XXX = "ellipsoidal multivariate normal",
               VVV = "ellipsoidal, unconstrained",
               stop("invalid model id for EM"))
   G <- length(unique(x$classification))
@@ -9369,7 +9370,7 @@
               VVE = "ellipsoidal, equal orientation",
               EEV = "ellipsoidal, equal volume and shape",
               VEV = "ellipsoidal, equal shape",
-              EVV = "elliposidal, equal volume",
+              EVV = "ellipsoidal, equal volume",
               XXX = "ellipsoidal multivariate normal",
               VVV = "ellipsoidal, unconstrained",
               stop("invalid model id for EM"))
@@ -9423,7 +9424,7 @@
               VVE = "ellipsoidal, equal orientation",
               EEV = "ellipsoidal, equal volume and shape",
               VEV = "ellipsoidal, equal shape",
-              EVV = "elliposidal, equal volume",
+              EVV = "ellipsoidal, equal volume",
               XXX = "ellipsoidal multivariate normal",
               VVV = "ellipsoidal, unconstrained",
               stop("invalid model id for EM"))

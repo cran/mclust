@@ -75,7 +75,9 @@ meEst$sigma
 dec <- meEst$decomp
 decomp2sigma(d=dec$d, G=dec$G, shape=dec$shape, scale=dec$scale,
              orientation = dec$orientation)
+\dontrun{
 do.call("decomp2sigma", meEst$decomp)  ## alternative call
+}
 }
 \keyword{cluster}
 % docclass is function

@@ -87,6 +87,8 @@ bicVVV(loglik, n, d, G, equalPro, noise = FALSE, \dots)
   \code{\link{do.call}}
 }
 \examples{
+## To run an example, see man page for bic
+\dontrun{
 data(iris)
 irisMatrix <- as.matrix(iris[,1:4])
 irisClass <- iris[,5]
@@ -100,6 +102,7 @@ names(emEst)
 
 bicVVI(loglik=emEst$loglik, n=n, d=d, G=G)
 do.call("bicVVI", emEst)  ## alternative call
+}
 }
 \keyword{cluster}
 % docclass is function

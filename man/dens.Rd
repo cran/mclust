@@ -90,7 +90,10 @@ names(oddSumry)
 
 oddDens <- dens(modelName = oddSumry$modelName, data = x,
    mu = oddSumry$mu, decomp = oddSumry$decomp, pro = oddSumry$pro)
+
+\dontrun{
 oddDens <- do.call("dens", c(list(data = x), oddSumry))  ## alternative call
+}
 
 even <- odd + 1
 evenBic <- EMclust(x[even, ]) 

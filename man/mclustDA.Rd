@@ -46,10 +46,8 @@ mclustDA(trainingData, labels, testData, G=1:6, verbose = FALSE)
   \item{trainingClassification}{ 
     \code{mclustDA} classification of the training data.
   }
-  \item{errorRate}{ 
-    The error rate for the \code{mclustDA} classification 
-    of the training data compared to the known labels,
-  }
+\item{VofIindex}{Meila's Variation of Information index, to compare
+  classification of the training data to the known labels.}
   \item{summary}{ 
     Gives the best model and number of clusters for each training class.
   }
@@ -86,6 +84,12 @@ mclustDA(trainingData, labels, testData, G=1:6, verbose = FALSE)
   discriminant analysis. 
   Technical Report, Department of Statistics, University of Washington. 
   See \url{http://www.stat.washington.edu/mclust}.
+
+  M. Meila (2002).
+  Comparing clusterings.
+  Technical Report 418, Department of Statistics, University of Washington. 
+  See \url{http://www.stat.washington.edu/www/research/reports}.
+
 }
 \seealso{
   \code{\link{plot.mclustDA}}, 

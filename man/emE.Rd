@@ -203,8 +203,11 @@ irisClass <- iris[,5]
 msEst <- mstepEEE(data = irisMatrix, z = unmap(irisClass))
 names(msEst)
 
-emEEE(data = irisMatrix, mu = msEst$mu, pro = msEst$pro, cholSigma = msEst$cholSigma)
+emEEE(data = irisMatrix, mu = msEst$mu, pro = msEst$pro,
+cholSigma = msEst$cholSigma)
+\dontrun{
 do.call("emEEE", c(list(data=irisMatrix), msEst)) ## alternative call
+}
 }
 \keyword{cluster}
 % docclass is function

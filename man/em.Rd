@@ -196,7 +196,9 @@ names(msEst)
 
 em(modelName = msEst$modelName, data = irisMatrix,
    mu = msEst$mu, Sigma = msEst$Sigma, pro = msEst$pro)
+\dontrun{
 do.call("em", c(list(data = irisMatrix), msEst))   ## alternative call
+}
 }
 \keyword{cluster}
 % docclass is function

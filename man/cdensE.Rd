@@ -152,12 +152,14 @@ cdenVVV <- cdensVVV( data = x, mu = modelVVV$mu, pro = modelVVV$pro,
 cbind(class=xclass,VII=map(cdenVII),VVI=map(cdenVVI),VVV=map(cdenVVV))
 
 ## alternative call
- 
+
+\dontrun{
 cdenVII <- do.call("cdensVII", c(list(data = x), modelVII))
 cdenVVI <- do.call("cdensVVI", c(list(data = x), modelVVI))
 cdenVVV <- do.call("cdensVVV", c(list(data = x), modelVVV))
 
 cbind(class=xclass,VII=map(cdenVII),VVI=map(cdenVVI),VVV=map(cdenVVV))
+}
 }
 \keyword{cluster}
 % docclass is function

@@ -154,7 +154,9 @@ names(msEst)
 
 estep(modelName = msEst$modelName, data = irisMatrix,
       mu = msEst$mu, sigmasq = msEst$sigmasq, pro = msEst$pro)           
+\dontrun{
 do.call("estep", c(list(data = irisMatrix), msEst))   ## alternative call
+}
 }
 \keyword{cluster}
 % docclass is function

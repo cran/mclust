@@ -114,7 +114,9 @@ irisSumry <- summary(irisBic,irisMatrix)
 names(irisSumry)
 irisSim <- sim(modelName = irisSumry$modelName, n = dim(irisMatrix)[1],
        mu = irisSumry$mu, decomp = irisSumry$decomp, pro = irisSumry$pro)
+\dontrun{
 irisSim <- do.call("sim", irisSumry) ## alternative call
+}
 
 par(pty = "s", mfrow = c(1,2))
 dimens <- c(1,2)

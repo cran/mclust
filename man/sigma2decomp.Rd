@@ -88,8 +88,10 @@ names(meEst)
 meEst$sigma
 
 sigma2decomp(meEst$sigma)
+\dontrun{
 do.call("sigma2decomp", meEst)  ## alternative call
 }
-\keyword{}
+}
+\keyword{cluster}
 % docclass is function
 % Converted by Sd2Rd version 1.21.

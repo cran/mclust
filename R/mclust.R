@@ -9868,7 +9868,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size = n)
   ctabel <- table(clabels)
   x <- rep(0, n)
   sd <- sqrt(sigmasq)
@@ -9958,7 +9958,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size=n)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   shape <- decomp$shape
@@ -10043,7 +10043,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size=n)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   cholSigma <- diag(rep(sqrt(sigmasq), d))
@@ -10083,7 +10083,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size = n)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   shape <- decomp$shape
@@ -10123,7 +10123,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size = n)
   ctabel <- table(clabels)
   x <- rep(0, n)
   sd <- sqrt(sigmasq)
@@ -10161,7 +10161,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size = n)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   rtscale <- sqrt(decomp$scale)
@@ -10248,7 +10248,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size = n)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   for(k in 1:G) {
@@ -10290,7 +10290,7 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro, replace=TRUE)
+  clabels <- sample(1:G, prob = pro, replace=TRUE, size = n)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   rtscale <- sqrt(decomp$scale)
@@ -10306,43 +10306,39 @@
   structure(x, classification = clabels, modelName = "VVI")
 }
 
-"simVVV" <- 
-  function(mu, pro, ..., seed = 0)
+"simVVV" <- function(mu, pro, ..., seed = 0)
 {
-##
-# This function is part of the MCLUST software described at
-#       http://www.stat.washington.edu/mclust
-# Copyright information and conditions for use of MCLUST are given at
-#        http://www.stat.washington.edu/mclust/license.txt
-# Distribution of MCLUST is prohibited except by agreement with the 
-# University of Washington.
-##
+  ##
+  ## This function is part of the MCLUST software described at
+  ##       http://www.stat.washington.edu/mclust
+  ## Copyright information and conditions for use of MCLUST are given at
+  ##        http://www.stat.washington.edu/mclust/license.txt
+  ## Distribution of MCLUST is prohibited except by agreement with the 
+  ## University of Washington.
+  ##
   mu <- as.matrix(mu)
   d <- nrow(mu)
   G <- ncol(mu)
   n <- list(...)$n
-  cholsigma <- list(...)$cholsigma
-  if(is.null(cholsigma)) {
-    if(missing(sigma)) {
-      if(!is.null(sigma <- list(...)$sigma)) {
-        cholsigma <- apply(sigma, 3, chol)
-      }
-      else if(!is.null(decomp <- list(...)$decomp)) {
-        scale <- decomp$scale
-        shape <- decomp$shape
-        O <- decomp$orientation
-        cholsigma <- array(0, c(p, p, G))
-        shape <- sqrt(sweep(shape, MARGIN = 2, STATS = 
-                            scale, FUN = "*"))
-        for(k in 1:G)
-          cholsigma[,  , k] <- qr.R(qr(O[,  ,
-                                         k] * shape))
-      }
-      else stop("sigma improperly specified")
-    }
-    else {
+  if(is.null(cholsigma <- list(...)$cholsigma)) {
+    if(!is.null(sigma <- list(...)$sigma)) {
       cholsigma <- apply(sigma, 3, chol)
+      for(i in 1:ncol(cholsigma))
+        sigma[,  , i] <- cholsigma[, i]
+      cholsigma <- sigma
     }
+    else if(!is.null(decomp <- list(...)$decomp)) {
+      scale <- decomp$scale
+      shape <- decomp$shape
+      O <- decomp$orientation
+      cholsigma <- array(0, c(p, p, G))
+      shape <- sqrt(sweep(shape, MARGIN = 2, STATS = scale,
+                          FUN = "*"))
+      for(k in 1:G)
+        cholsigma[,  , k] <- qr.R(qr(O[,  , k] * shape)
+                                  )
+    }
+    else stop("sigma improperly specified")
   }
   if(all(is.na(c(mu, cholsigma)))) {
     warn <- "parameters are missing"
@@ -10355,17 +10351,18 @@
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  clabels <- sample(1:G, size = n, replace = T, prob = pro)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   for(k in 1:G) {
     m <- ctabel[k]
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-        ncol = d) %*% cholsigma[,  , k], MARGIN = 2, STAT = mu[
-                                                       , k], FUN = "+")
+        ncol = d) %*% cholsigma[,  , k], MARGIN = 2,
+        STAT = mu[, k], FUN = "+")
   }
   structure(x, classification = clabels, modelName = "VVV")
 }
+
 
 "spinProj" <- function(data, ..., angles = c(0, pi/3, (2 * pi)/3, pi),
                        seed = 0, reflection = FALSE,

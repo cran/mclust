@@ -817,7 +817,8 @@
                    as.integer(n),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[6:7]
+                   double(n * G),
+                   PACKAGE="mclust")[6:7]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -890,7 +891,8 @@
                    as.integer(G),
                    double(p),
                    as.double(eps),
-                   double(n * G))[8:10]
+                   double(n * G),
+                   PACKAGE="mclust")[8:10]
   lapackCholInfo <- temp[[1]][1]
   eps <- temp[[2]]
   cden <- matrix(if(logarithm) temp[[3]] else exp(temp[[3]]), n, G)
@@ -955,7 +957,8 @@
                    as.integer(p),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[8:9]
+                   double(n * G),
+                   PACKAGE="mclust")[8:9]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1010,7 +1013,8 @@
                    double(p),
                    double(p),
                    as.double(eps),
-                   double(n * G))[11:12]
+                   double(n * G),
+                   PACKAGE="mclust")[11:12]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1069,7 +1073,8 @@
                    as.integer(p),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[7:8]
+                   double(n * G),
+                   PACKAGE="mclust")[7:8]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1122,7 +1127,8 @@
                    as.integer(p),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[8:9]
+                   double(n * G),
+                   PACKAGE="mclust")[8:9]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1176,7 +1182,8 @@
                    as.integer(n),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[6:7]
+                   double(n * G),
+                   PACKAGE="mclust")[6:7]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1229,7 +1236,8 @@
                    as.integer(p),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[8:9]
+                   double(n * G),
+                   PACKAGE="mclust")[8:9]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1285,7 +1293,8 @@
                    double(p),
                    double(p),
                    as.double(eps),
-                   double(n * G))[11:12]
+                   double(n * G),
+                   PACKAGE="mclust")[11:12]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1344,7 +1353,8 @@
                    as.integer(p),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[7:8]
+                   double(n * G),
+                   PACKAGE="mclust")[7:8]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1397,7 +1407,8 @@
                    as.integer(p),
                    as.integer(G),
                    as.double(eps),
-                   double(n * G))[8:9]
+                   double(n * G),
+                   PACKAGE="mclust")[8:9]
   eps <- temp[[1]]
   cden <- matrix(if(logarithm) temp[[2]] else exp(temp[[2]]), n, G)
   warn <- NULL
@@ -1472,7 +1483,8 @@
                    as.integer(G),
                    double(p),
                    as.double(eps),
-                   double(n * G))[8:10]
+                   double(n * G),
+                   PACKAGE="mclust")[8:10]
   lapackCholInfo <- temp[[1]][1]
   eps <- temp[[2]]
   cden <- matrix(if(logarithm) temp[[3]] else exp(temp[[3]]), n, G)
@@ -2281,7 +2293,8 @@
                    as.integer(itmax),
                    as.double(eps),
                    as.double(tol),
-                   double(n * K))[6:12]
+                   double(n * K),
+                   PACKAGE="mclust")[6:12]
   mu <- temp[[1]]
   names(mu) <- as.character(1:G)
   sigmasq <- temp[[2]]
@@ -2407,7 +2420,8 @@
                    as.double(tol),
                    as.double(eps),
                    double(p),
-                   double(n * K))[8:15]
+                   double(n * K),
+                   PACKAGE="mclust")[8:15]
   mu <- matrix(temp[[1]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   cholSigma <- structure(temp[[2]], def = 
@@ -2537,7 +2551,8 @@
                    as.integer(itmax),
                    as.double(tol),
                    as.double(eps),
-                   double(n * K))[7:14]
+                   double(n * K),
+                   PACKAGE="mclust")[7:14]
   mu <- temp[[1]]
   dimnames(mu) <- list(NULL, as.character(1:G))
   scale <- temp[[2]]
@@ -2661,7 +2676,8 @@
                    as.integer(lwork),
                    double(lwork),
                    double(n * K),
-                   double(p))[8:18]
+                   double(p),
+                   PACKAGE="mclust")[8:18]
   mu <- temp[[1]]
   dimnames(mu) <- list(NULL, as.character(1:G))
   scale <- temp[[2]]
@@ -2797,7 +2813,8 @@
                    as.integer(itmax),
                    as.double(tol),
                    as.double(eps),
-                   double(n * K))[7:13]
+                   double(n * K),
+                   PACKAGE="mclust")[7:13]
   mu <- temp[[1]]
   dimnames(mu) <- list(NULL, as.character(1:G))
   sigmasq <- temp[[2]]
@@ -2915,7 +2932,8 @@
                    as.integer(itmax),
                    as.double(tol),
                    as.double(eps),
-                   double(n * K))[7:14]
+                   double(n * K),
+                   PACKAGE="mclust")[7:14]
   mu <- temp[[1]]
   scale <- temp[[2]]
   shape <- matrix(temp[[3]], p, G)
@@ -3025,7 +3043,8 @@
                    as.integer(itmax),
                    as.double(eps),
                    as.double(tol),
-                   double(n * K))[6:12]
+                   double(n * K),
+                   PACKAGE="mclust")[6:12]
   mu <- temp[[1]]
   names(mu) <- as.character(1:G)
   sigmasq <- temp[[2]]
@@ -3133,7 +3152,8 @@
                    double(n * K),
                    double(G),
                    double(p),
-                   double(p * G))[7:14]
+                   double(p * G),
+                   PACKAGE="mclust")[7:14]
   mu <- temp[[1]]
   scale <- temp[[2]]
   shape <- temp[[3]]
@@ -3265,7 +3285,8 @@
                    as.integer(lwork),
                    double(lwork),
                    double(n * K),
-                   double(p * G))[8:18]
+                   double(p * G),
+                   PACKAGE="mclust")[8:18]
   mu <- temp[[1]]
   dimnames(mu) <- list(NULL, as.character(1:G))
   scale <- temp[[2]]
@@ -3411,7 +3432,8 @@
                    as.integer(itmax),
                    as.double(tol),
                    as.double(eps),
-                   double(n * K))[7:13]
+                   double(n * K),
+                   PACKAGE="mclust")[7:13]
   mu <- temp[[1]]
   dimnames(mu) <- list(NULL, as.character(1:G))
   sigmasq <- temp[[2]]
@@ -3525,7 +3547,8 @@
                    as.integer(itmax),
                    as.double(tol),
                    as.double(eps),
-                   double(n * K))[7:14]
+                   double(n * K),
+                   PACKAGE="mclust")[7:14]
   mu <- temp[[1]]
   scale <- temp[[2]]
   shape <- matrix(temp[[3]], p, G)
@@ -3666,7 +3689,8 @@
                    as.double(tol),
                    as.double(eps),
                    double(p),
-                   double(n * K))[8:15]
+                   double(n * K),
+                   PACKAGE="mclust")[8:15]
   mu <- matrix(temp[[1]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   cholsigma <- structure(array(temp[[2]], c(p, p, G)), def = 
@@ -3784,7 +3808,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[8:9]
+                   double(n * K),
+                   PACKAGE="mclust")[8:9]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -3875,7 +3900,8 @@
                    as.double(Vinv),
                    double(p),
                    as.double(eps),
-                   double(n * K))[10:12]
+                   double(n * K),
+                   PACKAGE="mclust")[10:12]
   lapackCholInfo <- temp[[1]][1]
   loglik <- temp[[2]]
   z <- matrix(temp[[3]], n, K)
@@ -3957,7 +3983,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[10:11]
+                   double(n * K),
+                   PACKAGE="mclust")[10:11]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4030,7 +4057,8 @@
                    double(p),
                    double(p),
                    as.double(eps),
-                   double(n * K))[13:14]
+                   double(n * K),
+                   PACKAGE="mclust")[13:14]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4109,7 +4137,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[9:10]
+                   double(n * K),
+                   PACKAGE="mclust")[9:10]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4177,7 +4206,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[10:11]
+                   double(n * K),
+                   PACKAGE="mclust")[10:11]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4248,7 +4278,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[8:9]
+                   double(n * K),
+                   PACKAGE="mclust")[8:9]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4318,7 +4349,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[10:11]
+                   double(n * K),
+                   PACKAGE="mclust")[10:11]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4391,7 +4423,8 @@
                    double(p),
                    double(p),
                    as.double(eps),
-                   double(n * K))[13:14]
+                   double(n * K),
+                   PACKAGE="mclust")[13:14]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4468,7 +4501,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[9:10]
+                   double(n * K),
+                   PACKAGE="mclust")[9:10]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4538,7 +4572,8 @@
                    as.integer(G),
                    as.double(Vinv),
                    as.double(eps),
-                   double(n * K))[10:11]
+                   double(n * K),
+                   PACKAGE="mclust")[10:11]
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   warn <- NULL
@@ -4636,7 +4671,8 @@
                    as.double(Vinv),
                    double(p),
                    as.double(eps),
-                   double(n * K))[10:12]
+                   double(n * K),
+                   PACKAGE="mclust")[10:12]
   lapackCholInfo <- temp[[1]][1]
   loglik <- temp[[2]]
   z <- matrix(temp[[3]], n, K)
@@ -4765,7 +4801,8 @@
                    as.integer(l),
                    as.integer(m),
                    as.integer(ld),
-                   double(ld))[c(1, 3, 7)]
+                   double(ld),
+                   PACKAGE="mclust")[c(1, 3, 7)]
   temp[[1]] <- temp[[1]][1:m]
   temp[[2]] <- temp[[2]][1:m]
   temp[[3]] <- temp[[3]][1:m]
@@ -4822,7 +4859,8 @@
                    double(p),
                    double(p * p),
                    double(p * p),
-                   double(p * p))[c(1, 7:10)]
+                   double(p * p),
+                   PACKAGE="mclust")[c(1, 7:10)]
                                         #
                                         # currently temp[[5]] is not output
   temp[[4]] <- temp[[4]][1:2]
@@ -4888,7 +4926,8 @@
                    as.integer(m),
                    double(p),
                    as.integer(ld),
-                   double(ld))[c(1, 9)]
+                   double(ld),
+                   PACKAGE="mclust")[c(1, 9)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
   structure(t(temp[[1]]), change = temp[[2]], initialPartition = 
@@ -4939,7 +4978,8 @@
                    as.integer(m),
                    as.double(alpha),
                    as.integer(ld),
-                   double(ld))[c(1, 3, 8)]
+                   double(ld),
+                   PACKAGE="mclust")[c(1, 3, 8)]
   temp[[1]] <- temp[[1]][1:m]
   temp[[2]] <- temp[[2]][1:m]
   temp[[3]] <- temp[[3]][1:m]
@@ -4998,7 +5038,8 @@
                    as.double(alpha),
                    double(p),
                    as.integer(ld),
-                   double(ld))[c(1, 10)]
+                   double(ld),
+                   PACKAGE="mclust")[c(1, 10)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
   structure(t(temp[[1]]), change = temp[[2]], initialPartition = 
@@ -5063,7 +5104,8 @@
                    double(p * p),
                    double(p * p),
                    as.integer(ld),
-                   double(ld))[c(1, 14)]
+                   double(ld),
+                   PACKAGE="mclust")[c(1, 14)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
   structure(t(temp[[1]]), change = temp[[2]], initialPartition = 
@@ -5181,7 +5223,8 @@
                    as.integer(lwork),
                    integer(liwork),
                    as.integer(liwork),
-                   integer(1))[c(4, 11)]
+                   integer(1),
+                   PACKAGE="mclust")[c(4, 11)]
   if(temp[[2]])
     stop("problem in computing principal components")
   if(reciprocal) {
@@ -5944,7 +5987,8 @@
                    as.double(eps),
                    double(G),
                    double(1),
-                   double(K))[6:12]
+                   double(K),
+                   PACKAGE="mclust")[6:12]
   mu <- temp[[5]]
   names(mu) <- as.character(1:G)
   z <- temp[[1]]
@@ -6042,7 +6086,8 @@
                    double(p * G),
                    double(p * p),
                    double(K),
-                   double(p))[7:13]
+                   double(p),
+                   PACKAGE="mclust")[7:13]
   z <- temp[[1]]
   its <- temp[[2]]
   err <- temp[[3]]
@@ -6154,7 +6199,8 @@
                    double(p * G),
                    double(1),
                    double(p),
-                   double(K))[7:14]
+                   double(K),
+                   PACKAGE="mclust")[7:14]
   z <- temp[[1]]
   its <- temp[[2]]
   err <- temp[[3]]
@@ -6275,7 +6321,8 @@
                    double(p * p * G),
                    double(K),
                    double(lwork),
-                   double(p))[7:16]
+                   double(p),
+                   PACKAGE="mclust")[7:16]
   z <- temp[[1]]
   its <- temp[[2]]
   err <- temp[[3]]
@@ -6401,7 +6448,8 @@
                    as.double(eps),
                    double(p * G),
                    double(1),
-                   double(K))[7:13]
+                   double(K),
+                   PACKAGE="mclust")[7:13]
   mu <- matrix(temp[[5]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   z <- temp[[1]]
@@ -6513,7 +6561,8 @@
                    double(p * G),
                    double(1),
                    double(p * G),
-                   double(K))[7:14]
+                   double(K),
+                   PACKAGE="mclust")[7:14]
   z <- temp[[1]]
   its <- temp[[2]]
   err <- temp[[3]]
@@ -6617,7 +6666,8 @@
                    as.double(eps),
                    double(G),
                    double(G),
-                   double(K))[6:12]
+                   double(K),
+                   PACKAGE="mclust")[6:12]
   mu <- temp[[5]]
   names(mu) <- as.character(1:G)
   z <- temp[[1]]
@@ -6725,7 +6775,8 @@
                    double(K),
                    double(G),
                    double(p),
-                   double(p * G))[7:14]
+                   double(p * G),
+                   PACKAGE="mclust")[7:14]
   z <- temp[[1]]
   its <- temp[[2]][1]
   inner <- temp[[2]][2]
@@ -6850,7 +6901,8 @@
                    double(p * p * G),
                    double(K),
                    double(lwork),
-                   double(p))[7:16]
+                   double(p),
+                   PACKAGE="mclust")[7:16]
   z <- temp[[1]]
   its <- temp[[2]][1]
   inner <- temp[[2]][2]
@@ -6985,7 +7037,8 @@
                    as.double(eps),
                    double(p * G),
                    double(G),
-                   double(K))[7:13]
+                   double(K),
+                   PACKAGE="mclust")[7:13]
   mu <- matrix(temp[[5]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   z <- temp[[1]]
@@ -7095,7 +7148,8 @@
                    double(p * G),
                    double(G),
                    double(p * G),
-                   double(K))[7:14]
+                   double(K),
+                   PACKAGE="mclust")[7:14]
   z <- temp[[1]]
   its <- temp[[2]]
   err <- temp[[3]]
@@ -7206,7 +7260,8 @@
                    double(p * G),
                    double(p * p * G),
                    double(K),
-                   double(p))[7:13]
+                   double(p),
+                   PACKAGE="mclust")[7:13]
   z <- temp[[1]]
   its <- temp[[2]]
   err <- temp[[3]]
@@ -7297,7 +7352,8 @@
                    as.integer(G),
                    double(G),
                    double(1),
-                   double(G))[5:7]
+                   double(G),
+                   PACKAGE="mclust")[5:7]
   mu <- temp[[1]]
   names(mu) <- as.character(1:G)
   sigmasq <- temp[[2]]
@@ -7371,7 +7427,8 @@
                    double(p),
                    double(p * G),
                    double(p * p),
-                   double(G))[7:9]
+                   double(G),
+                   PACKAGE="mclust")[7:9]
   mu <- matrix(temp[[1]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   cholSigma <- structure(matrix(temp[[2]], p, p), def = 
@@ -7457,7 +7514,8 @@
                    double(p * G),
                    double(1),
                    double(p),
-                   double(G))[6:10]
+                   double(G),
+                   PACKAGE="mclust")[6:10]
   icond <- temp[[1]]
   mu <- matrix(temp[[2]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
@@ -7562,7 +7620,8 @@
                    double(1),
                    double(p),
                    double(p * p * G),
-                   double(G))[7:13]
+                   double(G),
+                   PACKAGE="mclust")[7:13]
   lapackSVDinfo <- temp[[1]]
   smin <- temp[[2]]
   mu <- matrix(temp[[3]], p, G)
@@ -7664,7 +7723,8 @@
                    as.integer(G),
                    double(p * G),
                    double(1),
-                   double(G))[6:8]
+                   double(G),
+                   PACKAGE="mclust")[6:8]
   mu <- matrix(temp[[1]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   sigmasq <- temp[[2]]
@@ -7748,7 +7808,8 @@
                    double(p * G),
                    double(1),
                    double(p * G),
-                   double(G))[6:10]
+                   double(G),
+                   PACKAGE="mclust")[6:10]
   icond <- temp[[1]]
   mu <- matrix(temp[[2]], p, G)
   scale <- temp[[3]]
@@ -7830,7 +7891,8 @@
                    as.integer(G),
                    double(G),
                    double(G),
-                   double(G))[5:7]
+                   double(G),
+                   PACKAGE="mclust")[5:7]
   mu <- temp[[1]]
   names(mu) <- as.character(1:G)
   sigmasq <- temp[[2]]
@@ -7922,7 +7984,8 @@
                    double(G),
                    double(G),
                    double(p),
-                   double(p * G))[6:12]
+                   double(p * G),
+                   PACKAGE="mclust")[6:12]
   inner <- temp[[1]]
   inerr <- temp[[2]]
   icond <- temp[[3]]
@@ -8041,7 +8104,8 @@
                    double(G),
                    double(p),
                    double(p * p * G),
-                   double(G))[7:15]
+                   double(G),
+                   PACKAGE="mclust")[7:15]
   lapackSVDinfo <- temp[[1]]
   inner <- temp[[2]]
   inerr <- temp[[3]]
@@ -8153,7 +8217,8 @@
                    as.integer(G),
                    double(p * G),
                    double(G),
-                   double(G))[6:8]
+                   double(G),
+                   PACKAGE="mclust")[6:8]
   mu <- matrix(temp[[1]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   sigmasq <- temp[[2]]
@@ -8236,7 +8301,8 @@
                    double(p * G),
                    double(G),
                    double(p * G),
-                   double(G))[6:10]
+                   double(G),
+                   PACKAGE="mclust")[6:10]
   icond <- temp[[1]]
   mu <- matrix(temp[[2]], p, G)
   scale <- temp[[3]]
@@ -8323,7 +8389,8 @@
                    double(p),
                    double(p * G),
                    double(p * p * G),
-                   double(G))[7:9]
+                   double(G),
+                   PACKAGE="mclust")[7:9]
   mu <- matrix(temp[[1]], p, G)
   dimnames(mu) <- list(NULL, as.character(1:G))
   cholsigma <- structure(array(temp[[2]], c(p, p, G)), def = 
@@ -8445,7 +8512,8 @@
                    as.integer(n),
                    double(1),
                    double(1),
-                   double(1))[3:5]
+                   double(1),
+                   PACKAGE="mclust")[3:5]
   mu <- temp[[1]]
   sigmasq <- temp[[2]]
   loglik <- temp[[3]]
@@ -8473,7 +8541,8 @@
                      as.integer(n),
                      double(1),
                      double(1),
-                     double(1))[3:5]
+                     double(1),
+                   PACKAGE="mclust")[3:5]
     mu <- temp[[1]]
     sigmasq <- temp[[2]]
     loglik <- temp[[3]]
@@ -8492,7 +8561,8 @@
                      as.integer(p),
                      double(p),
                      double(1),
-                     double(1))[4:6]
+                     double(1),
+                   PACKAGE="mclust")[4:6]
     mu <- temp[[1]]
     sigmasq <- temp[[2]]
     loglik <- temp[[3]]
@@ -8525,7 +8595,8 @@
                      as.integer(n),
                      double(1),
                      double(1),
-                     double(1))[3:5]
+                     double(1),
+                   PACKAGE="mclust")[3:5]
     mu <- temp[[1]]
     sigmasq <- temp[[2]]
     loglik <- temp[[3]]
@@ -8545,7 +8616,8 @@
                      double(p),
                      double(1),
                      double(p),
-                     double(1))[4:7]
+                     double(1),
+                   PACKAGE="mclust")[4:7]
     mu <- temp[[1]]
     scale <- temp[[2]]
     shape <- temp[[3]]
@@ -8578,7 +8650,8 @@
                      as.integer(n),
                      double(1),
                      double(1),
-                     double(1))[c(3:5)]
+                     double(1),
+                   PACKAGE="mclust")[c(3:5)]
     mu <- temp[[1]]
     sigmasq <- temp[[2]]
     loglik <- temp[[3]]
@@ -8597,7 +8670,8 @@
                      as.integer(p),
                      double(p),
                      double(p * p),
-                     double(1))[c(4:6)]
+                     double(1),
+                   PACKAGE="mclust")[c(4:6)]
     mu <- temp[[1]]
     chol <- matrix(temp[[2]], p, p)
     Sigma <- unchol(chol, upper = TRUE)
@@ -9667,7 +9741,8 @@
            as.integer(l),
            as.integer(dimO[3]),
            double(l * l),
-           integer(1))[[3]]
+           integer(1),
+                   PACKAGE="mclust")[[3]]
 }
 
 "sigma2decomp" <- function(sigma, G, tol, ...)
@@ -11188,7 +11263,8 @@
            as.integer(n),
            as.integer(p),
            double(p),
-           double(1.))[[5.]]
+           double(1.),
+                   PACKAGE="mclust")[[5.]]
 }
 
 "uncerPlot" <- function(z, truth, ...)
@@ -11258,7 +11334,8 @@
            x,
            as.integer(nrow(x)),
            as.integer(ncol(x)),
-           integer(1))[[2]]
+           integer(1),
+                   PACKAGE="mclust")[[2]]
 }
 
 "unmap" <- function(classification, noise, ...)
@@ -11331,7 +11408,8 @@
                     as.integer(length(x)),
                     as.double(x),
                     as.integer(1),
-                    double(1))[[4]])
+                    double(1),
+                   PACKAGE="mclust")[[4]])
 #                    value = double(1))$value)
   if(p == Inf)
     return(max(x))
@@ -11366,7 +11444,8 @@
                   as.integer(ncolz),
                   as.double(pro),
                   as.double(logCden),
-                  double(1))[c(4, 5)]
+                  double(1),
+                   PACKAGE="mclust")[c(4, 5)]
   list(z = matrix(out[[1]], n, ncolz), loglik = out[[2]])
 }
 

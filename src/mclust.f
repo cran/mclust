@@ -4999,7 +4999,7 @@ c     FLMAX  = d1mach(2)
         return
       end if
 
-      call drnge( p, shape, 1, smin, smax)
+      call drnge( G, shape, 1, smin, smax)
 
       if (smin .le. eps) then
         maxi(1) = iter
@@ -13428,7 +13428,7 @@ c     FLMAX  = d1mach(2)
 
       eps    = max(eps, zero)
 
-      call drnge( p, scale, 1, smin, smax)
+      call drnge( G, scale, 1, smin, smax)
 
       if (smin .le. eps) then
         eps = FLMAX

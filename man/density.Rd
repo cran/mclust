@@ -88,7 +88,10 @@ points(xx[i.out], rep(0.01, 10))
 
 ## function formals returns something different now the original
 ## density function is masked...
-base.density <- get("density", envir=.BaseNamespaceEnv)
+base.density <- if(exists("density", envir = NULL)) {
+  get("density", envir = NULL)
+} else
+  stats::density
 (kernels <- eval(formals(base.density)$kernel))
 
 ## show the kernels in the R parametrization

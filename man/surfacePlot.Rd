@@ -13,7 +13,7 @@ surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"),
         what = c("density", "uncertainty", "skip"), 
         transformation = c("none", "log", "sqrt"),          
         grid = 50, nlevels = 20, scale = FALSE, identify = FALSE,
-        verbose = TRUE, xlim, ylim, swapAxes = FALSE)
+        verbose = FALSE, xlim, ylim, swapAxes = FALSE)
 }
 \arguments{
   \item{data}{

@@ -11,8 +11,8 @@
 \usage{
 coordProj(data, \dots, dimens = c(1, 2),
           type = c("classification","uncertainty","errors"), ask = TRUE,
-          quantiles = c(0.75, 0.95), symbols, scale = FALSE, identify = TRUE, 
-          CEX = 1, PCH = ".", xlim, ylim)
+          quantiles = c(0.75, 0.95), symbols, scale = FALSE,
+          identify = FALSE, CEX = 1, PCH = ".", xlim, ylim)
 }
 \arguments{
   \item{data}{

@@ -10,7 +10,7 @@
 \usage{
 mclust1Dplot(data, \dots,
              type = c("classification","uncertainty","density","errors"),
-             ask = TRUE, symbols, grid = 100, identify = TRUE, CEX = 1, xlim) 
+             ask = TRUE, symbols, grid = 100, identify = FALSE, CEX = 1, xlim) 
 }
 \arguments{
   \item{data}{

@@ -8,7 +8,7 @@
   Observations in different classes are represented by different symbols.
 }
 \usage{
-clPairs(data, classification, symbols, labels=dimnames(x)[[2]], 
+clPairs(data, classification, symbols, labels=dimnames(data)[[2]], 
         CEX=1, col, \dots)
 }
 \arguments{

@@ -3,12 +3,12 @@
 ## Original program by Chris Fraley and Adrian Raftery
 ## Port by Ron Wehrens
 ##
-cat("\nWarning: this is the 2002 version of mclust.",
-    "\n\nIt is not backwards compatible with the previous version,",
-    "\nso old scripts will no longer work. The previous version",
-    "\nof mclust is still available as mclust1998.",
-    "\n\nSince mclust1998 is not actively supported any more,",
-    "\nplease change to the new version.\n\n") 
+#cat("\nWarning: this is the 2002 version of mclust.",
+#    "\n\nIt is not backwards compatible with the previous version,",
+#    "\nso old scripts will no longer work. The previous version",
+#    "\nof mclust is still available as mclust1998.",
+#    "\n\nSince mclust1998 is not actively supported any more,",
+#    "\nplease change to the new version.\n\n") 
 
 
 "[.mclustDAtest" <- function(x, i, j, drop = FALSE)
@@ -2112,6 +2112,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
 
 
 ### Calls R density from base package, unless method=="mclust"
+### From R 1.8.1: "density" is part of the "stat" package
 ### R function density, except for "else" part
 
 "density" <- function(..., method, G)
@@ -2130,10 +2131,26 @@ cat("\nWarning: this is the 2002 version of mclust.",
     haveG <- FALSE
   else
     haveG <- TRUE
-  
-  densfun <- get("density", envir=.BaseNamespaceEnv)
-  val <- do.call("densfun", aux)
 
+  ## if there is a density function, use it
+  if (exists("density", NULL)) {
+    densfun <- getFromNamespace("density", ns="base")
+  } else {
+    if ("stats" %in% .packages(TRUE)) { # it should have a density function
+      require(stats, quietly=TRUE)
+      densfun <- getFromNamespace("density", ns="stats")
+    } else {
+      huhn <- getAnywhere("density")
+      if (length(huhn$objs) > 0) {
+        warning("Using function 'density' from ", huhn$where[1])
+        densfun <- huhn$objs[[1]]
+      } else {
+        stop("Object \"density\" not found")
+      }
+    }
+  }
+  val <- do.call("densfun", aux)
+    
   if (missing(method)) {
     if (!is.null(class(val))) val$call <- match.call()
     val

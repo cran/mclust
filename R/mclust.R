@@ -1,3 +1,9 @@
+### mclust for R, version 1.1-3: some bug fixes
+### .   fixed bug in summary.emclust in the noise case
+### .   fixed bug in emclust1 in the noise case and possibly 0 clusters
+### .   added attr(bic, "rcond") <- NA in bic.EI because emclust1 with
+###     noise and possibly 0 clusters stumbled when this attr was NULL
+###
 ### mclust for R, version 1.1-2: some changes in graphics functions
 ###     and completion of help files
 ### Changed dd. Jan. 10th, 2001
@@ -17,6 +23,7 @@
 ### .   added [1:3] after "cols" in summary.emclust in statement 
 ###           names(best) <- names(rcond) <- paste 
 ### .   replaced -.Machine$double.xmax with -Inf in summary.emclust
+
 
 "awe" <- function(tree, data)
 {
@@ -237,6 +244,10 @@
       bic <- 2 * loglik - log(n)
       attr(bic, "params") <- list(Vinv = Vinv)
       attr(bic, "loglik") <- loglik
+###   Added (RW) because emclust1 with noise and no clusters 
+###   will give an error here (NULL cannot be assigned to a 
+###   numerical vector element
+      attr(bic, "rcond") <- NA
     }
     else {
       temp <- one.XI(data)
@@ -962,7 +973,9 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 					# all noise --- same for all models
 	one <- bic.EI(data, noise = T, Vinv = Vinv)
 	BIC[k] <- one
-	if (!is.na(bicval)) RC[k] <- attr(one, "rc")
+	### Original gave error here: Object "bicval" not found
+        ###	if (!is.na(bicval)) RC[k] <- attr(one, "rc")
+	if (!is.na(one)) RC[k] <- attr(one, "rc")
 	k <- k + 1
       }
       if(k < l) {
@@ -3845,7 +3858,10 @@ function(x, ...)
     modelid <- dn[[1]]
     names(best) <- names(rcond) <- 
       paste(modelid, ",", dn[[2]][c(i, j)], sep = "")
-    k <- as.character(i)
+### bug: in case of noise k should be possibly "0"    
+### k <- as.character(i)
+### replaced May 8, 2001 (RW) by
+    k <- nclus[i]
   }
   else if(n != 1) {
     dn <- dimnames(x)

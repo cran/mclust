@@ -75,7 +75,12 @@ Statistical Association}90:773-795 (1995).
 data(iris)
 bicvals _ emclust(iris[,1:4], nclus=1:3, modelid=c("VVV","EEV","VEV"))
 
-
+data(chevron)
+noisevec _ rep(0, nrow(chevron))
+noisevec[chevron[,2]>60] _ 1
+bicvals _ emclust(chevron, noise=noisevec)
+sumry _ summary(bicvals, chevron)
+plot(chevron, col=ztoc(sumry$z), pch=ztoc(sumry$z))
 }
 \keyword{clustering}
 % Converted by Sd2Rd version 0.3-2.

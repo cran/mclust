@@ -3,7 +3,7 @@
 \title{
 EM for constant shape, constant volume MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 EM iteration (M-step followed by E-step) for estimating parameters in an MVN
 mixture model having constant shape, constant volume and possibly one Poisson 
 noise term.

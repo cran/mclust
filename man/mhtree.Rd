@@ -1,17 +1,16 @@
 \name{mhtree}
-\alias{mhtree}
+\alias{print.mhtree}
 \title{
 Classification Tree for Model-based Gaussian hierarchical clustering.
 }
-\section{DESCRIPTION}{
-Determines a classification tree for agglomerative hierarchical clustering 
-using criteria based on 
-parameterizations of Gaussian mixture models that reflect the underlying
-geometry of the resulting clusters.
+\description{
+Determines a classification tree for agglomerative hierarchical
+clustering using criteria based on parameterizations of Gaussian mixture
+models that reflect the underlying geometry of the resulting clusters.
 }
 \usage{
 mhtree(data, modelid, partition, min.clusters = 1, verbose = F, \dots)
-
+print.mhtree(tree.object, \dots)
 
 }
 \arguments{

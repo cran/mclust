@@ -3,7 +3,7 @@
 \title{
 Classification tree for hierarchical clustering for Gaussian models with uniform diagonal variance.
 }
-\section{DESCRIPTION}{
+\description{
 Computes a classification tree for agglomerative hierarchical clustering using
 a Gaussian model in which clusters are spherical and of equal volume (Wards' 
 method).

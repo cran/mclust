@@ -3,7 +3,7 @@
 \title{
 EM for spherical, varying volume MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 EM iteration (M-step followed by E-step) for estimating parameters in an
 MVN mixture model having varying spherical variances and possibly one Poisson 
 noise term.

@@ -3,14 +3,12 @@
 \title{
 E-step for constant-variance MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 E-step for estimating conditional probabilities from parameter estimates in an
 MVN mixture model having constant variance and possibly one Poisson noise term.
 }
 \usage{
 estep.VVV(data, mu, sigma, prob, eps, Vinv)
-
-
 }
 \arguments{
 \item{data}{
@@ -34,7 +32,8 @@ Default : \code{Machine$double.eps}.
 }
 \item{Vinv}{
 An estimate of the inverse hypervolume of the data region (needed only if
-\code{prob} indicates a noise term). Default : determined by function \code{hypvol}
+\code{prob} indicates a noise term).
+Default : determined by function \code{hypvol}
 }}
 \value{
 the conditional probablilities corresponding to the parameter estimates.

@@ -3,7 +3,7 @@
 \title{
 Classification tree for hierarchical clustering for Gaussian models with unconstrained variance.
 }
-\section{DESCRIPTION}{
+\description{
 Computes a classification tree for agglomerative hierarchical clustering using
 a Gaussian model in which volume, shape, and orientation may vary among 
 clusters.

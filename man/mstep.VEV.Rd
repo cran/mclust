@@ -3,7 +3,7 @@
 \title{
 M-step for constant shape, constant volume MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 M-step for estimating parameters given conditional probabilities in an MVN 
 mixture model having constant shape, constant volume and possibly one Poisson 
 noise term.

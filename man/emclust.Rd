@@ -3,7 +3,7 @@
 \title{
 BIC from hierarchical clustering followed by EM for several parameterized Gaussian mixture models.
 }
-\section{DESCRIPTION}{
+\description{
 Bayesian Information Criterion for various models and numbers of clusters
 computed from hierarchical clustering followed by EM for several
 parameterizations of Gaussian mixture models possibly with Poisson noise.

@@ -1,15 +1,18 @@
 \name{loglik}
-\alias{loglik}
+\alias{loglik.EI}
+\alias{loglik.VI}
+\alias{loglik.EEE}
+\alias{loglik.EFV}
+\alias{loglik.VFV}
+\alias{loglik.VVV}
 \title{
 Loglikelihood for model-based hierarchical clustering.
 }
-\section{DESCRIPTION}{
+\description{
 Gives the loglikelihood for each stage of model-based hierarchical clustering.
 }
 \usage{
 loglik(tree, data, Vinv)
-
-
 }
 \arguments{
 \item{tree}{

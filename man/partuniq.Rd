@@ -3,22 +3,21 @@
 \title{
 Classifies Data According to Unique Observations
 }
-\section{DESCRIPTION}{
+\description{
 Gives a one-to-one mapping from unique observations to rows of a data matrix.
 }
 \usage{
-partuniq(x)
-
-
+partuniq(x, sep="001")
 }
 \arguments{
-\item{x}{
-Matrix of observations.
-}}
+  \item{x}{Matrix of observations.}
+  \item{sep}{Separation string.}
+}
 \value{
-A vector of length \code{nrow(x)} with integer entries. An observation \code{k} is
-assigned an integer \code{i} whenever observation \code{i} is the first row of \code{x}
-that is identical to observation \code{k} (note that \code{i <= k}).
+A vector of length \code{nrow(x)} with integer entries. An observation
+\code{k} is assigned an integer \code{i} whenever observation \code{i}
+is the first row of \code{x} that is identical to observation \code{k}
+(note that \code{i <= k}).
 }
 \examples{
 data(iris)

@@ -1,3 +1,23 @@
+### mclust for R, version 1.1-2: some changes in graphics functions
+###     and completion of help files
+### Changed dd. Jan. 10th, 2001
+### .   made xlim, ylim, xlab and ylab arguments in mixproj
+### .   use matplot in plot.emclust, with some extra arguments
+### Changed dd. jan 22, 2001
+### .   made xlab and ylab arguments in emclust and emclust1
+### .   removed function charconv since it was only used in function partuniq
+### .   removed function print.mclust since there is no class mclust
+###
+### mclust for R, version 1.1-1: first working version
+### Change dd. July 28th, 2000 (S-incompatibilities?)
+### .   changed sigmasq in estep.EI, estep.VI, mstep.EI and mstep.VI to sigma;
+###     apparently S can complete names
+### .   added if (!is.na(bicval)) to RC statements in emclust and emclust1
+###     apparently S does not mind...
+### .   added [1:3] after "cols" in summary.emclust in statement 
+###           names(best) <- names(rcond) <- paste 
+### .   replaced -.Machine$double.xmax with -Inf in summary.emclust
+
 "awe" <- function(tree, data)
 {
   data <- as.matrix(data)
@@ -515,12 +535,12 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 	attr(temp, "loglik") <- attr(temp, "rcond") <- 
 	  NULL
 	if(equal) {
-	  bic <- 2 * loglik - (G * (p + nparams)) * log(
-							n)
+	  bic <- 2 * loglik -
+            (G * (p + nparams)) * log(n)
 	}
 	else {
-	  bic <- 2 * loglik - (G * (p + nparams) + (G - 
-						    1)) * log(n)
+	  bic <- 2 * loglik -
+            (G * (p + nparams) + (G - 1)) * log(n)
 	}
 	attr(bic, "params") <- temp
 	attr(bic, "rcond") <- rcond
@@ -547,14 +567,14 @@ function(data, z, eps, equal = F, noise = F, Vinv)
   structure(sweep(x, 2, sd, "/"), mu = mu, sd = sd)
 }
 
-"charconv" <- function(x, sep = "001")
-{
-  if(!is.data.frame(x))
-    x <- data.frame(x)
-  do.call("paste", c(as.list(x), sep = sep))
-}
+#"charconv" <- function(x, sep = "001")
+#{
+#  if(!is.data.frame(x))
+#    x <- data.frame(x)
+#  do.call("paste", c(as.list(x), sep = sep))
+#}
 
-"clpairs" <- function(x, partition, symbols, clrs, labels, ...) 
+"clpairs" <- function(x, partition, col, ...) 
 {
   x <- as.matrix(x)
   m <- nrow(x)
@@ -562,21 +582,12 @@ function(data, z, eps, equal = F, noise = F, Vinv)
   if(missing(partition))
     partition <- rep(1, m)
   l <- length(unique(partition))
-  if(missing(symbols))
-    symbols <- partition
-  else if(length(symbols) < l)
-    stop("more symbols needed")
-  if(missing(clrs))
-    clrs <- partition
-  else if(length(clrs) < l)
+  if(missing(col))
+    col <- partition
+  else if (length(unique(col)) < l)
     stop("more colors needed")
-  if (missing(labels))
-    if (!is.null(dimnames(x)[[2]]))
-      labels _ dimnames(x)[[2]]
-    else
-      labels _ c("","")
 
-  pairs(x, col=clrs, pch=symbols, labels=labels, ...)
+  pairs(x, col=col, ...)
   invisible()
 }
 
@@ -651,7 +662,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 	      bicval <- do.call(bicnam, list(data, z, equal = equal))
 	    }
 	    BIC[j] <- bicval
-	    RC[j] <- attr(bicval, "rcond")
+	    if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
 	  }
 	  list(bic = BIC, rc = RC)
 	}
@@ -716,7 +727,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 				list(data, z, equal = equal, noise = T,
 				     Vinv = Vinv)) 
 	      BIC[j] <- bicval
-	      RC[j] <- attr(bicval, "rc")
+	      if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
 	    }
 	  }
 	  list(bic = BIC, rc = RC)
@@ -781,7 +792,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 					     equal = equal))
 	    }
 	    BIC[j] <- bicval
-	    RC[j] <- attr(bicval, "rcond")
+	    if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
 	  }
 	  list(bic = BIC, rc = RC)
 	}
@@ -860,7 +871,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 					     equal = equal, noise = T, 
 					     Vinv = Vinv)) 
 	      BIC[j] <- bicval
-	      RC[j] <- attr(bicval, "rc")
+	      if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
 	    }
 	  }
 	  list(bic = BIC, rc = RC)
@@ -917,7 +928,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 			equal = equal)
 	}
 	BIC[j] <- bicval
-	RC[j] <- attr(bicval, "rcond")
+	if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
       }
       ##-----------------------------------------------------------------------
       ## output
@@ -951,7 +962,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 					# all noise --- same for all models
 	one <- bic.EI(data, noise = T, Vinv = Vinv)
 	BIC[k] <- one
-	RC[k] <- attr(one, "rc")
+	if (!is.na(bicval)) RC[k] <- attr(one, "rc")
 	k <- k + 1
       }
       if(k < l) {
@@ -964,7 +975,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 	  bicval <- bic(data, modelid = modelid[2], z, 
 			equal = equal, noise = T, Vinv = Vinv)
 	  BIC[j] <- bicval
-	  RC[j] <- attr(bicval, "rc")
+	  if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
 	}
       }
       ##-----------------------------------------------------------------------
@@ -1011,7 +1022,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 			equal = equal)
 	}
 	BIC[j] <- bicval
-	RC[j] <- attr(bicval, "rcond")
+	if (!is.na(bicval)) RC[j] <- attr(bicval, "rcond")
       }
       ##-----------------------------------------------------------------------
       ## output
@@ -1048,7 +1059,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 					# all noise --- same for all models
 	one <- bic.EI(data, noise = T, Vinv = Vinv)
 	BIC[k] <- one
-	RC[k] <- attr(one, "rc")
+	if (!is.na(bicval)) RC[k] <- attr(one, "rc")
 	k <- k + 1
       }
       z <- matrix(0, nrow(data), nclus[l] + 1)
@@ -1069,7 +1080,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 				1:(i + 1)], equal = equal, noise = T, Vinv
 			= Vinv)
 	  BIC[j] <- bicval
-	  RC[j] <- attr(bicval, "rc")
+	  if (!is.na(bicval)) RC[j] <- attr(bicval, "rc")
 	}
       }
       ##-----------------------------------------------------------------------
@@ -1172,7 +1183,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
   z
 }
 "estep.EI" <-
-function(data, mu, sigmasq, prob, eps, Vinv)
+function(data, mu, sigma, prob, eps, Vinv)
 {
   data <- as.matrix(data)
   n <- nrow(data)
@@ -1186,15 +1197,15 @@ function(data, mu, sigmasq, prob, eps, Vinv)
   equal <- length(unique(prob)) == 1
   l <- length(prob)
   noise <- l != G
-  if(all(is.na(c(sigmasq, mu, prob)))) {
+  if(all(is.na(c(sigma, mu, prob)))) {
     z <- matrix(NA, n, if(noise) G + 1 else G)
     attr(z, "loglik") <- NA
     return(z)
   }
-  else if(is.na(sigmasq) || any(is.na(mu)) || any(is.na(prob))) {
+  else if(is.na(sigma) || any(is.na(mu)) || any(is.na(prob))) {
     stop("parameters contain missing values")
   }
-  if(sigmasq <= eps) {
+  if(sigma <= eps) {
     warning("sigma-squared falls below threshold")
     z <- matrix(NA, n, if(noise) G + 1 else G)
     attr(z, "loglik") <- NA
@@ -1206,7 +1217,7 @@ function(data, mu, sigmasq, prob, eps, Vinv)
     temp <- .Fortran("esei",
 		     as.double(data),
 		     as.double(mu),
-		     as.double(sigmasq),
+		     as.double(sigma),
 		     as.double(if(equal) 1 else prob),
 		     as.integer(n),
 		     as.integer(p),
@@ -1223,7 +1234,7 @@ function(data, mu, sigmasq, prob, eps, Vinv)
     temp <- .Fortran("esnei",
 		     as.double(data),
 		     as.double(mu),
-		     as.double(sigmasq),
+		     as.double(sigma),
 		     as.double(if(equal) 1 else prob),
 		     as.integer(n),
 		     as.integer(p),
@@ -1244,7 +1255,7 @@ function(data, mu, sigmasq, prob, eps, Vinv)
   z
 }
 "estep.VI" <-
-function(data, mu, sigmasq, prob, eps, Vinv)
+function(data, mu, sigma, prob, eps, Vinv)
 {
   data <- as.matrix(data)
   n <- nrow(data)
@@ -1258,15 +1269,15 @@ function(data, mu, sigmasq, prob, eps, Vinv)
   equal <- length(unique(prob)) == 1
   l <- length(prob)
   noise <- l != G
-  if(all(is.na(c(sigmasq, mu, prob)))) {
+  if(all(is.na(c(sigma, mu, prob)))) {
     z <- matrix(NA, n, if(noise) G + 1 else G)
     attr(z, "loglik") <- NA
     return(z)
   }
-  else if(any(is.na(sigmasq)) || any(is.na(mu)) || any(is.na(prob))) {
+  else if(any(is.na(sigma)) || any(is.na(mu)) || any(is.na(prob))) {
     stop("parameters contain missing values")
   }
-  if(any(sigmasq) <= eps) {
+  if(any(sigma) <= eps) {
     warning("sigma-squared falls below threshold")
     z <- matrix(NA, n, length(prob))
     attr(z, "loglik") <- NA
@@ -1278,7 +1289,7 @@ function(data, mu, sigmasq, prob, eps, Vinv)
     temp <- .Fortran("esvi",
 		     as.double(data),
 		     as.double(mu),
-		     as.double(sigmasq),
+		     as.double(sigma),
 		     as.double(if(equal) 1 else prob),
 		     as.integer(n),
 		     as.integer(p),
@@ -1295,7 +1306,7 @@ function(data, mu, sigmasq, prob, eps, Vinv)
     temp <- .Fortran("esnvi",
 		     as.double(data),
 		     as.double(mu),
-		     as.double(sigmasq),
+		     as.double(sigma),
 		     as.double(if(equal) 1 else prob),
 		     as.integer(n),
 		     as.integer(p),
@@ -1497,19 +1508,19 @@ function(data, mu, sigma, prob, eps, Vinv)
   dimd <- dim(data)
   n <- dimd[1]
   p <- dimd[2]
-  if(F) {
-    vol1 <- prod(apply(data, 2, function(z)
-		       diff(range(z))))
-    V <- matrix(temp[[1]], p, p)
-    xbar <- apply(data, 2, mean)
-    X <- sweep(data, 2, xbar)
-    library(Matrix)
-    print(V)
-    print(eigen.Hermitian(crossprod(X))$vectors)
-    X <- X %*% V
-    vol <- prod(apply(X, 2, function(z)
-		      diff(range(z))))
-  }
+#  if(F) {
+#    vol1 <- prod(apply(data, 2, function(z)
+#		       diff(range(z))))
+#    V <- matrix(temp[[1]], p, p)
+#    xbar <- apply(data, 2, mean)
+#    X <- sweep(data, 2, xbar)
+#    library(Matrix)
+#    print(V)
+#    print(eigen.Hermitian(crossprod(X))$vectors)
+#    X <- X %*% V
+#    vol <- prod(apply(X, 2, function(z)
+#		      diff(range(z))))
+#  }
   lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)	# min
   lwsyevd <- p * (3 * p + 2 * ceiling(log(p, base = 2)) + 5) + 1	# min
   lisyevd <- 5 * p + 2	# minimum
@@ -1774,7 +1785,7 @@ function(data, mu, sigma, prob, eps, Vinv)
     eps <- .Machine$double.eps
   if(missing(tol))
     tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.inf(itmax))
+  if(missing(itmax) || is.infinite(itmax))
     itmax <- .Machine$integer.max
   if(!noise) {
     G <- K
@@ -1856,7 +1867,7 @@ function(data, mu, sigma, prob, eps, Vinv)
     eps <- c(eps, sqrt(.Machine$double.eps))
   if(missing(tol))
     tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.inf(itmax))
+  if(missing(itmax) || is.infinite(itmax))
     itmax <- .Machine$integer.max
   lwork <- max(4 * p, 5 * p - 4)
   if(!noise) {
@@ -1962,7 +1973,7 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     eps <- .Machine$double.eps
   if(missing(tol))
     tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.inf(itmax))
+  if(missing(itmax) || is.infinite(itmax))
     itmax <- .Machine$integer.max
   if(!noise) {
     G <- K
@@ -2167,7 +2178,7 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     eps <- .Machine$double.eps
   if(missing(tol))
     tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.inf(itmax))
+  if(missing(itmax) || is.infinite(itmax))
     itmax <- .Machine$integer.max
   if(!noise) {
     G <- K
@@ -2243,7 +2254,7 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     eps <- .Machine$double.eps
   if(missing(tol))
     tol <- sqrt(.Machine$double.eps)
-  if(missing(itmax) || is.inf(itmax))
+  if(missing(itmax) || is.infinite(itmax))
     itmax <- .Machine$integer.max
   if(!noise) {
     G <- K
@@ -2343,6 +2354,7 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
   }
   apply(cl[, length(select):1, drop = F], 2, partconv, consec = T)
 }
+
 "mhtree" <- function(data, modelid, partition, min.clusters = 1, 
 		    verbose = F, ...) 
 {
@@ -2758,7 +2770,8 @@ function(data, partition, min.clusters = 1, alpha = 1)
 }
 
 "mixproj" <- function(data, ms, partition, dimens, scale = F, 
-		     k = 15, title, ...)
+                      k = 15, title, xlim, ylim, xlab, ylab,
+                      col=partition, pch=partition, ...)
 {
   if(missing(dimens))
     dimens <- sample(1:ncol(data), 2)
@@ -2791,8 +2804,12 @@ function(data, partition, min.clusters = 1, alpha = 1)
   }
   else stop("mu and sigma are incompatible")
   mu <- ms$mu[dimens,  ]
-  xlim <- range(data[, 1])
-  ylim <- range(data[, 2])
+
+  if (missing(xlim))
+    xlim <- range(data[, 1])
+  if (missing(ylim))
+    ylim <- range(data[, 2])
+  
   if(scale) {
     d <- diff(xlim) - diff(ylim)
     if(d > 0) 
@@ -2804,11 +2821,21 @@ function(data, partition, min.clusters = 1, alpha = 1)
   if (missing(partition))
     partition _ rep(1, dim(data)[1])
   labs _ dimnames(data)[[2]]
-  if (is.null(labs))
-    labs _ c("","")
+  if (missing(xlab)) {
+    if (is.null(labs))
+      xlab _ ""
+    else
+      xlab _ labs[1]
+  }
+  if (missing(ylab)) {
+    if (is.null(labs))
+      ylab _ ""
+    else
+      ylab _ labs[2]
+  }
 
-  plot(data[, 1], data[, 2], col=partition, pch=partition, 
-       xlab=labs[1], ylab=labs[2], xlim=xlim, ylim=ylim, ...) 
+  plot(data[, 1], data[, 2], col=col, pch=pch, xlab=xlab, ylab=ylab,
+       xlim=xlim, ylim=ylim, ...)
   if(!missing(title))
     title(title)
   l <- ncol(mu)
@@ -3043,8 +3070,8 @@ function(data, partition, min.clusters = 1, alpha = 1)
   K <- dimz[2]	# number of groups
   if(all(is.na(z))) {
     G <- if(noise) K - 1 else K
-    return(if(equal) list(mu = matrix(NA, p, G), sigmasq = NA)
-    else list(mu = matrix(NA, p, G), sigmasq = NA, prob = 
+    return(if(equal) list(mu = matrix(NA, p, G), sigma = NA)
+    else list(mu = matrix(NA, p, G), sigma = NA, prob = 
 	      rep(NA, K)))
   }
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -3082,13 +3109,13 @@ function(data, partition, min.clusters = 1, alpha = 1)
   }
   loglik <- temp[[1]]
   mu <- matrix(temp[[2]], p, G)
-  sigmasq <- temp[[3]]
+  sigma <- temp[[3]]
   if(!equal)
     prob <- temp[[4]]
   dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigmasq = sigmasq) else list(mu = mu, 
-				   sigmasq = sigmasq, prob = prob)
-  if(sigmasq <= abs(eps)) {
+  out <- if(equal) list(mu = mu, sigma = sigma) else list(mu = mu, 
+				   sigma = sigma, prob = prob)
+  if(sigma <= abs(eps)) {
     warning("sigma-squared falls below threshold")
     attr(out, "warn") <- list("sigma-squared falls below threshold"
 			      )
@@ -3096,7 +3123,7 @@ function(data, partition, min.clusters = 1, alpha = 1)
   if(loglik == .Machine$double.xmax)
     loglik <- NA
   attr(out, "loglik") <- loglik
-  attr(out, "rcond") <- sigmasq/(1 + sigmasq)
+  attr(out, "rcond") <- sigma/(1 + sigma)
   out
 }
 
@@ -3263,9 +3290,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
     return(
 	   if(equal) 
 	   list(mu = matrix(NA, p, G), 
-		sigmasq = rep(NA, G)) 
+		sigma = rep(NA, G)) 
 	   else list(mu = matrix(NA, p, G), 
-		     sigmasq = rep(NA, G), prob = rep(NA, K))
+		     sigma = rep(NA, G), prob = rep(NA, K))
 	   )
   }
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -3304,13 +3331,13 @@ function(data, partition, min.clusters = 1, alpha = 1)
   }
   loglik <- temp[[1]]
   mu <- matrix(temp[[2]], p, G)
-  sigmasq <- temp[[3]]
+  sigma <- temp[[3]]
   if(!equal)
     prob <- temp[[4]]
-  temp <- min(sigmasq)
+  temp <- min(sigma)
   dimnames(mu) <- list(NULL, as.character(1:G))
-  out <- if(equal) list(mu = mu, sigmasq = sigmasq) else list(mu = mu, 
-				   sigmasq = sigmasq, prob = prob)
+  out <- if(equal) list(mu = mu, sigma = sigma) else list(mu = mu, 
+				   sigma = sigma, prob = prob)
   if(temp <= abs(eps)) {
     warning("sigma-squared falls below threshold")
     attr(out, "warn") <- list("sigma-squared falls below threshold"
@@ -3433,19 +3460,19 @@ function(data, partition, min.clusters = 1, alpha = 1)
     lines(xy[i,  ])
     i <- i + l
   }
-  if(F) {
-    y <- seq(from = 0, to = s[2], by = s[2]/(2^k))
-    x <- s[1] * sqrt(1 - (y/s[2])^2)
-    xy <- cbind(c(x,  - x,  - x, x), c(y, y,  - y,  - y))
-    xy <- xy %*% V
-    xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
-    l <- length(x)
-    i <- 1:l
-    for(k in 1:4) {
-      lines(xy[i,  ])
-      i <- i + l
-    }
-  }
+#  if(F) {
+#    y <- seq(from = 0, to = s[2], by = s[2]/(2^k))
+#    x <- s[1] * sqrt(1 - (y/s[2])^2)
+#    xy <- cbind(c(x,  - x,  - x, x), c(y, y,  - y,  - y))
+#    xy <- xy %*% V
+#    xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
+#    l <- length(x)
+#    i <- 1:l
+#    for(k in 1:4) {
+#      lines(xy[i,  ])
+#      i <- i + l
+#    }
+#  }
 					# semi-major axes
   P <- cbind(c( - s[1], s[1]), c(0, 0))
   P <- P %*% V
@@ -3479,8 +3506,8 @@ function(data, partition, min.clusters = 1, alpha = 1)
   attr(temp, "rcond") <- sigsq/(1 + sigsq)
   temp
 }
-"one.XXX" <-
-function(data)
+
+"one.XXX" <- function(data)
 {
   data <- as.matrix(data)
   n <- nrow(data)
@@ -3502,8 +3529,8 @@ function(data)
   attr(temp, "rcond") <- rc
   temp
 }
-"partconv" <-
-function(x, consec = T)
+
+"partconv" <- function(x, consec = T)
 {
   n <- length(x)
   y <- numeric(n)
@@ -3523,38 +3550,42 @@ function(x, consec = T)
   }
   y
 }
-"partuniq" <-
-function(x)
+
+"partuniq" <- function(x, sep = "001")
 {
   ## finds the classification that removes duplicates from x
   n <- nrow(x)
-  x <- charconv(x)
+  ##  x <- charconv(x)
+  if(!is.data.frame(x))
+    x <- data.frame(x)
+  x <- do.call("paste", c(as.list(x), sep = sep))
+
   k <- duplicated(x)
   partition <- 1:n
   partition[k] <- match(x[k], x)
   partition
 }
-"pcvol" <-
-function(data, reciprocal = F)
+
+"pcvol" <- function(data, reciprocal = F)
 {
   ## hypervolume of the data region via principal components
   data <- as.matrix(data)
   dimd <- dim(data)
   n <- dimd[1]
   p <- dimd[2]
-  if(F) {
-    vol1 <- prod(apply(data, 2, function(z)
-		       diff(range(z))))
-    V <- matrix(temp[[1]], p, p)
-    xbar <- apply(data, 2, mean)
-    X <- sweep(data, 2, xbar)
-    library(Matrix)
-    print(V)
-    print(eigen.Hermitian(crossprod(X))$vectors)
-    X <- X %*% V
-    vol <- prod(apply(X, 2, function(z)
-		      diff(range(z))))
-  }
+#  if(F) {
+#    vol1 <- prod(apply(data, 2, function(z)
+#		       diff(range(z))))
+#    V <- matrix(temp[[1]], p, p)
+#    xbar <- apply(data, 2, mean)
+#    X <- sweep(data, 2, xbar)
+#    library(Matrix)
+#    print(V)
+#    print(eigen.Hermitian(crossprod(X))$vectors)
+#    X <- X %*% V
+#    vol <- prod(apply(X, 2, function(z)
+#		      diff(range(z))))
+#  }
   lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)	# min
   lwsyevd <- p * (3 * p + 2 * ceiling(log(p, base = 2)) + 5) + 1	# min
   lisyevd <- 5 * p + 2	# minimum
@@ -3581,33 +3612,34 @@ function(data, reciprocal = F)
   else prod(temp[[1]])
 }
 
-"plot.emclust" <-
-function(x)
+"plot.emclust" <- function(x, xlab="number of clusters", ylab="BIC",
+                           pch=symbols, ...)
 {
   BIC <- as.matrix(x)
   n <- nrow(BIC)
   symbols <- if(n <= 9) as.character(1:n) else LETTERS[1:n]
   xrange <- if(!is.null(dn <- dimnames(BIC)[[2]])) as.numeric(dn) else 1:
     ncol(BIC)
-  plot(xrange, BIC[1,  ], type = "n", 
-       ylim = range(as.vector(BIC[!is.na(BIC)])), 
-       xlim = range(xrange), xlab = "number of clusters", 
-       ylab = "BIC")
-  for(i in 1:nrow(BIC)) {
-    points(xrange, BIC[i,  ], pch = symbols[i])
-    lines(xrange, BIC[i,  ], lty = i)
-  }
+###  plot(xrange, BIC[1,  ], type = "n", 
+###       ylim = range(as.vector(BIC[!is.na(BIC)])), 
+###       xlim = range(xrange), xlab = "number of clusters", 
+###       ylab = "BIC")
+###  for(i in 1:nrow(BIC)) {
+###    points(xrange, BIC[i,  ], pch = symbols[i])
+###    lines(xrange, BIC[i,  ], lty = i)
+###  }
+  matplot(xrange, t(BIC), type="b", xlab=xlab, ylab = ylab, pch=pch, ...)
   invisible()
 }
-"plot.emclust1" <-
-function(x, ...)
+
+"plot.emclust1" <- function(x, xlab = "number of clusters", ylab="BIC", ...)
 {
   N <- as.numeric(names(x))
-  plot(N, x, xlab = "number of clusters", ylab = "BIC")
+  plot(N, x, xlab=xlab, ylab = ylab, ...)
   invisible()
 }
-"print.bic" <-
-function(x, ...)
+
+"print.bic" <- function(x, ...)
 {
   print(as.vector(x), ...)	
   ##	cat("\n reciprocal condition estimate:\n")
@@ -3630,11 +3662,11 @@ function(x, ...)
   cat("\n BIC:\n")
   NextMethod("print")
   cat("\n")
-  print(c(sample = subset, noise = noise, equal = equal))
+  print(c(sample = subset, noise = noise, equal = equal), ...)
   invisible()
 }
-"print.emclust1" <-
-function(x, ...)
+
+"print.emclust1" <- function(x, ...)
 {
   modelid <- attr(x, "modelid")
   equal <- attr(x, "equal")
@@ -3667,25 +3699,25 @@ function(x, ...)
     M["EM"] <- paste(M["EM"], "(with noise)")
   if(equal)
     M["EM"] <- paste(M["EM"], "(equal mixing proportions)")
-  print(M)
+  print(M, ...)
   invisible()
 }
-"print.mclust" <-
-function(x, ...)
+
+#"print.mclust" <- function(x, ...)
+#{
+#  attributes(x) <- if(!is.null(dim(x))) attributes(x)[c("dim", "model")]
+#  else NULL
+#  NextMethod("print")
+#}
+
+"print.mhtree" <- function(x, ...)
 {
   attributes(x) <- if(!is.null(dim(x))) attributes(x)[c("dim", "model")]
   else NULL
   NextMethod("print")
 }
-"print.mhtree" <-
-function(x, ...)
-{
-  attributes(x) <- if(!is.null(dim(x))) attributes(x)[c("dim", "model")]
-  else NULL
-  NextMethod("print")
-}
-"print.summary.emclust" <-
-function(x, ...)
+
+"print.summary.emclust" <- function(x, ...)
 {
   bic <- attr(x, "bic")
   l <- length(bic) > 1
@@ -3713,8 +3745,8 @@ function(x, ...)
   print(attr(x, "options"))
   invisible()
 }
-"print.summary.emclust1" <-
-function(x, ...)
+
+"print.summary.emclust1" <- function(x, ...)
 {
   bic <- attr(x, "bic")
   l <- length(bic) > 1
@@ -3750,8 +3782,8 @@ function(x, ...)
   print(attr(x, "options"))
   invisible()
 }
-"summary.emclust" <-
-function(x, data, nclus, modelid)
+
+"summary.emclust" <- function(x, data, nclus, modelid)
 {
   rc <- attr(x, "rcond")
   tree <- attr(x, "tree")
@@ -3777,7 +3809,7 @@ function(x, data, nclus, modelid)
 		       noise = !is.null(noise), equal = equal), 
 		     class = "summary.emclust"))
   }
-  x[is.na(x)] <-  - .Machine$double.xmax
+  x[is.na(x)] <-  - Inf #.Machine$double.xmax
   bicmax <- max(x)
   n <- nrow(x)
   l <- ncol(x)
@@ -3792,12 +3824,11 @@ function(x, data, nclus, modelid)
     K <- matrix(rep(1:n, l), n, l)[ - i,  ]
     k <- K[x[ - i,  ] == other][1]
     rows <- dimnames(x)[[1]][c(i, i, k)]
-    cols <- c(nclus[x[i,  ] == best[1]], nclus[x[i,  ] == best[2]], 
-	      j)
+    cols <- c(nclus[x[i,  ] == best[1]], nclus[x[i,  ] == best[2]], j)
     rcond <- c(rc[rows[1], cols[1]], 
 	       rc[rows[2], cols[2]], 
 	       rc[rows[3], cols[3]])
-    names(best) <- names(rcond) <- paste(rows, ",", cols, sep = "")
+    names(best) <- names(rcond) <- paste(rows, ",", cols[1:3], sep = "")
     modelid <- rows[1]
     k <- cols[1]
   }
@@ -3851,11 +3882,10 @@ function(x, data, nclus, modelid)
 	z <- me(data, modelid = modelid, ctoz(cl), 
 		equal = equal)
 	params <- mstep(data, modelid = modelid, z, 
-			equal = equal)[c("mu", "sig", "prob")]
+			equal = equal)[c("mu", "sigma", "prob")]
       }
     }
-    else {
-					# noise
+    else {               # noise
       if(k == "0") {
 	z <- cbind(rep(0, n), rep(1, n))
 	params <- NULL
@@ -3882,16 +3912,15 @@ function(x, data, nclus, modelid)
       else {
 	cl <- mhclass(tree, as.numeric(k))
 	params <- mstep(data[smpl,  ], modelid = modelid, ctoz(cl), 
-			equal = equal)[c("mu", "sig", "prob")]
+			equal = equal)[c("mu", "sigma", "prob")]
 	z <- do.call("estep", c(list(data, modelid = modelid), params))
 	z <- me(data, modelid = modelid, z, equal = 
 		equal)
 	params <- mstep(data, modelid = modelid, z, 
-			equal = equal)[c("mu", "sig", "prob")]
+			equal = equal)[c("mu", "sigma", "prob")]
       }
     }
-    else {
-					# noise
+    else {                # noise
       if(k == "0") {
 	z <- cbind(rep(0, n), rep(1, n))
 	params <- NULL
@@ -3900,7 +3929,7 @@ function(x, data, nclus, modelid)
 	cl <- mhclass(tree, as.numeric(k))
 	params <- mstep(data[smpl,  ], modelid = 
 			modelid, ctoz(cl), equal = equal)[c("mu", 
-					     "sig", "prob")]
+					     "sigma", "prob")]
 	z <- do.call("estep", c(list(data[!noise,  ], 
 				     modelid = modelid), params))
 	cl <- numeric(n)
@@ -3924,8 +3953,8 @@ function(x, data, nclus, modelid)
   class(out) <- "summary.emclust"
   out
 }
-"summary.emclust1" <-
-function(x, data, nclus)
+
+"summary.emclust1" <- function(x, data, nclus)
 {
   rc <- attr(x, "rcond")
   tree <- attr(x, "tree")
@@ -3966,11 +3995,10 @@ function(x, data, nclus)
 	z <- me(data, modelid = modelid[2], ctoz(cl), 
 		equal = equal)
 	params <- mstep(data, modelid = modelid[2], z, 
-			equal = equal)[c("mu", "sig", "prob")]
+			equal = equal)[c("mu", "sigma", "prob")]
       }
     }
-    else {
-					# noise
+    else {           # noise
       if(k == "0") {
 	z <- cbind(rep(0, n), rep(1, n))
 	params <- NULL
@@ -3999,17 +4027,16 @@ function(x, data, nclus)
 	cl <- mhclass(tree, as.numeric(k))
 	params <- mstep(data[smpl,  ], modelid = 
 			modelid[2], ctoz(cl), equal = equal)[c("mu", 
-						"sig", "prob")]
+						"sigma", "prob")]
 	z <- do.call("estep", c(list(data, modelid = 
 				     modelid[2]), params))
 	z <- me(data, modelid = modelid[2], z, equal = 
 		equal)
 	params <- mstep(data, modelid = modelid[2], z, 
-			equal = equal)[c("mu", "sig", "prob")]
+			equal = equal)[c("mu", "sigma", "prob")]
       }
     }
-    else {
-      ## noise
+    else {               # noise
       if(k == "0") {
 	z <- cbind(rep(0, n), rep(1, n))
 	params <- NULL
@@ -4018,7 +4045,7 @@ function(x, data, nclus)
 	cl <- mhclass(tree, as.numeric(k))
 	params <- mstep(data[smpl,  ], 
 			modelid = modelid[2], ctoz(cl), 
-			equal = equal)[c("mu", "sig", "prob")]
+			equal = equal)[c("mu", "sigma", "prob")]
 	z <- do.call("estep", c(list(data[!noise,  ], 
 				     modelid = modelid[2]), params))
 	cl <- numeric(n)

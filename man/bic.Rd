@@ -1,9 +1,14 @@
 \name{bic}
-\alias{bic}
+\alias{bic.EI}
+\alias{bic.VI}
+\alias{bic.EEE}
+\alias{bic.EEV}
+\alias{bic.VEV}
+\alias{bic.VVV}
 \title{
 BIC for parameterized MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 Bayesian Information Criterion for MVN mixture models with possibly one 
 Poisson noise term.
 }

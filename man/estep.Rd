@@ -3,7 +3,7 @@
 \title{
 E-step for parameterized MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 E-step for estimating conditional probabilities from parameter estimates in an
 MVN mixture model having possibly one Poisson noise term.
 }
@@ -80,7 +80,7 @@ data(iris)
 cl <- mhclass(mhtree(iris[,1:4], modelid="VI"), 3)
 z <- me( iris[,1:4], ctoz(cl), modelid = "VI")
 pars <- mstep( iris[,1:4], modelid = "VI", z)
-estep(iris[,1:4], modelid = "VI", pars$mu, pars$sigmasq, pars$prob)
+estep(iris[,1:4], modelid = "VI", pars$mu, pars$sigma, pars$prob)
 
 
 }

@@ -3,7 +3,7 @@
 \title{
 M-step for spherical, varying volume MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 M-step for estimating parameters given conditional probabilities in an MVN 
 mixture model having varying spherical variances and possibly one Poisson noise
 term.

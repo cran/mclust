@@ -1,18 +1,18 @@
 \name{mhtree.VFV}
-\alias{mhtree.VFV}
+\alias{mhtree.VEV}
 \title{
-Classification tree for hierarchical clustering for Gaussian models with equal volume and constant shape.
+Classification tree for hierarchical clustering for Gaussian models with
+equal volume and constant shape. 
 }
-\section{DESCRIPTION}{
-Computes a classification tree for agglomerative hierarchical clustering using
-a Gaussian model in which clusters have a constant shape and are of equal 
-volume.
+\description{
+Computes a classification tree for agglomerative hierarchical clustering
+using a Gaussian model in which clusters have a constant shape and are
+of equal volume. 
 }
 \usage{
 mhtree.VFV(data, partition, min.clusters = 1, shape, alpha = 1)
-
-
 }
+
 \arguments{
 \item{data}{
 matrix of observations.

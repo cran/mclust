@@ -3,7 +3,7 @@
 \title{
 Approximate weight of evidence for model-based hierarchical clustering.
 }
-\section{DESCRIPTION}{
+\description{
 Computes a Bayesian criterion for assessing the number of clusters present
 in the data.
 }

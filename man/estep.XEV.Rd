@@ -3,7 +3,7 @@
 \title{
 E-step for constant shape MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 E-step for estimating conditional probabilities from parameter estimates in an
 MVN mixture model having constant shape and possibly one Poisson noise term.
 }

@@ -3,15 +3,13 @@
 \title{
 E-step for spherical, varying volume MVN mixture models
 }
-\section{DESCRIPTION}{
-E-step for estimating conditional probabilities from parameter estimates in an
-MVN mixture model having varying spherical variances and possibly one Poisson
-noise term.
+\description{
+E-step for estimating conditional probabilities from parameter estimates
+in an MVN mixture model having varying spherical variances and possibly
+one Poisson noise term. 
 }
 \usage{
 estep.VI(data, mu, sigmasq, prob, eps, Vinv)
-
-
 }
 \arguments{
 \item{data}{

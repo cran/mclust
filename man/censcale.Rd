@@ -3,7 +3,7 @@
 \title{
 Centering and Scaling of Data
 }
-\section{DESCRIPTION}{
+\description{
 Transforms a data set by subtracting the column mean from each column and
 dividing each column by the square root of its variance when the latter is
 sufficiently large in magnitude.

@@ -1,15 +1,14 @@
 \name{summary.emclust}
-\alias{summary.emclust}
+\alias{print.summary.emclust}
 \title{
 Summary method for `emclust' objects.
 }
-\section{DESCRIPTION}{
+\description{
 Optimal model parameters for \code{emclust} objects.
 }
 \usage{
 summary.emclust(x, data, nclus, modelid)
-
-
+print.summary.emclust(summary.emclust.object, \dots)
 }
 \arguments{
 \item{x}{

@@ -3,7 +3,7 @@
 \title{
 Classification tree for hierarchical clustering for Gaussian models with equal volume and fixed shape.
 }
-\section{DESCRIPTION}{
+\description{
 Computes a classicification tree for agglomerative hierarchical clustering 
 using a Gaussian model in which clusters have a fixed shape and are of equal 
 volume.

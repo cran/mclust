@@ -3,7 +3,7 @@
 \title{
 M-step for parameterized MVN mixture models
 }
-\section{DESCRIPTION}{
+\description{
 M-step for estimating parameters given conditional probabilities in a
 MVN mixture model with possibly one Poisson noise term.
 }

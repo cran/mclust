@@ -3,7 +3,7 @@
 \title{
 Classifications for hierarchical clustering.
 }
-\section{DESCRIPTION}{
+\description{
 Gives classifications corresponding to the stages of hierarchical clustering.
 }
 \usage{

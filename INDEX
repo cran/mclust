@@ -1,0 +1,66 @@
+awe                      Approximate weight of evidence for model-based
+                         hierarchical clustering.
+bic                      BIC for parameterized MVN mixture models
+censcale                 Centering and Scaling of Data
+clpairs                  Classifications for hierarchical clustering.
+emclust                  BIC from hierarchical clustering followed by EM
+                         for several parameterized Gaussian mixture
+                         models.
+emclust1                 BIC from hierarchical clustering followed by EM
+                         for a parameterized Gaussian mixture model.
+estep.EEE                E-step for constant-variance MVN mixture models
+estep.EI                 E-step for spherical, constant-volume MVN
+                         mixture models
+estep                    E-step for parameterized MVN mixture models
+estep.VI                 E-step for spherical, varying volume MVN mixture
+                         models
+estep.VVV                E-step for constant-variance MVN mixture models
+estep.XEV                E-step for constant shape MVN mixture models
+loglik                   Loglikelihood for model-based hierarchical
+                         clustering.
+me.EEE                   EM for constant-variance MVN mixture models
+me.EEV                   EM for constant shape, constant volume MVN
+                         mixture models
+me.EI                    EM for spherical, constant-volume MVN mixture
+                         models
+me                       EM for parameterized MVN mixture models
+me.VEV                   EM for constant shape, varying volume MVN
+                         mixture models
+me.VI                    EM for spherical, varying volume MVN mixture
+                         models
+me.VVV                   EM for unconstrained MVN mixture models
+mhclass                  Classifications for hierarchical clustering.
+mhtree.EEE               Classification tree for hierarchical clustering
+                         for Gaussian models with  constant variance.
+mhtree.EFV               Classification tree for hierarchical clustering
+                         for Gaussian models with equal volume and fixed
+                         shape.
+mhtree.EI                Classification tree for hierarchical clustering
+                         for Gaussian models with  uniform diagonal
+                         variance.
+mhtree                   Classification Tree for Model-based Gaussian
+                         hierarchical clustering.
+mhtree.VFV               Classification tree for hierarchical clustering
+                         for Gaussian models with equal volume and
+                         constant shape.
+mhtree.VI                Classification tree for hierarchical clustering
+                         for Gaussian models with  diagonal variance.
+mhtree.VVV               Classification tree for hierarchical clustering
+                         for Gaussian models with  unconstrained
+                         variance.
+mixproj                  Displays one standard deviation of an MVN
+                         mixture classification.
+mstep.EEE                M-step for constant-variance MVN mixture models
+mstep.EEV                M-step for constant shape, constant volume MVN
+                         mixture models
+mstep.EI                 M-step for spherical, constant-volume MVN
+                         mixture models
+mstep                    M-step for parameterized MVN mixture models
+mstep.VEV                M-step for constant shape, constant volume MVN
+                         mixture models
+mstep.VI                 M-step for spherical, varying volume MVN mixture
+                         models
+mstep.VVV                M-step for unconstrained MVN mixture models
+partuniq                 Classifies Data According to Unique Observations
+summary.emclust          Summary method for `emclust' objects.
+summary.emclust1         Summary method for `emclust1' objects.

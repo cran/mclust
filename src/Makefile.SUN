@@ -1,0 +1,11 @@
+LIBNAME=mclust
+LD=ld
+MYLIBS= -L/usr/local/lib -lf2c $(LIBS)
+
+OBJS=   blapack.o mclust.o
+
+$(LIBNAME).so:  $(OBJS)
+	@$(LD) $(SHLIBLDFLAGS) -o $(LIBNAME).so $(OBJS) $(MYLIBS)
+
+clean:
+	@rm -f *.o *.so

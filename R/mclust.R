@@ -2257,7 +2257,7 @@
   if(any(is.na(c(mu, sigmasq, pro)))) {
     warn <- "parameters are missing"
     warning("parameters are missing")
-    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+    return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
                           sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, k),
                           loglik = NA, modelName = "E"), warn = warn))
   }
@@ -2270,7 +2270,7 @@
     itmax <- .Mclust$itmax
   itmax <- itmax[1]
   if(is.infinite(itmax))
-    itmax <- .Machine$integer.xmax
+    itmax <- .Machine$integer.max
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
@@ -2278,7 +2278,7 @@
   if(sigmasq <= eps) {
     warn <- "sigma-squared falls below threshold"
     warning("sigma-squared falls below threshold")
-    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+    return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
                           sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, k),
                           loglik = NA, modelName = "E"), warn = warn))
   }
@@ -2317,7 +2317,7 @@
     its <-  - its
   }
   info <- c(iterations = its, error = err)
-  structure(list(n = n, d = p, G = G, mu = mu, sigmasq = sigmasq, pro = 
+  structure(list(n = n, d = 1, G = G, mu = mu, sigmasq = sigmasq, pro = 
                  pro, z = z, loglik = loglik, Vinv = if(noise) Vinv else NULL,
                  modelName = "E"), info = info, warn = warn)
 }
@@ -3005,7 +3005,7 @@
   if(any(is.na(c(mu, sigmasq, pro)))) {
     warn <- "parameters are missing"
     warning("parameters are missing")
-    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+    return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
                           sigmasq = rep(NA, G), pro = rep(NA, K),
                           z = matrix(NA, n, k), loglik = NA,
                           modelName = "V"), warn = warn))
@@ -3019,7 +3019,7 @@
     itmax <- .Mclust$itmax
   itmax <- itmax[1]
   if(is.infinite(itmax))
-    itmax <- .Mclust$integer.xmax
+    itmax <- .Mclust$integer.max
   if(missing(equalPro))
     equalPro <- .Mclust$equalPro
   if(missing(warnSingular))
@@ -3027,7 +3027,7 @@
   if(any(sigmasq <= eps)) {
     warn <- "sigma-squared falls below threshold"
     warning("sigma-squared falls below threshold")
-    return(structure(list(n = n, d = p, G = G, mu = rep(NA, G),
+    return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
                           sigmasq = rep(NA, G), pro = rep(NA, K),
                           z = matrix(NA, n, k), loglik = NA,
                           modelName = "V"), warn = warn))
@@ -3067,7 +3067,7 @@
     its <-  - its
   }
   info <- c(iterations = its, error = err)
-  structure(list(n = n, d = p, G = G, mu = mu, sigmasq = sigmasq, pro = 
+  structure(list(n = n, d = 1, G = G, mu = mu, sigmasq = sigmasq, pro = 
                  pro, z = z, loglik = loglik, Vinv = if(noise) Vinv else NULL,
                  modelName = "V"), info = info, warn = warn)
 }

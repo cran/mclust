@@ -14,16 +14,16 @@ awe(tree, data)
 }
 \arguments{
 \item{tree}{
-an \code{"mhtree"} object.
+an \code{mhtree} object.
 }
 \item{data}{
-the data used to produce the \code{"mhtree"} object.
+the data used to produce the \code{mhtree} object.
 }}
 \value{
 the approximate weight of evidence for each possible stage of merging.
 }
 \section{NOTES}{
-Since \code{"mhtree"} allows stopping and
+Since \code{mhtree} allows stopping and
 starting at any stage, the result will contain NAs for those stages that have 
 been eliminated. 
 If you scaled your data before using \code{mhtree}, be sure

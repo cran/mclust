@@ -9,7 +9,7 @@ MVN mixture model having equal spherical variances and possibly one Poisson
 noise term.
 }
 \usage{
-estep.EI(data, mu, sigmasq, prob, eps, Vinv)
+estep.EI(data, mu, sigma, prob, eps, Vinv)
 
 
 }
@@ -20,7 +20,7 @@ matrix of observations.
 \item{mu}{
 matrix whose columns are the Gaussian group means.
 }
-\item{sigmasq}{
+\item{sigma}{
 variance.
 }
 \item{prob}{

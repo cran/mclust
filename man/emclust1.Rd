@@ -9,7 +9,7 @@ hierarchical clustering followed by EM for a selected parameterization
 of Gaussian mixture models possibly with Poisson noise.
 }
 \usage{
-emclust1(data, nclus, modelid, equal=F, noise, Vinv)
+emclust1(data, nclus, modelid, k, equal=F, noise, Vinv)
 
 
 }
@@ -22,33 +22,37 @@ An integer vector specifying the numbers of clusters for which the BIC is to
 be calculated. Default: 1:9 without noise; 0:9 with noise.
 }
 \item{modelid}{
-An integer or vector of two integers specifying the model(s) to be used in
-the hierarchical clustering and EM phases of the BIC calculations.
-The allowed values or \code{modelid} and their interpretation are as follows:
-\code{"EI"} : uniform spherical, \code{"VI"} : spherical, \code{"EEE"} : uniform variance, 
-\code{"VVV"} : unconstrained  variance, \code{"EEV"} : uniform shape and volume, 
-\code{"VEV"} : uniform shape.
+An integer or vector of two integers specifying the model(s) to be used
+in the hierarchical clustering and EM phases of the BIC
+calculations. The allowed values or \code{modelid} and their
+interpretation are as follows: \code{"EI"} : uniform spherical,
+\code{"VI"} : spherical, \code{"EEE"} : uniform variance, \code{"VVV"} :
+unconstrained  variance, \code{"EEV"} : uniform shape and volume,
+\code{"VEV"} : uniform shape. 
+
 Default: \code{c("VVV","VVV")} (unconstrained variance for both phases)
 }
 \item{k}{
-If \code{k} is specified, the hierarchical clustering phase will use a sample of
-size \code{k} of the data in the initial hierarchical clustering phase. The
-default is to use the entire data set.
+If \code{k} is specified, the hierarchical clustering phase will use a
+sample of size \code{k} of the data in the initial hierarchical
+clustering phase. The default is to use the entire data set.  
 }
 \item{equal}{
 Logical variable indicating whether or not the mixing proportions are
 equal in the model. The default is to assume they are unequal.
 }
 \item{noise}{
-A logical vector of length equal to the number of observations in the data,
-whose elements indicate an initial estimate of noise (indicated by \code{T}) in
-the data. By default, \code{emclust1} fits Gaussian mixture models in which it is 
-assumed there is no noise. If \code{noise} is specified, \code{emclust1} will fit a
-Gaussian mixture with a Poisson term for noise in the EM phase.
+A logical vector of length equal to the number of observations in the
+data, whose elements indicate an initial estimate of noise (indicated by
+\code{T}) in the data. By default, \code{emclust1} fits Gaussian mixture
+models in which it is assumed there is no noise. If \code{noise} is
+specified, \code{emclust1} will fit a Gaussian mixture with a Poisson
+term for noise in the EM phase. 
 }
 \item{Vinv}{
-An estimate of the inverse hypervolume of the data region (needed only if
-\code{noise} is specified). Default : determined by the function \code{hypvol}.
+An estimate of the inverse hypervolume of the data region (needed only
+if \code{noise} is specified). Default : determined by the function
+\code{hypvol}. 
 }}
 \value{
 Bayesian Information Criterion for the six mixture models and specified

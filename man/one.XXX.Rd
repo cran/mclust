@@ -1,4 +1,5 @@
 \name{one.XXX}
+\alias{one.XXX}
 \alias{one.XI}
 
 \title{Log-likelihood for a single cluster}

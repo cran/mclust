@@ -1,4 +1,5 @@
 \name{mhtree}
+\alias{mhtree}
 \alias{print.mhtree}
 \title{
 Classification Tree for Model-based Gaussian hierarchical clustering.
@@ -10,7 +11,7 @@ models that reflect the underlying geometry of the resulting clusters.
 }
 \usage{
 mhtree(data, modelid, partition, min.clusters = 1, verbose = F, \dots)
-print.mhtree(tree.object, \dots)
+print.mhtree(x, \dots)
 
 }
 \arguments{
@@ -39,9 +40,12 @@ A logical variable specifying printing of the model type when set to \code{T}.
 }
 \item{...}{
 Allows users to specify the required \code{shape} parameter for the two fixed
-shape models \code{"EFV"} and \code{"VFV"}, and to change default parameters that are 
-used in the algorithms underlying some models.
-}}
+shape models \code{"EFV"} and \code{"VFV"}, and to change default parameters
+that are used in the algorithms underlying some models. In the 
+\code{print.mhtree} function this argument is used for extra parameters to the print function.
+}
+\item{x}{
+An \code{mhtree} object.}}
 \value{
 an object of class \code{"mhclust"}, which consists of a classification tree with
 attributes giving other information relating to the clustering process.

@@ -1,4 +1,5 @@
 \name{plot.emclust}
+\alias{plot.emclust}
 \alias{plot.emclust1}
 
 \title{Plot BIC values}
@@ -6,11 +7,12 @@
 
 }
 \usage{
-plot.emclust(x, ...)
-plot.emclust1(x, ...)
+plot.emclust(x, xlab="number of clusters", ylab="BIC", pch, ...)
+plot.emclust1(x, xlab = "number of clusters", ylab="BIC", ...)
 }
 \arguments{
   \item{x}{\code{emclust} object containing BIC values.}
+  \item{xlab, ylab, pch}{Standard plot arguments with default values.}
   \item{\dots}{Further arguments to the plot function.}
 }
 

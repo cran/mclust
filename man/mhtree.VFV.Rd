@@ -1,4 +1,5 @@
 \name{mhtree.VFV}
+\alias{mhtree.VFV}
 \alias{mhtree.VEV}
 \title{
 Classification tree for hierarchical clustering for Gaussian models with

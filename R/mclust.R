@@ -1,3 +1,15 @@
+### mclust for R, version 1.1-5: dd. June 14th, 2001 - December 12th, 2001
+### .   fixed some disagreements in code/man pages
+### .   added standard plot arguments to mvn2plot
+### .   added the possibility to enter indices of a subset in emclust
+###     and emclust1
+### .   check for z-values of 1+machineprecision that may occur
+###     depending on compiler/hardware, and set those to 1
+### .   added code in emclust to patch bug in the case of just one
+###     number of clusters given (e.g. best model with 5 clusters)
+### 
+### mclust for R, version 1.1-4: better keywords in man pages
+###
 ### mclust for R, version 1.1-3: some bug fixes
 ### .   fixed bug in summary.emclust in the noise case
 ### .   fixed bug in emclust1 in the noise case and possibly 0 clusters
@@ -578,24 +590,15 @@ function(data, z, eps, equal = F, noise = F, Vinv)
   structure(sweep(x, 2, sd, "/"), mu = mu, sd = sd)
 }
 
-#"charconv" <- function(x, sep = "001")
-#{
-#  if(!is.data.frame(x))
-#    x <- data.frame(x)
-#  do.call("paste", c(as.list(x), sep = sep))
-#}
-
-"clpairs" <- function(x, partition, col, ...) 
+"clpairs" <- function(x, partition, col=partition, ...) 
 {
   x <- as.matrix(x)
   m <- nrow(x)
   n <- ncol(x)
-  if(missing(partition))
+  if (missing(partition))
     partition <- rep(1, m)
   l <- length(unique(partition))
-  if(missing(col))
-    col <- partition
-  else if (length(unique(col)) < l)
+  if (length(unique(col)) < l & length(unique(col))>1)
     stop("more colors needed")
 
   pairs(x, col=col, ...)
@@ -680,9 +683,22 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       all <- lapply(as.list(modelid), gauss, data = data, 
 		    clss = clss, nclus = nclus, l = l, equal = 
 		    equal)
-      all <- list(bic = t(sapply(all, function(z)
-		    z$bic)), rc = t(sapply(all, function(z)
-			       z$rc)))	
+      ## Original:      all <- list(bic = t(sapply(all, function(z)
+      ##	    z$bic)), rc = t(sapply(all, function(z) z$rc)))	
+      all <- list(bic = sapply(all, function(z) z$bic), 
+		   rc = sapply(all, function(z) z$rc))
+      ## following piece of code necessary if only one number of
+      ## clusters given...
+      if (is.matrix(all$bic)) {
+	all$bic _ t(all$bic)
+      } else {
+	all$bic _ as.matrix(all$bic)
+      }
+      if (is.matrix(all$rc)) {
+	all$rc _ t(all$rc)
+      } else {
+	all$rc _ as.matrix(all$rc)
+      }
       ##
       ##-----------------------------------------------------------------------
       ## output
@@ -746,9 +762,23 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       all <- lapply(as.list(modelid), gaussn, data = data, 
 		    clss = clss, nclus = nclus, l = l, n = n, equal
 		    = equal, noise = noise, Vinv = Vinv)
-      all <- list(bic = t(sapply(all, function(z)
-		    z$bic)), rc = t(sapply(all, function(z)
-			       z$rc)))	
+      ## Original:
+      ##      all <- list(bic = t(sapply(all, function(z)
+      ##    z$bic)), rc = t(sapply(all, function(z) z$rc)))	
+      all <- list(bic = sapply(all, function(z) z$bic), 
+		   rc = sapply(all, function(z) z$rc))
+      ## following piece of code necessary if only one number of
+      ## clusters given...
+      if (is.matrix(all$bic)) {
+	all$bic _ t(all$bic)
+      } else {
+	all$bic _ as.matrix(all$bic)
+      }
+      if (is.matrix(all$rc)) {
+	all$rc _ t(all$rc)
+      } else {
+	all$rc _ as.matrix(all$rc)
+      }
       ##-----------------------------------------------------------------------
       ## output
       ##-----------------------------------------------------------------------
@@ -769,7 +799,14 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       nclus <- sort(nclus)
       l <- length(nclus)	
       ##-----------------------------------------------------------------------
-      smpl <- sample(1:n, size = k)
+      ## Added 14/8/2001, RW. Original: k always integer
+      ## smpl <- sample(1:n, size = k) (so just the else clause)
+      if (is.vector(k) & max(k) <= n) {
+	smpl _ k
+	k _ length(k)
+      } else {
+	smpl <- sample(1:n, size = k)
+      }
       tree <- mhtree.VVV(data[smpl,  ])
       clss <- mhclass(tree, nclus)	
       ##-----------------------------------------------------------------------
@@ -810,9 +847,20 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       all <- lapply(as.list(modelid), gaussk, data = data, 
 		    clss = clss, nclus = nclus, l = l, smpl = smpl, 
 		    equal = equal)
-      all <- list(bic = t(sapply(all, function(z)
-		    z$bic)), rc = t(sapply(all, function(z)
-			       z$rc)))	
+      all <- list(bic = sapply(all, function(z) z$bic), 
+		   rc = sapply(all, function(z) z$rc))
+      ## following piece of code necessary if only one number of
+      ## clusters given...
+      if (is.matrix(all$bic)) {
+	all$bic _ t(all$bic)
+      } else {
+	all$bic _ as.matrix(all$bic)
+      }
+      if (is.matrix(all$rc)) {
+	all$rc _ t(all$rc)
+      } else {
+	all$rc _ as.matrix(all$rc)
+      }
       ##-----------------------------------------------------------------------
       ## output
       ##-----------------------------------------------------------------------
@@ -835,7 +883,15 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       nclus <- sort(nclus)
       l <- length(nclus)	
       ##-----------------------------------------------------------------------
-      smpl <- sample(1:m, size = k)
+      ## Original: just the else clause... RW, 14/8/2001
+      ## smpl <- sample(1:m, size = k)
+      if (is.vector(k) & max(k) <= m) {
+	smpl _ k
+	k _ length(k)
+      } else {
+	smpl <- sample(1:m, size = k)
+      }
+
       tree <- mhtree.VVV(data[!noise,  ][smpl,  ])
       clss <- mhclass(tree, nclus[nclus != 0])
       if(missing(Vinv)) Vinv <- hypvol(data, reciprocal = T)	
@@ -891,9 +947,23 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 		    clss = clss, nclus = nclus, l = l, n = n, smpl
 		    = smpl, equal = equal, noise = noise, Vinv = 
 		    Vinv)
-      all <- list(bic = t(sapply(all, function(z)
-		    z$bic)), rc = t(sapply(all, function(z)
-			       z$rc)))	
+      all <- list(bic = sapply(all, function(z) z$bic), 
+		   rc = sapply(all, function(z) z$rc))
+      ##Original:
+      ##      all <- list(bic = t(sapply(all, function(z) z$bic)), 
+      ##	  rc = t(sapply(all, function(z) z$rc)))	
+      ## following piece of code necessary if only one number of
+      ## clusters given...
+      if (is.matrix(all$bic)) {
+	all$bic _ t(all$bic)
+      } else {
+	all$bic _ as.matrix(all$bic)
+      }
+      if (is.matrix(all$rc)) {
+	all$rc _ t(all$rc)
+      } else {
+	all$rc _ as.matrix(all$rc)
+      }
       ##-----------------------------------------------------------------------
       ## output
       ##-----------------------------------------------------------------------
@@ -1007,7 +1077,15 @@ function(data, z, eps, equal = F, noise = F, Vinv)
     if(missing(noise)) {
       nclus <- if(missing(nclus)) 1:9 else sort(unique(nclus))	
       ## no mhtree.EEV or mhtree.VEV
-      smpl <- sample(1:nrow(data), k)
+      ## Original: just the else clause
+      ## smpl <- sample(1:nrow(data), k)
+      if (is.vector(k) & max(k) <= nrow(data)) {
+	smpl _ k
+	k _ length(k)
+      } else {
+	smpl <- sample(1:nrow(data), size = k)
+      }
+
       tree <- switch(modelid[1],
 		     EI = mhtree.EI(data[smpl,  ]),
 		     VI = mhtree.VI(data[smpl,  ]),
@@ -1053,7 +1131,15 @@ function(data, z, eps, equal = F, noise = F, Vinv)
 						)
       noise <- as.logical(noise)
       m <- sum(as.numeric(!noise))
-      smpl <- sample(1:m, size = k)	## no mhtree.EEV or mhtree.VEV
+      ## Original: just the else clause
+      ## smpl <- sample(1:m, size = k)	## no mhtree.EEV or mhtree.VEV
+      if (is.vector(k) & max(k) <= m) {
+	smpl _ k
+	k _ length(k)
+      } else {
+	smpl <- sample(1:m, size = k)
+      }
+
       tree <- switch(modelid[1],
 		     EI = mhtree.EI(data[!noise,  ][smpl,  ]),
 		     VI = mhtree.VI(data[!noise,  ][smpl,  ]),
@@ -1791,6 +1877,9 @@ function(data, mu, sigma, prob, eps, Vinv)
     attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
     return(z)
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   K <- dimz[2]	# number of groups
@@ -1871,6 +1960,9 @@ function(data, mu, sigma, prob, eps, Vinv)
     attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
     return(z)
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   K <- dimz[2]	# number of groups
@@ -1979,6 +2071,9 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
     return(z)
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   K <- dimz[2]	# number of groups
@@ -2056,6 +2151,9 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
     return(z)
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   K <- dimz[2]	# number of groups
@@ -2184,6 +2282,9 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
     return(z)
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   K <- dimz[2]	# number of groups
@@ -2260,6 +2361,9 @@ function(data, z, eps, tol, itmax, equal = F, noise = F, Vinv)
     attr(z, "info") <- c(iterations = NA, maxerr = NA, rcond = NA)
     return(z)
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   K <- dimz[2]	# number of groups
@@ -2783,7 +2887,7 @@ function(data, partition, min.clusters = 1, alpha = 1)
 }
 
 "mixproj" <- function(data, ms, partition, dimens, scale = F, 
-                      k = 15, title, xlim, ylim, xlab, ylab,
+                      k = 15, xlim, ylim, xlab, ylab,
                       col=partition, pch=partition, ...)
 {
   if(missing(dimens))
@@ -2849,8 +2953,6 @@ function(data, partition, min.clusters = 1, alpha = 1)
 
   plot(data[, 1], data[, 2], col=col, pch=pch, xlab=xlab, ylab=ylab,
        xlim=xlim, ylim=ylim, ...)
-  if(!missing(title))
-    title(title)
   l <- ncol(mu)
   for(i in 1:l) {
     mvn2plot(mu = mu[,i], sigma = sigma[,,i], k = k)
@@ -2891,6 +2993,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
 		     sigma = matrix(NA, p, p), prob = rep(NA, K)) 
 	   )
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   if(missing(eps))
@@ -2972,6 +3077,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
 		sigma = array(NA, c(p, p, G)), prob = rep(NA, K))
 	   )
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1)) 
     stop("improper specification of z")	
   ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
@@ -3087,6 +3195,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
     else list(mu = matrix(NA, p, G), sigma = NA, prob = 
 	      rep(NA, K)))
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   if(missing(eps))
@@ -3162,6 +3273,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
 		sigma = array(NA, c(p, p, G)), prob = rep(NA, K))
 	   )
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1)) 
     stop("improper specification of z")	
   ##	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
@@ -3308,6 +3422,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
 		     sigma = rep(NA, G), prob = rep(NA, K))
 	   )
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   if(missing(eps))
@@ -3384,6 +3501,9 @@ function(data, partition, min.clusters = 1, alpha = 1)
 		     sigma = array(NA, c(p, p, G)), prob = rep(NA, K))
 	   )
   }
+  ## Added RW 14/8/2001, next two lines
+  z[z>1 & z <= 1+.Machine$double.eps] _ 1
+  z[z<0 & z>= -.Machine$double.eps] _ 0
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   if(missing(eps))
@@ -3443,7 +3563,8 @@ function(data, partition, min.clusters = 1, alpha = 1)
   out
 }
 
-"mvn2plot" <- function(mu, sigma, k = 15, alone = F)
+"mvn2plot" <- function(mu, sigma, k = 15, add = TRUE, col=NULL, 
+		       xlim=NULL, ylim=NULL, xlab=NULL, ylab=NULL, ...)
 {
   p <- length(mu)
   if(p != 2)
@@ -3459,43 +3580,38 @@ function(data, partition, min.clusters = 1, alpha = 1)
   xy <- cbind(c(x,  - x,  - x, x), c(y, y,  - y,  - y))
   xy <- xy %*% V
   xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
-  if(alone) {
-    xymin <- apply(xy, 2, FUN = "min")
-    xymax <- apply(xy, 2, FUN = "max")
-    r <- ceiling(max(xymax - xymin)/2)
-    xymid <- (xymin + xymax)/2
-    plot(xy[, 1], xy[, 2], xlim = c( - r, r) + xymid[1], 
-	 ylim = c( - r, r) + xymid[2], xlab = "x", ylab = "y", type = "n")
+
+  if (!add) {
+    if (is.null(xlim) | is.null(ylim)) {
+      xymin <- apply(xy, 2, FUN = "min")
+      xymax <- apply(xy, 2, FUN = "max")
+      r <- ceiling(max(xymax - xymin)/2)
+      xymid <- (xymin + xymax)/2
+      if (is.null(xlim)) xlim <- c( - r, r) + xymid[1]
+      if (is.null(ylim)) ylim <- c( - r, r) + xymid[2]
+    }
+    if (is.null(xlab)) xlab <- "x"
+    if (is.null(ylab)) ylab <- "y"
+    plot(xy[,1], xy[,2], xlim = xlim, ylim = ylim, xlab = xlab, ylab =
+	 ylab, type = "n", ...)
   }
   l <- length(x)
   i <- 1:l
   for(k in 1:4) {
-    lines(xy[i,  ])
+    lines(xy[i,  ], col=col)
     i <- i + l
   }
-#  if(F) {
-#    y <- seq(from = 0, to = s[2], by = s[2]/(2^k))
-#    x <- s[1] * sqrt(1 - (y/s[2])^2)
-#    xy <- cbind(c(x,  - x,  - x, x), c(y, y,  - y,  - y))
-#    xy <- xy %*% V
-#    xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
-#    l <- length(x)
-#    i <- 1:l
-#    for(k in 1:4) {
-#      lines(xy[i,  ])
-#      i <- i + l
-#    }
-#  }
 					# semi-major axes
   P <- cbind(c( - s[1], s[1]), c(0, 0))
   P <- P %*% V
   P <- sweep(P, 2, mu, FUN = "+")
-  lines(P, lty = 2)
+  lines(P, lty = 2, col=col)
   P <- cbind(c(0, 0), c( - s[2], s[2]))
   P <- P %*% V
   P <- sweep(P, 2, mu, FUN = "+")
-  lines(P, lty = 2)
-  points(mu[1], mu[2], pch = "*")
+  if (is.null(col)) col <- 1
+  lines(P, lty = 2, col=col)
+  points(mu[1], mu[2], pch = "*", col=col)
   invisible()
 }
 
@@ -3626,21 +3742,14 @@ function(data, partition, min.clusters = 1, alpha = 1)
 }
 
 "plot.emclust" <- function(x, xlab="number of clusters", ylab="BIC",
-                           pch=symbols, ...)
+                           pch, ...)
 {
   BIC <- as.matrix(x)
   n <- nrow(BIC)
-  symbols <- if(n <= 9) as.character(1:n) else LETTERS[1:n]
+  if (missing(pch))
+    pch <- if(n <= 9) as.character(1:n) else LETTERS[1:n]
   xrange <- if(!is.null(dn <- dimnames(BIC)[[2]])) as.numeric(dn) else 1:
     ncol(BIC)
-###  plot(xrange, BIC[1,  ], type = "n", 
-###       ylim = range(as.vector(BIC[!is.na(BIC)])), 
-###       xlim = range(xrange), xlab = "number of clusters", 
-###       ylab = "BIC")
-###  for(i in 1:nrow(BIC)) {
-###    points(xrange, BIC[i,  ], pch = symbols[i])
-###    lines(xrange, BIC[i,  ], lty = i)
-###  }
   matplot(xrange, t(BIC), type="b", xlab=xlab, ylab = ylab, pch=pch, ...)
   invisible()
 }

@@ -7,16 +7,18 @@ Classifications for hierarchical clustering.
 Gives classifications corresponding to the stages of hierarchical clustering.
 }
 \usage{
-clpairs(x, partition, \dots)
-
-
+clpairs(x, partition, col=partition, \dots)
 }
+
 \arguments{
 \item{x}{
 matrix of observations.
 }
 \item{partition}{
 a vector of integers indicating a partition of the data.
+}
+\item{col}{
+the default is to color the objects according to the partition.
 }
 \item{...}{
 other arguments as specified by \code{pairs}

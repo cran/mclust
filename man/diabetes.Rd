@@ -1,4 +1,5 @@
 \name{diabetes}
+\alias{diabetes}
 \alias{diabetes.class}
 \non_function{}
 \title{Diabetes data}

@@ -1,4 +1,5 @@
 \name{loglik}
+\alias{loglik}
 \alias{loglik.EI}
 \alias{loglik.VI}
 \alias{loglik.EEE}
@@ -12,7 +13,7 @@ Loglikelihood for model-based hierarchical clustering.
 Gives the loglikelihood for each stage of model-based hierarchical clustering.
 }
 \usage{
-loglik(tree, data, Vinv)
+loglik(tree, data, ...)
 }
 \arguments{
 \item{tree}{
@@ -21,10 +22,11 @@ an \code{"mhtree"} object.
 \item{data}{
 the data used to produce the \code{"mhtree"} object.
 }
-\item{Vinv}{
-approximate recoprocal hypervolume of the region from which the data is drawn.
-The default (for those methods that need this quantity) is determined by the
-function \code{hypvol}.
+\item{...}{Other arguments, depending on the method that is
+appropriate. In particular \code{Vinv}, the approximate reciprocal
+hypervolume of the region from which the data is drawn. The default (for
+those methods that need this quantity) is determined by the function
+\code{hypvol}.
 }}
 \value{
 the loglikelihood corresponding to the initial partition and to each stage of 

@@ -1,3 +1,6 @@
+Version 1.1-5:
+	- corrections for R 1.4.0, mainly in the man files
+
 Version 1.1-4: 
 	- included correct keywords 'cluster' and 'dataset'
 

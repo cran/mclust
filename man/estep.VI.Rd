@@ -9,7 +9,7 @@ in an MVN mixture model having varying spherical variances and possibly
 one Poisson noise term. 
 }
 \usage{
-estep.VI(data, mu, sigmasq, prob, eps, Vinv)
+estep.VI(data, mu, sigma, prob, eps, Vinv)
 }
 \arguments{
 \item{data}{

@@ -1,4 +1,5 @@
 \name{hypvol}
+\alias{hypvol}
 \alias{pcvol}
 \title{Estimation of hypervolume}
 \description{

@@ -1,4 +1,5 @@
 \name{summary.emclust}
+\alias{summary.emclust}
 \alias{print.summary.emclust}
 \title{
 Summary method for `emclust' objects.
@@ -8,11 +9,11 @@ Optimal model parameters for \code{emclust} objects.
 }
 \usage{
 summary.emclust(x, data, nclus, modelid)
-print.summary.emclust(summary.emclust.object, \dots)
+print.summary.emclust(x, \dots)
 }
 \arguments{
 \item{x}{
-an \code{emclust} object.
+an \code{emclust} or a \code{summary.emclust} object.
 }
 \item{data}{
 the data used to obtain the \code{emclust} object.
@@ -28,7 +29,9 @@ a vector of character strings denoting the models over which the
 summary is to take place (must be a subset of the row names of \code{x}).
 The default is to summarize over all models used in the original
 analysis.
-}}
+}
+\item{\dots}{
+Further (standard) arguments to the \code{print} function.}}
 \value{
 A list giving the optimal (according to BIC) parameter and z values, 
 together with the associated classification and its uncertainty.

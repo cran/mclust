@@ -1,4 +1,5 @@
 \name{ztoc}
+\alias{ztoc}
 \alias{ctoz}
 \title{Conversion between conditional probabilities and a classification}
 \description{The function ctoz converts a discrete classification into
@@ -7,13 +8,13 @@
 }
 \usage{
 ztoc(z)
-ctoz(c, noise)
+ctoz(cl, noise)
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
   \item{z}{Matrix with conditional probabilities; each object one row,
     and each cluster one column.}
-  \item{c}{Classification vector.}
+  \item{cl}{Classification vector.}
   \item{noise}{Noise indicator vector.}
 }
 

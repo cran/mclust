@@ -1,4 +1,5 @@
 \name{print.emclust}
+\alias{print.emclust}
 \alias{print.emclust1}
 \alias{print.bic}
 

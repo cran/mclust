@@ -8,31 +8,29 @@ Summary method for `emclust1' objects.
 Optimal model parameters for \code{emclust1} objects.
 }
 \usage{
-summary.emclust1(x, data, nclus)
+summary.emclust1(object, data, nclus, \dots)
 print.summary.emclust1(x, \dots)
 }
 
 \arguments{
+  \item{object}{an \code{emclust1} or a \code{summary.emclust1} object.}
   \item{x}{an \code{emclust1} or a \code{summary.emclust1} object.}
-  
-\item{data}{
-the data used to obtain the \code{emclust1} object.
-}
-\item{nclus}{
-a vector of integers giving the number of clusters over which the
-summary is to take place (must be a subset of the column names of \code{x}).
-The default is to summarize over all numbers of clusters used in the original
-analysis.
-}
-\item{modelid}{
-a vector of character strings denoting the models over which the
-summary is to take place (must be a subset of the row names of \code{x}).
-}
-\item{\dots}{
-Further (standard) arguments to the \code{print} function.}}
+  \item{data}{the data used to obtain the \code{emclust1} object.}
+  \item{nclus}{
+    a vector of integers giving the number of clusters over which the
+    summary is to take place (must be a subset of the column names of
+    \code{object}). The default is to summarize over all numbers of clusters
+    used in the original analysis. 
+  }
+  \item{modelid}{
+    a vector of character strings denoting the models over which the
+    summary is to take place (must be a subset of the row names of
+    \code{object}). 
+  }
+  \item{\dots}{Further (standard) arguments to the \code{print} function.}}
 \value{
-A list giving the optimal (according to BIC) parameter and z values,
-together with the associated classification and its uncertainty.
+  A list giving the optimal (according to BIC) parameter and z values,
+  together with the associated classification and its uncertainty.
 }
 \seealso{
 \code{\link{emclust1}}

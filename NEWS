@@ -1,3 +1,6 @@
+Version 1.1-6:
+	- bug fix for emclust(1) with a subset, introduced in 1.1-5
+
 Version 1.1-5:
 	- corrections for R 1.4.0, mainly in the man files
 

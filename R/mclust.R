@@ -1,10 +1,16 @@
+### mclust for R, version 1.1-6: dd. Feb 14th, 2002
+### .   fixed bug in emclust which was introduced in 1.1-5 when
+###     specifying (the size of) a subset
+### .   fixed code of generic methods summary.emclust(1) so they
+###     do not give a warning during 'make check'
+###
 ### mclust for R, version 1.1-5: dd. June 14th, 2001 - December 12th, 2001
 ### .   fixed some disagreements in code/man pages
 ### .   added standard plot arguments to mvn2plot
 ### .   added the possibility to enter indices of a subset in emclust
 ###     and emclust1
 ### .   check for z-values of 1+machineprecision that may occur
-###     depending on compiler/hardware, and set those to 1
+###     depending on compiler/hardware, and set those to 1 (in mstep functions)
 ### .   added code in emclust to patch bug in the case of just one
 ###     number of clusters given (e.g. best model with 5 clusters)
 ### 
@@ -801,7 +807,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       ##-----------------------------------------------------------------------
       ## Added 14/8/2001, RW. Original: k always integer
       ## smpl <- sample(1:n, size = k) (so just the else clause)
-      if (is.vector(k) & max(k) <= n) {
+      if (length(k)>1 & max(k) <= n) {
 	smpl _ k
 	k _ length(k)
       } else {
@@ -1079,7 +1085,7 @@ function(data, z, eps, equal = F, noise = F, Vinv)
       ## no mhtree.EEV or mhtree.VEV
       ## Original: just the else clause
       ## smpl <- sample(1:nrow(data), k)
-      if (is.vector(k) & max(k) <= nrow(data)) {
+      if (length(k)>1 & max(k) <= nrow(data)) {
 	smpl _ k
 	k _ length(k)
       } else {
@@ -2996,6 +3002,7 @@ function(data, partition, min.clusters = 1, alpha = 1)
   ## Added RW 14/8/2001, next two lines
   z[z>1 & z <= 1+.Machine$double.eps] _ 1
   z[z<0 & z>= -.Machine$double.eps] _ 0
+
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
   if(missing(eps))
@@ -3905,8 +3912,11 @@ function(x, ...)
   invisible()
 }
 
-"summary.emclust" <- function(x, data, nclus, modelid)
+"summary.emclust" <- function(object, data, nclus, modelid, ...)
 {
+  ### This is for compatibility reasons with other 'summary' functions
+  x <- object
+
   rc <- attr(x, "rcond")
   tree <- attr(x, "tree")
   if(missing(modelid))
@@ -4079,8 +4089,11 @@ function(x, ...)
   out
 }
 
-"summary.emclust1" <- function(x, data, nclus)
+"summary.emclust1" <- function(object, data, nclus, ...)
 {
+  ### This is for compatibility reasons with other 'summary' functions
+  x <- object
+
   rc <- attr(x, "rcond")
   tree <- attr(x, "tree")
   modelid <- attr(x, "modelid")

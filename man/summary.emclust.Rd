@@ -8,33 +8,30 @@ Summary method for `emclust' objects.
 Optimal model parameters for \code{emclust} objects.
 }
 \usage{
-summary.emclust(x, data, nclus, modelid)
+summary.emclust(object, data, nclus, modelid, \dots)
 print.summary.emclust(x, \dots)
 }
 \arguments{
-\item{x}{
-an \code{emclust} or a \code{summary.emclust} object.
-}
-\item{data}{
-the data used to obtain the \code{emclust} object.
-}
-\item{nclus}{
-a vector of integers giving the number of clusters over which the
-summary is to take place (must be a subset of the column names of \code{x}).
-The default is to summarize over all numbers of clusters used in the original 
-analysis.
-}
-\item{modelid}{
-a vector of character strings denoting the models over which the
-summary is to take place (must be a subset of the row names of \code{x}).
-The default is to summarize over all models used in the original
-analysis.
-}
-\item{\dots}{
-Further (standard) arguments to the \code{print} function.}}
+  \item{object}{an \code{emclust} or a \code{summary.emclust} object.}
+  \item{x}{an \code{emclust} or a \code{summary.emclust} object.}
+  \item{data}{the data used to obtain the \code{emclust} object.}
+  \item{nclus}{
+    a vector of integers giving the number of clusters over which the
+    summary is to take place (must be a subset of the column names of
+    \code{object}). The default is to summarize over all numbers of clusters
+    used in the original analysis.
+  }
+  \item{modelid}{
+    a vector of character strings denoting the models over which the
+    summary is to take place (must be a subset of the row names of
+    \code{object}). The default is to summarize over all models used in
+    the original analysis. 
+  }
+  \item{\dots}{
+    Further (standard) arguments to the \code{print} function.}}
 \value{
-A list giving the optimal (according to BIC) parameter and z values, 
-together with the associated classification and its uncertainty.
+  A list giving the optimal (according to BIC) parameter and z values, 
+  together with the associated classification and its uncertainty.
 }
 \seealso{
 \code{\link{emclust}}

@@ -1,5 +1,7 @@
 \name{EMclust}
 \alias{EMclust}
+\alias{print.EMclust}
+\alias{plot.EMclust}
 \title{
   BIC for Model-Based Clustering
 }

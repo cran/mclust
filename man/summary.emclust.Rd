@@ -1,5 +1,6 @@
 \name{summary.EMclust}
 \alias{summary.EMclust}
+\alias{print.summary.EMclust}
 \title{
   Summary function for EMclust
 }

@@ -1,5 +1,7 @@
 \name{EMclustN}
 \alias{EMclustN}
+\alias{print.EMclustN}
+\alias{plot.EMclustN}
 \title{
   BIC for Model-Based Clustering with Poisson Noise
 }

@@ -1,5 +1,6 @@
 \name{Mclust}
 \alias{Mclust}
+\alias{print.Mclust}
 \title{
   Model-Based Clustering
 }

@@ -23,6 +23,7 @@ cv1EMtrain              Select discriminant models using cross
 decomp2sigma            Convert mixture component covariances to matrix
                         form. 
 dens                    Density for Parameterized MVN Mixtures 
+density                 Kernel Density Estimation
 diabetes                Diabetes data
 em                      EM algorithm starting with E-step for
                         parameterized MVN mixture models. 
@@ -38,6 +39,7 @@ hclass                  Classifications from Hierarchical Agglomeration
 hypvol                  Aproximate Hypervolume for Multivariate Data 
 lansing                 Maple trees in Lansing Woods
 map                     Classification given Probabilities 
+mclust-internal         Internal MCLUST functions
 mclust1Dplot            Plot one-dimensional data modelled by an MVN
                         mixture. 
 mclust2Dplot            Plot two-dimensional data modelled by an MVN
@@ -45,6 +47,7 @@ mclust2Dplot            Plot two-dimensional data modelled by an MVN
 mclustDA                MclustDA discriminant analysis. 
 mclustDAtest            MclustDA Testing 
 mclustDAtrain           MclustDA Training 
+mclustDAtrainN          MclustDA training with noise
 mclustOptions           Set control values for use with MCLUST. 
 me                      EM algorithm starting with M-step for
                         parameterized MVN mixture models. 
@@ -73,11 +76,11 @@ spinProj                Planar spin for random projections of data in
                         mixture. 
 summary.EMclust         Summary function for EMclust 
 summary.EMclustN        summary function for EMclustN 
+summary.Mclust          Very brief summary of an Mclust object.
 summary.mclustDAtest    Classification and posterior probability from
                         mclustDAtest. 
 summary.mclustDAtrain   Models and classifications from mclustDAtrain 
 surfacePlot             Density or uncertainty surface for two
                         dimensional mixtures. 
-traceW                  Compute traceW
 uncerPlot               Uncertainty Plot for Model-Based Clustering 
 unmap                   Indicator Variables given Classification 

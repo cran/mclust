@@ -3,6 +3,13 @@
 ## Original program by Chris Fraley and Adrian Raftery
 ## Port by Ron Wehrens
 ##
+cat("\nWarning: this is the 2002 version of mclust.",
+    "\n\nIt is not backwards compatible with the previous version,",
+    "\nso old scripts will no longer work. The previous version",
+    "\nof mclust is still available as mclust1998.",
+    "\n\nSince mclust1998 is not actively supported any more,\n",
+    "\nplease change to the new version.\n\n") 
+
 
 ".Mclust" <- 
   list("eps" = .Machine$double.eps, ## 2.2204460492503101e-16,
@@ -293,8 +300,7 @@
   structure(c(list(BIC = Bic), Sumry), class = "Mclust")
 }
 
-"[.EMclust" <- 
-  function(x, i, j, drop = FALSE)
+"[.EMclust" <- function(x, i, j, drop = FALSE)
 {
   clx <- class(x)
   attrx <- attributes(x)[c("Vinv", "args", "class", "equal", "fuzzy",
@@ -1347,34 +1353,35 @@
 ##   invisible()
 ## }
 
+
+##
+## perm is assumed to be a vector of any mode in which no two elements  
+## are identical. next.perm produces the next permutation after perm in
+## a lexicographic order. If perm is a vector of consecutive positive 
+## integers beginning with 1, this order is that of increasing 
+## magnitude when each permutation is viewed as an integer in base 
+## max(perm)+1 arithmetic.
+##
+"nextPerm" <- function(perm)
+{
+  n <- length(perm)
+  if(n == 1)
+    return(perm)
+  i <- (n - 1):1
+  q <- perm[i + 1] > perm[i]
+  if(q[1])
+    return(replace(perm, c(n - 1, n), perm[c(n, n - 1)]))
+  if(all(!q))
+    return(rev(perm))
+  m <- i[q][1]
+  i <- (m + 1):n
+  perm[i] <- rev(perm[i])
+  l <- i[perm[i] > perm[m]][1]
+  replace(perm, c(m, l), perm[c(l, m)])
+}
+  
 "compClass" <- function(a, b)
 {
-  "nextPerm" <- function(perm)
-    {
-      ##
-      ## perm is assumed to be a vector of any mode in which no two elements  
-      ## are identical. next.perm produces the next permutation after perm in
-      ## a lexicographic order. If perm is a vector of consecutive positive 
-      ## integers beginning with 1, this order is that of increasing 
-      ## magnitude when each permutation is viewed as an integer in base 
-      ## max(perm)+1 arithmetic.
-      ##
-      n <- length(perm)
-      if(n == 1)
-        return(perm)
-      i <- (n - 1):1
-      q <- perm[i + 1] > perm[i]
-      if(q[1])
-        return(replace(perm, c(n - 1, n), perm[c(n, n - 1)]))
-      if(all(!q))
-        return(rev(perm))
-      m <- i[q][1]
-      i <- (m + 1):n
-      perm[i] <- rev(perm[i])
-      l <- i[perm[i] > perm[m]][1]
-      replace(perm, c(m, l), perm[c(l, m)])
-    }
-  
   ## minimum error rate (fraction in 0,1) between classifications
   if(any(is.na(a)) || any(is.na(b))) return(NA)
   if(!length(a) || !length(b))
@@ -1806,64 +1813,63 @@
   apply(sweep(cden, 2, FUN = "*", STATS = pro), 1, sum)
 }
 
-## "density" <- 
-##   function(x, n = 50, window = "gaussian", na.rm = FALSE, width = "HB", from,
-##            to, cut = if(iwindow == 4) 0.75 else 0.5, method, ...)
-## {
-##   if(!missing(method)) {
-##     if(method == "mclust") {
-##       modl <- summary(EMclust(x, ...), x)
-##     }
-##   }
-##   x.finites <- is.finite(x)
-##   if(!(na.rm || all(x.finites)))
-##     stop("NAs/Infs in x, na.rm is FALSE")
-##   x <- sort(x[x.finites])
-##   r <- range(x)
-##   iwindow <- pmatch(window, c("rectangular", "triangular", "cosine",
-##                               "gaussian"), -1)
-##   if(iwindow < 0)
-##     stop("Invalid window type")
-##   if(is.character(width))
-##     width.value <- switch(casefold(width),
-##                           bcv = bandwidth.bcv(x),
-##                           hb = bandwidth.hb(x),
-##                           nrd = bandwidth.nrd(x),
-##                           sj = bandwidth.sj(x),
-##                           ucv = bandwidth.ucv(x),
-##                           stop("Width method not recognized"))
-##   else if(is.numeric(width) || is.na(width))
-##     width.value <- width
-##   else if(is.function(width))
-##     width.value <- width(x)
-##   if(is.na(width.value)) {
-##     warning("Window width is NA.  Cannot calculate density.")
-##     return(NA)
-##   }
-##   if(missing(from))
-##     from <- r[1] - width.value * cut
-##   if(missing(to))
-##     to <- r[2] + width.value * cut
-##   if(to <= from)
-##     stop("Invalid from/to values")
-##   if(!missing(method)) {
-##     if(method == "mclust") {
-##       x <- seq(from, to, length = n)
-##       y <- do.call("dens", c(list(data = x, warnSingular = FALSE),
-##                              modl))
-##       return(list(x = x, y = y))
-##     }
-##   }
-##   list(x = seq(from, to, length = n), y = .Fortran("fitden",
-##                                         x = as.single(x),
-##                                         length(x),
-##                                         as.integer(iwindow),
-##                                         as.single(width.value),
-##                                         as.single(from),
-##                                         as.single(to),
-##                                         as.integer(n),
-##                                         y = single(n))$y)
-## }
+
+### Calls R density from base package, unless method=="mclust"
+### R function density, except for "else" part
+
+"density" <- function(..., method, G)
+{
+  aux <- list(...)
+
+  haveG <- FALSE
+  if(!is.null(aux$G)) {
+    haveG <- TRUE
+    G <- aux$G
+    aux$G <- NULL
+  }
+  
+  densfun <- get("density", envir=.BaseNamespaceEnv)
+  val <- do.call("densfun", aux)
+
+  if (missing(method)) {
+    if (!is.null(class(val))) val$call <- match.call()
+    val
+  } else {
+    if (method != "mclust")
+      stop("Unknown method specified")
+
+    x <- aux$x
+    if (is.null(x)) {
+      if (length(aux)==1 || names(aux)[1] == "") {
+        x <- aux[[1]]
+      } else {
+        stop("argument x is missing, with no default")
+      }
+    }
+
+    na.rm <- aux$na.rm
+    if (is.null(na.rm)) na.rm <- FALSE
+    x.na <- is.na(x)
+    if (any(x.na)) {
+      if (na.rm)
+        x <- x[!x.na]
+      else stop("x contains missing values")
+    }
+        
+    n <- if (is.null(aux$n)) val$n else aux$n
+    bw <- val$bw
+    
+    name <- deparse(substitute(x))
+
+    modl <- if (haveG) summary(EMclust(x, G=G), x) else summary(EMclust(x), x)
+
+    x <- seq(min(val$x), max(val$x), length = val$n)
+    y <- do.call("dens", c(list(data = x, warnSingular=FALSE), modl))
+
+    structure(list(x=x, y=y, call=match.call(), n=n, data.name=name, bw=bw),
+              class="density") 
+  } 
+}
 
 "em" <- function(modelName, data, mu, ...)
 {
@@ -2335,13 +2341,13 @@
     }
   }
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
-                           orienation = O), def = 
-                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+                           orientation = O),
+                      def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
   info <- c(iterations = its, error = err)
   structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
                  decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
-                 Vinv else NULL, modelName = "EEV"), info = info, warn
-            = warn)
+                 Vinv else NULL, modelName = "EEV"), info = info,
+            warn = warn)
 }
 
 "emEII" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
@@ -2856,7 +2862,7 @@
                    as.integer(lwork),
                    double(lwork),
                    double(n * K),
-                   double(p))[8:18]
+                   double(p * G))[8:18]
   mu <- temp[[1]]
   dimnames(mu) <- list(NULL, as.character(1:G))
   scale <- temp[[2]]
@@ -2906,14 +2912,14 @@
     }
   }
   decomp <- structure(list(d = p, G = G, scale = scale, shape = shape,
-                           orientation = O), def = 
-                      "Sigma = scale * t(O) %*% diag(shape) %*% O")
+                           orientation = O),
+                      def = "Sigma = scale * t(O) %*% diag(shape) %*% O")
   info <- structure(c(iterations = its, error = err),
                     inner = c(iterations = inner, error = inerr))
-  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma, decomp = 
-                 decomp, pro = pro, z = z, loglik = loglik, Vinv = if(noise) 
-                 Vinv else NULL, modelName = "VEV"), info = info, warn
-            = warn)
+  structure(list(n = n, d = p, G = G, mu = mu, sigma = sigma,
+                 decomp = decomp, pro = pro, z = z, loglik = loglik,
+                 Vinv = if(noise) Vinv else NULL, modelName = "VEV"),
+            info = info, warn = warn)
 }
 
 "emVII" <- function(data, mu, sigmasq, pro, eps, tol, itmax, equalPro,
@@ -4145,8 +4151,7 @@
   G
 }
 
-"grid2" <- 
-  function(x, y)
+"grid2" <- function(x, y)
 {
   lx <- length(x)
   ly <- length(y)
@@ -4589,10 +4594,11 @@
   cl
 }
 
-"mclust1Dplot" <-
-  function(data, ..., type = c("classification", "uncertainty", "density",
-                        "errors"),
-           ask = TRUE, symbols, grid = 100, identify = FALSE, CEX = 1, xlim)
+"mclust1Dplot" <- function(data, ...,
+                           type = c("classification", "uncertainty",
+                             "density", "errors"),  
+                           ask = TRUE, symbols, grid = 100,
+                           identify = FALSE, CEX = 1, xlim) 
 {
   densNuncer <- function(data, mu, sigmasq, pro)
     {
@@ -5057,8 +5063,8 @@
        contours = contours)
 }
 
-"mclustDA" <-
-  function(trainingData, labels, testData, G = 1:6, verbose = FALSE)
+"mclustDA" <- function(trainingData, labels, testData, G = 1:6,
+                       verbose = FALSE)
 {
   if(verbose)
     cat("training ...\n")
@@ -5234,7 +5240,7 @@
 }
 
 "mclustDAtrainN" <- function(data, labels, emModelNames, G,
-                             hcModelName, equal = FALSE, noise, Vinv)
+                             hcModelName, equalPro = FALSE, noise, Vinv)
 {
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
@@ -5283,7 +5289,7 @@
         for(mdl in emModelNames) {
           temp <- mvn(modelName = mdl, data = data[I,  , drop = FALSE])
           Bic <- bic(modelName = mdl, loglik = temp$loglik, n = n, d = p,
-                     G = 1, equal = equal)
+                     G = 1, equalPro = equalPro)
           if(is.na(Bic))
             next
           if(Bic > bestBIC) {
@@ -5314,10 +5320,10 @@
         for(modelName in emModelNames) {
           temp <- do.call("me", list(modelName = modelName,
                                      data = data[I,  , drop = FALSE],
-                                     z = z, equal = equal))
+                                     z = z, equalPro = equalPro))
           Bic <- do.call("bic", list(modelName = 
                                      modelName, loglik = temp$loglik,
-                                     n = n, d = p, G = G[i], equal = equal))
+                                     n = n, d = p, G = G[i], equalPro = equalPro))
           if(is.na(Bic))
             next
           if(Bic > bestBIC) {
@@ -5384,12 +5390,12 @@
         for(modelName in emModelNames) {
           temp <- do.call("me", list(modelName = modelName,
                                      data = data[I,  , drop = FALSE],
-                                     z = z, equal = equal,
+                                     z = z, equalPro = equalPro,
                                      noise = noise, Vinv = Vinv))
           Bic <- do.call("bic", list(modelName = modelName,
                                      loglik = temp$loglik,
                                      n = n, d = p, G = G[i],
-                                     equal = equal, noise = noise))
+                                     equalPro = equalPro, noise = noise))
           if(is.na(Bic))
             next
           if(Bic > bestBIC) {
@@ -7935,6 +7941,18 @@
   }
 }
 
+"orth2" <- function(n)
+{
+  ## generates two random orthonormal n-vectors
+  u <- rnorm(n)
+  u <- u/vecnorm(u)
+  v <- rnorm(n)
+  v <- v/vecnorm(v)
+  Q <- cbind(u, v - sum(u * v) * u)
+  dimnames(Q) <- NULL
+  Q
+}
+
 "partconv" <- function(x, consec = TRUE)
 {
   n <- length(x)
@@ -7956,15 +7974,15 @@
   y
 }
 
+"charconv" <- function(x, sep = "001")
+{
+  if(!is.data.frame(x))
+    x <- data.frame(x)
+  do.call("paste", c(as.list(x), sep = sep))
+}
+
 "partuniq" <- function(x)
 {
-  "charconv" <- function(x, sep = "001")
-    {
-      if(!is.data.frame(x))
-        x <- data.frame(x)
-      do.call("paste", c(as.list(x), sep = sep))
-    }
-  
   ## finds the classification that removes duplicates from x
   n <- nrow(x)
   x <- charconv(x)
@@ -8665,17 +8683,17 @@
   if(!ask)
     pick <- 1:length(choices)
   ALL <- FALSE
-  orth2 <- function(n)
-    {
-      ## generates two random orthonormal n-vectors
-      u <- rnorm(n)
-      u <- u/vecnorm(u)
-      v <- rnorm(n)
-      v <- v/vecnorm(v)
-      Q <- cbind(u, v - sum(u * v) * u)
-      dimnames(Q) <- NULL
-      Q
-    }
+#   orth2 <- function(n)
+#     {
+#       ## generates two random orthonormal n-vectors
+#       u <- rnorm(n)
+#       u <- u/vecnorm(u)
+#       v <- rnorm(n)
+#       v <- v/vecnorm(v)
+#       Q <- cbind(u, v - sum(u * v) * u)
+#       dimnames(Q) <- NULL
+#       Q
+#     }
   for(seed in seeds) {
     set.seed(seed)
     Q <- orth2(p)
@@ -9198,8 +9216,7 @@
   structure(x, classification = clabels, modelName = "VEI")
 }
 
-"simVEV" <- 
-  function(mu, decomp, pro, ..., seed = 0)
+"simVEV" <- function(mu, decomp, pro, ..., seed = 0)
 {
   mu <- as.matrix(mu)
   d <- nrow(mu)
@@ -9470,17 +9487,6 @@
   all <- FALSE
 
   set.seed(seed)
-  orth2 <- function(n)
-    {
-      ## generates two random orthonormal n-vectors
-      u <- rnorm(n)
-      u <- u/vecnorm(u)
-      v <- rnorm(n)
-      v <- v/vecnorm(v)
-      Q <- cbind(u, v - sum(u * v) * u)
-      dimnames(Q) <- NULL
-      Q
-    }
   O <- orth2(p)
   for(angle in angles) {
     cosTheta <- cos(angle)

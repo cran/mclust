@@ -22,8 +22,7 @@ mclustDAtrain(data, labels, G, emModelNames, eps, tol, itmax,
   \item{G}{
     An integer vector specifying the numbers of Gaussian mixture
     components (clusters) for which the BIC is to be calculated (the
-    same specification is used for all classes). Default: \emph{1:9}
-    without noise; \emph{0:9} with noise. 
+    same specification is used for all classes). Default: \emph{1:9}.
   }
   \item{emModelNames}{
     A vector of character strings indicating the models to be fitted 

@@ -1,10 +1,10 @@
 Package: 	mclust
-Version: 	2.0-1
+Version: 	2.0-2
 Author: 	C. Fraley and A.E. Raftery, Dept. of Statistics, 
-		University of Washington 
+		University of Washington.
 		R port by Ron Wehrens <rwehrens@sci.kun.nl>
-Description: 	Port of the 2002 MCLUST version by Fraley and Raftery
 Title: 		Model-based cluster analysis
+Description: 	Model-based cluster analysis: the 2002 version of MCLUST
 Depends:	R (>= 1.5.0)
 License: 	copyright 1996, 1998, 2002 Department of Statistics, 
 		University of Washington
@@ -14,4 +14,4 @@ License: 	copyright 1996, 1998, 2002 Department of Statistics,
 		non-commercial use only. Commerical use requires a licensing 
 		agreement with the University of Washington.
 Maintainer: 	Ron Wehrens <rwehrens@sci.kun.nl>
-URL:		http://www.stat.washington.edu/mclust,http://www.sci.kun.nl/cac/people/rwehrens
+URL:		http://www.stat.washington.edu/mclust

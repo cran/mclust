@@ -3950,8 +3950,8 @@ c      character          SIGMA
 
       double precision   Vinv, eps, tol(2)
 
-c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
+c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p, G)
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(p, *)
 
 c     double precision   mu(p,G), pro(G[+1])
       double precision   mu(p,*), pro(  *  )
@@ -4001,7 +4001,7 @@ c Cholesky factorization and singular value decomposition
           if (SIGMA .ne. 1) then
             call dpotrf( 'U', p, O(1,1,k), p, info)
             if (info .ne. 0) then
-              temp = dble(info)
+              l = info
               goto 10
             end if
           end if
@@ -4013,7 +4013,7 @@ c Cholesky factorization and singular value decomposition
           end if
 
           do j = 1, p
-            temp     = s(j)
+            temp     = s(j, 1)
             shape(j) = shape(j) + temp*temp
           end do
 
@@ -4023,7 +4023,7 @@ c Cholesky factorization and singular value decomposition
           else 
             sum = zero
             do j = 1, p
-              sum = sum + log(s(j))
+              sum = sum + log(s(j,1))
             end do
             scale(k) = exp(sum)
           end if
@@ -4032,7 +4032,7 @@ c Cholesky factorization and singular value decomposition
 
    10   continue
 
-        if (temp .ne. zero .or. l .ne. 0) then
+        if (l .ne. 0) then
           lwork   = l
 c         w(1)    = FLMAX
 c         w(2)    = temp
@@ -4135,7 +4135,7 @@ c       w(2)    = zero
       end if
 
       do j = 1, p
-        s(j) = sqrt(shape(j))
+        s(j,1) = sqrt(shape(j))
       end do
 
       call drnge( p, s, 1, smin, smax)
@@ -4161,7 +4161,7 @@ c       w(1)    = -smin
           call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, 
      *                 zero, w, 1)
           do j = 1, p
-            w(j) = w(j) / s(j)
+            w(j) = w(j) / s(j,1)
           end do
           sum    = ddot(p,w,1,w,1)/scalek
           z(i,k) = prok*exp(-(const+sum)/two)
@@ -4210,14 +4210,14 @@ c       w(1)    = -smin
           end do
           call drotg( O(p,p,k), w(p), cs, sn)
         end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
+        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s(1,k),
      *                dummy, 1, dummy, 1, w, lwork, info)
         if (info .ne. 0) then
           l = info
         else
           do j = 1, p
-            temp     = z(j,k)
-            z(j,k)   = temp*temp
+            temp     = s(j,k)
+            s(j,k)   = temp*temp
           end do
         end if
       end do
@@ -4265,7 +4265,7 @@ c prob now contains n*prob
         do k = 1, G
           sum = zero
           do j = 1, p
-            sum = sum + z(j,k)/w(j)
+            sum = sum + s(j,k)/w(j)
           end do
           temp     = (sum/pro(k))/dble(p)
           scale(k) = temp
@@ -4295,7 +4295,7 @@ c           w(2)    = zero
             return
           end if
           do j = 1, p
-            shape(j) = shape(j) + z(j,k)/temp
+            shape(j) = shape(j) + s(j,k)/temp
           end do
         end do
 
@@ -5745,7 +5745,7 @@ c     FLMAX  = d1mach(2)
 
       eps    = max(hood, zero)
 
-      call drnge( p, scale, 1, smin, smax)
+      call drnge( G, scale, 1, smin, smax)
 
       if (smin .le. eps) then
         hood = FLMAX

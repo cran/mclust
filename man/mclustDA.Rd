@@ -1,5 +1,6 @@
 \name{mclustDA}
 \alias{mclustDA}
+\alias{print.mclustDA}
 \title{
   MclustDA discriminant analysis.
 }

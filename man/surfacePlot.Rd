@@ -9,7 +9,7 @@
   and parameters of an MVN mixture model for the data.
 }
 \usage{
-surfacePlot(data, mu, pro, ..., type = c("contour", "image", "persp"), 
+surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"), 
         what = c("density", "uncertainty", "skip"), 
         transformation = c("none", "log", "sqrt"),          
         grid = 50, nlevels = 20, scale = FALSE, identify = FALSE,

@@ -12,9 +12,7 @@ The first two columns give the location, the third column the tree type.
   \describe{
     \item{x}{a numeric vector}
     \item{y}{a numeric vector}
-    \item{species}{a factor with levels}
-    \item{species}{\code{hickory} }
-    \item{species}{\code{maple} }
+    \item{species}{a factor with levels \code{hickory} and \code{maple} }
   }
 }
 \source{

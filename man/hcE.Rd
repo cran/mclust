@@ -37,7 +37,7 @@ hcVVV(data, partition, minclus = 1, alpha = 1, beta = 1, \dots)
     agglomeration. The default is to stop when all observations have been
     merged into a single cluster.
   }
-  \item{alpha,beta }{
+  \item{alpha, beta}{
     Additional tuning parameters needed for initializatiion in some models. 
     For details, see Fraley 1998. The defaults provided are usually adequate.
   }

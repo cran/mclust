@@ -11,6 +11,14 @@ cat("\nWarning: this is the 2002 version of mclust.",
     "\nplease change to the new version.\n\n") 
 
 
+"[.mclustDAtest" <- function(x, i, j, drop = FALSE)
+{
+  clx <- oldClass(x)
+  oldClass(x) <- NULL
+  NextMethod("[")
+}
+
+
 ".Mclust" <- 
   list("eps" = .Machine$double.eps, ## 2.2204460492503101e-16,
        "tol" = c(1.0000000000000001e-05, 1.0000000000000001e-05),
@@ -19,7 +27,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
        "warnSingular" = TRUE,
        "emModelNames" = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE",
          "EEV", "VEV", "VVV"),
-       "hcModelName" = c("V", "VVV"),
+       "hcModelName" = c("E", "VVV"),
        "symbols" = c(17, 0, 10, 4, 11, 18, 6, 7, 3, 16, 2, 12, 8, 15,
          1, 9, 14, 13, 5))
 
@@ -1731,10 +1739,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
         sigma <- decomp2sigma(decomp)
       }
     }
-    mu <- mu[dimens,  ]
-    sigma <- sigma[dimens, dimens,  ]
     G <- ncol(mu)
+    mu <- array(mu[dimens, ], c(2,G))
     dimpar <- dim(sigma)
+    sigma <- array(sigma[dimens, dimens, ], c(2,2,G))
     if(length(dimpar) != 3) {
       params <- FALSE
       warning("covariance improperly specified")
@@ -5678,23 +5686,24 @@ cat("\nWarning: this is the 2002 version of mclust.",
     cat("training ...\n")
   emModelNames <- c("EII", "VII", "EEI", "VVI", "EEE", "VVV")
   trainingModels <- mclustDAtrain(data = trainingData, labels = labels,
-                                  G = G, emModelNames = emModelNames, verbose = verbose)
+                                  G = G, emModelNames = emModelNames,
+                                  verbose = verbose)
   if(verbose)
     cat("testing ...\n")
-  S <- data.frame(trainClass = as.factor(unique(labels)), mclustModel = 
-                  as.factor(sapply(trainingModels, function(x)
-                                   x$modelName)), numGroups = sapply(trainingModels, function(x)
-                                                    x$G))
+  S <- data.frame(trainClass = as.factor(unique(labels)),
+                  mclustModel = as.factor(sapply(trainingModels,
+                    function(x) x$modelName)),
+                  numGroups = sapply(trainingModels, function(x) x$G))
   test <- mclustDAtest(testData, trainingModels)
   testSumry <- summary(test)
   train <- mclustDAtest(trainingData, trainingModels)
   trainSumry <- summary(train)
   structure(list(testClassification = testSumry$classification, 
                  trainingClassification = trainSumry$classification,
-                 summary = S, VofIindex =
-                 compareClass(map(trainSumry$z), labels), models
-		 = trainingModels, postProb = testSumry$postProb), class = 
-            "mclustDA")
+                 summary = S,
+                 VofIindex = compareClass(map(trainSumry$z), labels),
+                 models = trainingModels, postProb = testSumry$postProb),
+            class = "mclustDA")
 }
 
 "mclustDAtest" <- function(data, models)
@@ -7223,7 +7232,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
 # Distribution of MCLUST is prohibited except by agreement with the 
 # University of Washington.
 ##
-  ## ... eps, tol, itmax, equal = FALSE, noise = FALSE, Vinv
+  ## ... eps, tol, itmax, equal = FALSE, noise = FALSE
   funcName <- paste("mstep", modelName, sep = "")
   do.call(funcName, list(data = data, z = z, ...))
 }
@@ -9219,8 +9228,10 @@ cat("\nWarning: this is the 2002 version of mclust.",
 ##
   cat("\n")
   print(x$summary)
-  cat("\n training error rate:", round(x$errorRate, 3), "\n")
-  ##
+  ##temporarily commented out... Ron, May 2003
+  ##  cat("\n training error rate:", round(x$errorRate, 3), "\n")
+
+  ##commented out by Chris
   ## uncer <- 1 - apply(x$postProb, 1, max)
   ## aveUncer <- round(mean(uncer), 3)
   ## medUncer <- round(median(uncer), 3)
@@ -9765,7 +9776,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- rep(0, n)
   sd <- sqrt(sigmasq)
@@ -9855,7 +9866,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   shape <- decomp$shape
@@ -9940,7 +9951,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   cholSigma <- diag(rep(sqrt(sigmasq), d))
@@ -9980,7 +9991,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   shape <- decomp$shape
@@ -10020,7 +10031,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- rep(0, n)
   sd <- sqrt(sigmasq)
@@ -10058,7 +10069,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   rtscale <- sqrt(decomp$scale)
@@ -10145,7 +10156,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   for(k in 1:G) {
@@ -10187,7 +10198,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
   if(missing(pro))
     pro <- rep(1/G, G)
   set.seed(seed)
-  clabels <- sample(1:G, prob = pro)
+  clabels <- sample(1:G, prob = pro, replace=TRUE)
   ctabel <- table(clabels)
   x <- matrix(0, n, d)
   rtscale <- sqrt(decomp$scale)
@@ -10564,6 +10575,7 @@ cat("\nWarning: this is the 2002 version of mclust.",
 # University of Washington.
 ##
   x <- object
+  n <- if(is.null(dimData <- dim(data))) length(data) else dimData[1]
   hcPairs <- attr(x, "hcPairs")
   attr(hcPairs, "initialPartition") <- attr(x, "attrHC")$initialPartition
   subset <- attr(x, "subset")
@@ -10675,8 +10687,8 @@ cat("\nWarning: this is the 2002 version of mclust.",
       out <- mvn(modelName = bestModel, data = data)
       return(structure(c(list(bic = bestBICs, options = 
                               options, classification = rep(1, n), 
-                              uncertainty = rep(0, n)), out), class = 
-                       "summary.EMclust"))
+                              uncertainty = rep(0, n)), out),
+                       class = "summary.EMclust"))
     }
     clss <- hclass(hcPairs, G)
     z <- unmap(clss)

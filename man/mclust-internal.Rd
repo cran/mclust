@@ -1,5 +1,6 @@
 \name{mclust-internal}
 \title{Internal MCLUST functions}
+\alias{[.mclustDAtest}
 \alias{mvn2plot}
 \alias{vecnorm}
 \alias{traceW}

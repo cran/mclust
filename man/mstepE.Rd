@@ -52,12 +52,6 @@ mstepVVV(data, z, equalPro, noise = FALSE, \dots)
     noise component.
     The default assumes there is no noise component.
   }
-  \item{Vinv}{
-    An estimate of the reciprocal hypervolume of the data region.
-    The default is determined by applying function 
-    \code{hypvol} to the data.
-    Used only when \code{noise = TRUE}.
-  }
   \item{eps}{
     A scalar tolerance for deciding when to terminate computations due to
     computational singularity in covariances.

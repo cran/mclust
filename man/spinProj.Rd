@@ -22,20 +22,6 @@ spinProj(data, \dots, angles, seed = 0, reflection = FALSE,
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
   }
-  \item{angles}{
-    The angles (in radians) through which successive projections should
-    be rotated or reflected.
-  }
-  \item{seed}{
-    A integer between 0 and 1000, inclusive, for specifying a seed for 
-    generating the initial random projection. The default value is 0. 
-    The seed/projection correspondence is the same as in 
-    \code{randProj}.
-  }
-  \item{reflection}{
-    A logical variable telling whether or not the data should be reflected or
-    rotated through the given angles. The default is rotation.
-  }
   \item{\dots}{
     Any number of the following:
     \describe{
@@ -71,6 +57,20 @@ spinProj(data, \dots, angles, seed = 0, reflection = FALSE,
 	of the mixture model. 
       }
     }
+  }
+  \item{angles}{
+    The angles (in radians) through which successive projections should
+    be rotated or reflected.
+  }
+  \item{seed}{
+    A integer between 0 and 1000, inclusive, for specifying a seed for 
+    generating the initial random projection. The default value is 0. 
+    The seed/projection correspondence is the same as in 
+    \code{randProj}.
+  }
+  \item{reflection}{
+    A logical variable telling whether or not the data should be reflected or
+    rotated through the given angles. The default is rotation.
   }
   \item{type}{
     Any subset of \code{c("classification","uncertainty","errors")}. The

@@ -18,7 +18,7 @@
     A single numeric or character value used to indicate observations 
     corresponding to noise.
   }
-  \item{\dots }{
+  \item{\dots}{
     Provided to allow lists with elements other than the arguments can
     be passed in indirect or list calls with \code{do.call}.
   }

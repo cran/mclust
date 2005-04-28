@@ -9,6 +9,9 @@
 #    "\nof mclust is still available as mclust1998.",
 #    "\n\nSince mclust1998 is not actively supported any more,",
 #    "\nplease change to the new version.\n\n") 
+.First.lib <- function(lib, pkg) {
+  library.dynam("mclust", pkg, lib)
+}
 
 
 "[.mclustDAtest" <- function(x, i, j, drop = FALSE)

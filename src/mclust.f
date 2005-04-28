@@ -9589,9 +9589,9 @@ c University of Washington.
 
       implicit NONE
 
-      character          CHOL
+c      character          CHOL
+      integer            CHOL
 
-c     integer            n, p, G
       integer            n, p, G
 
       double precision   hood, Vinv
@@ -9631,7 +9631,8 @@ c     FLMAX = d1mach(2)
       eps   = max(hood,zero)
       rteps = sqrt(eps)
 
-      if (CHOL .eq. 'N') then
+c      if (CHOL .eq. 'N') then
+      if (CHOL .eq. 0) then
 
 c Cholesky factorization
         call dpotrf( 'U', p, Sigma, p, info)
@@ -10866,7 +10867,8 @@ c University of Washington.
 
       implicit NONE
 
-      character          CHOL
+      integer          CHOL
+c      character          CHOL
 
       integer            n, p, G
 
@@ -10907,7 +10909,8 @@ c     FLMAX = d1mach(2)
       eps   = max(hood,zero)
       rteps = sqrt(eps)
 
-      if (CHOL .eq. 'N') then
+c      if (CHOL .eq. 'N') then
+      if (CHOL .eq. 0) then
 
         do k = 1, G
 
@@ -13633,9 +13636,9 @@ c University of Washington.
 
       implicit NONE
 
-      character          CHOL
+      integer          CHOL
+c      character          CHOL
 
-c     integer            n, p, G
       integer            n, p, G
 
       double precision   eps
@@ -13669,7 +13672,8 @@ c------------------------------------------------------------------------------
 
 c     FLMAX = d1mach(2)
 
-      if (CHOL .eq. 'N') then
+c      if (CHOL .eq. 'N') then
+      if (CHOL .eq. 0) then
 
         do k = 1, G
 

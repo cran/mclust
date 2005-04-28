@@ -29,7 +29,7 @@ simVVI(mu, decomp, pro, \dots, seed = 0)
 simEEE(mu, pro, \dots, seed = 0)
 simEEV(mu, decomp, pro, \dots, seed = 0)
 simVEV(mu, decomp, pro, \dots, seed = 0)
-simVVV mu, pro, \dots, seed = 0)
+simVVV(mu, pro, \dots, seed = 0)
 }
 \arguments{
   \item{mu}{

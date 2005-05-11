@@ -3,12 +3,6 @@
 ## Original program by Chris Fraley and Adrian Raftery
 ## Port by Ron Wehrens
 ##
-#cat("\nWarning: this is the 2002 version of mclust.",
-#    "\n\nIt is not backwards compatible with the previous version,",
-#    "\nso old scripts will no longer work. The previous version",
-#    "\nof mclust is still available as mclust1998.",
-#    "\n\nSince mclust1998 is not actively supported any more,",
-#    "\nplease change to the new version.\n\n") 
 .First.lib <- function(lib, pkg) {
   library.dynam("mclust", pkg, lib)
 }
@@ -2143,18 +2137,21 @@
 ##
   aux <- list(...)
 
-  if (missing(G))
-    haveG <- FALSE
-  else
-    haveG <- TRUE
+  haveG <- !(missing(G))
 
   ## if there is a density function, use it
-  if (exists("density", NULL)) {
+  if (exists("density", NULL)) {# old R version
     densfun <- getFromNamespace("density", ns="base")
   } else {
-    if ("stats" %in% .packages(TRUE)) { # it should have a density function
+    if ("stats" %in% .packages(TRUE, lib.loc = .Library)) {
+      ## 'stats' has density function (since R 1.9.0)
       require(stats, quietly=TRUE)
-      densfun <- getFromNamespace("density", ns="stats")
+      densfun <-
+        if(methods::existsFunction("density.default",
+                                   where = asNamespace("stats")))
+          stats::density.default
+        else stats::density
+      ##      densfun <- getFromNamespace("density", ns="stats")
     } else {
       huhn <- getAnywhere("density")
       if (length(huhn$objs) > 0) {

@@ -17,7 +17,7 @@ density(\dots, method, G)
     "mclust".}
 }
 \description{
-  This is exaclty the same function as in the base package but for the
+  This is exactly the same function as in the \code{stats} package but for the
   \code{method} argument: if it is given and equals \code{"mclust"}, the
   \code{mclust} density estimation is used. Optionally, the number of
   gaussians to be considered can be given as well (\code{G}).}
@@ -90,8 +90,10 @@ points(xx[i.out], rep(0.01, 10))
 ## density function is masked...
 base.density <- if(exists("density", envir = NULL)) {
   get("density", envir = NULL)
-} else
-  stats::density
+} else if (methods::existsFunction("density.default",
+                                  where = asNamespace("stats")))
+           stats::density.default else stats::density
+
 (kernels <- eval(formals(base.density)$kernel))
 
 ## show the kernels in the R parametrization

@@ -144,7 +144,7 @@
       }
       else {
         hcPairs <- hc(modelName = .Mclust$hcModelName[
-                        1], data = data[subset,  ])
+                        1], data = data[subset]) ## 25/05/05 modified (Ron)
       }
     }
     clss <- hclass(hcPairs, G)
@@ -156,10 +156,19 @@
       z <- unmap(clss[, Glabels[i]])
       dimnames(z) <- list(as.character(subset), NULL)
       for(modelName in emModelNames) {
-        ms <- mstep(modelName = modelName,
-                    data = data[subset,  ], z = z, eps = eps, tol = tol,
-                    itmax = itmax, equalPro = equalPro,
-                    warnSingular = warnSingular)
+        if (p != 1) ## 25/05/05 modified (Ron)
+          ms <- mstep(modelName = modelName,
+                      data = data[subset,  ],
+                      z = z, eps = eps, tol = tol,
+                      itmax = itmax, equalPro = equalPro,
+                      warnSingular = warnSingular)
+        else
+          ms <- mstep(modelName = modelName,
+                      data = data[subset],
+                      z = z, eps = eps, tol = tol,
+                      itmax = itmax, equalPro = equalPro,
+                      warnSingular = warnSingular)
+          
         hood <- do.call("em", c(list(data = data, eps = eps,
                                      tol = tol, itmax = itmax, equalPro =
                                      equalPro, warnSingular =
@@ -2258,7 +2267,7 @@
     warn <- "parameters are missing"
     warning("parameters are missing")
     return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
-                          sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, k),
+                          sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, K),
                           loglik = NA, modelName = "E"), warn = warn))
   }
   if(missing(eps))
@@ -2279,7 +2288,7 @@
     warn <- "sigma-squared falls below threshold"
     warning("sigma-squared falls below threshold")
     return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
-                          sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, k),
+                          sigmasq = NA, pro = rep(NA, K), z = matrix(NA, n, K),
                           loglik = NA, modelName = "E"), warn = warn))
   }
   temp <- .Fortran("em1e",
@@ -3007,7 +3016,7 @@
     warning("parameters are missing")
     return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
                           sigmasq = rep(NA, G), pro = rep(NA, K),
-                          z = matrix(NA, n, k), loglik = NA,
+                          z = matrix(NA, n, K), loglik = NA,
                           modelName = "V"), warn = warn))
   }
   if(missing(eps))
@@ -3029,7 +3038,7 @@
     warning("sigma-squared falls below threshold")
     return(structure(list(n = n, d = 1, G = G, mu = rep(NA, G),
                           sigmasq = rep(NA, G), pro = rep(NA, K),
-                          z = matrix(NA, n, k), loglik = NA,
+                          z = matrix(NA, n, K), loglik = NA,
                           modelName = "V"), warn = warn))
   }
   temp <- .Fortran("em1v",

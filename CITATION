@@ -1,0 +1,18 @@
+@Manual{cluster:Fraley+Raftery+Wehrens:2005,
+  title        = {mclust: Model-based Cluster Analysis},
+  author       = {Chris Fraley and Adrian E. Raftery and Ron Wehrens},
+  year         = 2005,
+  note         = {R package version 2.1-11},
+  url          = {http://www.stat.washington.edu/mclust},
+}
+
+@article{Fraley2003,
+   author    = {Chris Fraley and Adrian E. Raftery},
+   title     = {Enhanced software for model-based clustering,
+       discriminant analysis, and density estimation: {MCLUST}},
+   journal   = {J. Class.},
+   pages     = {263--286},
+   year      = {2003},
+   volume    = {20},
+   number    = {2}
+}

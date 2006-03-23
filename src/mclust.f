@@ -138,8 +138,9 @@ c University of Washington.
       parameter                       (zero = 0.d0, two = 2.d0)
 
       double precision                 FLMAX
-      common /MCLMCH/                  FLMAX
-      save   /MCLMCH/
+      parameter          (FLMAX = 1.7976931348623157d308)
+c      common /MCLMCH/                  FLMAX
+c      save   /MCLMCH/
 
       detmc2 = zero
 
@@ -178,8 +179,9 @@ c University of Washington.
       parameter                       (zero = 0.d0, two = 2.d0)
 
       double precision                 FLMAX
-      common /MCLMCH/                  FLMAX
-      save   /MCLMCH/
+      parameter          (FLMAX = 1.7976931348623157d308)
+c      common /MCLMCH/                  FLMAX
+c      save   /MCLMCH/
 
       det2mc = zero
 

@@ -1,32 +1,31 @@
-Defaults.Mclust         List of values controlling defaults for some
-                        MCLUST functions.
-EMclust                 BIC for Model-Based Clustering
-EMclustN                BIC for Model-Based Clustering with Poisson
-                        Noise
-Mclust                  Model-Based Clustering
 bic                     BIC for Parameterized MVN Mixture Models
 bicE                    BIC for a Parameterized MVN Mixture Model
 bicEMtrain              Select models in discriminant analysis using
                         BIC
-cdens                   Component Density for Parameterized MVN
-                        Mixture Models
+cdens                   Component Density for Parameterized MVN Mixture
+                        Models
 cdensE                  Component Density for a Parameterized MVN
                         Mixture Model
 chevron                 Simulated minefield data
-clPairs                 Pairwise Scatter Plots showing Classification
 classError              Classification error.
+clPairs                 Pairwise Scatter Plots showing Classification
 compareClass            Compare classifications.
-coordProj               Coordinate projections of data in more than
-                        two dimensions modelled by an MVN mixture.
+coordProj               Coordinate projections of data in more than two
+                        dimensions modelled by an MVN mixture.
 cv1EMtrain              Select discriminant models using cross
                         validation
-decomp2sigma            Convert mixture component covariances to
-                        matrix form.
+decomp2sigma            Convert mixture component covariances to matrix
+                        form.
+Defaults.Mclust         List of values controlling defaults for some
+                        MCLUST functions.
 dens                    Density for Parameterized MVN Mixtures
 density                 Kernel Density Estimation
 diabetes                Diabetes data
 em                      EM algorithm starting with E-step for
                         parameterized MVN mixture models.
+EMclust                 BIC for Model-Based Clustering
+EMclustN                BIC for Model-Based Clustering with Poisson
+                        Noise
 emE                     EM algorithm starting with E-step for a
                         parameterized MVN mixture model.
 estep                   E-step for parameterized MVN mixture models.
@@ -35,12 +34,12 @@ estepE                  E-step in the EM algorithm for a parameterized
 grid1                   Generate grid points
 hc                      Model-based Hierarchical Clustering
 hcE                     Model-based Hierarchical Clustering
-hclass                  Classifications from Hierarchical
-                        Agglomeration
+hclass                  Classifications from Hierarchical Agglomeration
 hypvol                  Aproximate Hypervolume for Multivariate Data
 lansing                 Maple trees in Lansing Woods
 map                     Classification given Probabilities
 mapClass                Correspondence between classifications.
+Mclust                  Model-Based Clustering
 mclust1Dplot            Plot one-dimensional data modelled by an MVN
                         mixture.
 mclust2Dplot            Plot two-dimensional data modelled by an MVN
@@ -70,8 +69,7 @@ randProj                Random projections for data in more than two
 sigma2decomp            Convert mixture component covariances to
                         decomposition form.
 sim                     Simulate from Parameterized MVN Mixture Models
-simE                    Simulate from a Parameterized MVN Mixture
-                        Model
+simE                    Simulate from a Parameterized MVN Mixture Model
 spinProj                Planar spin for random projections of data in
                         more than two dimensions modelled by an MVN
                         mixture.

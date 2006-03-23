@@ -2148,29 +2148,30 @@
 
   haveG <- !(missing(G))
 
-  ## if there is a density function, use it
-  if (exists("density", NULL)) {# old R version
-    densfun <- getFromNamespace("density", ns="base")
-  } else {
-    if ("stats" %in% .packages(TRUE, lib.loc = .Library)) {
-      ## 'stats' has density function (since R 1.9.0)
-      require(stats, quietly=TRUE)
-      densfun <-
-        if(methods::existsFunction("density.default",
-                                   where = asNamespace("stats")))
-          stats::density.default
-        else stats::density
-      ##      densfun <- getFromNamespace("density", ns="stats")
-    } else {
-      huhn <- getAnywhere("density")
-      if (length(huhn$objs) > 0) {
-        warning("Using function 'density' from ", huhn$where[1])
-        densfun <- huhn$objs[[1]]
-      } else {
-        stop("Object \"density\" not found")
-      }
-    }
-  }
+##   ## if there is a density function, use it
+##   if (exists("density", NULL)) {# old R version
+##     densfun <- getFromNamespace("density", ns="base")
+##   } else {
+##     if ("stats" %in% .packages(TRUE, lib.loc = .Library)) {
+##       ## 'stats' has density function (since R 1.9.0)
+##       require(stats, quietly=TRUE)
+##       densfun <-
+##         if(methods::existsFunction("density.default",
+##                                    where = asNamespace("stats")))
+##           stats::density.default
+##         else stats::density
+##       ##      densfun <- getFromNamespace("density", ns="stats")
+##     } else {
+##       huhn <- getAnywhere("density")
+##       if (length(huhn$objs) > 0) {
+##         warning("Using function 'density' from ", huhn$where[1])
+##         densfun <- huhn$objs[[1]]
+##       } else {
+##         stop("Object \"density\" not found")
+##       }
+##     }
+##   }
+  densfun <- stats:::density.default
   val <- do.call("densfun", aux)
     
   if (missing(method)) {
@@ -5199,19 +5200,19 @@
   dimd <- dim(data)
   n <- dimd[1]
   p <- dimd[2]
-  if(FALSE) {
-    vol1 <- prod(apply(data, 2, function(z)
-                       diff(range(z))))
-    V <- matrix(temp[[1]], p, p)
-    xbar <- apply(data, 2, mean)
-    X <- sweep(data, 2, xbar)
-    library(Matrix)
-    print(V)
-    print(eigen.Hermitian(crossprod(X))$vectors)
-    X <- X %*% V
-    vol <- prod(apply(X, 2, function(z)
-                      diff(range(z))))
-  }
+##   if(FALSE) {
+##     vol1 <- prod(apply(data, 2, function(z)
+##                        diff(range(z))))
+##     V <- matrix(temp[[1]], p, p)
+##     xbar <- apply(data, 2, mean)
+##     X <- sweep(data, 2, xbar)
+##     library(Matrix)
+##     print(V)
+##     print(eigen.Hermitian(crossprod(X))$vectors)
+##     X <- X %*% V
+##     vol <- prod(apply(X, 2, function(z)
+##                       diff(range(z))))
+##   }
   lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)
                                         # min
   lwsyevd <- p * (3 * p + 2 * ceiling(logb(p, base = 2)) + 5) + 1
@@ -8686,9 +8687,9 @@
     chol <- matrix(temp[[2]], p, p)
     Sigma <- unchol(chol, upper = TRUE)
     loglik <- temp[[3]]
-    list(n = n, d = p, G = 1, mu = matrix(mu, ncol = 1), sigma = 
-         array(Sigma, c(p, p,  , 1)), Sigma = Sigma, cholSigma
-         = structure(chol, def = "Sigma = t(chol) %*% chol"),
+    list(n = n, d = p, G = 1, mu = matrix(mu, ncol = 1),
+         sigma = array(Sigma, c(p, p, 1)), Sigma = Sigma,
+         cholSigma = structure(chol, def = "Sigma = t(chol) %*% chol"),
          loglik = loglik, modelName = "XXX")
   }
 }

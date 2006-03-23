@@ -86,15 +86,7 @@ lines(doR, col = "green")
 rug(x)
 points(xx[i.out], rep(0.01, 10))
 
-## function formals returns something different now the original
-## density function is masked...
-base.density <- if(exists("density", envir = NULL)) {
-  get("density", envir = NULL)
-} else if (methods::existsFunction("density.default",
-                                  where = asNamespace("stats")))
-           stats::density.default else stats::density
-
-(kernels <- eval(formals(base.density)$kernel))
+(kernels <- eval(formals(stats:::density.default)$kernel))
 
 ## show the kernels in the R parametrization
 plot (density(0, bw = 1), xlab = "",

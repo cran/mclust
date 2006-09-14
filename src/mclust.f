@@ -168,20 +168,19 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
-      implicit double precision (a-h,o-z)
+      implicit NONE
 
-      double precision                 u(n,*), s
+      integer                          k, n
 
-      double precision                 zero, two 
+      double precision                 q, s
+      double precision                 u(n,*)
+
+      double precision                 zero, two
       parameter                       (zero = 0.d0, two = 2.d0)
 
-      double precision                 FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-c      common /MCLMCH/                  FLMAX
-c      save   /MCLMCH/
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623d308)
 
       det2mc = zero
 
@@ -189,19 +188,19 @@ c      save   /MCLMCH/
 
         q = u(k,k)*s
 
-        if (q .eq. zero) then
+        if (abs(q) .le. zero) then
           det2mc = -FLMAX
           return
         end if
 
         det2mc = det2mc + log(abs(q))
-                 
+
       end do
 
       det2mc = two*det2mc
 
-      return  
-      end 
+      return
+      end
 
       subroutine hc1e  ( x, n, ic, ng, ns, nd, d)
 
@@ -2443,15 +2442,13 @@ c       tmop  = rij*log(trop+ALPHA)
       return
       end
 
-      subroutine hcvvv ( x, n, p, ic, ng, ns, ALPHA, BETA, 
-     *                   v, u, s, r, nd, d)
+       subroutine hcvvv ( x, n, p, ic, ng, ns, ALPHA, BETA, 
+     *                    v, u, s, r, nd, d)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
@@ -2459,10 +2456,10 @@ c University of Washington.
 
       double precision   ALPHA, BETA
 
+c     double precision   x(n,p+1), v(p), u(p,p), s(p,p)
+c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision   x(n,*), v(*), u(p,*), s(p,*)
       double precision   r(p,*), d(*)
-
-c------------------------------------------------------------------------------
 
       integer                 psq, pm1, pp1
       integer                 i, j, k, l, m, ij, iold
@@ -2489,7 +2486,7 @@ c------------------------------------------------------------------------------
       save   /VVVMCL/            
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
+      parameter          (FLMAX = 1.7976931348623d308)
 
       double precision    EPSMAX
       parameter          (EPSMAX = 2.2204460492503131d-16)
@@ -2648,7 +2645,7 @@ c compute change in likelihood and determine minimum
               sij   = rthalf
               call dcopy( p, x(i,1), n, v, 1)
               call daxpy( p, (-one), x(j,1), n, v, 1)
-              call dscal( p, rthalf, v, 1)
+               call dscal( p, rthalf, v, 1)
 c             trcij = half*ddot( p, v, 1, v, 1)
               trcij =      ddot( p, v, 1, v, 1)
               call dcopy( p, v, 1, u, p)  
@@ -2819,7 +2816,7 @@ c     end if
           x(1,2) = iopt
         end if
         d(1)   = dopt
-        return
+        return 
       end if
 
       ls  = 1
@@ -2838,69 +2835,32 @@ c     end if
         if (icj .ne. 1) x( jopt, pp1) = x( lg, pp1)
         ic(jopt)   = icj
         ic(lg)     = m
-c       term(jopt) = term(lg)
-c       trac(jopt) = trac(lg)
       end if
-
-c     term(lg)   = FLMAX
-c     trac(lg)   = FLMAX
-
-      call dcopy( p, r(1,1), p, x(lg,1), n)
 
       if (niop .eq. 1) then
-
-        if (njop .eq. 1) then
-          ic(lg)  = n+2
-        else
-          l   = ic(lg)
-          m   = pm1
-          nij = 2
- 210      continue
-            call dcopy( m, r(nij,nij), p, x(l,nij), n)
-            nij = nij + 1
-            m   = m   - 1
-            k   = l
-            l   = ic(l)
-            if (l .le. n .and. nij .le. min(nopt-1,p)) goto 210
-
-            ic(k) = n + nopt
-
-        end if
-
-      else
-
-        l   = ic(iopt)
-        m   = pm1
-        nij = 2
- 220    continue
-          call dcopy( m, r(nij,nij), p, x(l,nij), n)
-          nij = nij + 1
-          m   = m   - 1
-          k   = l
-          l   = ic(l)
-          if (l .le. n .and. nij .le. min(nopt-1,p)) goto 220
-
-          if (nij .le. p .and. njop .ne. 1) then
-            l     = ic(lg)
-            ic(k) = l
- 230        continue
-              call dcopy( m, r(nij,nij), p, x(l,nij), n)
-              nij   = nij + 1
-              m     = m   - 1
-              k     = l
-              l     = ic(l)
-              if (l .le. n .and. nij .le. min(nopt-1,p)) goto 230
-          end if
-
-        ic(lg) = ic(iopt)
-        ic(k)  = n + nopt
-
+        ic(iopt) = lg
+      else 
+        l = ic(iopt)
+        do k = 1, min(niop-1,p)
+          m = l
+          l = ic(l)
+        end do
+        if (l .lt. n) call intpr("l .lt. n", 8, l, 1)
+        ic(m) = lg
       end if
+
+      l = ic(iopt)
+      do k = 1, min(nopt-1,p)
+        call dcopy( p, r(1,1), p, x(l,1), n)
+        m = l
+        l = ic(l)
+      end do
+      ic(m) = nopt + n        
+
+c     call intpr('ic', 2, ic, n)
 
 c     term(iopt) = tmop
 c     trac(iopt) = trop
-
-      ic(iopt) = lg
 
       x(iopt, pp1) = zero
       if (nopt .ge. 2) then
@@ -2920,8 +2880,6 @@ c     trac(iopt) = trop
       lg = lg - 1
       ld = ld - lg
 
-c     call intpr( 'ic', -1, ic, n)
-
       iold  =  iopt
 
       dopt  = FLMAX
@@ -2934,6 +2892,7 @@ c     call intpr( 'ic', -1, ic, n)
       ij = ((iold-1)*(iold-2))/2
       if (iold .gt. 1) then
         do j = 1, (iold-1)
+          call dcopy(psq, zero, 0, u, 1)
           m = p
           do k = 1, min(ni-1,p)
             call dcopy(m, r(k,k), p, u(k,k), p)
@@ -2955,13 +2914,14 @@ c     call intpr( 'ic', -1, ic, n)
             trcij =    traci +     ddot(p,v,1,v,1)
             tracj = zero
             termj = ABLOG
-         else
+          else
             m = p
             l = icj
             k = ni + 1
  310        continue
               call dcopy( m, x(l,nj), n, v, 1)
-              call mclrup( k, m, v, u(nj,nj), p)
+               call mclrup( k, m, v, u(nj,nj), p)
+              k  = k  + 1
               nj = nj + 1
               m  = m - 1
               l  = ic(l)
@@ -3008,11 +2968,12 @@ c           call vvvget(j,nj,n,p,ic,x,tracj,termj)
           end if
         end do
       end if
-    
+
       if (iold .lt. lg) then
         i  = iold
         ij = ij + i
         do j = (iold+1), lg
+          call dcopy(psq, zero, 0, u, 1)
           m = p
           do k = 1, min(ni-1,p)
             call dcopy(m, r(k,k), p, u(k,k), p)
@@ -3040,6 +3001,7 @@ c           call vvvget(j,nj,n,p,ic,x,tracj,termj)
  410        continue
             call dcopy( m, x(l,nj), n, v, 1)
             call mclrup( k, m, v, u(nj,nj), p)
+            k  = k + 1
             nj = nj + 1
             m  = m - 1
             l  = ic(l)
@@ -3106,6 +3068,9 @@ c update d and find max
         end if
       end do
 
+c     call dblepr("d", 1, d, nd)
+c     call dblepr("d", 1, d, ld)
+
       if (ij .gt. 1) then
         do i = 2, ij
           iopt = iopt + 1
@@ -3115,6 +3080,10 @@ c update d and find max
           end if
         end do
       end if
+
+      do k = 1, p
+        call dcopy( p, zero, 0, r(1,k), 1)
+      end do
 
       if (iopt .ne. iold .and. jopt .ne. iold) then
 
@@ -3230,11 +3199,38 @@ c           call vvvget(i,ni,n,p,ic,x,traci,termi)
         sjop = sj
 
       else
+
         m = p
         do k = 1, min(nopt-1,p)
           call dcopy(m, s(k,k), p, r(k,k), p)
           m = m - 1
         end do
+
+        l = ic(iopt)
+        if (l .ne. 1) then
+710       continue
+          if (l .le. n) then
+            l = ic(l)
+            goto 710
+          end if
+          niop = l-n
+        else
+          niop = 1
+        end if
+
+        l = ic(jopt)
+        if (l .ne. 1) then
+720       continue
+          if (l .le. n) then
+            l = ic(l)
+            goto 720
+          end if
+          njop = l-n
+        else
+          njop = 1
+        end if
+
+        nopt = niop + njop        
       end if
 
       ls = ls + 1
@@ -3311,8 +3307,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
@@ -3333,7 +3327,7 @@ c University of Washington.
       save   /VVVMCL/            
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
+      parameter          (FLMAX = 1.7976931348623d308)
 
       if (l .le. p) then
         vvvtij = log(BETA*(trac+ALPHA)/dble(l))
@@ -3342,7 +3336,7 @@ c University of Washington.
           vvvtij = log((ALPHA*BETA)/dble(l))
         else
           detlog = det2mc( p, r, s)
-          if (detlog .eq. (-FLMAX)) then
+          if (detlog .eq. -FLMAX) then
             vvvtij = log(BETA*(trac+ALPHA)/dble(l))
           else if (detlog .le. zero) then
             vvvtij = log(exp(detlog)+BETA*(trac+ALPHA)/dble(l))

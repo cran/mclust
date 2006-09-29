@@ -11,7 +11,7 @@
 mclust1Dplot(data, parameters=NULL, z=NULL, 
              classification=NULL, truth=NULL, uncertainty=NULL, 
              what = c("classification", "density", "errors", "uncertainty"),
-             symbols=NULL, ngrid=length(data), xlim=NULL, CEX=1, 
+             symbols=NULL, ngrid=length(data), xlab = NULL, xlim=NULL, CEX=1, 
              identify=FALSE, \dots)
 }
 \arguments{
@@ -80,6 +80,9 @@ mclust1Dplot(data, parameters=NULL, z=NULL,
     Number of grid points to use for density computation over the interval
     spanned by the data. The default is the length of the data set.
   }
+  \item{xlab}{
+    An argument specifying a label for the horizontal axis.
+  }
   \item{xlim}{
     An argument specifying bounds of the plot.
     This may be useful for when comparing plots.
@@ -108,8 +111,8 @@ mclust1Dplot(data, parameters=NULL, z=NULL,
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
   C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report, Department of Statistics,
+  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
+  Technical Report no. 504, Department of Statistics,
   University of Washington.
 }
 \seealso{

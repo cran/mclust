@@ -39,8 +39,8 @@ classError(classification, truth)
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report, Department of Statistics,
+  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
+  Technical Report no. 504, Department of Statistics,
   University of Washington.
 }
 \seealso{

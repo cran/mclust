@@ -6976,10 +6976,9 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
       if (l == 1) {
         BIC[BIC == EMPTY] <- NA
         return(structure(BIC, G = G, modelNames = modelNames, prior = prior, 
-                         control = control, 
-     initialization = list(hcPairs = hcPairs, subset = initialization$subset), 
-                       warn = warn, n = n, d = d, oneD = oneD,
-                       returnCodes = RET, class =  "mclustBIC"))
+                         control = control, initialization = initialization, 
+                         warn = warn, n = n, d = d, oneD = oneD,
+                         returnCodes = RET, class =  "mclustBIC"))
       }
       G <- G[-1]
       Glabels <- Glabels[-1]
@@ -7297,10 +7296,9 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
       if (l == 1) {
         BIC[BIC == EMPTY] <- NA
         return(structure(BIC, G = G, modelNames = modelNames, prior = prior, 
-                         control = control, 
-     initialization = list(hcPairs = hcPairs, subset = initialization$subset), 
-                       warn = warn, n = n, d = d, oneD = oneD,
-                       returnCodes = RET, class =  "mclustBIC"))
+                         control = control, initialization = initialization, 
+                         warn = warn, n = n, d = d, oneD = oneD,
+                         returnCodes = RET, class =  "mclustBIC"))
       }
       G <- G[-1]
       Glabels <- Glabels[-1]
@@ -7530,92 +7528,6 @@ function(x, k = 3)
   namesx[is.na(x)] <- " "
   names(x) <- namesx
   x
-}
-
-"plot.mclustBIC" <-
-function(x, modelNames=NULL, G=NULL, symbols=NULL, fill=FALSE, ylim=NULL, 
-         CEX=1, ...)
-{
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-	subset <- !is.null(attr(x, "initialization")$subset)
-	ret <- attr(x, "returnCodes") == -3
-	if(!subset && any(ret) && fill) {
-		x <- bicFill(x, ret, n, d)
-	}
-	n <- ncol(x)
-	dnx <- dimnames(x)
-	##
-	x <- matrix(as.vector(x), ncol = n)
-	dimnames(x) <- dnx
-	if (is.null(modelNames))
-		modelNames <- dimnames(x)[[2]]
-	if (is.null(G))
-		G <- dimnames(x)[[1]]
-	else G <- as.character(G)
-	BIC <- x[G, modelNames, drop = FALSE]
-	X <- is.na(BIC)
-	nrowBIC <- nrow(BIC)
-	ncolBIC <- ncol(BIC)
-	if(is.null(symbols)) {
-		colNames <- dimnames(x)[[2]]
-		if(is.null(colNames)) {
-			symbols <- if(n > 9) LETTERS[1:n] else as.character(
-					1:n)
-		}
-		else {
-			symbols <- .Mclust$bicPlotSymbols[colNames]
-		}
-		symbols <- symbols[modelNames]
-	}
-	xrange <- if(!is.null(dn <- dimnames(BIC)[[1]])) as.numeric(dn) else 1:
-			nrowBIC
-        if (is.null(ylim)) ylim <- range(as.vector(BIC[!is.na(BIC)]))
-	plot(xrange, BIC[, 1], type = "n", ylim = ylim, xlim = range(xrange),
-		xlab = "number of components", ylab = "BIC", main = "")
-	for(i in 1:ncolBIC) {
-		x <- sapply(BIC[, i], function(u, ylim)
-		!is.na(u) && u >= ylim[1] && u <= ylim[2], ylim = ylim)
-		if(any(x)) {
-			if(all(x)) {
-				points(xrange, BIC[, i], pch = symbols[i],
-					cex = CEX)
-				if(nrowBIC > 1)
-					lines(xrange, BIC[, i], lty = i)
-			}
-			else {
-				points(xrange[x], BIC[x, i], pch = symbols[
-					i], cex = CEX)
-				v <- (1:nrowBIC)[!X[, i]]
-				n <- length(v)
-				d <- c(diff(c(0, v)), 2)
-				if(any(d) == 1) {
-					f <- 1
-					while(TRUE) {
-						while(f <= n && d[f] != 1) f <-
-								f + 1
-						if(f > n)
-							break
-						l <- f
-						while(d[l + 1] == 1) l <- l +
-								1
-						lines(xrange[v[f:l]], BIC[
-							v[f:l], i], lty = i)
-						if(l == n)
-							break
-						f <- l + 1
-					}
-				}
-			}
-		}
-	}
-	symbols <- symbols[1:length(modelNames)]
-	names(symbols) <- modelNames
-	symbols
 }
 
 "print.Mclust" <-
@@ -7953,6 +7865,48 @@ function(object, data, G=NULL, modelNames=NULL, ...)
      = control, initialization = initialization, class = "summary.mclustBIC")
 }
 
+"clPairs" <-
+function (data, classification=NULL, symbols=NULL, colors=NULL, 
+          labels = dimnames(data)[[2]],  CEX = 1, ...) 
+{
+    data <- as.matrix(data)
+    m <- nrow(data)
+    n <- ncol(data)
+    if (is.null(classification)) 
+        classification <- rep(1, m)
+    if (!is.factor(classification)) 
+        classification <- as.factor(classification)
+    l <- length(levels(classification))
+    if (is.null(symbols)) {
+        if (l == 1) {
+            symbols <- "."
+        }
+        if (l <= length(.Mclust$classPlotSymbols)) {
+            symbols <- .Mclust$classPlotSymbols
+        }
+        else if (l <= 9) {
+            symbols <- as.character(1:9)
+        }
+        else if (l <= 26) {
+            symbols <- LETTERS[1:l]
+        }
+        else stop("need more than 26 symbols")
+    }
+    else if (length(symbols) < l) 
+        stop("more symbols needed")
+    if (is.null(colors)) 
+        colors <- .Mclust$classPlotColors
+    if (length(colors) == 1) 
+        colors <- rep(colors, l)
+    if (length(unique(colors)) > l) {
+       colors <- rep("black", l)
+       warning("more colors needed")
+    }
+    pairs(x = data, labels = labels, pch = symbols[classification], 
+        cex = CEX, col = colors[classification], ...)
+    invisible()
+}
+
 "defaultPrior" <-
 function(data, G, modelName, ...)
 {
@@ -8061,10 +8015,16 @@ structure(list(emModelNames = c("EII", "VII", "EEI", "VEI", "EVI",
 "VVI", "EEE", "EEV", "VEV", "VVV"), hcModelNames = c("EII", "VII", 
 "EEE", "VVV"), bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 
 1, 15, 12, 7, 0, 17, 2), .Names = c("EII", "VII", "EEI", "EVI", 
-"VEI", "VVI", "EEE", "EEV", "VEV", "VVV", "E", "V")), classPlotSymbols = c(17, 
-0, 10, 4, 11, 18, 6, 7, 3, 16, 2, 12, 8, 15, 1, 9, 14, 13, 5), 
-    warn = TRUE), .Names = c("emModelNames", "hcModelNames", 
-"bicPlotSymbols", "classPlotSymbols", "warn"))
+"VEI", "VVI", "EEE", "EEV", "VEV", "VVV", "E", "V")), bicPlotColors = structure(c("gray", 
+"black", "orange", "brown", "red", "magenta", "forestgreen", 
+"green", "cyan", "blue", "gray", "black"), .Names = c("EII", 
+"VII", "EEI", "VEI", "EVI", "VVI", "EEE", "EEV", "VEV", "VVV", 
+"E", "V")), classPlotSymbols = c(17, 0, 10, 4, 11, 18, 6, 7, 
+3, 16, 2, 12, 8, 15, 1, 9, 14, 13, 5), classPlotColors = c("blue", 
+"red", "green", "cyan", "magenta", "forestgreen", "purple", "orange", 
+"gray", "brown", "black"), warn = TRUE), .Names = c("emModelNames", 
+"hcModelNames", "bicPlotSymbols", "bicPlotColors", "classPlotSymbols", 
+"classPlotColors", "warn"))
 "emControl" <-
 function(eps = .Machine$double.eps, tol = c(1.0e-05, 
 	sqrt(.Machine$double.eps)), itmax = c(.Machine$integer.max, .Machine$
@@ -8098,7 +8058,8 @@ function(eps = .Machine$double.eps, tol = c(1.0e-05,
 
 "mclustOptions" <-
 function(emModelNames = NULL, hcModelNames = NULL, bicPlotSymbols = NULL, 
-         classPlotSymbols = NULL, warn = TRUE)
+         bicPlotColors = NULL, classPlotSymbols = NULL, classPlotColors = NULL,
+         warn = TRUE)
 {
 	##
 	# This function is part of the MCLUST software described at
@@ -8113,11 +8074,20 @@ function(emModelNames = NULL, hcModelNames = NULL, bicPlotSymbols = NULL,
 	if(is.null(bicPlotSymbols)) 	bicPlotSymbols <- 
            c(EII = 17, VII = 2, EEI = 16, EVI = 10, VEI = 13, VVI = 1,
              EEE = 15, EEV = 12, VEV = 7, VVV = 0, E = 17, V = 2)
+	if(is.null(bicPlotColors)) 	bicPlotColors <- 
+           c(EII = "gray", VII = "black", EEI = "orange", VEI = "brown", 
+             EVI = "red", VVI = "magenta", EEE = "forestgreen",
+             EEV = "green", "VEV" = "cyan", VVV = "blue", 
+             E = "gray", V = "black")
 	if(is.null(classPlotSymbols)) 	classPlotSymbols <- 
            c(17, 0, 10, 4, 11, 18, 6, 7, 3, 16, 2, 12, 8, 15, 1, 9, 14, 13, 5)
+	if(is.null(classPlotColors)) 	classPlotColors <- 
+           c("blue", "red", "green", "cyan", "magenta", "forestgreen",
+             "purple", "orange", "gray", "brown", "black")
 	list(emModelNames = emModelNames, hcModelNames = hcModelNames, 
-             bicPlotSymbols = bicPlotSymbols, 
-             classPlotSymbols = classPlotSymbols, warn = warn)
+             bicPlotSymbols = bicPlotSymbols, bicPlotColors = bicPlotColors,
+             classPlotSymbols = classPlotSymbols, classPlotColors = 
+             classPlotColors, warn = warn)
 }
 
 "priorControl" <- 
@@ -8133,8 +8103,8 @@ function(functionName = "defaultPrior", ...)
 }
 
 "clPairs" <-
-function (data, classification, symbols, labels = dimnames(data)[[2]], 
-    CEX = 1, col, ...) 
+function (data, classification, symbols=NULL, colors=NULL, 
+          labels = dimnames(data)[[2]], CEX = 1, ...) 
 {
     data <- as.matrix(data)
     m <- nrow(data)
@@ -8148,8 +8118,8 @@ function (data, classification, symbols, labels = dimnames(data)[[2]],
         if (l == 1) {
             symbols <- "."
         }
-        if (l <= length(.Mclust$symbols)) {
-            symbols <- .Mclust$symbols
+        if (l <= length(.Mclust$classPlotSymbols)) {
+            symbols <- .Mclust$classPlotSymbols
         }
         else if (l <= 9) {
             symbols <- as.character(1:9)
@@ -8159,224 +8129,246 @@ function (data, classification, symbols, labels = dimnames(data)[[2]],
         }
         else stop("need more than 26 symbols")
     }
-    else if (length(symbols) < l) 
-        stop("more symbols needed")
-    if (missing(col)) 
-        col <- 1:l
-    if (length(unique(col)) < l & length(unique(col)) > 1) 
-        stop("more colors needed")
-    if (length(col) == 1) 
-        col <- rep(col, l)
+    if (length(symbols) == 1) symbols <- rep(symbols, l)
+    if (length(symbols) < l) {
+        warning("more symbols needed")
+        symbols <- rep(symbols, length = l)
+    }
+    if (is.null(colors)) {
+        if (l <= length(.Mclust$classPlotColors)) 
+          colors <- .Mclust$classPlotColors[1:l]
+    }
+    if (length(colors) == 1) colors <- rep(colors, l)
+    if (length(colors) < l) {
+       warning("more colors needed")
+       colors <- rep(colors, length = l)
+    }
     pairs(x = data, labels = labels, pch = symbols[classification], 
-        cex = CEX, col = col[classification], ...)
+        cex = CEX, col = colors[classification], ...)
     invisible()
 }
 
 "coordProj" <-
-function(data, dimens = c(1,2), parameters=NULL, z=NULL,
-         classification=NULL, truth=NULL, uncertainty=NULL, 
-         what = c("classification", "errors", "uncertainty"),
-         quantiles = c(0.75, 0.95), symbols=NULL, scale = FALSE, 
-         xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, ...)
+function(data, dimens = c(1,2), parameters = NULL, z = NULL, classification = 
+  NULL, truth = NULL, uncertainty = NULL, what = c("classification", "errors", 
+  "uncertainty"), quantiles = c(0.75, 0.94999999999999996), symbols = NULL, 
+  colors = NULL, scale = FALSE, xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", 
+  identify = FALSE, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if (is.null(classification) && !is.null(z))
-		classification <- map(z)
-	if (is.null(uncertainty) && !is.null(z))
-		uncertainty <- 1 - apply(z, 1, max)
-        if (!is.null(parameters)) {
-          mu <- parameters$mean
-          sigma <- parameters$variance$sigma
-	  haveParams <- !is.null(mu) && !is.null(sigma) && 
-                         !any(is.na(mu)) && !any(is.na(sigma)) 
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(is.null(dimens)) dimens <- c(1, 2)
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  if(!is.null(parameters)) {
+    mu <- parameters$mean
+    L <- ncol(mean)
+    sigma <- parameters$variance$sigma
+    haveParams <- !is.null(mu) && !is.null(sigma) && !any(is.na(mu)) && !any(
+      is.na(sigma))
+  }
+  else haveParams <- FALSE
+  data <- data[, dimens, drop = FALSE]
+  if(dim(data)[2] != 2)
+    stop("need two dimensions")
+  if(is.null(xlim))
+    xlim <- range(data[, 1])
+  if(is.null(ylim))
+    ylim <- range(data[, 2])
+  if(scale) {
+    par(pty = "s")
+    d <- diff(xlim) - diff(ylim)
+    if(d > 0) {
+      ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
+    }
+    else {
+      xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
+    }
+  }
+  if(is.null(dnames <- dimnames(data)[[2]]))
+    xlab <- ylab <- ""
+  else {
+    xlab <- dnames[1]
+    ylab <- dnames[2]
+  }
+  if(haveParams) {
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      haveParams <- FALSE
+      warning("covariance must be a 3D matrix")
+    }
+    if(G != dimpar[3]) {
+      haveParams <- FALSE
+      warning("means and variance parameters are incompatible")
+    }
+    mu <- array(mu[dimens,  ], c(2, G))
+    sigma <- array(sigma[dimens, dimens,  ], c(2, 2, G))
+  }
+  if(!is.null(truth)) {
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
+    }
+  }
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- sort(unique(classification))
+    L <- length(U)
+    noise <- classification[1] == "0"
+    if(is.null(symbols)) {
+      if(L <= length(.Mclust$classPlotSymbols)) {
+        symbols <- .Mclust$classPlotSymbols
+        if(noise) {
+          first <- symbols[1]
+          symbols[symbols == 16] <- first
+          symbols[1] <- 16
         }
-        else haveParams <- FALSE
-	data <- data[, dimens, drop = FALSE]
-	if (dim(data)[2] != 2)
-		stop("need two dimensions")
-	if (is.null(xlim))
-		xlim <- range(data[, 1])
-	if (is.null(ylim))
-		ylim <- range(data[, 2])
-	if (scale) {
-                par(pty = "s")
-		d <- diff(xlim) - diff(ylim)
-		if(d > 0) {
-			ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
-		}
-		else {
-			xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
-		}
-	}
-	if (is.null(dnames <- dimnames(data)[[2]]))
-		xlab <- ylab <- ""
-	else {
-		xlab <- dnames[1]
-		ylab <- dnames[2]
-	}
-        if (haveParams) {
-          G <- ncol(mu)
-	  dimpar <- dim(sigma)
-	  if (length(dimpar) != 3) {
-  	    haveParams <- FALSE
-  	    warning("covariance must be a 3D matrix")
-	  }
-	  if (G != dimpar[3]) {
-	    haveParams <- FALSE
-  	    warning("means and variance parameters are incompatible")
-       	  }
-	  mu <- array(mu[dimens,  ], c(2, G))
-	  sigma <- array(sigma[dimens, dimens,  ], c(2, 2, G))
+      }
+      else if(L <= 9) {
+        symbols <- as.character(1:9)
+      }
+      else if(L <= 26) {
+        symbols <- LETTERS
+      }
+    }
+    else if(length(symbols) == 1)
+      symbols <- rep(symbols, L)
+    if(is.null(colors)) {
+      if(L <= length(.Mclust$classPlotColors)) {
+        colors <- .Mclust$classPlotColors[1:L]
+        if(noise) {
+          first <- colors[1]
+          colors[colors == "black"] <- first
+          colors[1] <- "black"
         }
-	if (!is.null(truth)) {
-		if(is.null(classification)) {
-			classification <- truth
-			truth <- NULL
-		}
-	}
-	if (!is.null(classification)) {
-		classification <- as.character(classification)
-		U <- sort(unique(classification))
-		L <- length(U)
-                noise <- classification[1] == "0"
-		if(is.null(symbols)) {
-			if(L <= length(.Mclust$classPlotSymbols)) {
-				symbols <- .Mclust$classPlotSymbols
-                                if (noise) {
-                                   first <- symbols[1]
-                                   symbols[symbols == 16] <- first
-                                   symbols[1] <- 16
-                                }
-			}
-			else if(L <= 9) {
-				symbols <- as.character(1:9)
-			}
-			else if(L <= 26) {
-				symbols <- LETTERS
-			}
-		}
-		if(length(symbols) < L) {
-			warning("more symbols needed to show classification")
-			classification <- NULL
-		}
-	}
-        if (length(what) > 1) what <- what[1]
-	choices <- c("classification", "errors", "uncertainty")
-	m <- charmatch(what, choices, nomatch = 0)
-        if (m) { 
-          what <- choices[m] 
-          bad <- what == "classification" && is.null(classification)
-          bad <- bad || (what == "uncertainty" && is.null(uncertainty))
-          bad <- bad || (what == "errors" && 
-                (is.null(classification) || is.null(truth)))
-          if (bad) warning("insufficient input for specified plot")
-          badClass <- (what == "errors" && 
-                (length(unique(classification)) != length(unique(truth))))
-          if (badClass && !bad) 
-            warning("classification and truth differ in number of groups")
-          bad <- bad && badClass
+      }
+    }
+    else if(length(colors) == 1)
+      colors <- rep(colors, L)
+    if(length(symbols) < L && length(colors) < L) {
+      warning("more symbols/colors needed to show classification ")
+      classification <- NULL
+    }
+  }
+  if(length(what) > 1)
+    what <- what[1]
+  choices <- c("classification", "errors", "uncertainty")
+  m <- charmatch(what, choices, nomatch = 0)
+  if(m) {
+    what <- choices[m]
+    bad <- what == "classification" && is.null(classification)
+    bad <- bad || (what == "uncertainty" && is.null(uncertainty))
+    bad <- bad || (what == "errors" && (is.null(classification) || is.null(
+      truth)))
+    if(bad)
+      warning("insufficient input for specified plot")
+    badClass <- (what == "errors" && (length(unique(classification)) != length(
+      unique(truth))))
+    if(badClass && !bad)
+      warning("classification and truth differ in number of groups")
+    bad <- bad && badClass
+  }
+  else {
+    bad <- !m
+    warning("what improperly specified")
+  }
+  if(bad)
+    what <- "bad"
+  switch(EXPR = what,
+    classification = {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
+        xlim, ylim = ylim, main = "", ...)
+      if(identify) {
+        TITLE <- paste(paste(dimens, collapse = ","), 
+          "Coordinate Projection showing Classification")
+        title(main = TITLE)
+      }
+      for(k in 1:L) {
+        I <- classification == U[k]
+        points(data[I, 1], data[I, 2], pch = symbols[k], col = colors[k], cex
+           = if(U[k] == "0") CEX/4 else CEX)
+      }
+    }
+    ,
+    errors = {
+      ERRORS <- classError(classification, truth)$misclassified
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
+        xlim, ylim = ylim, main = "", ...)
+      if(identify) {
+        TITLE <- paste(paste(dimens, collapse = ","), 
+          "Coordinate Projection showing Errors")
+        title(main = TITLE)
+      }
+      CLASSES <- unique(as.character(truth))
+      symOpen <- c(2, 0, 1, 5)
+      symFill <- c(17, 15, 16, 18)
+      good <- rep(TRUE, length(classification))
+      good[ERRORS] <- FALSE
+      if(L > 4) {
+        points(data[good, 1], data[good, 2], pch = 1, col = colors, cex = CEX)
+        points(data[!good, 1], data[!good, 2], pch = 16, cex = CEX)
+      }
+      else {
+        for(k in 1:L) {
+          K <- truth == CLASSES[k]
+          if(any(I <- (K & good))) {
+            points(data[I, 1], data[I, 2], pch = symOpen[k], col = colors[k], 
+              cex = CEX)
+          }
+          if(any(I <- (K & !good))) {
+            points(data[I, 1], data[I, 2], pch = symFill[k], cex = CEX)
+          }
         }
-        else {
-          bad <- !m
-          warning("what improperly specified")
-        }
-        if (bad) what <- "bad"
-        switch (EXPR = what,
-                "classification"=  {
-		   plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-		ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-		   if (identify) {
-                     TITLE <- paste(paste(dimens, collapse=","), 
-                    "Coordinate Projection showing Classification")
-                     title(main=TITLE)
-                   }
-		   for (k in 1:L) {
-		      I <- classification == U[k]
- 		      points(data[I, 1], data[I, 2], pch = symbols[k], 
-                             cex =if (U[k] == "0") CEX/4 else CEX)
-	  	   }
-                },
-                "errors"=  {
-  	 ERRORS <- classError(classification, truth)$misclassified
-		   plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-		ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-		   if (identify) {
-                     TITLE <- paste(paste(dimens, collapse=","), 
-                    "Coordinate Projection showing Errors")
-                     title(main=TITLE)
-                   }
-	           CLASSES <- unique(as.character(truth))
-		   symOpen <- c(2, 0, 1, 5)
-		   symFill <- c(17, 15, 16, 18)
-                   good <- rep(TRUE,length(classification))
-		   good[ERRORS] <- FALSE
-		   if (L > 4) {
-		     points(data[good, 1], data[good, 2], pch = 1,
-			    cex = CEX)
-		     points(data[!good, 1], data[!good, 2], pch = 16,
-			    cex = CEX)
-		    }
-		    else {
-		      for (k in 1:L) {
-			 K <- truth == CLASSES[k]
-			 if (any(I <- (K & good))) {
-	 		   points(data[I, 1], data[I, 2], 
-                                  pch = symOpen[k], cex = CEX)
-			 }
-			 if (any(I <- (K & !good))) {
-	 		   points(data[I, 1], data[I, 2], 
-                                  pch = symFill[k], cex = CEX)
-			 }
-		     }
-  		   }
-                },
-               "uncertainty"=  {
-		  plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-		ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-		   if (identify) {
-                     TITLE <- paste(paste(dimens, collapse=","), 
-                    "Coordinate Projection showing Uncertainty")
-                     title(main=TITLE)
-                   }
-    	          breaks <- quantile(uncertainty, probs = sort(quantiles))
-  	          I <- uncertainty <= breaks[1]
-		    points(data[I, 1], data[I, 2], pch = 16, 
-                           cex = 0.5 * CEX)
-  	 	  I <- uncertainty <= breaks[2] & !I
- 		  points(data[I, 1], data[I, 2], pch = 1, cex = 1 * CEX)
-		  I <- uncertainty > breaks[2] & !I
-		  points(data[I, 1], data[I, 2], pch = 16, 
-                         cex = 1.5 * CEX)
-                },
-               {
-  	        plot(data[, 1], data[, 2], type = "n", xlab = xlab,
-	             ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-		   if (identify) {
-                     TITLE <- paste(paste(dimens, collapse=","), 
-                    "Coordinate Projection")
-                     title(main=TITLE)
-                   }
-   	        points(data[, 1], data[, 2], pch = PCH, cex = CEX)
-                }
-	)
-	if (haveParams) {
-## plot ellipsoids
-	  for (k in 1:G) 
-	     mvn2plot(mu = mu[, k], sigma = sigma[ ,  , k], k = 15)
- 	}
-	invisible()
+      }
+    }
+    ,
+    uncertainty = {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
+        xlim, ylim = ylim, main = "", ...)
+      if(identify) {
+        TITLE <- paste(paste(dimens, collapse = ","), 
+          "Coordinate Projection showing Uncertainty")
+        title(main = TITLE)
+      }
+      breaks <- quantile(uncertainty, probs = sort(quantiles))
+      I <- uncertainty <= breaks[1]
+      points(data[I, 1], data[I, 2], pch = 16, col = "gray75", cex = 0.5 * CEX)
+      I <- uncertainty <= breaks[2] & !I
+      points(data[I, 1], data[I, 2], pch = 16, col = "gray50", cex = 1 * CEX)
+      I <- uncertainty > breaks[2] & !I
+      points(data[I, 1], data[I, 2], pch = 16, col = "black", cex = 1.5 * CEX)
+    }
+    ,
+    {
+      plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
+        xlim, ylim = ylim, main = "", ...)
+      if(identify) {
+        TITLE <- paste(paste(dimens, collapse = ","), "Coordinate Projection")
+        title(main = TITLE)
+      }
+      points(data[, 1], data[, 2], pch = PCH, cex = CEX)
+    }
+    )
+  if(haveParams) {
+    ## plot ellipsoids
+    for(k in 1:G)
+      mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+  }
+  invisible()
 }
 
 "mclust1Dplot" <-
 function(data, parameters=NULL, z=NULL,
          classification=NULL, truth=NULL, uncertainty=NULL, 
          what = c("classification", "density", "errors", "uncertainty"), 
-         symbols=NULL, ngrid = length(data),  xlim=NULL, CEX =1, 
+         symbols=NULL, ngrid = length(data),  xlab=NULL,  xlim=NULL, CEX =1, 
          identify= FALSE, ...) 
 {
 grid1 <- function (n, range = c(0, 1), edge = TRUE) 
@@ -8408,6 +8400,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
           data.frame(density = cden, uncertainty =  rep(NA, length(cden)))
         }  
     }
+    if (is.null(xlab)) xlab <- " "
     p <- ncol(as.matrix(data))
     if (p != 1) 
         stop("for one-dimensional data only")
@@ -8419,6 +8412,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
                 uncertainty <- 1 - apply(z, 1, max)
     if (!is.null(parameters)) {
       mu <- parameters$mean
+      L <- ncol(mu)
       sigmasq <- parameters$variance$sigmasq
       haveParams <- !is.null(mu) && !is.null(sigmasq) && 
                     !any(is.na(mu)) && !any(is.na(sigmasq)) 
@@ -8481,7 +8475,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
     switch (EXPR = what,
             "classification" = {
             plot(data, seq(from = 0, to = M, length = n), type = "n", 
-           xlab = "", ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
+           xlab = xlab, ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
             if (identify) title("Classification")
             for (k in 1:L) {
                 I <- classification == U[k]
@@ -8494,7 +8488,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
         "errors" = {
             ERRORS <- classError(classification, truth)$misclassified
             plot(data, seq(from = 0, to = M, length = n), type = "n", 
-             xlab = "", ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
+             xlab = xlab, ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
             if (identify) title("Classification Errors")
             good <- rep(TRUE, length(classification))
             good[ERRORS] <- FALSE
@@ -8530,7 +8524,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
             x <- grid1(n = ngrid, range = xlim, edge = TRUE)
             lx <- length(x)
             Z <- densNuncer(data = x, parameters = parameters)
-            plot(x, Z$uncertainty, xlab = "", ylab = "uncertainty", 
+            plot(x, Z$uncertainty, xlab = xlab, ylab = "uncertainty", 
                 xlim = xlim, ylim = c(0,1), type = "l", main = "", ...)
             if (identify)  title("Uncertainty")
         },
@@ -8540,7 +8534,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
             x <- grid1(n = ngrid, range = xlim, edge = TRUE)
             lx <- length(x)
             Z <- densNuncer(data = x, parameters = parameters)
-            plot(x, Z$density, xlab = "", ylab = "density", xlim = xlim, 
+            plot(x, Z$density, xlab = xlab, ylab = "density", xlim = xlim, 
                 type = "l", main = "", ...)
             if (identify) title("Density")
         },
@@ -8558,9 +8552,9 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
 "mclust2Dplot" <-
 function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
           uncertainty=NULL, what=c("classification", "uncertainty", "errors"), 
-          quantiles = c(0.75, 0.95), symbols = NULL, scale = FALSE, 
-          xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, 
-          swapAxes = FALSE, ...) 
+          quantiles = c(0.75, 0.95), symbols = NULL, colors = NULL, 
+          scale = FALSE, xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", 
+          identify = FALSE, swapAxes = FALSE, ...) 
 {
         if(dim(data)[2] != 2)
                 stop("data must be two dimensional")
@@ -8570,6 +8564,7 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
                 uncertainty <- 1 - apply(z, 1, max)
         if (!is.null(parameters)) {
           mu <- parameters$mean
+          L <- ncol(mu)
           sigma <- parameters$variance$sigma
           haveParams <- !is.null(mu) && !is.null(sigma) && 
                          !any(is.na(mu)) && !any(is.na(sigma)) 
@@ -8651,10 +8646,21 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
                                 symbols <- LETTERS
                         }
                 }
-                if(length(symbols) < L) {
-                        warning("more symbols needed to show classification")
-                        classification <- NULL
+                if(is.null(colors)) {
+                        if(L <= length(.Mclust$classPlotColors)) {
+                                colors <- .Mclust$classPlotColors[1:L]
+                                if (noise) {
+                                   first <- colors[1]
+                                   colors[colors == "black"] <- first
+                                   colors[1] <- "black"
+                                }
+                        }
                 }
+                else if (length(colors) == 1) colors <- rep(colors, L)
+            if(length(symbols) < L && length(colors) < L) {
+                warning("more symbols/colors needed to show classification ")
+                        classification <- NULL
+            }
         }
         if (length(what) > 1) what <- what[1]
         choices <- c("classification", "errors", "uncertainty")
@@ -8680,7 +8686,7 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
             for (k in 1:L) {
                 I <- classification == U[k]
                 points(data[I, 1], data[I, 2], pch = symbols[k], 
-                       cex = if (U[k] == "0") CEX/4 else CEX)
+                       col = colors[k], cex = if (U[k] == "0") CEX/4 else CEX)
             }
             },
             "errors" = {
@@ -8695,7 +8701,7 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
             good[ERRORS] <- FALSE
             if (L > 4) {
                 points(data[good, 1], data[good, 2], pch = 1, 
-                  cex = CEX)
+                  col = colors, cex = CEX)
                 points(data[!good, 1], data[!good, 2], pch = 16, 
                   cex = CEX)
             }
@@ -8703,7 +8709,7 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
                 for (k in 1:L) {
                   K <- truth == CLASSES[k]
                   points(data[K, 1], data[K, 2], pch = symOpen[k], 
-                    cex = CEX)
+                    col = colors[k], cex = CEX)
                   if (any(I <- (K & !good))) {
                     points(data[I, 1], data[I, 2], pch = symFill[k], 
                       cex = CEX)
@@ -8717,14 +8723,14 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
             if (identify) title("Classification Uncertainty")
             breaks <- quantile(uncertainty, probs = sort(quantiles))
             I <- uncertainty < breaks[1]
-            points(data[I, 1], data[I, 2], pch = 16, cex = 0.5 * 
-                CEX)
+            points(data[I, 1], data[I, 2], pch = 16, col = "gray75",
+                   cex = 0.5 * CEX)
             I <- uncertainty < breaks[2] & !I
-            points(data[I, 1], data[I, 2], pch = 1, cex = 1 * 
-                CEX)
+            points(data[I, 1], data[I, 2], pch = 16, col = "gray50",
+                   cex = 1 * CEX)
             I <- uncertainty >= breaks[2]
-            points(data[I, 1], data[I, 2], pch = 16, cex = 1.5 * 
-                CEX)
+            points(data[I, 1], data[I, 2], pch = 16, col = "black",
+                   cex = 1.5 * CEX)
         },
         {
             plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
@@ -8784,14 +8790,17 @@ function (mu, sigma, k = 15, alone = FALSE, col = 1)
 }
 
 "plot.Mclust" <-
-function (x, data=NULL, 
-          what=c("BIC","classification","uncertainty","density"), 
-          ylimBIC=NULL, ...) 
+function (x, data = NULL, 
+          what = c("BIC","classification","uncertainty","density"), 
+          dimens = c(1,2), ylim = NULL,  
+          legendArgs = list(x="bottomright", ncol=2, cex=1),
+          identify = TRUE, ...) 
 {
     parSave <- par(no.readonly = TRUE)
     on.exit(par(parSave))
     par(ask = TRUE)
-    plot.mclustBIC(x$BIC, ylim = ylimBIC, ...)
+    if (any(match("BIC", what, nomatch = 0)))
+      plot.mclustBIC(x$BIC, ylim = ylim, legendArgs = legendArgs,...)
     # title("BIC")
     if (is.null(data)) {
         warning("data not supplied")
@@ -8802,35 +8811,100 @@ function (x, data=NULL,
         if (any(match("classification", what, nomatch = 0)))
           clPairs(data[,1:min(5,p)], classification = x$classification, ...)
         if (any(match("classification", what, nomatch = 0)))
-          coordProj(data = data, parameters=x$parameters, 
-                    z=x$z, what = "classification", identify = TRUE, ...)
+          coordProj(data = data, parameters=x$parameters, z = x$z,
+                    what = "classification", dimens = dimens, identify = identify, 
+                    ...)
         if (any(match("uncertainty", what, nomatch = 0)))
-          coordProj(data = data, parameters=x$parameters, 
-                    z=x$z, what = "uncertainty", identify = TRUE, ...)
+          coordProj(data = data, parameters=x$parameters, z = x$z,
+                    what = "uncertainty", dimens = dimens, identify = identify, 
+                    ...)
     }
     else if (p == 2) {
         if (any(match("classification", what, nomatch = 0)))
           mclust2Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "classification", identify = TRUE, ...)
+                       what = "classification", identify = identify, ...)
         if (any(match("uncertainty", what, nomatch = 0)))
           mclust2Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "uncertainty", identify = TRUE, ...)
+                       what = "uncertainty", identify = identify, ...)
         if (any(match("density", what, nomatch = 0)))
            surfacePlot(data = data, parameters=x$parameters,
-                     what = "density", identify = TRUE, ...)
+                     what = "density", identify = identify, ...)
     }
     else {
         if (any(match("classification", what, nomatch = 0)))
            mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "classification", identify = TRUE, ...)
+                       what = "classification", identify = identify, ...)
         if (any(match("uncertainty", what, nomatch = 0)))
           mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "uncertainty", identify = TRUE, ...)
+                       what = "uncertainty", identify = identify, ...)
         if (any(match("density", what, nomatch = 0)))
           mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "density", identify = TRUE, ...)
+                       what = "density", identify = identify, ...)
     }
     invisible()
+}
+
+"plot.mclustBIC" <-
+function(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL, 
+         ylim = NULL, legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
+         CEX = 1, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  fill <- FALSE
+  subset <- !is.null(attr(x, "initialization")$subset)
+  noise <- !is.null(attr(x, "initialization")$noise)
+  ret <- attr(x, "returnCodes") == -3
+  if(!subset && any(ret) && fill) {
+    x <- bicFill(x, ret, n, d)
+  }
+  n <- ncol(x)
+  dnx <- dimnames(x)
+  ##
+  x <- matrix(as.vector(x), ncol = n)
+  dimnames(x) <- dnx
+  if(is.null(modelNames))
+    modelNames <- dimnames(x)[[2]]
+  if(is.null(G))
+    G <- as.numeric(dimnames(x)[[1]])
+# BIC <- x[as.character(G), modelNames, drop = FALSE]
+# X <- is.na(BIC)
+# nrowBIC <- nrow(BIC)
+# ncolBIC <- ncol(BIC)
+  if(is.null(symbols)) {
+    colNames <- dimnames(x)[[2]]
+    m <- length(modelNames)
+    if(is.null(colNames)) {
+      symbols <- if(m > 9) LETTERS[1:m] else as.character(1:m)
+      names(symbols) <- modelNames
+    }
+    else {
+      symbols <- .Mclust$bicPlotSymbols[modelNames]
+    }
+  }
+  if(is.null(colors)) {
+    colNames <- dimnames(x)[[2]]
+    if(is.null(colNames)) {
+      colors <- 1:m
+      names(colors) <- modelNames
+    }
+    else {
+      colors <- .Mclust$bicPlotColors[modelNames]
+    }
+  }
+  if(is.null(ylim))
+    ylim <- range(as.vector(x[!is.na(x)]))
+  matplot(x, type = "b", xlim = range(G), ylim = ylim,
+          pch = symbols, col = colors, lty = 1,
+          xlab ="number of components", ylab = "BIC", main = "")
+ if (!is.null(legendArgs)) 
+   do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
+            legendArgs))
+ invisible(symbols)
 }
 
 "plot.mclustDA" <-
@@ -8977,8 +9051,8 @@ function(x, trainData, testData, ...)
 }
 
 "plot.mclustDAtrain" <-
-function(x, data, dimens = c(1,2), symbols = NULL, scale = FALSE, 
-         xlim = NULL, ylim = NULL,  CEX = 1, ...)
+function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
+         scale = FALSE, xlim = NULL, ylim = NULL,  CEX = 1, ...)
 {
 	##
 	# This function is part of the MCLUST software described at
@@ -9010,11 +9084,17 @@ function(x, data, dimens = c(1,2), symbols = NULL, scale = FALSE,
             else if (L <= 26) {
                 symbols <- LETTERS
             }
-            if (length(symbols) < L) {
+            if (length(symbols) < L && length(symbols) != 1) {
               warning("more symbols needed to show classification")
               symbols <- rep(16, L)
             }
-          }
+           if (is.null(colors)) 
+             colors <- .Mclust$classPlotColors
+            }
+            if (length(colors) < L && length(colors) != 1) {
+              warning("more colors needed to show classification")
+              colors <- rep("black", L)
+            }
           if (is.null(xlim))
             xlim <- range(data[, 1])
           if (is.null(ylim))
@@ -9042,7 +9122,7 @@ function(x, data, dimens = c(1,2), symbols = NULL, scale = FALSE,
           for (l in 1:length(x)) { 
              I <- x[[l]]$observations
              points(data[I, dimens[1]], data[I, dimens[2]], pch = symbols[l], 
-                    cex = CEX)
+                    col = colors[l], cex = CEX)
              for (k in 1:(x[[l]]$G)) {
                 mvn2plot(mu = x[[l]]$parameters$mean[, k], 
                         sigma = x[[l]]$parameters$variance$sigma[ ,  , k], 
@@ -9058,8 +9138,8 @@ function(x, data, dimens = c(1,2), symbols = NULL, scale = FALSE,
             for (l in 1:length(x)) { 
                I <- x[[l]]$observations
                i <- length(I)
-               points(data[I], rep(0,i), pch = sym, cex = CEX) 
-               points(data[I], rep(l,i), pch = sym, cex = CEX) 
+               points(data[I], rep(0,i), pch = sym, col = colors[l], cex = CEX)
+               points(data[I], rep(l,i), pch = sym, col = colors[l], cex = CEX)
             }
 	}
 	invisible()
@@ -9084,203 +9164,223 @@ function (x, ndigits = options()$digits, ...)
 }
 
 "randProj" <-
-function(data, seeds = 0, parameters=NULL, z=NULL,
-         classification=NULL, truth=NULL, uncertainty=NULL, 
-         what = c("classification","errors","uncertainty"),
-         quantiles = c(0.75, 0.95), symbols=NULL, scale = FALSE, 
-         xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, ...)
+function(data, seeds = 0, parameters = NULL, z = NULL, classification = NULL, 
+  truth = NULL, uncertainty = NULL, what = c("classification", "errors", 
+  "uncertainty"), quantiles = c(0.75, 0.94999999999999996), symbols = NULL, 
+  colors = NULL, scale = FALSE, xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", 
+  identify = FALSE, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if (scale) par(pty = "s")
-	if (is.null(classification) && !is.null(z))
-		classification <- map(z)
-	if (is.null(uncertainty) && !is.null(z))
-		uncertainty <- 1 - apply(z, 1, max)
-        if (!is.null(parameters)) {
-          mu <- parameters$mean
-          sigma <- parameters$variance$sigma
-	  haveParams <- !is.null(mu) && !is.null(sigma) && 
-                         !any(is.na(mu)) && !any(is.na(sigma)) 
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(scale) par(pty = "s")
+  if(is.null(classification) && !is.null(z))
+    classification <- map(z)
+  if(is.null(uncertainty) && !is.null(z))
+    uncertainty <- 1 - apply(z, 1, max)
+  if(!is.null(parameters)) {
+    mu <- parameters$mean
+    L <- ncol(mu)
+    sigma <- parameters$variance$sigma
+    haveParams <- !is.null(mu) && !is.null(sigma) && !any(is.na(mu)) && !any(
+      is.na(sigma))
+  }
+  else haveParams <- FALSE
+  xlab <- ylab <- ""
+  p <- ncol(data)
+  if(haveParams) {
+    G <- ncol(mu)
+    dimpar <- dim(sigma)
+    if(length(dimpar) != 3) {
+      haveParams <- FALSE
+      warning("covariance must be a 3D matrix")
+    }
+    if(G != dimpar[3]) {
+      haveParams <- FALSE
+      warning("means and variance parameters are incompatible")
+    }
+    cho <- array(apply(sigma, 3, chol), c(p, p, G))
+  }
+  if(!is.null(truth)) {
+    if(is.null(classification)) {
+      classification <- truth
+      truth <- NULL
+    }
+    else {
+      if(length(unique(truth)) != length(unique(classification)))
+        truth <- NULL
+      else truth <- as.character(truth)
+    }
+  }
+  if(!is.null(classification)) {
+    classification <- as.character(classification)
+    U <- sort(unique(classification))
+    L <- length(U)
+    noise <- classification[1] == "0"
+    if(is.null(symbols)) {
+      if(L <= length(.Mclust$classPlotSymbols)) {
+        symbols <- .Mclust$classPlotSymbols
+        if(noise) {
+          first <- symbols[1]
+          symbols[symbols == 16] <- first
+          symbols[1] <- 16
         }
-        else haveParams <- FALSE
-	xlab <- ylab <- ""
-        p <- ncol(data)
-        if (haveParams) {
-          G <- ncol(mu)
-	  dimpar <- dim(sigma)
-	  if (length(dimpar) != 3) {
-  	    haveParams <- FALSE
-  	    warning("covariance must be a 3D matrix")
-	  }
-	  if (G != dimpar[3]) {
-	    haveParams <- FALSE
-  	    warning("means and variance parameters are incompatible")
-       	  }
-          cho <- array(apply(sigma, 3, chol), c(p, p, G))
+      }
+      else if(L <= 9) {
+        symbols <- as.character(1:9)
+      }
+      else if(L <= 26) {
+        symbols <- LETTERS
+      }
+    }
+    else if(length(symbols) == 1)
+      symbols <- rep(symbols, L)
+    if(is.null(colors)) {
+      if(L <= length(.Mclust$classPlotColors)) {
+        colors <- .Mclust$classPlotColors[1:L]
+        if(noise) {
+          first <- colors[1]
+          colors[colors == "black"] <- first
+          colors[1] <- "black"
         }
-	if (!is.null(truth)) {
-		if(is.null(classification)) {
-			classification <- truth
-			truth <- NULL
-		}
-		else {
-			if(length(unique(truth)) != length(unique(
-				classification)))
-				truth <- NULL
-			else truth <- as.character(truth)
-		}
-	}
-	if (!is.null(classification)) {
-		classification <- as.character(classification)
-		U <- sort(unique(classification))
-		L <- length(U)
-                noise <- classification[1] == "0"
-		if(is.null(symbols)) {
-			if(L <= length(.Mclust$classPlotSymbols)) {
-				symbols <- .Mclust$classPlotSymbols
-                                if (noise) {
-                                   first <- symbols[1]
-                                   symbols[symbols == 16] <- first
-                                   symbols[1] <- 16
-                                }
-
-			}
-			else if(L <= 9) {
-				symbols <- as.character(1:9)
-			}
-			else if(L <= 26) {
-				symbols <- LETTERS
-			}
-		}
-		if(length(symbols) < L) {
-			warning("more symbols needed to show classification")
-			classification <- NULL
-		}
-	}
-        if (length(what) > 1) what <- what[1]
-	choices <- c("classification", "errors", "uncertainty")
-	m <- charmatch(what, choices, nomatch = 0)
-        if (m) { 
-          what <- choices[m] 
-          bad <- what == "classification" && is.null(classification)
-          bad <- bad || (what == "uncertainty" && is.null(uncertainty))
-          bad <- bad || (what == "errors" && 
-                (is.null(classification) || is.null(truth)))
-          if (bad) warning("insufficient input for specified plot")
+      }
+    }
+    else if(length(colors) == 1)
+      colors <- rep(colors, L)
+    if(length(symbols) < L && length(colors) < L) {
+      warning("more symbols/colors needed to show classification ")
+      classification <- NULL
+    }
+  }
+  if(length(what) > 1)
+    what <- what[1]
+  choices <- c("classification", "errors", "uncertainty")
+  m <- charmatch(what, choices, nomatch = 0)
+  if(m) {
+    what <- choices[m]
+    bad <- what == "classification" && is.null(classification)
+    bad <- bad || (what == "uncertainty" && is.null(uncertainty))
+    bad <- bad || (what == "errors" && (is.null(classification) || is.null(
+      truth)))
+    if(bad)
+      warning("insufficient input for specified plot")
+  }
+  else {
+    bad <- !m
+    warning("what improperly specified")
+  }
+  if(bad)
+    what <- "bad"
+  nullXlim <- is.null(xlim)
+  nullYlim <- is.null(ylim)
+  if(length(seeds) > 1)
+    par(ask = TRUE)
+  for(seed in seeds) {
+    set.seed(seed)
+    Q <- orth2(p)
+    Data <- as.matrix(data) %*% Q
+    if(dim(Data)[2] != 2)
+      stop("need two dimensions")
+    if(nullXlim)
+      xlim <- range(Data[, 1])
+    if(nullYlim)
+      ylim <- range(Data[, 2])
+    if(scale) {
+      d <- diff(xlim) - diff(ylim)
+      if(d > 0) {
+        ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
+      }
+      else {
+        xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
+      }
+    }
+    switch(EXPR = what,
+      classification = {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
+           = xlim, ylim = ylim, main = "", ...)
+        for(k in 1:L) {
+          I <- classification == U[k]
+          points(Data[I, 1], Data[I, 2], pch = symbols[k], col = colors[k], cex
+             = CEX)
+        }
+        if(identify) {
+          TITLE <- paste("Random Projection showing Classification: seed = ", 
+            seed)
+          title(TITLE)
+        }
+      }
+      ,
+      errors = {
+        ERRORS <- classError(classification, truth)$misclassifiedPoints
+        plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
+           = xlim, ylim = ylim, main = "", ...)
+        if(identify) {
+          TITLE <- paste("Random Projection showing Errors: seed = ", seed)
+          title(TITLE)
+        }
+        CLASSES <- unique(as.character(truth))
+        symOpen <- c(2, 0, 1, 5)
+        symFill <- c(17, 15, 16, 18)
+        good <- !ERRORS
+        if(L > 4) {
+          points(Data[good, 1], Data[good, 2], pch = 1, col = colors, cex = CEX
+            )
+          points(Data[!good, 1], Data[!good, 2], pch = 16, cex = CEX)
         }
         else {
-          bad <- !m
-          warning("what improperly specified")
+          for(k in 1:L) {
+            K <- truth == CLASSES[k]
+            points(Data[K, 1], Data[K, 2], pch = symOpen[k], col = colors[k], 
+              cex = CEX)
+            if(any(I <- (K & ERRORS))) {
+              points(Data[I, 1], Data[I, 2], pch = symFill[k], cex = CEX)
+            }
+          }
         }
-        if (bad) what <- "bad"
-     nullXlim <- is.null(xlim)
-     nullYlim <- is.null(ylim)
-     if (length(seeds) > 1) par(ask = TRUE)
-     for (seed in seeds) {
-        set.seed(seed)
-        Q <- orth2(p)
-        Data <- as.matrix(data) %*% Q
-	if(dim(Data)[2] != 2)
-		stop("need two dimensions")
-	if(nullXlim)
-		xlim <- range(Data[, 1])
-	if(nullYlim)
-		ylim <- range(Data[, 2])
-	if(scale) {
-		d <- diff(xlim) - diff(ylim)
-		if(d > 0) {
-			ylim <- c(ylim[1] - d/2, ylim[2] + d/2.)
-		}
-		else {
-			xlim <- c(xlim[1] + d/2, xlim[2] - d/2)
-		}
-	}
-          switch (EXPR = what,
-                "classification"=  {
-		   plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-		ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-		   for (k in 1:L) {
-		      I <- classification == U[k]
- 		      points(Data[I, 1], Data[I, 2], pch = symbols[k], 
-                             cex = CEX)
-	  	   }
-               if (identify) {
-     TITLE <- paste("Random Projection showing Classification: seed = ", seed)
-                 title(TITLE)
-                } 
-                },
-                "errors"=  {
-	 ERRORS <- classError(classification, truth)$misclassifiedPoints
-		   plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-			ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-               if (identify) {
-     TITLE <- paste("Random Projection showing Errors: seed = ", seed)
-                 title(TITLE)
-                } 
-	           CLASSES <- unique(as.character(truth))
-		   symOpen <- c(2, 0, 1, 5)
-		   symFill <- c(17, 15, 16, 18)
-		   good <- !ERRORS
-		   if (L > 4) {
-		     points(Data[good, 1], Data[good, 2], pch = 1,
-			    cex = CEX)
-		     points(Data[!good, 1], Data[!good, 2], pch = 16,
-			    cex = CEX)
-		    }
-		    else {
-		      for (k in 1:L) {
-			 K <- truth == CLASSES[k]
-			 points(Data[K, 1], Data[K, 2], pch = symOpen[k],
-                                cex = CEX)
-			 if (any(I <- (K & ERRORS))) {
-	 		   points(Data[I, 1], Data[I, 2], 
-                                  pch = symFill[k], cex = CEX)
-			 }
-		     }
-  		   }
-                },
-               "uncertainty"=  {
-		  plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-			ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-               if (identify) {
-     TITLE <- paste("Random Projection showing Uncertainty: seed = ", seed)
-                 title(TITLE)
-                } 
-		  breaks <- quantile(uncertainty, probs = sort(quantiles))
-  	          I <- uncertainty <= breaks[1]
-		    points(Data[I, 1], Data[I, 2], pch = 16, 
-                           cex = 0.5 * CEX)
-  	 	  I <- uncertainty <= breaks[2] & !I
- 		  points(Data[I, 1], Data[I, 2], pch = 1, cex = 1 * CEX)
-		  I <- uncertainty > breaks[2] & !I
-		  points(Data[I, 1], Data[I, 2], pch = 16, 
-                         cex = 1.5 * CEX)
-                },
-                {
-    	         plot(Data[, 1], Data[, 2], type = "n", xlab = xlab,
-	              ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-               if (identify) {
-     TITLE <- paste("Random Projection: seed = ", seed)
-                 title(TITLE)
-                } 
-	         points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
-                }
-	  )
-	if (haveParams) {
-## plot ellipsoids
-           muTrans <- crossprod(Q, mu)
-           sigmaTrans <- array(apply(cho, 3, function(R, Q) crossprod(R %*% 
-                  Q), Q = Q), c(2, 2, G))
-	  for (k in 1:G) 
-	     mvn2plot(mu = muTrans[, k], sigma = sigmaTrans[ ,  , k], k = 15)
- 	}
-}
-	invisible()
+      }
+      ,
+      uncertainty = {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
+           = xlim, ylim = ylim, main = "", ...)
+        if(identify) {
+          TITLE <- paste("Random Projection showing Uncertainty: seed = ", seed
+            )
+          title(TITLE)
+        }
+        breaks <- quantile(uncertainty, probs = sort(quantiles))
+        I <- uncertainty <= breaks[1]
+        points(Data[I, 1], Data[I, 2], pch = 16, col = "gray75", cex = 0.5 * 
+          CEX)
+        I <- uncertainty <= breaks[2] & !I
+        points(Data[I, 1], Data[I, 2], pch = 16, col = "gray50", cex = 1 * CEX)
+        I <- uncertainty > breaks[2] & !I
+        points(Data[I, 1], Data[I, 2], pch = 16, col = "black", cex = 1.5 * CEX
+          )
+      }
+      ,
+      {
+        plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
+           = xlim, ylim = ylim, main = "", ...)
+        if(identify) {
+          TITLE <- paste("Random Projection: seed = ", seed)
+          title(TITLE)
+        }
+        points(Data[, 1], Data[, 2], pch = PCH, cex = CEX)
+      }
+      )
+    if(haveParams) {
+      ## plot ellipsoids
+      muTrans <- crossprod(Q, mu)
+      sigmaTrans <- array(apply(cho, 3, function(R, Q)
+      crossprod(R %*% Q), Q = Q), c(2, 2, G))
+      for(k in 1:G)
+        mvn2plot(mu = muTrans[, k], sigma = sigmaTrans[,  , k], k = 15)
+    }
+  }
+  invisible()
 }
 
 "summary.mclustBIC" <-
@@ -9655,6 +9755,19 @@ function(data, reciprocal = FALSE)
 	dimd <- dim(data)
 	n <- dimd[1]
 	p <- dimd[2]
+##
+#		vol1 <- prod(apply(data, 2, function(z)
+#		diff(range(z))))
+#		V <- matrix(temp[[1]], p, p)
+#		xbar <- apply(data, 2, mean)
+#		X <- sweep(data, 2, xbar)
+#		library(Matrix)
+#		print(V)
+#		print(eigen.Hermitian(crossprod(X))$vectors)
+#		X <- X %*% V
+#		vol <- prod(apply(X, 2, function(z)
+#		diff(range(z))))
+##
 	lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)
 	# min
 	lwsyevd <- p * (3 * p + 2 * ceiling(logb(p, base = 2)) + 5) + 1

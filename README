@@ -1,8 +1,12 @@
 2006 version of MCLUST, by Fraley and Raftery
 (Dept. of Statistics, University of Washington)
 
-New functionality added, including conjugate priors for Bayesian 
-regularization. 
+Version 3.0: New functionality added, including conjugate priors 
+for Bayesian regularization. 
 Backward compatibility is not guaranteed since the implementation of some 
 functions has changed to make them easier to use or maintain.
+
+Version 3.1: Plotting functions changed mainly to use color.
+Otherwise backward compatible with version 3.0
+ 
 

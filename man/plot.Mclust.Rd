@@ -8,8 +8,10 @@
   (for one- and two-dimensional data) density.
 }
 \usage{
-plot.Mclust(x, data, what = c("BIC", "classification", 
-            "uncertainty", "density"), ylimBIC = NULL,\dots)
+plot.Mclust(x, data = NULL, what = c("BIC", "classification", 
+            "uncertainty", "density"), dimens = c(1,2), ylim = NULL,
+            legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
+            identify = TRUE, \dots)
 }
 \arguments{
   \item{x}{
@@ -23,8 +25,21 @@ plot.Mclust(x, data, what = c("BIC", "classification",
     \code{"uncertainty"}. If the data dimension is less than 3,
     \code{"density"} can also be chosen. 
   }
- \item{ylimBIC}{
+\item{dimens}{
+    A vector of length 2 giving the integer dimensions of the
+    desired coordinate projections for multivariate data. The default is
+    \code{c(1,2)}, in which the first dimension is plotted against the second.
+  }
+ \item{ylim}{
     Limits for the vertical axis of the BIC plot.
+  }
+ \item{legendArgs}{
+    Arguments to pass to the \code{legend} function. Set to \code{NULL}
+    for no legend.
+  }
+ \item{identify}{
+    A logical variable indicating whether or not to add a title to the plot
+    identifying the dimensions used.
   }
   \item{\dots}{
     Other graphics parameters.
@@ -49,8 +64,8 @@ plot.Mclust(x, data, what = c("BIC", "classification",
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
   C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report, Department of Statistics,
+  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
+  Technical Report no. 504, Department of Statistics,
   University of Washington.
 }
 

@@ -11,7 +11,7 @@
 randProj(data, seeds=0, parameters=NULL, z=NULL,
          classification=NULL, truth=NULL, uncertainty=NULL, 
          what = c("classification", "errors", "uncertainty"),
-         quantiles = c(0.75, 0.95), symbols=NULL, scale = FALSE, 
+         quantiles = c(0.75, 0.95), symbols=NULL, colors=NULL, scale = FALSE, 
          xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, \dots)
 }
 \arguments{
@@ -80,13 +80,18 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
     \emph{(0.75,0.95)}. 
   }
   \item{symbols}{
-    Either an integer or character vector assigning a plotting symbol to
-    each unique class in \code{classification}. Elements in
-    \code{symbols} correspond to classes in \code{classification} in
-    sorted order. Default: If \emph{G} is the number of groups in the
-    classification, the first \emph{G} symbols in
-    \code{.Mclust\$classPlotSymbols}, otherwise if \emph{G} is less than 
-    27 then the first \emph{G} capital letters in the Roman alphabet. 
+    Either an integer or character vector assigning a plotting symbol to each
+    unique class in \code{classification}. Elements in \code{colors}
+    correspond to classes in order of appearance in the sequence of
+    observations (the order used by the function \code{unique}). 
+    The default is given is \code{.Mclust\$classPlotSymbols}.
+  } 
+  \item{colors}{
+    Either an integer or character vector assigning a color to each
+    unique class in \code{classification}. Elements in \code{colors}
+    correspond to classes in order of appearance in the sequence of
+    observations (the order used by the function \code{unique}). 
+    The default is given is \code{.Mclust\$classPlotColors}.
   }
   \item{scale}{
     A logical variable indicating whether or not the two chosen

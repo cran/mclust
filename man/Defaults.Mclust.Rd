@@ -36,14 +36,26 @@
     "VVV": ellipsoidal, varying volume, shape, and orientation 
   }
   \item{bicPlotSymbols}{
-    A vector whose entries are either integers corresponding to graphics 
-    symbols or single characters used for plotting the BIC values output
-    from \code{Mclust} and \code{mclustBIC}. 
+    A vector whose entries correspond to graphics symbols for plotting the 
+    BIC values output from \code{Mclust} and \code{mclustBIC}. 
+    These are displayed in the legend which appears at the lower right
+    of the BIC plots.
+  }
+  \item{bicPlotColors}{
+    A vector whose entries correspond to colors for plotting the 
+    BIC curves from output from \code{Mclust} and \code{mclustBIC}. 
+    These are displayed in the legend which appears at the lower right
+    of the BIC plots.
   }
   \item{classPlotSymbols}{
     A vector whose entries are either integers corresponding to graphics 
-    symbols or single characters for plotting data with classifications. 
-    Classes are assigned symbols in the given order. 
+    symbols or single characters for indicating classifications when
+    plotting data. Classes are assigned symbols in the given order. 
+  }
+  \item{classPlotColors}{
+    A vector whose entries correspond to colors for indicating 
+    classifications when plotting data. Classes are assigned colors 
+    in the given order. 
   }
 \item{warn}{
     A logical value indicating whether or not to issue certain warnings
@@ -60,9 +72,8 @@
   \emph{Journal of the American Statistical Association}. 
   
   C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling 
-  and Model-Based Clustering, Technical Report, Department of Statistics,
-  University of Washington. 
+  MCLUST Version 3 for R: Normal Mixture Modeling  and Model-Based Clustering, 
+  Technical Report no. 504, Department of Statistics, University of Washington. 
 }
 \seealso{
   \code{\link{mclustOptions}},

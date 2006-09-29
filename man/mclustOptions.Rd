@@ -8,8 +8,9 @@
   with \emph{MCLUST}.
 }
 \usage{
-mclustOptions(emModelNames=NULL, hcModelNames=NULL, bicPlotSymbols=NULL,
-              classPlotSymbols=NULL, warn=TRUE) 
+mclustOptions(emModelNames=NULL, hcModelNames=NULL, 
+              bicPlotSymbols=NULL, bicPlotColors=NULL, 
+              classPlotSymbols=NULL, classPlotColors=NULL, warn=TRUE) 
 }
 \arguments{
   \item{emModelNames}{
@@ -30,17 +31,32 @@ mclustOptions(emModelNames=NULL, hcModelNames=NULL, bicPlotSymbols=NULL,
   }
   \item{bicPlotSymbols}{
     A vector whose entries are either integers corresponding to graphics
-    symbols or single characters for plotting for
-    classifications. Classes are assigned symbols in the given
-    order. The default is \cr
+    symbols or single characters for plotting BIC curves.
+    The default is \cr
    \code{c(EII=17,VII=2,EEI=16,EVI=10,VEI=13,VVI=1, \cr
            EEE=15,EEV=12,VEV=7,VVV=0,E=17,V=2)}.
+  }
+  \item{bicPlotColors}{
+    A vector whose entries are either integers corresponding to colors
+    to BIC curves.
+   \code{c(EII="gray",VII="black",\cr
+           EEI="orange",EVI="brown",VEI="red",VVI="magenta", \cr
+           EEE="forestgreen",EEV="green",VEV="cyan",VVV="blue",\cr
+           E="gray",V="black")}.
   }
   \item{classPlotSymbols}{
     A vector whose entries are either integers corresponding to graphics
     symbols or single characters for plotting for
     classifications. Classes are assigned symbols in the given order.
     The default is \code{c(17,0,10,4,11,18,6,7,3,16,2,12,8,15,1,9,14,13,5)}. 
+  }
+  \item{classPlotColors}{
+    A vector whose entries are either integers corresponding to graphics
+    symbols or single characters for plotting for
+    classifications. Classes are assigned symbols in the given order.
+    The default is\cr
+     \code{ "blue", "red", "green", "cyan", "magenta", \cr  
+     "forestgreen", "purple", "orange", "gray", "brown", "black")}
   }
   \item{warn}{
     A logical value allowing some types of warnings to be turned on
@@ -67,8 +83,8 @@ mclustOptions(emModelNames=NULL, hcModelNames=NULL, bicPlotSymbols=NULL,
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
   C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report, Department of Statistics,
+  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
+  Technical Report no. 504, Department of Statistics,
   University of Washington.
 }
 \seealso{

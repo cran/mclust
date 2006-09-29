@@ -54,11 +54,10 @@ clPairs(data, classification, symbols, labels=dimnames(data)[[2]],
   classifications are labeled with different symbols. 
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{pairs}},
@@ -66,11 +65,7 @@ clPairs(data, classification, symbols, labels=dimnames(data)[[2]],
   \code{\link{mclustOptions}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
-
-clPairs(irisMatrix, cl=irisClass, symbols=as.character(1:3))
+clPairs(iris[,-5], cl=iris[,5], symbols=as.character(1:3))
 }
 \keyword{cluster}
 % docclass is function

@@ -1,69 +1,71 @@
 \name{mclust1Dplot}
 \alias{mclust1Dplot}
 \title{
-  Plot one-dimensional data modelled by an MVN mixture.
+  Plot one-dimensional data modeled by an MVN mixture.
 }
 \description{
   Plot one-dimensional data given parameters of an MVN mixture model 
   for the data.
 }
 \usage{
-mclust1Dplot(data, \dots,
-             type = c("classification","uncertainty","density","errors"),
-             ask = TRUE, symbols, grid = 100, identify = FALSE, CEX = 1, xlim) 
+mclust1Dplot(data, parameters=NULL, z=NULL, 
+             classification=NULL, truth=NULL, uncertainty=NULL, 
+             what = c("classification", "density", "errors", "uncertainty"),
+             symbols=NULL, ngrid=length(data), xlim=NULL, CEX=1, 
+             identify=FALSE, \dots)
 }
 \arguments{
   \item{data}{
     A numeric vector of observations.
     Categorical variables are not allowed.
   }
-  \item{\dots}{
-    One or more of the following:
-    \describe{
-      \item{classification}{
-	A numeric or character vector representing a classification of
-	observations (rows) of \code{data}.
-      }
-      \item{uncertainty}{
-	A numeric vector of values in \emph{(0,1)} giving the
-	uncertainty of each data point.
-      }
-      \item{z}{
-	A matrix in which the \emph{[i,k]}the entry gives the
-	probability of observation \emph{i} belonging to the \emph{k}th class. 
-	Used to compute \code{classification} and
-	\code{uncertainty} if those arguments aren't available.
-      }
-      \item{truth}{
-	A numeric or character vector giving a known
-	classification of each data point.
-	If \code{classification}
-	or \code{z} is also present, this  
-	is used for displaying classification errors.
-      }
-      \item{mu}{
-	A vector whose entries are the means of each group. 
-      }
-      \item{sigma}{
-	Either a vector whose entries are the variances for each group or a
-	scalar giving a common variance for the groups.
-      }
-      \item{pro}{
-	The vector of mixing proportions.
-      }
-    }
+ \item{parameters}{
+     A named list giving the parameters of an \emph{MCLUST} model,
+     used to produce superimposing ellipses on the plot.
+     The relevant components are as follows:
+     \describe{
+        \item{pro}{
+	 The vector of mixing proportions.
+        }
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+     }
   }
-  \item{type}{
-    Any subset of
-    \code{c("classification","uncertainty","density","errors")}.
-    The function will produce the corresponding plot if
-    it has been supplied sufficient information to do so. If more than
-    one plot is possible then users will be asked to choose from a menu
-    if \code{ask=TRUE}. 
+\item{z}{
+        A matrix in which the \code{[i,k]}th entry gives the
+        probability of observation \emph{i} belonging to the \emph{k}th class.
+        Used to compute \code{classification} and
+        \code{uncertainty} if those arguments aren't available.
   }
-  \item{ask}{
-    A logical variable indicating whether or not a menu should be produced
-    when more than one plot is possible. The default is \code{ask=TRUE}.
+\item{classification}{
+        A numeric or character vector representing a classification of
+        observations (rows) of \code{data}. If present argument \code{z}
+        will be ignored.
+  }
+  \item{truth}{
+        A numeric or character vector giving a known
+        classification of each data point.
+        If \code{classification}
+        or \code{z} is also present,
+        this is used for displaying classification errors.
+  }
+  \item{uncertainty}{
+        A numeric vector of values in \emph{(0,1)} giving the
+        uncertainty of each data point. If present argument \code{z}
+        will be ignored.
+  }
+  \item{what}{
+    Choose from one of the following three options: \code{"classification"}
+    (default), \code{"density"}, \code{"errors"}, \code{"uncertainty"}.
   }
   \item{symbols}{
     Either an integer or character vector assigning a plotting symbol to
@@ -74,60 +76,67 @@ mclust1Dplot(data, \dots,
     symbol \emph{|}. Classes are delineated by showing them in separate
     lines above the whole of the data.
   }
-  \item{grid}{
-    Number of grid points to use.
-  }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
-  }
-  \item{CEX}{
-    An argument specifying the size of the plotting symbols. 
-    The default value is 1.
+  \item{ngrid}{
+    Number of grid points to use for density computation over the interval
+    spanned by the data. The default is the length of the data set.
   }
   \item{xlim}{
     An argument specifying bounds of the plot.
     This may be useful for when comparing plots.
   }
+  \item{CEX}{
+    An argument specifying the size of the plotting symbols. 
+    The default value is 1.
+  }
+  \item{identify}{
+    A logical variable indicating whether or not to add a title to the plot
+    identifying the dimensions used.
+  }
+\item{\dots}{
+    Other graphics parameters.
+  }
 }
 \section{Side Effects}{
-  One or more plots showing location of the mixture components, classification,
+  A plot showing location of the mixture components, classification,
   uncertainty, density and/or classification errors. Points in the different
-  classes are shown in separate lines above the whole of the data.
+  classes are shown in separated levels above the whole of the data.
 }
+
 \section{References}{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}.
-  
-  
-  C. Fraley and A. E. Raftery (2002).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis.
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{mclust2Dplot}},
   \code{\link{clPairs}},
-  \code{\link{coordProj}},
-  \code{\link{do.call}}
+  \code{\link{coordProj}}
 }
 \examples{
 n <- 250 ## create artificial data
-set.seed(0)
+set.seed(1)
 y <- c(rnorm(n,-5), rnorm(n,0), rnorm(n,5))
 yclass <- c(rep(1,n), rep(2,n), rep(3,n))
 
-yEMclust <- summary(EMclust(y),y)
+yModel <- mclustModel(y, mclustBIC(y))
 
-mclust1Dplot(y, identify = TRUE, truth = yclass, z = yEMclust$z, ask=FALSE,
-             mu = yEMclust$mu, sigma = yEMclust$sigma, pro = yEMclust$pro)
+mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
+             what = "classification", identify = TRUE)
 
-do.call("mclust1Dplot",
-        c(list(data = y, identify = TRUE, truth = yclass, ask=FALSE), 
-        yEMclust))
+mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
+             truth = yclass, what = "errors", identify = TRUE)
+
+mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
+             what = "density", identify = TRUE)
+
+mclust1Dplot(y, z = yModel$z, parameters = yModel$parameters,
+            what = "uncertainty", identify = TRUE)
+
 }
 \keyword{cluster}
 % docclass is function

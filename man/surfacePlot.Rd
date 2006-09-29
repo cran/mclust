@@ -9,11 +9,13 @@
   and parameters of an MVN mixture model for the data.
 }
 \usage{
-surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"), 
-        what = c("density", "uncertainty", "skip"), 
-        transformation = c("none", "log", "sqrt"),          
-        grid = 50, nlevels = 20, scale = FALSE, identify = FALSE,
-        verbose = FALSE, xlim, ylim, swapAxes = FALSE)
+surfacePlot(data, parameters, 
+            type = c("contour", "image", "persp"), 
+            what = c("density", "uncertainty"), 
+            transformation = c("none", "log", "sqrt"),          
+            grid = 50, nlevels = 20, scale = FALSE, 
+            xlim=NULL, ylim=NULL, 
+            identify = FALSE, verbose = FALSE, swapAxes = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -22,44 +24,36 @@ surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"),
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
   }
-  \item{mu}{
-    A matrix whose columns are the means of each group. 
-  }
-  \item{pro}{
-    A list with \code{scale}, \code{shape} and \code{orientation}
-    components giving an alternative form for the covariance structure
-    of the mixture model.
-  }
-  \item{\dots}{
-    An argument specifying the covariance structure of the model. If
-    used an indirect function call via \code{do.call} (see example
-    below), it is usually not necessary to know the precise form for
-    this argument. This argument usually take one of the following
-    forms:
-    \describe{
-      \item{\code{sigma}}{ A three dimensional array in which
-	\code{sigma[,,k]} gives the covariance for the \emph{k}th group.}
-      \item{\code{decomp}}{ A list with \code{scale}, \code{shape} and
-	\code{orientation} components giving an alternative form for the
-	covariance structure of the mixture model.}
-    }
+ \item{parameters}{
+     A named list giving the parameters of an \emph{MCLUST} model, 
+     used to produce superimposing ellipses on the plot. 
+     The relevant components are as follows:
+     \describe{
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+     }
   }
   \item{type}{
-    Any subset of \code{c("contour","image","persp")} indicating the
-    plot type. For more than one selection, users will be asked to
-    choose from a menu.
+    Choose from one of the following three options: \code{"contour"}
+    (default), \code{"image"}, \code{"persp"} indicating the plot type. 
   }
   \item{what}{
-    Any subset of \code{c("density","uncertainty","skip")} indicating
-    what to plot. For more than one selection, users will be asked to
-    choose from a menu. The \code{"skip"} produces and empty plot, which
-    may be useful if multiple plots are displayed simultaneously. 
+    Choose from one of the following options: \code{"density"}
+    (default), \code{"uncertainty"} indicating what to plot. 
   }
   \item{transformation}{
-    Any subset of \code{c("none","log","sqrt")} indicating  a
-    transformation to be applied to the surface values before
-    plotting. For more than one selection, users will be asked to choose
-    from a menu. 
+    Choose from one of the following three options: \code{"none"}
+    (default), \code{"log"}, \code{"sqrt"} indicating a transformation
+    to be applied before plotting. 
   }
   \item{grid}{
     The number of grid points (evenly spaced on each axis). 
@@ -72,10 +66,14 @@ surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"),
     Default: \code{20}.
   }
   \item{scale}{
-    A logical variable indicating whether or not the two chosen
+    A logical variable indicating whether or not the two
     dimensions should be plotted on the same scale, and
     thus preserve the shape of the distribution.
-    Default: \code{scale=F} 
+    The default is not to scale.
+  }
+  \item{xlim, ylim}{
+    An argument specifying bounds for the ordinate, abscissa of the plot.
+    This may be useful for when comparing plots.
   }
   \item{identify}{
     A logical variable indicating whether or not to add a title to the plot
@@ -86,13 +84,12 @@ surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"),
     the function is in the process of computing values at the grid points,
     which typically takes some time to complete.
   }
-  \item{xlim, ylim }{
-    An argument specifying bounds for the ordinate, abscissa of the plot.
-    This may be useful for when comparing plots.
-  }
   \item{swapAxes}{
     A logical variable indicating whether or not the axes should be swapped
     for the plot.
+  }
+ \item{\dots}{
+    Other graphics parameters.
   }
 }
 \value{
@@ -101,8 +98,8 @@ surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"),
   uncertainty at the grid points.
 }
 \section{Side Effects}{
-  One or more plots showing location of the mixture components, classification,
-  uncertainty, and/or classification errors.
+  A plots showing (a transformation of) the density or uncertainty
+  for the given mixture model and data. 
 }
 \section{Details}{
   For an image plot, a color scheme may need to be selected on the display
@@ -112,31 +109,21 @@ surfacePlot(data, mu, pro, \dots, type = c("contour", "image", "persp"),
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}.
-  
-  
-  C. Fraley and A. E. Raftery (2002).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis.
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
-  \code{\link{mclust2Dplot}},
-  \code{\link{do.call}}
+  \code{\link{mclust2Dplot}}
 }
 \examples{
-n <- 250 ## create artificial data
-set.seed(0)
-x <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
-           matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
-xclass <- c(rep(1,n),rep(2,n))
+faithfulModel <- mclustModel(faithful,mclustBIC(faithful))
+surfacePlot(faithful, parameters = faithfulModel$parameters,
+            type = "contour", what = "density", transformation = "none",
+            drawlabels = FALSE)
 
-xEMclust <- summary(EMclust(x),x)
-surfacePlot(x, mu = xEMclust$mu, sigma = xEMclust$sigma, pro=xEMclust$pro,
-            type = "contour", what = "density", transformation = "none")
-
-\dontrun{do.call("surfacePlot", c(list(data = x), xEMclust))}
 }
 \keyword{cluster}
 % docclass is function

@@ -1,53 +1,89 @@
 \name{mvn}
 \alias{mvn}
 \title{
-  Multivariate Normal Fit
+  Univariate or Multivariate Normal Fit
 }
 \description{
   Computes the mean, covariance, and loglikelihood from fitting a single
-  MVN or Gaussian to given data.
+  Gaussian to given data (univariate or multivariate normal).
 }
 \usage{
-mvn( modelName, data)
+mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
 }
 \arguments{
   \item{modelName}{
     A character string representing a model name. This can be either
-    \code{"Spherical"}, \code{"Diagonal"}, or \code{"Ellipsoidal"} or an
-    MCLUST-style model name: \cr 
-    "E", "V", "X" (one-dimensional) \cr
-    "EII", "VII", "XII" (spherical) \cr
-    "EEI", "VEI", "EVI", "VVI", "XXI" (diagonal) \cr
-    "EEE", "EEV", "VEV", "VVV", "XXX" (ellipsoidal) 
+    \code{"Spherical"}, \code{"Diagonal"}, or \code{"Ellipsoidal"} or 
+    else \cr
+    "X" for one-dimensional data,\cr
+    "XII" for a spherical Gaussian, \cr
+    "XXI" for a diagonal Gaussian \cr
+    "XXX" for a general ellipsoidal Gaussian 
   }
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
     variables are not allowed. If a matrix or data frame, rows
     correspond to observations and columns correspond to variables. 
   }
+  \item{prior}{
+      Specification of a conjugate prior on the means and variances.
+      The default assumes no prior.
+  }
+  \item{warn}{
+    A logical value indicating whether or not a warning should be issued
+    whenever a singularity is encountered.
+    The default is set in \code{.Mclust\$warn}.
+  }
+ \item{\dots }{
+   Catches unused arguments in indirect or list calls via \code{do.call}.
+  }
 }
 \value{
-  A list of including the parameters of the Gaussian model best fitting the
-  data, and the corresponding loglikelihood for the data under the model.
+ A list including the following components:
+  \item{modelName}{
+    A character string identifying the model (same as the input argument).
+  }
+  \item{parameters}{
+     \describe{
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+      }
+  }
+  \item{loglik}{
+    The log likelihood for the data in the mixture model.
+  }
+  \item{Attributes:}{
+    \itemize{
+      \item \code{"WARNING"}
+        An appropriate warning if problems are encountered in the computations.
+    }
+  }
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
   
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{mvnX}},
   \code{\link{mvnXII}},
   \code{\link{mvnXXI}},
   \code{\link{mvnXXX}},
-  \code{\link{mstep}}
+  \code{\link{mclustModelNames}}
 }
 \examples{
 n <- 1000

@@ -10,7 +10,7 @@
 }
 \description{
   Agglomerative hierarchical clustering based on maximum likelihood
-  for a MVN mixture model parameterized by eigenvalue decomposition.
+  for a Gaussian mixture model parameterized by eigenvalue decomposition.
 }
 \usage{
 hcE(data, partition, minclus=1, \dots)
@@ -66,38 +66,34 @@ hcVVV(data, partition, minclus = 1, alpha = 1, beta = 1, \dots)
   C. Fraley (1998).
   Algorithms for model-based Gaussian hierarchical clustering.
   \emph{SIAM Journal on Scientific Computing 20:270-281}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
   
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{hc}},
   \code{\link{hclass}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-
-hcTree <- hcEII(data = irisMatrix)
+hcTree <- hcEII(data = iris[,-5])
 cl <- hclass(hcTree,c(2,3))
 
+\dontrun{
 par(pty = "s", mfrow = c(1,1))
-clPairs(irisMatrix,cl=cl[,"2"])
-clPairs(irisMatrix,cl=cl[,"3"])
+clPairs(iris[,-5],cl=cl[,"2"])
+clPairs(iris[,-5],cl=cl[,"3"])
 
 par(mfrow = c(1,2))
 dimens <- c(1,2)
-coordProj(irisMatrix, classification=cl[,"2"], dimens=dimens)
-coordProj(irisMatrix, classification=cl[,"3"], dimens=dimens)
+coordProj(iris[,-5], classification=cl[,"2"], dimens=dimens)
+coordProj(iris[,-5], classification=cl[,"3"], dimens=dimens)
+}
 }
 \keyword{cluster}
 % docclass is function

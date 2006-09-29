@@ -1,101 +1,77 @@
 \name{bic}
 \alias{bic}
 \title{
-  BIC for Parameterized MVN Mixture Models
+  BIC for Parameterized Gaussian Mixture Models
 }
 \description{
-  Compute the BIC (Bayesian Information Criterion) for parameterized
-  mixture models  given the loglikelihood, the dimension of the data,
+  Computes the BIC (Bayesian Information Criterion) for parameterized
+  mixture models given the loglikelihood, the dimension of the data,
   and number of mixture components in the model. 
 }
 \usage{
-bic(modelName, loglik, n, d, G, \dots)
+bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
 }
 \arguments{
   \item{modelName}{
-    A character string indicating the model. Possible models: \cr \cr
-    "E" for spherical, equal variance  (one-dimensional)  \cr
-    "V" for spherical, variable variance (one-dimensional)  \cr
-    "EII": spherical, equal volume  \cr
-    "VII": spherical, unequal volume  \cr
-    "EEI": diagonal, equal volume, equal shape  \cr
-    "VEI": diagonal, varying volume, equal shape  \cr
-    "EVI": diagonal, equal volume, varying shape  \cr
-    "VVI": diagonal, varying volume, varying shape  \cr
-    "EEE": ellipsoidal, equal volume, shape, and orientation  \cr
-    "EEV": ellipsoidal, equal volume and equal shape \cr
-    "VEV": ellipsoidal, equal shape  \cr
-    "VVV": ellipsoidal, varying volume, shape, and orientation 
+    A character string indicating the model. The help file for
+    \code{mclustModelNames} describes the available models.
   }
   \item{loglik}{
-    The loglikelihood for a data set with respect to the MVN mixture model
+    The loglikelihood for a data set with respect to the Gaussian mixture model
     specified in the \code{modelName} argument.
   }
   \item{n}{
-    The number of observations in the data use to compute
-    \code{loglik}.
+    The number of observations in the data used to compute \code{loglik}.
   }
   \item{d}{
     The dimension of the data used to compute \code{loglik}.
   }
   \item{G}{
-    The number of components in the MVN mixture model used to compute
+    The number of components in the Gaussian mixture model used to compute
     \code{loglik}.
   }
+ \item{noise}{
+   A logical variable indicating whether or not the model includes an
+   optional Poisson noise component. The default is to assume no noise
+   component.
+  }
+ \item{equalPro}{
+    A logical variable indicating whether or not the components in the
+    model are assumed to be present in equal proportion. The default is
+    to assume unequal mixing proportions.
+  }
   \item{\dots}{
-    Arguments for diagonal-specific methods, in particular
-    \describe{
-      \item{equalPro}{
-	A logical variable indicating whether or not the components in the
-	model are assumed to be present in equal proportion. The default is
-	\code{.Mclust\$equalPro}. 
-      }
-      \item{noise}{
-	A logical variable indicating whether or not the model includes and
-	optional Poisson noise component. The default is to assume that the
-	model does not include a noise component.
-      }
-    }
+    Catches unused arguments in an indirect or list call via \code{do.call}.
   }
 }
 \value{
   The BIC or Bayesian Information Criterion for the given input arguments.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
-  \code{\link{bicE}}, \ldots,
-  \code{\link{bicVVV}},
-  \code{\link{EMclust}},
-  \code{\link{estep}},
-  \code{\link{mclustOptions}},
+  \code{\link{nVarParams}},
+  \code{\link{mclustBIC}},
   \code{\link{do.call}}.
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
-
-n <- nrow(irisMatrix)
-d <- ncol(irisMatrix)
+n <- nrow(iris)
+d <- ncol(iris)-1
 G <- 3
 
-emEst <- me(modelName="VVI", data=irisMatrix, unmap(irisClass))
+emEst <- me(modelName="VVI", data=iris[,-5], unmap(iris[,5]))
 names(emEst)
 
 args(bic)
-bic(modelName="VVI",loglik=emEst$loglik,n=n,d=d,G=G)
+bic(modelName="VVI", loglik=emEst$loglik, n=n, d=d, G=G)
 \dontrun{do.call("bic", emEst)    ## alternative call}
 }
 \keyword{cluster}

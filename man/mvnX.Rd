@@ -4,17 +4,17 @@
 \alias{mvnXXI}
 \alias{mvnXXX}
 \title{
-  Multivariate Normal Fit
+  Univariate or Multivariate Normal Fit
 }
 \description{
   Computes the mean, covariance, and loglikelihood from fitting a single
-  MVN or Gaussian.
+  Gaussian (univariate or multivariate normal).
 }
 \usage{
-mvnX(data)
-mvnXII(data)
-mvnXXI(data)
-mvnXXX(data)
+mvnX(data, prior = NULL, warn = NULL, \dots)
+mvnXII(data, prior = NULL, warn = NULL, \dots)
+mvnXXI(data, prior = NULL, warn = NULL, \dots)
+mvnXXX(data, prior = NULL, warn = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -23,30 +23,72 @@ mvnXXX(data)
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
   }
+ \item{prior}{
+    Specification of a conjugate prior on the means and variances.
+    The default assumes no prior.                                              
+   }
+\item{warn}{
+    A logical value indicating whether or not a warning should be issued
+    whenever a singularity is encountered.
+    The default is set in \code{.Mclust\$warn}.
+  }
+ \item{\dots }{
+   Catches unused arguments in indirect or list calls via \code{do.call}.
+  }
 }
 \value{
-  A list of including the parameters of the Gaussian model best fitting the
-  data, and the corresponding loglikelihood for the data under the model.
+ A list including the following components:
+  \item{modelName}{
+    A character string identifying the model (same as the input argument).
+  }
+  \item{parameters}{
+     \describe{
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+      }
+  }
+  \item{loglik}{
+    The log likelihood for the data in the mixture model.
+  }
+  \item{Attributes:}{
+    \itemize{
+      \item{"WARNING"}{
+        An appropriate warning if problems are encountered in the computations.
+      }
+    }
+  }
 }
 \details{
-  \code{mvnXII} computes the best fitting
-  Gaussian with the covariance restricted to be a multiple of the identity. 
-  \code{mvnXXI} computes the best fitting
-  Gaussian with the covariance restricted to be diagonal. 
-  \code{mvnXXX} computes the best fitting
-  Gaussian with ellipsoidal (unrestricted) covariance. 
+\itemize{
+    \item \code{mvnXII} 
+      computes the best fitting Gaussian with the covariance 
+      restricted to be a multiple of the identity. 
+  \item \code{mvnXXI} 
+   computes the best fitting Gaussian with the covariance 
+   restricted to be diagonal. 
+  \item \code{mvnXXX} 
+    computes the best fitting Gaussian with ellipsoidal 
+  (unrestricted) covariance. 
+}
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{mvn}},

@@ -18,9 +18,19 @@ partuniq(x)
   is the first row of \code{x} that is identical to observation \code{k}
   (note that \code{i <= k}).
 }
+\seealso{
+   \code{\link{partconv}}
+}
 \examples{
-data(iris)
-partuniq(as.matrix(iris[,1:4]))
+set.seed(0)
+
+mat <- data.frame(lets = sample(LETTERS[1:2],9,TRUE), nums = sample(1:2,9,TRUE))
+mat
+
+ans <- partuniq(mat)
+ans
+
+partconv(ans,consec=TRUE)
 }
 \keyword{cluster}
 % Converted by Sd2Rd version 0.3-2.

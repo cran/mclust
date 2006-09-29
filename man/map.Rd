@@ -33,16 +33,14 @@ map(z, warn=TRUE, \dots)
   
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{unmap}},
@@ -51,11 +49,7 @@ map(z, warn=TRUE, \dots)
   \code{\link{me}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
-
-emEst <- me(modelName = "VVV", data = irisMatrix, z = unmap(irisClass))
+emEst <- me(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]))
 
 map(emEst$z)
 }

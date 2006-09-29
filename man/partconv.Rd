@@ -1,29 +1,40 @@
 \name{partconv}
 \alias{partconv}
 
-\title{Convert partitioning into numerical vector.}
-\description{\code{partconv} converts a partitioning into a numerical
-  vector. The second argument is used to force consecutive numbers
-  (default) or not.
+\title{Numeric Encoding of a Partitioning}
+
+\description{
+  Converts a vector interpreted as a classification or partitioning 
+  into a numeric vector. 
 }
 \usage{
 partconv(x, consec=TRUE)
 }
 
 \arguments{
-  \item{x}{Partitioning. Maybe numerical or not.}
-  \item{consec}{Logical flag, whether or not to use consecutive class
-    numbers.}
+  \item{x}{
+    A vector interpreted as a classification or partitioning. 
+  }
+  \item{consec}{
+     Logical value indicating whether or not to consecutive class
+    numbers should be used .
+  }
 }
 \value{
-  Vector of class numbers.
+  Numeric encoding of \code{x}. 
+  When \code{consec = TRUE}, the distinct values in \code{x} are numbered by
+  the order in which they appear.
+  When \code{consec = FALSE}, each distinct value in \code{x} is numbered by
+  the index corresponding to its first appearance in \code{x}.
 }
-
+\seealso{
+   \code{\link{partuniq}}
+}
 \examples{
-data(iris)
 partconv(iris[,5])
 
-cl <- sample(1:10, 25, replace=TRUE)
+set.seed(0)
+cl <- sample(LETTERS[1:9], 25, replace=TRUE)
 partconv(cl, consec=FALSE)
 partconv(cl, consec=TRUE)
 }

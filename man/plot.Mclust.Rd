@@ -8,7 +8,8 @@
   (for one- and two-dimensional data) density.
 }
 \usage{
-plot.Mclust(x, data, dimens = c(1, 2), scale = FALSE, \dots)
+plot.Mclust(x, data, what = c("BIC", "classification", 
+            "uncertainty", "density"), ylimBIC = NULL,\dots)
 }
 \arguments{
   \item{x}{
@@ -17,51 +18,58 @@ plot.Mclust(x, data, dimens = c(1, 2), scale = FALSE, \dots)
   \item{data}{
     The data used to produce \code{x}.
   }
-  \item{dimens}{
-    An integer vector of length two specifying the dimensions for
-    coordinate projections if the data is more than two-dimensional. The
-    default is \code{c(1,2)} (the first two dimesions). 
+ \item{what}{
+    Choose one or more of: \code{"BIC"}, \code{"classification"},   
+    \code{"uncertainty"}. If the data dimension is less than 3,
+    \code{"density"} can also be chosen. 
   }
-  \item{scale}{
-    A logical variable indicating whether or not the two chosen
-    dimensions should be plotted on the same scale, and thus preserve
-    the shape of the distribution. Default: \code{scale=FALSE}  
+ \item{ylimBIC}{
+    Limits for the vertical axis of the BIC plot.
   }
   \item{\dots}{
-    Further arguments to the lower level plotting functions.
+    Other graphics parameters.
   }
-  
 }
 \value{
-  Plots selected via a menu including the following options: BIC values
-  used for choosing the number of clusters For data in more than two
-  dimensions, a pairs plot of the showing the classification, coordinate
-  projections of the data, showing location of the mixture components,
-  classification, and/or uncertainty. For one- and two- dimensional
-  data, plots showing location of the mixture components,
-  classification, uncertainty, and or density.  
+  Model-based clustering plots: BIC values used for choosing the number of 
+  clusters. For data in more than two dimensions, a pairs plot of the showing 
+  the classification, a coordinate projections of the data showing location of 
+  the mixture components, classification, and uncertainty. For one- and two- 
+  dimensional  data, plots showing location of the mixture components,
+  classification, uncertainty, and density.  
+}
+\details{
+ For more flexibility in plotting, use \code{mclust1Dplot}, 
+ \code{mclust2Dplot}, \code{surfacePlot}, \code{coordProj}, or
+ \code{randProj}. 
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}.
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington.
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
+
 \seealso{
-  \code{\link{Mclust}}
+  \code{\link{Mclust}},
+  \code{\link{mclust1Dplot}},
+  \code{\link{mclust2Dplot}},
+  \code{\link{surfacePlot}},
+  \code{\link{coordProj}},
+  \code{\link{randProj}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisMclust <- Mclust(irisMatrix)
+\dontrun{
+plot(Mclust(precip),precip)
 
-\dontrun{plot(irisMclust,irisMatrix)}
+plot(Mclust(faithful),faithful)
+
+plot(Mclust(iris[,-5]),iris[,-5])
+}
 }
 \keyword{cluster}
 % docclass is function

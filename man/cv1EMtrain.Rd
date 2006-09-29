@@ -2,37 +2,32 @@
 \alias{cv1EMtrain}
 \title{Select discriminant models using cross validation}
 \description{
-For the ten available discriminant models the leave-one-out cross
-validation error is calulated. The models for one-dimensional data are
-"E" and "V"; for higher dimensions they are "EII", "VII", "EEI",
-"VEI", "EVI", "VVI", "EEE", "EEV", "VEV" and "VVV".
+Leave-one-out cross validation given a dataset and labels for selected models.
 }
 \usage{
-cv1EMtrain(data, labels, modelNames)
+cv1EMtrain(data, labels, modelNames=NULL)
 }
 \arguments{
-  \item{data}{A data matrix}
-  \item{labels}{Labels for each row in the data matrix}
-  \item{modelNames}{Vector of model names that should be tested.}
+  \item{data}{A numeric vector or matrix of observations.}
+  \item{labels}{Labels for each element or row in the dataset.}
+  \item{modelNames}{Vector of model names that should be tested.
+            The default is to select all available model names.}
 }
 \value{
-  Returns a vector where each element is the error rate for the
-  corresponding model.
+  Returns a vector where each element is the the crossvalidated error rate
+  for the dataset and labels corresponding to each model.
+}
+\section{References}{
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \author{C. Fraley}
 \seealso{\code{\link{bicEMtrain}}}
 \examples{
-data(lansing)
-odd <- seq(from=1, to=nrow(lansing), by=2)
-round(cv1EMtrain(data=lansing[odd,-3], labels=lansing[odd,3]), 3)
-
-cv1Modd <- mstepEEV(data=lansing[odd,-3], z=unmap(lansing[odd,3]))
-cv1Zodd <- do.call("estepEEV", c(cv1Modd, list(data=lansing[odd,-3])))$z
-compareClass(map(cv1Zodd), lansing[odd,3])
-
-even <- (1:nrow(lansing))[-odd]
-cv1Zeven <- do.call("estepEEV", c(cv1Modd, list(data=lansing[even,-3])))$z
-compareClass(map(cv1Zodd), lansing[odd,3])$error
+even <- seq(from=2, to=nrow(chickwts), by=2)
+round(cv1EMtrain(chickwts[even,1], labels=chickwts[even,2]), 1)
 }
 \keyword{cluster}
 

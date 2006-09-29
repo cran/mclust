@@ -1,6 +1,5 @@
 \name{classError}
 \alias{classError}
-\alias{classErrors}
 \title{
   Classification error.
 }
@@ -23,23 +22,28 @@ classError(classification, truth)
   
 }
 \value{
-  \code{classError} gives the fraction of elements 
-  misclassified for \code{classification}
-  relative to \code{truth}. 
-  \code{classErrors} is a logical vector of the
-  same length as \code{classification} and
-  \code{truth} which gives the location
-  of misclassified elements in \code{classification}
-  relative to \code{truth}. 
-  
+  A list with the following two components:
+  \item{misclassified}{
+    The indexes of the misclassified data points in a minimum error
+    mapping between the given classification and the given truth.
+  }
+  \item{errorRate}{
+    The errorRate corresponding to a minimum error mapping 
+    mapping between the given classification and the given truth.
+  }
 }
 \details{
-  \code{classErrors} will only return one possibility
-  if more than one mapping between classification and truth results in the
-  minimum error.
+  If  more than one mapping between classification and truth 
+  corresponds to the minimum number of classification errors,
+  only one possible set of misclassified observations is returned.
+}
+\section{References}{
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
-  \code{\link{compareClass}},
   \code{\link{mapClass}},
   \code{\link{table}}
 }
@@ -49,7 +53,6 @@ a
 b <- rep(c("A", "B", "C"), 3)
 b
 classError(a, b)
-classErrors(a, b)
 
 a <- sample(1:3, 9, replace = TRUE)
 a

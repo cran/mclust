@@ -8,7 +8,7 @@
   to a parameterization by eigenvalue decomposition.
 }
 \usage{
-sigma2decomp(sigma, G, tol, \dots)
+sigma2decomp(sigma, G=NULL, tol=NULL, \dots)
 }
 \arguments{
   \item{sigma}{
@@ -28,12 +28,16 @@ sigma2decomp(sigma, G, tol, \dots)
     which is about \code{1.e-8}.
   }
   \item{\dots}{
-    Catch unused arguments from a \code{do.call} call.
+    Catches unused arguments from an indirect or list call via \code{do.call}.
   }
 }
 \value{
   The covariance matrices for the mixture components in decomposition form,
   including the following components: 
+  \item{modelName}{
+    A character string indicating the infered model. The help file for
+    \code{mclustModelNames} describes the available models.
+   }
   \item{d}{
     The dimension of the data. 
   }
@@ -64,33 +68,24 @@ sigma2decomp(sigma, G, tol, \dots)
   }
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation, and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{decomp2sigma}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
+meEst <- meEEE(iris[,-5], unmap(iris[,5])) 
+names(meEst$parameters$variance)
+meEst$parameters$variance$Sigma
 
-meEst <- meEEE(irisMatrix, unmap(irisClass)) 
-names(meEst)
-meEst$sigma
-
-sigma2decomp(meEst$sigma)
-\dontrun{
-do.call("sigma2decomp", meEst)  ## alternative call
-}
+sigma2decomp(meEst$parameters$variance$Sigma, G = length(unique(iris[,5])))
 }
 \keyword{cluster}
 % docclass is function

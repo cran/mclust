@@ -1,5 +1,6 @@
 \name{mclustDAtrain}
 \alias{mclustDAtrain}
+\alias{print.mclustDAtrain}
 \title{
   MclustDA Training
 }
@@ -7,8 +8,9 @@
   Training phase for MclustDA discriminant analysis.
 }
 \usage{
-mclustDAtrain(data, labels, G, emModelNames, eps, tol, itmax, 
-              equalPro, warnSingular, verbose)
+mclustDAtrain(data, labels, G=NULL, modelNames=NULL, prior=NULL, 
+              control=emControl(), initialization=NULL, warn=FALSE, 
+              verbose=TRUE, \dots)
 }
 \arguments{
   \item{data}{
@@ -19,98 +21,93 @@ mclustDAtrain(data, labels, G, emModelNames, eps, tol, itmax,
   \item{labels}{
     A numeric or character vector assigning a class label to each observation.
   }
-  \item{G}{
-    An integer vector specifying the numbers of Gaussian mixture
-    components (clusters) for which the BIC is to be calculated (the
-    same specification is used for all classes). Default: \emph{1:9}.
+\item{G}{
+    An integer vector specifying the numbers of mixture components
+    (clusters) for which the BIC is to be calculated. 
+    The default is \code{G=1:9}. 
   }
-  \item{emModelNames}{
+  \item{modelNames}{
     A vector of character strings indicating the models to be fitted 
-    in the EM phase of clustering. Possible models: \cr
-    "E" for spherical, equal variance (one-dimensional)\cr 
-    "V" for spherical, variable variance (one-dimensional)\cr 
-    "EII": spherical, equal volume \cr
-    "VII": spherical, unequal volume \cr
-    "EEI": diagonal, equal volume, equal shape \cr
-    "VEI": diagonal, varying volume, equal shape \cr
-    "EVI": diagonal, equal volume, varying shape \cr
-    "VVI": diagonal, varying volume, varying shape \cr
-    "EEE": ellipsoidal, equal volume, shape, and orientation \cr
-    "EEV": ellipsoidal, equal volume and equal shape\cr
-    "VEV": ellipsoidal, equal shape \cr
-    "VVV": ellipsoidal, varying volume, shape, and orientation \cr\cr
-    The default is \code{.Mclust\$emModelNames}.
+    in the EM phase of clustering. The help file for
+    \code{mclustModelNames} describes the available models.
+    The default is \code{c("E", "V")} for univariate data and
+    \code{mclustOptions()\$emModelNames} for multivariate data.
+   }
+  \item{prior}{
+    The default assumes no prior, but this argument allows specification of a 
+    conjugate prior on the means and variances through the function 
+    \code{priorControl}.
+    }
+  \item{control}{
+    A list of control parameters for EM. The defaults are set by the call
+    \code{emControl()}. 
   }
-  \item{eps}{
-    A scalar tolerance for deciding when to terminate computations due
-    to computational singularity in covariances. Smaller values of
-    \code{eps} allow computations to proceed nearer to singularity. The
-    default is \code{.Mclust\$eps}. 
+  \item{initialization}{
+   A list containing zero or more of the following components:
+  \itemize{
+  \item{hcPairs}{
+    A matrix of merge pairs for hierarchical clustering such as produced
+    by function \code{hc}. The default is to compute a hierarchical
+    clustering tree by applying function \code{hc} with
+    \code{modelName = "E"} to univariate data and
+    \code{modelName = "VVV"} to multivariate data or a
+    subset as indicated by the \code{subset} argument. 
+    The hierarchical clustering results are used as starting values for EM.  
   }
-  \item{tol}{
-    A scalar tolerance for relative convergence of the loglikelihood.
-    The default is \code{.Mclust\$tol}.
+  \item{subset}{
+    A logical or numeric vector specifying a subset of the data
+    to be used in the initial hierarchical clustering phase.
   }
-  \item{itmax}{
-    An integer limit on the number of EM iterations.
-    The default is \code{.Mclust\$itmax}.
   }
-  \item{equalPro}{
-    Logical variable indicating whether or not the mixing proportions are
-    equal in the model. The default is \code{.Mclust\$equalPro}.
   }
-  \item{warnSingular}{
-    A logical value indicating whether or not a warning should be issued
-    whenever a singularity is encountered.
-    The default is \code{warnSingular=FALSE}.
+  \item{warn}{
+     A logical value indicating whether or not certain warnings
+    (usually related to singularity) should be issued when
+     estimation fails. The default is to suppress these warnings.
   }
   \item{verbose}{
     A logical value indicating whether or not to print the models and
     numbers of components for each class.
-    Default:\code{verbose=TRUE}.
+    Default: \code{verbose=TRUE}.
+  }
+  \item{\dots }{
+    Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
 \value{
-  A list in which each element gives the optimal parameters for the model
-  best fitting each class according to BIC.
+  A list in which each element gives the parameters and other summary
+  information for the model best fitting each class according to BIC.
+  Attributes are the input parameters other than \code{data}, \code{labels}
+  and \code{verbose}.
+}
+\details{
+  Except for \code{labels} and \code{verbose}, the arguments are the
+  same as those for \code{mclustBIC}.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{summary.mclustDAtrain}}, 
   \code{\link{mclustDAtest}}, 
-  \code{\link{EMclust}}, 
-  \code{\link{hc}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclustBIC}} 
 }
 \examples{
-n <- 250 ## create artificial data
-set.seed(0)
-par(pty = "s")
-x <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
-           matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
-xclass <- c(rep(1,n),rep(2,n))
-\dontrun{
-mclust2Dplot(x, classification = xclass, type="classification", ask=FALSE)}
-
-odd <- seq(1, 2*n, 2)
-train <- mclustDAtrain(x[odd, ], labels = xclass[odd]) ## training step
+odd <- seq(1, nrow(cross), by = 2)
+train <- mclustDAtrain(cross[odd,-1], labels = cross[odd,1]) ## training step
 summary(train)
 
 even <- odd + 1
-test <- mclustDAtest(x[even, ], train) ## compute model densities
+test <- mclustDAtest(cross[even,-1], train) ## compute model densities
 clEven <- summary(test)$class ## classify training set
-compareClass(clEven,xclass[even])
+classError(clEven,cross[even,1])
 }
 \keyword{cluster}
 % docclass is function

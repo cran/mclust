@@ -19,23 +19,33 @@ hypvol(data, reciprocal=FALSE)
   \item{reciprocal}{
     A logical variable indicating whether or not the reciprocal
     hypervolume is desired rather than the hypervolume itself. The
-    default is to return the approximate hypervolume.  
+    default is to return the hypervolume.  
   }
 }
 \value{
   Computes the hypervolume by two methods: simple variable bounds
   and principal components, and returns the minimum value.
+  Used to compute the default hypervolume parameter for the noise 
+  component in 
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  A. Dasgupta and A. E. Raftery (1998).
+  Detecting features in spatial point processes with clutter via model-based
+  clustering. 
+ \emph{Journal of the American Statistical Association 93:294-302}. 
+
+  C. Fraley and A.E. Raftery (1998).
+   \emph{Computer Journal 41:578-588}.
+
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611:631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
+  \emph{Journal of the American Statistical Association 97:611-631}. 
+}
+\seealso{
+  \code{\link{mclustBIC}} 
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-hypvol(irisMatrix)
+hypvol(iris[,-5])
 }
 \keyword{cluster}
 % docclass is function

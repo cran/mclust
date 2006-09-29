@@ -27,26 +27,24 @@ hclass(hcPairs, G)
   representation of the integers in \code{G}.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{hc}},
   \code{\link{hcE}}
 }
 \examples{
-data(iris)
-irisMatrix <- iris[,1:4]
-
-hcTree <- hc(modelName="VVV", data = irisMatrix)
+hcTree <- hc(modelName="VVV", data = iris[,-5])
 cl <- hclass(hcTree,c(2,3))
 
+\dontrun{
 par(pty = "s", mfrow = c(1,1))
-clPairs(irisMatrix,cl=cl[,"2"])
-clPairs(irisMatrix,cl=cl[,"3"])
+clPairs(iris[,-5],cl=cl[,"2"])
+clPairs(iris[,-5],cl=cl[,"3"])
+}
 }
 \keyword{cluster}
 % docclass is function

@@ -1,13 +1,12 @@
 Package: 	mclust
-Version: 	2.1-14
-Date:		2006-09-14
-Author: 	C. Fraley and A.E. Raftery, Dept. of Statistics, 
-		University of Washington.
-		R port by Ron Wehrens.
-Title: 		Model-based cluster analysis
-Description: 	Model-based cluster analysis: the 2002 version of MCLUST
+Version: 	3.0-0
+Date:		2006-09-29
+Author: 	Chris Fraley and Adrian Raftery, 
+Title: 		Model-Based Clustering / Normal Mixture Modeling
+Description: 	Model-based clustering and normal mixture modeling
+                including Bayesian regularization 
 Depends:	R (>= 2.2.0), stats, utils
 License: 	See http://www.stat.washington.edu/mclust/license.txt
-Maintainer: 	Chris Fraley <fraley@u.washington.edu>
+Maintainer: 	Chris Fraley <fraley@stat.washington.edu>
 URL:		http://www.stat.washington.edu/mclust
-Packaged: Thu Sep 14 19:43:47 2006; hornik
+Packaged: Wed Oct  4 10:12:39 2006; hornik

@@ -12,37 +12,37 @@
 \alias{meVEV}
 \alias{meVVV}
 \title{
-  EM algorithm starting with M-step for a parameterized MVN mixture model.
+  EM algorithm starting with M-step for a parameterized Gaussian mixture model.
 }
 \description{
-  Implements the EM algorithm for a parameterized MVN mixture model,
+  Implements the EM algorithm for a parameterized Gaussian mixture model,
   starting with the maximization step.
 }
 \usage{
-meE(data, z, eps, tol, itmax, equalPro, warnSingular, 
-    noise = FALSE, Vinv)
-meV(data, z, eps, tol, itmax, equalPro, warnSingular, 
-    noise = FALSE, Vinv)
-meEII(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meVII(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meEEI(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meVEI(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meEVI(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meVVI(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meEEE(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meEEV(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meVEV(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
-meVVV(data, z, eps, tol, itmax, equalPro, warnSingular, 
-      noise = FALSE, Vinv)
+meE(data, z, prior=NULL, control=emControl(), 
+    Vinv=NULL, warn=NULL, \dots)
+meV(data, z, prior=NULL, control=emControl(),
+    Vinv=NULL, warn=NULL, \dots)
+meEII(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meVII(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meEEI(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meVEI(data, z, prior=NULL, control=emControl(),
+     Vinv=NULL, warn=NULL, \dots)
+meEVI(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meVVI(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meEEE(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meEEV(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meVEV(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
+meVVV(data, z, prior=NULL, control=emControl(),
+      Vinv=NULL, warn=NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -55,90 +55,87 @@ meVVV(data, z, eps, tol, itmax, equalPro, warnSingular,
     conditional probability of the ith observation belonging to
     the \emph{k}th component of the mixture.  
   }
-  \item{eps}{
-    A scalar tolerance for deciding when to terminate computations due to
-    computational singularity in covariances.  
-    Smaller values of \code{eps} allows computations to
-    proceed nearer to singularity. 
-    The default is \code{.Mclust\$eps}.
+ \item{prior}{
+    Specification of a conjugate prior on the means and variances.
+    The default assumes no prior.                                                 }
+  \item{control}{
+    A list of control parameters for EM. The defaults are set by the call
+    \code{emControl()}. 
   }
-  \item{tol}{
-    A scalar tolerance for relative convergence of the loglikelihood values. 
-    The default is \code{.Mclust\$tol}.
+ \item{Vinv}{
+    An estimate of the reciprocal hypervolume of the data region, when the
+    model is to include a noise term. Set to a negative value or zero if
+    a noise term is desired, but an estimate is unavailable --- in that
+    case function \code{hypvol} will be used to obtain the estimate.
+    The default is not to assume a noise term in the model through the
+    setting \code{Vinv=NULL}.
   }
-  \item{itmax}{
-    An integer limit on the number of EM iterations. 
-    The default is \code{.Mclust\$itmax}.
+  \item{warn}{
+    A logical value indicating whether or not certain warnings
+    (usually related to singularity) should be issued when the
+    estimation fails. The default is set in \code{.Mclust\$warn}.
   }
-  \item{equalPro}{
-    Logical variable indicating whether or not the mixing proportions are
-    equal in the model.
-    The default is \code{.Mclust\$equalPro}.
-  }
-  \item{warnSingular}{
-    A logical value indicating whether or not a warning should be issued
-    whenever a singularity is encountered.
-    The default is \code{.Mclust\$warnSingular}.
-  }
-  \item{noise}{
-    A logical value indicating whether or not the model includes a Poisson
-    noise component.
-    The default assumes there is no noise component.
-  }
-  \item{Vinv}{
-    An estimate of the reciprocal hypervolume of the data region.
-    The default is determined by applying function 
-    \code{hypvol} to the data.
-    Used only when \code{noise = TRUE}.
+ \item{\dots }{
+   Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
 \value{
   A list including the following components: 
-  \item{mu}{
-    A matrix whose kth column is the mean of the \emph{k}th
-    component of the mixture model.
+ \item{modelName}{
+    A character string identifying the model (same as the input argument).
   }
-  \item{sigma}{
-    For multidimensional models, a three dimensional array 
-    in which the \code{[,,k]}th entry gives the
-    the covariance for the \emph{k}th group in the best model. <br>
-    For one-dimensional models, either a scalar giving a common variance for
-    the groups or a vector whose entries are the variances for each group
-    in the best model.
-  }
-  \item{pro}{ A vector whose \emph{k}th component
-    is the mixing proportion for the \emph{k}th component of the mixture model.
-  }
-  \item{z}{ 
+  \item{z}{
     A matrix whose \code{[i,k]}th entry is the
     conditional probability of the \emph{i}th observation belonging to
     the \emph{k}th component of the mixture.  
   }
-  \item{modelName}{
-    Character string identifying the model.
+  \item{parameters}{
+     \describe{
+        \item{pro}{
+              A vector whose \emph{k}th component is the mixing proportion for 
+              the \emph{k}th component of the mixture model.
+              If the model includes a Poisson term for noise, there 
+              should be one more mixing proportion than the number 
+              of Gaussian components.
+        }
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th 
+              component of the mixture model. 
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance} 
+              for details.  
+        }
+        \item{Vinv}{
+              The estimate of the reciprocal hypervolume of the data region
+              used in the computation when the input indicates the
+              addition of a noise component to the model.
+        }
+      }
   }
   \item{loglik}{
-    The logliklihood for the data in the mixture model. 
+    The log likelihood for the data in the mixture model. 
   }
-  \item{Attributes:}{ 
-    The return value also has the following attributes:
-    \item \code{"info"}: Information on the iteration.
-    \item \code{"warn"}: An appropriate warning if problems are
-    encountered in the computations. 
-    
+  \item{Attributes:}{
+    \itemize{
+      \item \code{"info"} Information on the iteration.
+      \item \code{"WARNING"}
+	An appropriate warning if problems are encountered in the computations.
+    }
   }
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002a).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
   
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{em}},
@@ -147,11 +144,7 @@ meVVV(data, z, eps, tol, itmax, equalPro, warnSingular,
   \code{\link{mclustOptions}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
-
-meVVV(data = irisMatrix, z = unmap(irisClass))
+meVVV(data = iris[,-5], z = unmap(iris[,5]))
 }
 \keyword{cluster}
 % docclass is function

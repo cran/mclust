@@ -1,14 +1,539 @@
-c     mclust.f for R: changed passing of characters from R to fortran
-c     to passing of integers: emeee, emeev, emvev, emvvv, shapeo, unchol,
-c     denvvv, deneee
+      subroutine absrng( l, v, i, vmin, vmax)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      double precision v(*)
+
+      integer          i, j, k, l
+
+      double precision temp, vmin, vmax
+
+c----------------------------------------------------------------------------
+
+      temp  = abs(v(1))
+      vmin  = temp
+      vmax  = temp
+
+      if (l .eq. 1) return
+
+      if (i .eq. 1) then
+        do j = 2, l
+          temp = abs(v(j))
+          vmin = min(vmin,temp)
+          vmax = max(vmax,temp)
+        end do
+      else
+        k = 1 + i
+        do j = 2, l
+          temp = abs(v(k))
+          vmin = min(vmin,temp)
+          vmax = max(vmax,temp)
+          k    = k + i
+        end do
+      end if
+
+      return  
+      end 
+      SUBROUTINE D2NORM ( N, X, INCX, VALUE )
+*     .. Scalar Arguments ..
+      INTEGER                           INCX, N
+*     .. Array Arguments ..
+      DOUBLE PRECISION                  X( * ), VALUE
+*     ..
+*
+*  DNRM2 returns the euclidean norm of a vector via the function
+*  name, so that
+*
+*     DNRM2 := sqrt( x'*x )
+*
+*     THIS FUNCTION MODELLED AFTER DNRM2 BUT WRITTEN AS A SUBROUTINE
+*
+*  -- This version written on 25-October-1982.
+*     Modified on 14-October-1993 to inline the call to DLASSQ.
+*     Sven Hammarling, Nag Ltd.
+*
+*
+*     .. Parameters ..
+      DOUBLE PRECISION      ONE         , ZERO
+      PARAMETER           ( ONE = 1.0D+0, ZERO = 0.0D+0 )
+*     .. Local Scalars ..
+      INTEGER               IX
+      DOUBLE PRECISION      ABSXI, NORM, SCALE, SSQ
+*     .. Intrinsic Functions ..
+      INTRINSIC             ABS, SQRT
+*     ..
+*     .. Executable Statements ..
+      IF( N.LT.1 .OR. INCX.LT.1 )THEN
+         NORM  = ZERO
+      ELSE IF( N.EQ.1 )THEN
+         NORM  = ABS( X( 1 ) )
+      ELSE
+         SCALE = ZERO
+         SSQ   = ONE
+*        The following loop is equivalent to this call to the LAPACK
+*        auxiliary routine:
+*        CALL DLASSQ( N, X, INCX, SCALE, SSQ )
+*
+         DO 10, IX = 1, 1 + ( N - 1 )*INCX, INCX
+            IF( X( IX ).NE.ZERO )THEN
+               ABSXI = ABS( X( IX ) )
+               IF( SCALE.LT.ABSXI )THEN
+                  SSQ   = ONE   + SSQ*( SCALE/ABSXI )**2
+                  SCALE = ABSXI
+               ELSE
+                  SSQ   = SSQ   +     ( ABSXI/SCALE )**2
+               END IF
+            END IF
+   10    CONTINUE
+         NORM  = SCALE * SQRT( SSQ )
+      END IF
+*
+      VALUE = NORM
+      RETURN
+*
+*     End of D2NORM.
+*
+      END
+      subroutine mclrup( l, n, v, r, lr)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer           l, n, lr
+
+      double precision  cs, sn 
+
+c     double precision  v(n), r(lr,n)
+      double precision  v(*), r(lr,*)
+
+      integer           i, j, k, m
+
+      if (l .eq. 1) return
+
+      k = l - 1
+      if (k .le. n) then
+
+        call dcopy( n, v, 1, r(k,1), lr)
+
+        if (k .eq. 1) return
+
+        if (n .gt. 1) then
+          i = 1
+          m = n
+          do j = 2, k
+            call drotg( r(i,i), r(k,i), cs, sn)
+            m = m - 1
+            call drot( m, r(i,j), lr, r(k,j), lr, cs, sn)
+            i = j
+          end do
+        else
+          call drotg( r(1,1), r(k,1), cs, sn)
+        end if
+ 
+      else
+
+        if (n .gt. 1) then
+          i = 1
+          m = n
+          do j = 2, n
+            call drotg( r(i,i), v(i), cs, sn)
+            m = m - 1
+            call drot( m, r(i,j), lr, v(j), 1, cs, sn)
+            i = j
+          end do
+        end if
+
+        call drotg( r(n,n), v(n), cs, sn)
+
+      end if
+
+      return
+      end
+      subroutine mcltrw( x, n, p, u, ss)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     integer            n, p
+      integer            n, p
+
+      double precision   ss
+
+c     double precision   x(n,p), u(p)
+      double precision   x(n,*), u(*)
+
+      double precision   ddot
+      external           ddot
+
+c-----------------------------------------------------------------------------
+c
+      integer                 i, j
+
+      double precision        fac
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+c------------------------------------------------------------------------------
+
+c form mean
+      fac = one / sqrt(dble(n))
+      call dcopy( p, zero, 0, u, 1)
+      do i = 1, n
+        call daxpy( p, fac, x(i,1), n, u, 1)
+      end do
+
+c subtract mean and form sum of squares
+      ss = zero
+      do j = 1, p
+        call daxpy( n, (-fac), u(j), 0, x(1,j), 1)
+        ss = ss + ddot(n, x(1,j), 1, x(1,j), 1)
+      end do
+
+      return
+      end
+      subroutine mclvol( x, n, p, u, v, w,
+     *                   work, lwork, iwork, liwork, 
+     *                   info)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, lwork, liwork, info
+
+c     integer            iwork(liwork)
+      integer            iwork(*)
+
+c     double precision   x(n,p), u(p), v(p,p), w(p,p), work(lwork),
+      double precision   x(n,*), u(*), v(p,*), w(p,p), work(*)
+
+c----------------------------------------------------------------------------
+
+      integer                 i, j
+
+      double precision        temp, dummy, cmin, cmax
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision    EPSMAX
+      parameter          (EPSMAX = 2.2204460492503131d-16)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+c------------------------------------------------------------------------------
+
+c form mean
+      temp = one / dble(n)
+      call dcopy( p, zero, 0, u, 1)
+      do i = 1, n
+        call daxpy( p, temp, x(i,1), n, u, 1)
+      end do
+
+c subtract mean
+      do j = 1, p
+        call daxpy( n, (-one), u(j), 0, x(1,j), 1)
+      end do
+
+c     if (.false.) then
+c this gets the eigenvectors but x is overwritten
+
+c get right singular vectors
+c       call dgesvd( 'N', 'A', n, p, x, n, u, 
+c    *                dummy, 1, w, p, work, lwork, info)
+
+c       if (info .lt. 0) return
+
+c       if (info .eq. 0) then
+c         lwork = int(work(1))
+c         do i = 1, p
+c           v(i,i) = w(i,i)
+c           if (i .gt. 1) then
+c             do j = 1, (i-1)
+c               v(i,j) = w(j,i)
+c               v(j,i) = w(i,j)
+c             end do
+c           end if
+c         end do
+c         goto 100
+c       end if
+
+c     end if
+
+c form crossproduct
+      call dsyrk( 'U', 'T', p, n, one, x, n, zero, w, p)
+
+c get eigenvectors
+ 
+      do j = 1, p
+        do i = 1, j
+          v(i,j) = w(i,j)
+        end do
+      end do
+
+      call dsyevd( 'V', 'U', p, v, p, u, 
+     *              work, lwork, iwork, liwork, info)
+
+      if (info .lt. 0) return
+
+      if (info .eq. 0) then
+        lwork  = int(work(1))
+        liwork = iwork(1)
+        goto 100
+      end if
+
+c     EPSMAX = d1mach(4)
+
+      call dsyevx( 'V', 'A', 'U', p, w, p, dummy, dummy, i, i,
+     *              sqrt(EPSMAX), j, u, v, p,
+     *              work, lwork, iwork(p+1), iwork, info)
+          
+      if (info .ne. 0) return
+
+      lwork  = int(work(1))
+      liwork = -1 
+
+ 100  continue
+  
+c      FLMAX = d1mach(2)
+
+c form xv
+
+c     vol = one
+      do j = 1, p
+        call dgemv( 'N', n, p, one, x, n, v(1,j), 1, zero, work, 1)
+        cmax = -FLMAX
+        cmin =  FLMAX
+        do i = 1, n
+          temp = work(i)
+          if (temp .gt. cmax) cmax = temp
+          if (temp .lt. cmin) cmin = temp
+        end do
+        u(j) = cmax - cmin
+c       vol  = vol * (cmax - cmin)
+      end do
+
+      return
+
+      end
+      subroutine sgnrng( l, v, i, vmin, vmax)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      double precision v(*)
+
+      integer          i, j, k, l
+
+      double precision temp, vmin, vmax
+
+c----------------------------------------------------------------------------
+
+      temp  = v(1)
+      vmin  = temp
+      vmax  = temp
+
+      if (l .eq. 1) return
+
+      if (i .eq. 1) then
+        do j = 2, l
+          temp = v(j)
+          vmin = min(vmin,temp)
+          vmax = max(vmax,temp)
+        end do
+      else
+        k = 1 + i
+        do j = 2, l
+          temp = v(k)
+          vmin = min(vmin,temp)
+          vmax = max(vmax,temp)
+          k    = k + i
+        end do
+      end if
+
+      return  
+      end 
+      subroutine shapeo( TRANSP, s, O, l, m, w, info)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            TRANSP
+
+      integer            l, m, info
+
+c     double precision   s(l), O(l,l,m), w(l,l)
+      double precision   s(*), O(l,l,*), w(l,*)
+
+c------------------------------------------------------------------------------
+c
+c  TRANSP character (input) indicates treatment of O.
+c  s      double    (input) (l) a vector. 
+c  O      double    (input/output) (l,l, m) On input, m l by l matrices.
+c                      On output, t(O) * diag(s) *   O  if TRANSP = 'T'.
+c                                   O  * diag(s) * t(O) if TRANSP = 'N'.
+c  l      integer   (input) dimension of s.
+c  m      integer   (input) number of matrices.
+c  info   integer   (output) error indicator.
+
+      integer                 j, k
+
+      double precision        temp
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+c------------------------------------------------------------------------------
+
+      if (TRANSP) then
+ 
+        do j = 1, l
+          temp = sqrt(s(j))
+          do k = 1, m
+            call dscal( l, temp, O(j,1,k), l)
+          end do
+        end do
+
+        do k = 1, m
+          call dsyrk( 'U', 'T', l, l, one, O(1,1,k), l, zero, w, l)
+          do j = 1, l
+            call dcopy( j, w(1,j), 1, O(1,j,k), 1)
+          end do
+          do j = 2, l
+            call dcopy( j-1, w(1,j), 1, O(j,1,k), l)
+          end do
+        end do
+
+        info = 0
+        return
+      end if
+
+      if (.not. TRANSP) then
+
+        do j = 1, l
+          temp = sqrt(s(j))
+          do k = 1, m
+            call dscal( l, temp, O(1,j,k), 1)
+          end do
+        end do
+
+        do k = 1, m
+          call dsyrk( 'U', 'N', l, l, one, O(1,1,k), l, zero, w, l)
+          do j = 1, l
+            call dcopy( j, w(1,j), 1, O(1,j,k), 1)
+          end do
+          do j = 2, l
+            call dcopy( j-1, w(1,j), 1, O(j,1,k), l)
+          end do
+        end do
+
+        info = 0
+        return
+      end if
+
+      info = -1
+
+      return
+      end
+      subroutine unchol ( UPPER, T, l, n, info)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            UPPER
+
+      integer            l, n, info
+
+c     double precision   T(abs(n), abs(n))
+      double precision   T(  l   ,   *   )
+
+c-----------------------------------------------------------------------------
+
+       integer            i, j, k
+
+       external           ddot
+       double precision   ddot
+
+c------------------------------------------------------------------------------
+
+      if (UPPER) then
+
+        do i = 2, n
+          do j = 1, (i-1)
+            T(i,j) = ddot( j, T(1,i), 1, T(1,j), 1)
+          end do
+        end do
+
+        do k = 1, n
+          T(k,k) = ddot( k, T(1,k), 1, T(1,k), 1)
+        end do
+
+        do k = 1, n-1
+          call dcopy( n-k, T(k+1,k), 1, T(k,k+1), l)
+        end do
+
+        info = 0
+        return
+      end if
+
+      if (.not. UPPER) then
+
+        do i = 2, n
+          do j = 1, (i-1)
+            T(j,i) = ddot( j, T(i,1), l, T(j,1), l)
+          end do
+        end do
+        
+        do k = 1, n
+          T(k,k) = ddot( k, T(k,1), l, T(k,1), l)
+        end do
+
+        do k = 2, n
+          call dcopy( k-1, T(1,k), 1, T(k,1), l)
+        end do
+
+        return
+        end if
+
+      info = -1
+      return
+      end
       subroutine wardsw( i, n, d)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
@@ -21,7 +546,7 @@ c University of Washington.
       double precision    temp
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157D+308)
+      parameter          (FLMAX = 1.7976931348623157d308)
 
 *-----------------------------------------------------------------------------
 
@@ -51,9 +576,9 @@ c     end if
 c       d(nn) = FLMAX
 
         ii = ii + k
- 
+
         nn = nn + 1
-        
+
         k  = k  + 1
 
         if (k .lt. n1) goto 100
@@ -61,108 +586,8 @@ c       d(nn) = FLMAX
 c     d(nn) = FLMAX
 
       return
-      end 
-
-      subroutine mclrup( l, n, v, r, lr)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-c rank one row update of n by n upper triangular factor r
-
-      implicit double precision (a-h,o-z)
-
-c     double precision v(n), r(lr,n)
-      double precision v(*), r(lr,*)
-
-      if (l .eq. 1) return
-
-      k = l - 1
-      if (k .le. n) then
-
-        call dcopy( n, v, 1, r(k,1), lr)
-
-        if (k .eq. 1) return
-
-        if (n .gt. 1) then
-          i = 1
-          m = n
-          do j = 2, k
-            call drotg( r(i,i), r(k,i), cs, sn)
-            m = m - 1
-            call drot( m, r(i,j), lr, r(k,j), lr, cs, sn)
-            i = j
-          end do
-        else
-          call drotg( r(1,1), r(k,1), cs, sn)
-        end if
-  
-      else
-
-        if (n .gt. 1) then
-          i = 1
-          m = n
-          do j = 2, n
-            call drotg( r(i,i), v(i), cs, sn)
-            m = m - 1
-            call drot( m, r(i,j), lr, v(j), 1, cs, sn)
-            i = j
-          end do
-        end if
-
-        call drotg( r(n,n), v(n), cs, sn)
-
-      end if
-
-      return  
-      end 
-
-      double precision function detmc2( n, u)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit double precision (a-h,o-z)
-
-      double precision                 u(n,*)
-
-      double precision                 zero, two 
-      parameter                       (zero = 0.d0, two = 2.d0)
-
-      double precision                 FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-c      common /MCLMCH/                  FLMAX
-c      save   /MCLMCH/
-
-      detmc2 = zero
-
-      do k = 1, n
-
-        q = u(k,k)
-
-        if (q .eq. zero) then
-          detmc2 = -FLMAX
-          return
-        end if
-
-        detmc2 = detmc2 + log(abs(q))
-                 
-      end do
-
-      detmc2 = two*detmc2
-
-      return  
-      end 
-
-      double precision function det2mc( n, u, s)
+      end
+      subroutine es1e ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
@@ -171,33 +596,114 @@ c        http://www.stat.washington.edu/mclust/license.txt
 
       implicit NONE
 
-      integer                          k, n
+      integer            n, G
 
-      double precision                 q, s
-      double precision                 u(n,*)
+      double precision   sigsq, hood, Vinv
 
-      double precision                 zero, two
-      parameter                       (zero = 0.d0, two = 2.d0)
+c     double precision   x(n), mu(G), pro(G[+1]), z(n,G[+1])
+      double precision   x(*), mu(*), pro(  *  ), z(n,  *  )
 
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623d308)
+c-----------------------------------------------------------------------------
 
-      det2mc = zero
+      integer                 i, k, nz
 
-      do k = 1, n
+      double precision        temp, const, muk, prok, tmin, tmax, sum
 
-        q = u(k,k)*s
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-        if (abs(q) .le. zero) then
-          det2mc = -FLMAX
-          return
-        end if
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
 
-        det2mc = det2mc + log(abs(q))
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
 
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (sigsq .le. zero) then
+        hood  = FLMAX
+        return
+      end if
+
+      const = pi2log + log(sigsq)
+
+      do k = 1, G
+        muk  = mu(k)
+c       prok = pro(k)
+        do i = 1, n
+          temp   = x(i) - muk
+c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
+          if (sigsq .lt. one .and. 
+     *        abs(temp) .ge. sqrt(sigsq)*RTMAX) then
+            hood = FLMAX
+            return
+          end if 
+          z(i,k) = -(const+(temp*temp)/sigsq)/two
+        end do
       end do
 
-      det2mc = two*det2mc
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       temp = zero
+c       do k = 1, nz
+c         temp = temp + z(i,k)
+c       end do
+c       hood = hood + log(temp)
+c       call dscal( nz, (one/temp), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if   
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
 
       return
       end
@@ -208,16 +714,15 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
       integer             n, ic(n), ng, ns, nd
 
+c     double precision    x(n), d(ng*(ng-1)/2)
       double precision    x(*), d(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer             lg, ld, ll, lo, ls
       integer             i, j, k, m 
@@ -235,7 +740,7 @@ c------------------------------------------------------------------------------
       double precision    FLMAX
       parameter          (FLMAX = 1.7976931348623157d308)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -531,24 +1036,5991 @@ c update d and find max
 
       return
       end
+      subroutine me1e ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps, 
+     *                  mu, sigsq, pro)
 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, G, maxi
+
+      double precision    Vinv, eps, tol
+
+c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
+      double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, iter, k, i
+
+      double precision        hold, hood, err, prok, tmin, tmax, ViLog
+      double precision        const, sum, sumz, smu, temp, term, zsum
+      double precision        rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+      end if
+ 
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX 
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter  + 1
+
+      sumz  = zero
+      sigsq = zero
+
+      zsum  = one
+
+      do k = 1, G
+        sum = zero
+        smu = zero
+        do i = 1, n
+          temp = z(i,k)   
+          sum  = sum + temp
+          smu  = smu + temp*x(i)
+        end do
+        sumz   = sumz + sum
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        zsum   = min(sum,zsum)
+        if (sum .gt. rteps) then
+          smu    = smu / sum
+          mu(k)  = smu
+          do i = 1, n
+            temp   = x(i) - smu
+            temp   = temp*temp
+            sigsq  = sigsq + z(i,k)*temp
+            z(i,k) = temp
+          end do
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      if (Vinv .le. zero) then
+        sigsq  = sigsq / dble(n)
+      else
+        sigsq  = sigsq / sumz
+      end if
+
+      if (Vinv .gt. zero) then
+
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+         
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      if (sigsq .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      const = pi2log + log(sigsq)
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)           
+          z(i,k) = -(const+(z(i,k)/sigsq))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine me1ep ( EQPRO, x, n, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, G, maxi
+
+      double precision    pshrnk, pmu, pscale, pdof
+
+      double precision    Vinv, eps, tol
+
+c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
+      double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, iter, k, i
+
+      double precision        hold, hood, err, prok, tmin, tmax, ViLog
+      double precision        const, sum, sumz, smu, temp, term, zsum
+      double precision        pmupmu, cgam, cmu, rmu, rgam, rteps
+      
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c     double precision        dlngam
+c     external                dlngam
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+      end if
+ 
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+      rteps  = sqrt(eps)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX 
+      err    = FLMAX
+
+      pmupmu = pmu*pmu
+
+      iter   = 0
+
+100   continue
+
+      iter  = iter  + 1
+
+      sigsq = zero
+
+      zsum  = one
+
+      do k = 1, G
+        sumz = zero
+        smu  = zero
+        do i = 1, n
+          temp = z(i,k)
+	  sumz = sumz + temp
+          smu  = smu + temp*x(i)
+        end do
+        if (.not. EQPRO) pro(k)   = sumz / dble(n)
+        zsum = min(zsum,sumz)
+        if (sumz .gt. rteps) then
+          smu = smu/sumz
+          sum = zero
+          do i = 1, n
+            term   = x(i) - smu
+            term   = term*term
+            sum    = sum + z(i,k)*term
+          end do
+          term  = (pshrnk*sumz)/(pshrnk+sumz)
+          temp  = (pmupmu + smu*smu) - two*pmu*smu
+          sigsq = sigsq + sum + term*temp
+          term  = sumz/(pshrnk+sumz)
+          temp  = pshrnk/(pshrnk+sumz)
+          mu(k) = term*smu + temp*pmu
+        end if
+      end do 
+
+      if (zsum .le. rteps) then
+        tol  = zsum
+        eps  = -FLMAX
+        maxi = iter
+        return
+      end if
+
+      sigsq = (pscale + sigsq)/(pdof + dble(n+G) + two)
+
+c     if (Vinv .le. zero) then
+c       sigsq  = sigsq / dble(n)
+c     else
+c       sigsq  = sigsq / sumz
+c     end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+         
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      if (sigsq .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      const = pi2log + log(sigsq)
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          term = x(i) - mu(k)
+          z(i,k) = -(const+((term*term)/sigsq))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+c    cmu  = dble(G)*(pi2log-log(pshrnk))/two
+
+c     sum  = zero
+c     do k = 1, G
+c       temp = pmu - mu(k)
+c       temp = temp*temp
+c       sum  = sum - (pshrnk/sigsq)*temp
+c     end do
+
+c     term = log(sigsq)
+c     rmu  = (sum - dble(G)*term)/two
+
+c     temp =  pdof/two
+c     cgam =  temp*log(pscale/two) - dlngam(temp)
+
+c     rgam = -(temp+one)*term - (pscale/sigsq)/two
+
+c     pdof = (cmu+cgam) + (rmu+rgam)
+
+      return
+      end
+      subroutine ms1e ( x, z, n, G, mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, G
+
+c     double precision    x(n), z(n,G), mu(G), sigsq, pro(G)
+      double precision    x(*), z(n,*), mu(*), sigsq, pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, k
+
+      double precision        sum, smu, sumz, temp
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+c------------------------------------------------------------------------------
+
+      sumz  = zero
+ 
+      sigsq = zero
+
+      do k = 1, G
+        sum = zero
+        smu = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          smu  = smu + temp*x(i)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum / dble(n)
+        if (sigsq .gt. one .or. smu .le. sum*FLMAX) then
+  	  smu    = smu  / sum
+	  mu(k)  = smu 
+          if (sigsq .ne. FLMAX) then 
+            do i = 1, n
+              temp = abs(x(i) - smu)
+              sigsq  = sigsq + z(i,k)*(temp*temp)
+            end do
+          end if
+        else 
+          mu(k) = FLMAX 
+          sigsq = FLMAX
+        end if
+      end do
+
+c sumz .eq. n when no noise
+      if (sigsq .ne. FLMAX) sigsq  = sigsq / sumz
+
+      return
+      end
+      subroutine ms1ep ( x, z, n, G,
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, G
+
+      double precision    pshrnk, pmu, pscale, pdof
+
+c     double precision    x(n), z(n,G), mu(G), sigsq, pro(G)
+      double precision    x(*), z(n,*), mu(*), sigsq, pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 k, i
+
+      double precision        pmupmu
+      double precision        sum, sumz, smu, temp, term
+      
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      pmupmu = pmu*pmu 
+
+      sigsq = zero
+
+      do k = 1, G
+        sumz = zero
+        smu  = zero
+        do i = 1, n
+          temp = z(i,k)
+	  sumz = sumz + temp
+          smu  = smu + temp*x(i)
+        end do
+        pro(k)   = sumz / dble(n)
+        if (sumz .gt. one .or. smu .lt. sumz*FLMAX) then
+          smu = smu/sumz
+          sum = zero
+          term  = sumz/(pshrnk+sumz)
+          temp  = pshrnk/(pshrnk+sumz)
+          mu(k) = term*smu + temp*pmu
+          if (sigsq .ne. FLMAX) then          
+            do i = 1, n
+              term = abs(x(i) - smu)
+              sum = sum + z(i,k)*(term*term)
+            end do
+            term  = (pshrnk*sumz)/(pshrnk+sumz)
+            temp  = (pmupmu + smu*smu) - two*pmu*smu
+            sigsq = sigsq + sum + term*temp
+          end if
+        else
+          mu(k) = FLMAX
+          sigsq = FLMAX
+        end if
+      end do 
+
+      if (sigsq .ne. FLMAX) then
+        temp = pdof + dble(n) + two
+        if (pshrnk .gt. zero) temp = temp + dble(G)
+        sigsq = (pscale + sigsq)/temp
+      end if
+
+      return
+      end
+      subroutine eseee ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv,
+     *                   w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     character          CHOL
+      logical            CHOL
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n,p), w(p), z(n,G[+1])
+      double precision   x(n,*), w(*), z(n,  *  )
+
+c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
+      double precision   mu(p,*), Sigma(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 info, i, j, k, nz
+
+      double precision        eps, rteps, detlog, prok, tmin, tmax
+      double precision        umin, umax, const, temp, rc, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+c     if (CHOL .eq. 'N') then
+      if (.not. CHOL) then
+
+c Cholesky factorization
+        call dpotrf( 'U', p, Sigma, p, info)
+
+        if (info .ne. 0) then
+          w(1) = dble(info)
+          hood = FLMAX
+          return
+        end if
+
+      end if
+
+      call absrng( p, Sigma, (p+1), umin, umax)
+
+c     rc   = umin/(one+umax)
+
+      if (umax .le. one .and. umax .ge. umin*RTMAX) then
+        w(1) = zero
+        hood = FLMAX
+        return
+      end if
+
+      if (umax .ge. one .and. umin .le. umax*RTMIN) then
+        w(1) = zero
+        hood = FLMAX
+        return
+      end if
+
+      detlog = zero
+      do j = 1, p
+        detlog = detlog + log(abs(Sigma(j,j)))
+      end do
+
+      const = dble(p)*pi2log/two + detlog
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
+          temp   = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = prok*exp(-(const+temp))
+          z(i,k) = -(const+temp)
+        end do
+      end do
+
+      w(1) = zero
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          w(1) = zero
+          hood = FLMAX
+          return
+        end if 
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      w(1) = zero
+ 
+      return
+      end
+      subroutine hceee ( x, n, p, ic, ng, ns, io, jo, v, s, u, r)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, ic(n), ng, ns, io(*), jo(*)
+
+c     double precision   x(n,p), v(p), s(p,p), u(p,p), r(p,p)
+      double precision   x(n,*), v(*), s(*), u(*), r(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 q, i, j, k, l, m, i1, i2, l1, l2
+      integer                 ni, nj, nij, lw, ls, lg, ici, icj
+      integer                 nopt, iopt, jopt, idet, jdet, ndet
+
+      double precision        DELOG
+      double precision        ri, rj, rij, dij, tij, zij
+      double precision        trc0, trc1, trcw, det0, det1, detw
+      double precision        si, sj, siop, sjop, sidt, sjdt
+      double precision        dopt, zopt, dijo, tijo, tdet
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      external                ddot, detmc2
+      double precision        ddot, detmc2
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    EPSMIN
+      parameter          (EPSMIN = 1.1102230246251565d-16)
+
+c-----------------------------------------------------------------------------
+
+      i1 = 0
+      i2 = 0
+
+      lw = p*p
+
+c     call intpr('ic', -1, ic, n)
+      
+c form scaled column sums
+      call dscal( n*p, one/sqrt(dble(n)), x, 1)
+
+      si = one/sqrt(dble(p))
+      sj = si / dble(n)
+      call dcopy( p, zero, 0, v, 1)
+      do k = 1, n
+        call daxpy( p, sj, x(k,1), n, v, 1)
+      end do
+
+      trc0 = zero
+      call dcopy( lw, zero, 0, r, 1)
+      do k = 1, n
+        call dcopy( p, v, 1, s, 1)
+        call daxpy( p, (-si), x(k,1), n, s, 1)
+        trc0 = trc0 + ddot( p, s, 1, s, 1)
+        call mclrup( (k+1), p, s, r, p)
+      end do
+      
+      det0 = detmc2( p, r)
+
+      DELOG = log(trc0+EPSMIN)
+
+c group heads should be first among rows of x
+
+      i = 1
+      j = 2
+ 1    continue
+        icj = ic(j)
+        if (icj .ne. j) goto 2
+        if (j .eq. ng)  goto 3
+        i = j
+        j = j + 1
+      goto 1
+
+ 2    continue
+
+      k = i
+      m = j + 1
+      do j = m, n
+        icj = ic(j)
+        if (icj .gt. k) then
+          k = k + 1
+          call dswap( p, x(k,1), n, x(j,1), n)
+          ic(j) = ic(k)
+          ic(k) = icj
+        end if
+      end do
+
+ 3    continue
+
+c     call intpr( 'ic', -1, ic, n)
+
+      trcw = zero
+      call dcopy( lw, zero, 0, r, 1)
+
+      q = 1
+      do j = 1, n
+        i = ic(j)
+        if (i .ne. j) then
+c update trace and Cholesky factor as if a merge
+          q     = q + 2
+          ni    = ic(i)
+          ri    = dble(ni)
+          rij   = dble(ni+1)
+          sj    = sqrt(one/rij)
+          si    = sqrt(ri)*sj
+          call dcopy( p, x(i,1), n, v, 1)
+          call dscal( p, sj, v, 1)
+          call daxpy( p, (-si), x(j,1), n, v, 1)
+          trcw  = trcw + ddot(p, v, 1, v, 1)
+          call mclrup( q, p, v, r, p)
+          ic(j) = 0
+          ic(i) = ic(i) + 1
+          call dscal( p, si, x(i,1), n)
+          call daxpy( p, sj, x(j,1), n, x(i,1), n)
+c         call dcopy( p, FLMAX, 0, x(j,1), n)
+c update column sum in jth row
+        else
+          ic(j) = 1
+        end if
+      end do
+
+c     call intpr('ic', -1, ic, n)
+
+      trc1 = trcw
+
+      if (q .lt. p) then
+        detw = -FLMAX
+      else
+        detw = detmc2( p, r)
+      end if        
+
+      det1 = detw
+
+      ls =  1
+
+      lg = ng
+
+      l1 =  0
+      l2 =  0
+
+ 100  continue
+
+      if (q .ge. p) then
+c       if (.false.) 
+c    *    call intpr('PART 2 --------------------------', -1, ls, 0)
+        if (detw .lt. DELOG) then
+          goto 200
+        else
+          goto 300
+        end if
+      end if
+
+      dopt = FLMAX
+
+      do j = 2, lg
+        nj = ic(j)
+        rj = dble(nj)
+        do i = 1, (j-1)
+          ni  = ic(i)
+          ri  = dble(ni)
+          nij = ni + nj
+          rij = dble(nij)
+          si  = sqrt(ri/rij)
+          sj  = sqrt(rj/rij)
+          call dcopy( p, x(i,1), n, s, 1)
+          call dscal( p, sj, s, 1)
+          call daxpy( p, (-si), x(j,1), n, s, 1)
+          tij = trcw + ddot(p, s, 1, s, 1)
+          zij = max(tij,EPSMIN)
+          if (zij .le. dopt) then
+            dopt = zij
+            nopt = nij
+            siop = si
+            sjop = sj
+            iopt = i
+            jopt = j
+            call dcopy( p, s, 1, v, 1)
+          end if
+        end do
+      end do
+
+      trcw = dopt
+
+      if (ls .eq. ns) goto 900
+
+      call dscal( p, siop, x(iopt,1), n)
+      call daxpy( p, sjop, x(jopt,1), n, x(iopt,1), n)
+
+      if (jopt .ne. lg) then
+        call dcopy( p, x(lg,1), n, x(jopt,1), n)
+        ic(jopt) = ic(lg)
+      end if
+
+      ic(iopt) = nopt
+
+      x(lg,1)  = detw
+      x(lg,2)  = trcw
+      if (p .ge. 4) then
+        x(lg,3) = dble(iopt)
+        x(lg,4) = dble(jopt)     
+      else if (p .eq. 3) then
+        x(lg,3) = dble(iopt)
+        jo(ls)  = jopt
+      else 
+        io(ls)  = iopt
+        jo(ls)  = jopt
+      end if
+
+c update the Cholesky factor
+
+      q  =  q + 1
+      call mclrup( q, p, v, r, p)
+
+      ls = ls + 1
+      lg = lg - 1
+
+      goto 100
+
+ 200  continue
+
+      q  =  q + 1
+
+c     call intpr('ic', -1, ic, n)
+
+      dopt = FLMAX
+      zopt = FLMAX
+
+      do j = 2, lg
+        nj = ic(j)        
+        rj = dble(nj)
+        do i = 1, (j-1)
+          ni  = ic(i)
+          ri  = dble(ni)
+          nij = ni + nj
+          rij = dble(nij)
+          si  = sqrt(ri/rij)
+          sj  = sqrt(rj/rij)
+          call dcopy( p, x(i,1), n, v, 1)
+          call dscal( p, sj, v, 1)
+          call daxpy( p, (-si), x(j,1), n, v, 1)
+          tij = trcw +  ddot(p, v, 1, v, 1)
+          call dcopy( lw, r, 1, u, 1)
+          call mclrup( q, p, v, u, p)
+          dij = detmc2( p, u)
+          if (dij .le. dopt) then
+            dopt = dij
+            tdet = tij
+            ndet = nij
+            sidt = si
+            sjdt = sj
+            idet = i
+            jdet = j
+          end if
+          if (tij .eq. zero) then
+            zij = -FLMAX
+          else 
+            zij = max(tij,EPSMIN)
+            if (dij .eq. (-FLMAX)) then
+              zij = log(zij)
+            else if (dij .le. zero) then
+              zij = log(exp(dij) + zij)
+            else 
+              zij = log(one + zij*exp(-dij)) + dij
+            end if
+          end if
+          if (zij .le. zopt) then
+            zopt = zij
+            dijo = dij
+            tijo = tij
+            nopt = nij
+            siop = si
+            sjop = sj
+            iopt = i
+            jopt = j
+            call dcopy( lw, u, 1, s, 1)
+          end if
+        end do
+      end do
+
+      if (dopt .lt. DELOG) then
+        if (l1 .eq. 0) l1 = ls
+        trcw = tijo
+        detw = dijo
+        call dcopy( lw, s, 1, r, 1)
+      else 
+        l2 = ls
+        trcw = tdet
+        detw = dopt
+        siop = sidt
+        sjop = sjdt
+        nopt = ndet
+        iopt = idet
+        jopt = jdet
+        call dcopy( p, x(iopt,1), n, v, 1)
+        call dscal( p, sjop, v, 1)
+        call daxpy( p, (-siop), x(jopt,1), n, v, 1)
+        call mclrup( q, p, v, r, p)
+      end if
+
+      if (ls .eq. ns) goto 900
+
+      call dscal( p, siop, x(iopt,1), n)
+      call daxpy( p, sjop, x(jopt,1), n, x(iopt,1), n)
+
+      if (jopt .ne. lg) then
+        call dcopy( p, x(lg,1), n, x(jopt,1), n)
+        ic(jopt) = ic(lg)
+      end if
+
+      ic(iopt) = nopt
+
+      x(lg,1)  = detw
+      x(lg,2)  = trcw
+      if (p .ge. 4) then
+        x(lg,3) = dble(iopt)
+        x(lg,4) = dble(jopt)     
+      else if (p .eq. 3) then
+        x(lg,3) = dble(iopt)
+        jo(ls)  = jopt
+      else 
+        io(ls)  = iopt
+        jo(ls)  = jopt
+      end if
+
+      ls = ls + 1
+      lg = lg - 1
+
+      if (detw .ge. DELOG) then
+c       if (.false.)
+c    *    call intpr('PART 3 --------------------------', -1, ls, 0)
+        goto 300
+      end if
+
+      goto 200
+
+ 300  continue
+
+      q = q + 1
+
+      detw = FLMAX
+
+      do j = 2, lg
+        nj = ic(j)        
+        rj = dble(nj)
+        do i = 1, (j-1)
+          ni  = ic(i)
+          ri  = dble(ni)
+          nij = ni + nj
+          rij = dble(nij)
+          si  = sqrt(ri/rij)
+          sj  = sqrt(rj/rij)
+          call dcopy( p, x(i,1), n, v, 1)
+          call dscal( p, sj, v, 1)
+          call daxpy( p, (-si), x(j,1), n, v, 1)
+          call dcopy( lw, r, 1, u, 1)
+          call mclrup( q, p, v, u, p)
+          dij = detmc2( p, u)
+          if (dij .le. detw) then
+            detw = dij
+            nopt = nij
+            siop = si
+            sjop = sj
+            iopt = i
+            jopt = j
+            call dcopy( lw, u, 1, s, 1)
+          end if
+        end do
+      end do
+
+c update the trace
+
+      call dcopy( p, x(iopt,1), n, v, 1)
+      call dscal( p, sjop, v, 1)
+      call daxpy( p, (-siop), x(jopt,1), n, v, 1)
+
+      trcw = trcw + ddot( p, v, 1, v, 1)
+
+      if (ls .eq. ns) goto 900
+
+      call dcopy( lw, s, 1, r, 1)
+
+      call dscal( p, siop, x(iopt,1), n)
+      call daxpy( p, sjop, x(jopt,1), n, x(iopt,1), n)
+
+      if (jopt .ne. lg) then
+        call dcopy( p, x(lg,1), n, x(jopt,1), n)
+        ic(jopt) = ic(lg)
+      end if
+
+      ic(iopt) = nopt
+
+      x(lg,1)  = detw
+      x(lg,2)  = trcw
+      if (p .ge. 4) then
+        x(lg,3) = dble(iopt)
+        x(lg,4) = dble(jopt)     
+      else if (p .eq. 3) then
+        x(lg,3) = dble(iopt)
+        jo(ls)  = jopt
+      else 
+        io(ls)  = iopt
+        jo(ls)  = jopt
+      end if
+
+      ls = ls + 1
+      lg = lg - 1
+
+      goto 300
+
+ 900  continue
+
+      x(lg,1) = detw
+      x(lg,2) = trcw
+      if (p .ge. 4) then
+        if (iopt .lt. jopt) then
+          x(lg,3) = dble(iopt)
+          x(lg,4) = dble(jopt)     
+        else
+          x(lg,3) = dble(jopt)
+          x(lg,4) = dble(iopt)     
+        end if
+      else if (p .eq. 3) then
+        if (iopt .lt. jopt) then
+          x(lg,3) = dble(iopt)
+          jo(ls)  = jopt
+        else
+          x(lg,3) = dble(jopt)
+          jo(ls)  = iopt
+        end if
+      else 
+        if (iopt .lt. jopt) then
+          io(ls)  = iopt
+          jo(ls)  = jopt
+        else
+          io(ls)  = jopt
+          jo(ls)  = iopt
+        end if
+      end if
+
+c decode
+
+      do k = 1, ng
+       ic(k) = k
+      end do
+
+      m = ng + 1
+      if (p .ge. 4) then
+        l = m
+        do k = 1, ns
+          l      = l - 1
+          i      = int(x(l,3))
+          ici    = ic(i)
+          j      = int(x(l,4))
+          icj    = ic(j)
+          if (ici .gt. icj) ic(i) = icj
+          ic(j)  = ic(m - k)
+          if (ici .lt. icj) then
+            x(l,3) = dble(ici)
+            x(l,4) = dble(icj)
+          else
+            x(l,3) = dble(icj)
+            x(l,4) = dble(ici)
+          end if
+        end do
+      else if (p .eq. 3) then
+        l = m
+        do k = 1, ns
+          l      = l - 1
+          i      = int(x(l,3))
+          ici    = ic(i)
+          j      = jo(k)
+          icj    = ic(j)
+          if (ici .gt. icj) ic(i) = icj
+          ic(j)  = ic(m - k)
+          if (ici .lt. icj) then
+            x(l,3) = dble(ici)
+            jo(k)  = icj
+          else
+            x(l,3) = dble(icj)
+            jo(k)  = ici
+          end if
+        end do
+      else
+        do k = 1, ns
+          i      = io(k)
+          ici    = ic(i)
+          j      = jo(k)
+          icj    = ic(j)
+          if (ici .gt. icj) ic(i) = icj
+          ic(j)  = ic(m - k)
+          if (ici .lt. icj) then
+            io(k)  = ici
+            jo(k)  = icj
+          else
+            io(k)  = icj
+            jo(k)  = ici
+          end if
+        end do
+      end if
+
+      l = 2
+      m = min(p,4)
+      do k = ng, lg, -1
+        if (k .le. l) goto 950
+        call dswap( m, x(k,1), n, x(l,1), n)
+        l  = l + 1
+      end do
+   
+ 950  continue
+
+      x(1,1) = det1
+      x(1,2) = trc1
+
+      v(1) = dble(l1)
+      v(2) = dble(l2)
+
+      s(1) = det0
+      s(2) = trc0
+
+      return
+      end
+      double precision function detmc2( n, u)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer                          k, n
+ 
+      double precision                 q
+
+      double precision                 u(n,*)
+
+      double precision                 zero, two
+      parameter                       (zero = 0.d0, two = 2.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      detmc2 = zero
+
+      do k = 1, n
+
+        q = u(k,k)
+
+        if (q .eq. zero) then
+          detmc2 = -FLMAX
+          return
+        end if
+
+        detmc2 = detmc2 + log(abs(q))
+
+      end do
+
+      detmc2 = two*detmc2
+
+      return
+      end
+      subroutine meeee ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
+     *                   mu, U, pro, w)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi
+
+      double precision   Vinv, eps, tol
+
+c     double precision   x(n,p), z(n,G), w(p)
+      double precision   x(n,*), z(n,*), w(*)
+
+c     double precision   mu(p,G), U(p,p), pro(G)
+      double precision   mu(p,*), U(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+      integer                 nz, p1, iter, i, j, k, j1
+
+      double precision        piterm, sclfac, sumz, sum, zsum
+      double precision        cs, sn, umin, umax, rc, detlog, rteps
+      double precision        const, hold, hood, err, temp, term
+      double precision        prok, tmin, tmax, ViLog
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      piterm = dble(p)*pi2log/two
+
+      p1     = p + 1
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+c zero out the lower triangle
+      i = 1
+      do j = 2, p
+        call dcopy( p-i, zero, 0, U(j,i), 1)
+        i = j
+      end do
+
+      iter = 0
+
+100   continue
+
+      iter = iter + 1
+
+      do j = 1, p
+        call dcopy( j, zero, 0, U(1,j), 1)
+      end do
+
+      sumz = zero
+      zsum = one
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        zsum = min(zsum,sum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j), w(j), cs, sn)
+              call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p), w(p), cs, sn)
+          end do
+        end if
+      end do
+ 
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        hood = eps  
+        maxi =  iter
+        return
+      end if
+
+      if (Vinv .le. zero) then
+        sclfac = one/sqrt(dble(n))
+      else
+        sclfac = one/sqrt(sumz)
+      end if
+
+      do j = 1, p
+        call dscal( j, sclfac, U(1,j), 1)
+      end do
+
+c condition number
+
+      call absrng( p, U, p1, umin, umax)
+
+      rc = umin/(one+umax)
+
+      if (Vinv .gt. zero) then
+
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if   
+
+      end if
+
+      if (rc .le. rteps) then
+        tol  = err
+        eps  = FLMAX
+        hood = eps
+        maxi = iter
+        return
+      end if
+
+      detlog = zero
+      do j = 1, p
+        detlog = detlog + log(abs(U(j,j)))
+      end do
+
+      const = piterm + detlog
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
+          sum    = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = temp * exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine meeeep( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps,
+     *                   mu, U, pro, w)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi
+
+      double precision   Vinv, eps, tol
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+c     double precision   x(n,p), z(n,G), w(p)
+      double precision   x(n,*), z(n,*), w(*)
+
+c     double precision   mu(p,G), U(p,p), pro(G)
+      double precision   mu(p,*), U(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, p1, iter, i, j, k, j1
+
+      double precision        piterm, sclfac, sumz, sum, zsum
+      double precision        cs, sn, umin, umax, rc, detlog, rteps
+      double precision        const, hold, hood, err, temp, term
+      double precision        prok, tmin, tmax, ViLog
+      double precision        cmu, cgam, rmu, rgam
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        twolog
+      parameter              (twolog  = 0.6931471805599453d0)
+
+      double precision        pilog
+      parameter              (pilog = 1.144729885849400d0)
+
+      double precision        pi2log      
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c     external                ddot, dlngam
+c     double precision        ddot, dlngam
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero 
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      piterm = dble(p)*pi2log/two
+
+      p1     = p + 1
+
+      sclfac = one/sqrt(dble(n))
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      iter   = iter + 1
+
+c copy pscale to U
+      do j = 1, p
+        call dcopy( p, pscale(1,j), 1, U(1,j), 1)
+      end do
+
+      sumz = zero
+      zsum = one
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        zsum = min(zsum,sum)
+        if (sum .gt. rteps) then     
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j), w(j), cs, sn)
+              call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)  
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          const = sum + pshrnk
+          temp  = (sum*pshrnk)/const
+          call dscal( p, sqrt(temp), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( U(j,j), w(j), cs, sn)
+            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( U(p,p), w(p), cs, sn)
+          call dscal( p, sum/const, mu(1,k), 1)
+          call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      term = pdof + dble(p) + one
+      if (pshrnk .gt. zero) term = term + dble(G)
+
+      if (Vinv .le. zero) then
+        sclfac = one/sqrt(term+dble(n))
+      else 
+        sclfac = one/sqrt(term+dble(sumz))
+      end if
+
+      do j = 1, p
+        call dscal( j, sclfac, U(1,j), 1)
+      end do
+
+      if (Vinv .gt. zero) then
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if   
+      end if
+
+c condition number
+
+      call absrng( p, U, p1, umin, umax)
+
+      rc = umin/(one+umax)
+
+      if (rc .le. rteps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      detlog = zero
+      do j = 1, p
+        detlog = detlog + log(abs(U(j,j)))
+      end do
+
+      const = piterm + detlog
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
+          sum    = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = temp * exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol   = err
+      eps   = hood
+      maxi  = iter
+
+c     if (pshrnk .gt. zero) then
+c       cmu = dble(p)*(log(pshrnk) - pi2log)/two
+
+c       rmu = zero
+c       do k = 1, G
+c         call daxpy( p, (-one), mu(1,k), 1, pmu, 1)
+c         call dtrsv('U','T','N',p,U,p,pmu,1)
+c         rmu = rmu + ddot( p, pmu, 1, pmu, 1)
+c       end do
+
+c       sum  = zero
+c       term = zero
+c       temp = zero
+c       do j = 1, p
+c         call dcopy( p, pscale(j,1), p, pmu, 1)
+c         call dtrsv('U','T','N', p, U, p, pmu, 1)
+c         i = p-j+1
+c         call dtrsv('U','T','N', i, U(j,j),i,pmu(j),1)
+c         sum  = sum + ddot(i, pmu(j), 1, pmu(j), 1)
+c         temp = temp + log(abs(pscale(j,j)))
+c         term = term + dlngam((pdof+one-dble(j))/two)
+c       end do
+
+c       rmu   = -(detlog+pshrnk*rmu/two)
+
+c       const = -dble(p)*(pdof*twolog+(dble(p)-one)*pilog/two)
+c       cgam  = (const/two-pdof*temp) - term
+
+c       rgam  = -((pdof+dble(p)+one)*detlog + sum/two)
+
+c       pdof  = (dble(G)*cmu+rmu) + (cgam+rgam)
+
+c     else
+c       pdof  = FLMAX
+c     end if
+
+      return
+      end
+      subroutine mseee ( x, z, n, p, G, w, mu, U, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G), w(p)
+      double precision   x(n,*), z(n,*), w(*)
+
+c     double precision   mu(p,G), U(p,p), pro(G)
+      double precision   mu(p,*), U(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, j1
+
+      double precision        sum, sumz, zsum, temp, cs, sn
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c-----------------------------------------------------------------------------
+
+      do j = 1, p
+        call dcopy( p, zero, 0, U(1,j), 1)
+      end do
+
+      sumz = zero
+      zsum = one
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum / dble(n)
+        if (sum .gt. one .or. one .gt. sum*FLMAX) then
+          zsum = min(zsum,sum)
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j), w(j), cs, sn)
+              call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p), w(p), cs, sn)
+          end do
+        else 
+          zsum = zero
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .eq. zero) return
+
+c sumz .eq. n when no noise
+      do j = 1, p
+        call dscal( j, one/sqrt(sumz), U(1,j), 1)
+      end do
+
+      return
+      end
+      subroutine mseeep( x, z, n, p, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   w, mu, U, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G), w(p)
+      double precision   x(n,*), z(n,*), w(*)
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+c     double precision   mu(p,G), U(p,p), pro(G)
+      double precision   mu(p,*), U(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, j1
+
+      double precision        sclfac, const, temp
+      double precision        sum, sumz, zsum, cs, sn
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .le. zero) pshrnk = zero
+ 
+      do j = 1, p
+        call dcopy( p, pscale(1,j), 1, U(1,j), 1)
+      end do
+
+      sumz = zero
+      zsum = one
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum / dble(n)
+        if (sum .ge. one .or. one .gt. sum*FLMAX) then
+          zsum = min(zsum,sum)
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j), w(j), cs, sn)
+              call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)  
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          const = sum + pshrnk
+          temp  = (sum*pshrnk)/const
+          call dscal( p, sqrt(temp), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( U(j,j), w(j), cs, sn)
+            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( U(p,p), w(p), cs, sn)
+          call dscal( p, sum/const, mu(1,k), 1)
+          call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
+        else
+          zsum = zero 
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .eq. zero) return
+
+      temp   = pdof+dble(n+p+1)
+      if (pshrnk .gt. zero) temp = temp + dble(G)
+      sclfac = one/sqrt(temp)
+      
+      do j = 1, p
+        call dscal( j, sclfac, U(1,j), 1)
+      end do
+
+      return
+      end
+      subroutine eseei ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, hood, Vinv
+
+c     double precision   x(n,p), z(n,G[+1])
+      double precision   x(n,*), z(n,  *  )
+
+c     double precision   mu(p,G), shape(p), pro(G[+1])
+      double precision   mu(p,*), shape(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, tmin, tmax
+      double precision        eps, rteps, smin, smax, prok
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (scale .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        shape(j) = temp*sqrt(shape(j))
+      end do
+
+      const = dble(p)*(pi2log+log(scale)) 
+
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            if (abs(temp) .ge. shape(j)*FLMAX) then
+              hood = FLMAX
+              return
+            end if
+            temp = temp/shape(j)
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      if (pro(1) .lt. zero) return 
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp = z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+      subroutine meeei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    Vinv, eps, tol, scale
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), shape(p), pro(G[+1])
+      double precision    mu(p,*), shape(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumz, temp, term, zsum
+      double precision    const, hold, hood, err, smin, smax
+      double precision    prok, tmin, tmax, ViLog, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      sumz = zero
+      zsum = one
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        sum = zero
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum/dble(n)
+        zsum = min(zsum,sum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              sum = sum + temp*temp
+            end do
+            shape(j) = shape(j) + sum
+          end do
+        end if 
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        scale = zero
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        scale = FLMAX
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if 
+ 
+      if (temp .gt. SMALOG) then 
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      if (Vinv .le. zero) then
+        scale = temp/dble(n)
+      else 
+        scale = temp/sumz
+      end if  
+
+      if (temp .le. eps) then
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. eps .or. scale .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      if (Vinv .gt. zero) then
+
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      const = dble(p)*(pi2log+log(scale))
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j)             
+          end do        
+c         z(i,k) = prok*exp(-(const+(sum/scale))/two)
+          z(i,k) = -(const+(sum/scale))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine meeeip( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+      double precision    Vinv, eps, tol, scale
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), shape(p), pro(G[+1])
+      double precision    mu(p,*), shape(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumz, temp, term, zsum
+      double precision    const, hold, hood, err, smin, smax
+      double precision    prok, tmin, tmax, ViLog, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps) 
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      call dcopy( p, pscale, 0, shape, 1)
+
+      sumz  = zero
+      zsum  = one
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum/dble(n)
+        zsum = min(zsum,sum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          term  = pshrnk + sum
+          const = (pshrnk*sum)/term
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              sum = sum + (temp*temp)
+            end do
+            shape(j) = shape(j) + sum
+            temp     = pmu(j) - mu(j,k)
+            shape(j) = shape(j) + const*(temp*temp)
+          end do
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol   =  zsum
+        eps   = -FLMAX
+        maxi  =  iter
+        return
+      end if
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        scale = zero
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        scale = FLMAX
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if 
+ 
+      if (temp .gt. SMALOG) then 
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      term = pdof + one
+      if (pshrnk .gt. zero) term = term + one
+
+      if (Vinv .le. zero) then
+        scale = temp/(term + dble(n))
+      else 
+        scale = temp/(term + sumz)
+      end if
+
+      if (temp .le. eps) then
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. eps .or. scale .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      if (Vinv .gt. zero) then
+
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      const = dble(p)*(pi2log+log(scale))
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j)             
+          end do        
+c         z(i,k) = prok*exp(-(const+(sum/scale))/two)
+          z(i,k) = -(const+(sum/scale))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine mseei ( x, z, n, p, G, mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G)
+      double precision   x(n,*), z(n,*)
+
+c     double precision   mu(p,G), scale, shape(p), pro(G)
+      double precision   mu(p,*), scale, shape(*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k
+
+      double precision    sum, sumz, temp, smin, smax
+
+      double precision    zero, one
+      parameter          (zero = 0.d0, one = 1.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      sumz = zero
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum/dble(n)
+        if (sum .gt. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+         else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      do j = 1, p
+        sum = zero
+        do i = 1, n
+          do k = 1, G
+            if (mu(1,k) .eq. FLMAX) then
+              scale =  FLMAX
+              return
+            end if
+            temp = z(i,k)*(x(i,j) - mu(j,k))
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+        end do
+        shape(j) = shape(j) + sum
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+        scale = zero
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do      
+      temp = sum/dble(p)
+  
+      if (temp .gt. BIGLOG) then
+        scale = FLMAX
+        call dcopy( p, FLMAX, 0, shape, 1)
+        return
+      end if 
+  
+      if (temp .gt. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      if (sumz .lt. one .and. temp .ge. sumz*FLMAX) then
+        scale = FLMAX
+        call dcopy( p, FLMAX, 0, shape, 1)
+        return
+      end if
+  
+      scale = temp/sumz
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+      
+      return
+      end
+      subroutine mseeip( x, z, n, p, G,
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, p, G
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+c     double precision    x(n,p), z(n,G)
+      double precision    x(n,*), z(n,*)
+
+c     double precision    mu(p,G), scale, shape(p), pro(G[+1])
+      double precision    mu(p,*), scale, shape(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k
+
+      double precision    sum, sumz, temp, term
+      double precision    const, smin, smax
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      call dcopy( p, pscale, 0, shape, 1)
+
+      sumz  = zero
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum/dble(n)
+        if (sum .gt. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          term  = pshrnk + sum
+          const = (pshrnk*sum)/term
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+            end do
+            shape(j) = shape(j) + sum
+            temp     = pmu(j) - mu(j,k)
+            shape(j) = shape(j) + const*(temp*temp)
+          end do
+        else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+        scale = zero
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .ge. BIGLOG) then
+        scale = FLMAX
+        call dcopy( p, FLMAX, 0, shape, 1)
+        return
+      end if 
+
+      if (temp .gt. SMALOG) then
+        smin = exp(temp)
+      else
+        smin = zero
+      end if 
+
+      term  = pdof + sumz + two
+      if (pshrnk .gt. zero) term = term + dble(G)
+      scale = smin/term
+
+      if (smin .lt. one .and. one .ge. smin*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        return
+      end if
+
+      call dscal( p, one/smin, shape, 1)
+
+      return
+      end
+      subroutine eseev ( x, mu, scale, shape, O, pro, n, p, G, 
+     *                   Vinv, v, w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   scale, Vinv, hood
+
+c     double precision   x(n,p), v(p), w(p), z(n,G[+1])
+      double precision   x(n,*), v(*), w(*), z(n,  *  )
+
+c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
+      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        const, temp, rteps, tmin, tmax
+      double precision        smin, smax, prok, eps, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      if (scale .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+  
+      if (smin .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        shape(j) = temp*sqrt(shape(j))
+      end do
+        
+      const = dble(p)*(pi2log + log(scale))
+
+      do k = 1, G
+
+c       prok = pro(k)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, 
+     *                 w, 1, zero, v, 1)
+          do j = 1, p
+            if (shape(j) .lt. one .and. 
+     *          abs(v(j)) .ge. shape(j)*FLMAX) then
+              hood = FLMAX
+              return
+            end if 
+            v(j) = v(j)/shape(j)
+          end do
+          temp   = ddot( p, v, 1, v, 1)
+c         z(i,k) = prok*exp(-(const+temp)/two)
+          z(i,k) = -(const+temp)/two
+        end do
+
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+      subroutine meeev ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
+     *                   lwork, mu, scale, shape, O, pro, w, s)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi, lwork
+
+      double precision	 Vinv, eps, tol, scale
+
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
+
+      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, p1, iter, i, j, k, l, j1, info
+
+      double precision        dnp, dummy, temp, term, rteps
+      double precision        sumz, sum, smin, smax, cs, sn
+      double precision        const, rc, hood, hold, err
+      double precision        prok, tmin, tmax, ViLog, zsum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      p1     = p + 1
+
+      dnp    = dble(n*p)
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      iter = iter + 1
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      sumz = zero
+      zsum = one
+
+      l = 0
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, zero, 0, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        zsum = min(zsum,sum)
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        if (sum .ge. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else 
+            do j = 1, p
+              temp     = s(j)
+              shape(j) = shape(j) + temp*temp
+            end do
+          end if
+        end if
+      end do
+
+      if (l .ne. 0 .or. zsum .lt. rteps) then
+        lwork = l        
+c       w(1)  = FLMAX
+        tol   = err
+        if (l .ne. 0) then
+          eps =  FLMAX
+        else
+          eps = -FLMAX
+        end if
+        maxi  = iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        lwork = 0
+c       w(1)  = smin
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+ 
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp  = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if 
+
+      if (temp .gt. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if 
+     
+      if (Vinv .le. zero) then
+        scale = temp/dble(n)
+      else
+        scale = temp/sumz
+      end if
+
+      if (temp .le. eps) then
+        lwork = 0
+c       w(1)  = temp
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      call sgnrng( p, shape, 1, smin, smax)
+      
+      if (smin .le. eps) then
+        lwork = 0
+c       w(1)  = -smin
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+      
+      if (scale .le. eps) then
+c       w(1)  = -scale
+        lwork = 0
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        w(j) = temp*sqrt(shape(j))
+      end do
+
+      call absrng( p, w, 1, smin, smax)
+
+      rc = smin / (one + smax)
+      
+      if (smin .le. rteps) then
+c       w(1)  = -smin
+        lwork = 0
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      const = dble(p)*(pi2log + log(scale))/two
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w(p1), 1)
+          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, s, 1)
+          do j = 1, p
+            s(j) = s(j) / w(j)
+          end do
+          sum    = ddot( p, s, 1, s, 1)/two
+c         z(i,k) = temp*exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      lwork = 0
+
+c     w(1)  = rc
+
+      tol   = err
+      eps   = hood
+      maxi  = iter
+
+      return
+      end
+      subroutine meeevp( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps,
+     *                   lwork, mu, scale, shape, O, pro, w, s)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi, lwork
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+      double precision	 Vinv, eps, tol, scale
+
+c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
+
+c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
+      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, p1, iter, i, j, k, l, j1, info
+
+      double precision        dnp, dummy, temp, term, rteps
+      double precision        sumz, sum, smin, smax, cs, sn
+      double precision        const, rc, hood, hold, err
+      double precision        prok, tmin, tmax, ViLog, zsum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      p1    = p + 1
+
+      dnp   = dble(n*p)
+
+      eps   = max(eps,zero)
+      rteps = sqrt(eps)
+
+      tol   = max(tol,zero)
+
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      zsum  = one
+      sumz  = zero
+
+      l     = 0
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum / dble(n)
+        zsum = min(zsum,sum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          term  = sum+pshrnk
+          const = (sum*pshrnk)/term
+          call dscal( p, sqrt(const), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( O(j,j,k), w(j), cs, sn)
+            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( O(p,p,k), w(p), cs, sn)
+          call dscal( p, sum/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else 
+            do j = 1, p
+              temp     = s(j)
+              shape(j) = shape(j) + temp*temp
+            end do
+          end if
+        end if
+      end do
+
+      if (l .ne. 0 .or. zsum .le. rteps) then
+        lwork = l        
+c       w(1)  = FLMAX
+        tol   = err
+        if (l .ne. 0) then
+          eps =  FLMAX
+        else
+          eps = -FLMAX
+        end if
+        maxi  = iter
+        return
+      end if
+
+      if (Vinv .gt. zero) then
+
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+c       w(1)  = smin
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+ 
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if 
+
+      if (temp .gt. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if 
+
+      term = pdof + dble(p) + one
+      if (pshrnk .gt. zero) term = term + one 
+      if (Vinv .le. zero) then
+        scale = temp/(term + dble(n))
+      else
+        scale = temp/(term + sumz)
+      end if
+
+      if (temp .le. eps) then
+c       w(1)  = temp
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      call sgnrng( p, shape, 1, smin, smax)
+      
+      if (smin .le. eps) then
+c       w(1)  = -smin
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+      
+      if (scale .le. eps) then
+c       w(1)  = -scale
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      temp = sqrt(scale)
+      do j = 1, p
+        w(j) = temp*sqrt(shape(j))
+      end do
+
+      call sgnrng( p, w, 1, smin, smax)
+
+      rc = smin / (one + smax)
+      
+      if (smin .le. rteps) then
+c       w(1)  = -smin
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      const = dble(p)*(pi2log + log(scale))/two
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w(p1), 1)
+          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, s, 1)
+          do j = 1, p
+            s(j) = s(j) / w(j)
+          end do
+          sum    = ddot( p, s, 1, s, 1)/two
+c         z(i,k) = temp*exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      lwork = 0
+
+c     w(1)  = rc
+
+      tol   = err
+      eps   = hood
+      maxi  = iter
+
+      return
+      end
+      subroutine mseev ( x, z, n, p, G, w, lwork, 
+     *                   mu, scale, shape, O, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G, lwork
+
+      double precision   scale
+
+c     double precision   x(n,p), z(n,G), w(lwork)
+      double precision   x(n,*), z(n,*), w(  *  )
+
+c     double precision   shape(p), O(p,p,G), mu(p,G), pro(G)
+      double precision   shape(*), O(p,p,*), mu(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, j1, l, info
+
+      double precision        dummy, sum, sumz, temp
+      double precision        cs, sn, smin, smax
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        BIGLOG
+      parameter              (BIGLOG =  709.d0)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      l     = 0
+
+      sumz  = zero
+      scale = zero
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, zero, 0, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum / dble(n)
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k), 
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else if (scale .ne. FLMAX) then
+            do j = 1, p
+              temp     = z(j,k)
+              shape(j) = shape(j) + temp*temp
+            end do
+          end if
+        else
+          scale = FLMAX          
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (scale .eq. FLMAX  .or. l .ne. 0) then
+        lwork = l       
+        if (l .ne. 0) then
+          scale =  FLMAX
+        else
+          scale = -FLMAX
+        end if
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if
+
+      lwork = 0
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+        scale = FLMAX
+        return
+      end if
+ 
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        scale = FLMAX
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if 
+
+      if (temp .ge. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if 
+
+      if (temp .ge. sumz*FLMAX) then
+        scale = FLMAX 
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if
+
+      scale = temp/sumz
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      return
+      end
+      subroutine mseevp( x, z, n, p, G,
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   w, lwork, mu, scale, shape, O, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G, lwork
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+      double precision	 scale
+
+c     double precision   x(n,p), z(n,G), w(lwork)
+      double precision   x(n,*), z(n,*), w(  *  )
+
+c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G)
+      double precision   mu(p,*), shape(*), O(p,p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, p1, iter, i, j, k, l, j1, info
+
+      double precision        dummy, temp, term, const
+      double precision        sumz, sum, smin, smax, cs, sn
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        BIGLOG
+      parameter              (BIGLOG =  709.d0)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .gt. zero) pshrnk = zero
+
+      p1     = p + 1
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      l      = 0
+
+      sumz   = zero
+      scale  = zero
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum / dble(n)
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          term  = sum+pshrnk
+          const = (sum*pshrnk)/term
+          call dscal( p, sqrt(const), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( O(j,j,k), w(j), cs, sn)
+            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( O(p,p,k), w(p), cs, sn)
+          call dscal( p, sum/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k), 
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else if (scale .ne. FLMAX) then
+            do j = 1, p
+              temp     = z(j,k)
+              shape(j) = shape(j) + temp*temp
+            end do
+          end if
+        else
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (scale .eq. FLMAX  .or. l .ne. 0) then
+        lwork = l        
+        if (l .ne. 0) then
+          scale =  FLMAX
+        else
+          scale = -FLMAX
+        end if
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if
+
+      lwork = 0
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .eq. zero) then
+        scale = FLMAX
+        return
+      end if
+ 
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        scale = FLMAX
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if
+
+      if (temp .ge. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      term = pdof + dble(p) + one
+      if (pshrnk .gt. zero) term = term + one 
+      scale = temp/(term + sumz)
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      return
+      end
+      subroutine eseii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   sigsq, hood, Vinv
+
+c     double precision   x(n,p), mu(p,G), pro(G[+1]), z(n,G[+1])
+      double precision   x(n,*), mu(p,*), pro(  *  ), z(n,  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, prok, tmin, tmax
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (sigsq .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      const = dble(p)*(pi2log+log(sigsq))
+
+      do k = 1, G
+c       prok = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum/sigsq)/two)
+          if (sigsq .lt. one .and. sum .ge. sigsq*FLMAX) then
+            hood = FLMAX
+            return
+          end if
+          z(i,k) = -(const+sum/sigsq)/two
+        end do
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if 
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+      subroutine hceii ( x, n, p, ic, ng, ns, v, nd, d)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, p, ic(n), ng, ns, nd
+
+c     double precision    x(n,p), v(p), d(ng*(ng-1)/2)
+      double precision    x(n,*), v(*), d(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             lg, ld, ll, lo, ls
+      integer             i, j, k, m
+      integer             ni, nj, nij, iopt, jopt, iold, jold
+      integer             ij, ici, icj, ii, ik, jk
+
+      double precision    ri, rj, rij, si, sj, sij
+      double precision    dij, dopt, dold
+
+      external            wardsw
+
+      double precision    one
+      parameter          (one = 1.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    ddot
+      external            ddot
+
+c-----------------------------------------------------------------------------
+
+      lg     =  ng
+      ld     = (ng*(ng-1))/2
+      ll     =  nd-ng
+      lo     =  nd
+
+c     call intpr( 'ic', -1, ic, n)
+c     call intpr( 'no. of groups', -1, lg, 1)
+
+c group heads should be first among rows of x
+
+      i = 1
+      j = 2
+ 1    continue
+        icj = ic(j)
+        if (icj .ne. j) goto 2
+        if (j .eq. lg)  goto 3
+        i = j
+        j = j + 1
+      goto 1
+
+ 2    continue
+
+      k = i
+      m = j + 1
+      do j = m, n
+        icj = ic(j)
+        if (icj .gt. k) then
+          k = k + 1
+          call dswap( p, x(k,1), n, x(j,1), n)
+          ic(j) = ic(k)
+          ic(k) = icj
+        end if
+      end do
+
+ 3    continue
+
+c     call intpr( 'ic', -1, ic, n)
+
+      do j = 1, n
+        i = ic(j)
+        if (i .ne. j) then
+          ic(j) = 0
+          ni    = ic(i)
+          nij   = ni + 1
+          ic(i) = nij
+          ri    = dble(ni)
+          rij   = dble(nij)
+          sj    = sqrt(one/rij)
+          si    = sqrt(ri)*sj
+c update column sum in kth row
+          call dscal( p, si, x(i,1), n)
+          call daxpy( p, sj, x(j,1), n, x(i,1), n)
+        else 
+          ic(j) = 1
+        end if
+      end do
+
+c     call intpr( 'ic', -1, ic, n)
+
+      dopt = FLMAX
+
+      ij   = 0
+      do j = 2, lg
+        nj = ic(j)
+        rj = dble(nj)
+        do i = 1, (j-1)
+          ni    = ic(i)
+          ri    = dble(ni)
+          nij   = ni + nj
+          rij   = dble(nij)
+          si    = sqrt(ri/rij)
+          sj    = sqrt(rj/rij)
+          call dcopy( p, x(i,1), n, v, 1)
+          call dscal( p, sj, v, 1)
+          call daxpy( p, (-si), x(j,1), n, v, 1)
+          dij   = ddot(p, v, 1, v, 1)
+          ij    = ij + 1
+          d(ij) = dij
+          if (dij .le. dopt) then
+            dopt = dij
+            iopt = i
+            jopt = j
+          end if
+        end do
+      end do
+
+c     if (.false.) then
+c       i  = 1
+c       ij = 1
+c       do j = 2, ng
+c         call dblepr( 'dij', -1, d(ij), i)
+c         ij = ij + i
+c         i  = j
+c       end do
+c     end if
+
+      if (ns .eq. 1) then
+        if (iopt .lt. jopt) then
+          x(1,1) = iopt
+          x(1,2) = jopt
+        else
+          x(1,1) = jopt
+          x(1,2) = iopt
+        end if
+        d(1)   = dopt
+        return
+      end if
+
+      ls  = 1
+
+ 100  continue
+
+      ni       = ic(iopt)
+      nj       = ic(jopt)
+      nij      = ni + nj 
+
+      ic(iopt) =  nij
+      ic(jopt) = -iopt
+
+      if (jopt .ne. lg) then
+        call wardsw( jopt, lg, d)
+        m        = ic(jopt)
+        ic(jopt) = ic(lg)
+        ic(lg)   = m
+      end if
+
+      si   = dble(ni)
+      sj   = dble(nj)
+      sij  = dble(nij)
+
+      dold = dopt
+
+      iold = iopt
+      jold = jopt
+
+      iopt = -1
+      jopt = -1
+
+      dopt = FLMAX
+
+      lg = lg - 1
+
+      ld = ld - lg
+
+      ii = (iold*(iold-1))/2
+
+      if (iold .gt. 1) then
+        ik = ii - iold + 1
+        do j = 1, (iold - 1)
+          nj    = ic(j)        
+          rj    = dble(nj)
+          ik    = ik + 1
+          jk    = ld + j
+          dij   = (rj+si)*d(ik)+(rj+sj)*d(jk)
+          dij   = (dij-rj*dold)/(rj+sij)
+          d(ik) = dij
+        end do
+      end if
+
+      if (iold .lt. lg) then
+        ik = ii + iold
+        i  = iold
+        do j = (iold + 1), lg
+          nj    = ic(j)        
+          rj    = dble(nj)
+          jk    = ld + j
+          dij   = (rj+si)*d(ik)+(rj+sj)*d(jk)
+          dij   = (dij-rj*dold)/(rj+sij)
+          d(ik) = dij
+          ik    = ik + i
+          i     = j
+        end do
+      end if
+
+      d(lo) = dold
+      lo    = lo - 1
+      d(lo) = dble(iold)
+      lo    = lo - 1
+      d(lo) = dble(jold)
+      lo    = lo - 1
+
+c update d and find max
+
+      jopt = 2
+      iopt = 1
+
+      dopt = d(1)
+
+      if (lg .eq. 2) goto 900
+
+      ij   = 1
+      do i = 2, ld
+        si = d(i)
+        if (si .le. dopt) then
+          ij   = i
+          dopt = si
+        end if
+      end do
+
+      if (ij .gt. 1) then
+        do i = 2, ij
+          iopt = iopt + 1
+          if (iopt .ge. jopt) then
+            jopt = jopt + 1
+            iopt = 1
+          end if
+        end do
+      end if
+
+      ls = ls + 1
+
+      if (ls .eq. ns) goto 900
+
+      goto 100
+
+ 900  continue
+
+      d(lo)  = dopt
+      lo     = lo - 1
+      d(lo)  = dble(iopt)
+      lo     = lo - 1
+      d(lo)  = dble(jopt)
+
+      do i = 1, ng
+        ic(i) = i
+      end do
+
+      lo          = nd - 1
+      ld          = lo
+      si          = d(lo)
+      lo          = lo - 1
+      sj          = d(lo)
+      ic(int(sj)) = ng
+
+      if (si .lt. sj) then
+        x(1,1) = si 
+        x(1,2) = sj
+      else
+        x(1,1) = sj
+        x(1,2) = si
+      end if
+
+      lg = ng + 1
+      do k = 2, ns
+        lo     = lo - 1
+        d(ld)  = d(lo)
+        ld     = ld - 1
+        lo     = lo - 1
+        i      = int(d(lo))
+        ici    = ic(i)
+        lo     = lo - 1
+        j      = int(d(lo))
+        icj    = ic(j)
+        if (ici .gt. icj) ic(i) = icj
+        ic(j)  = ic(lg-k)
+        if (ici .lt. icj) then
+          x(k,1) = dble(ici)
+          x(k,2) = dble(icj)
+        else
+          x(k,1) = dble(icj)
+          x(k,2) = dble(ici)
+        end if
+      end do
+
+      ld = nd
+      lo = 1
+      do k = 1, ns
+        si    = d(lo)
+        d(lo) = d(ld)
+        d(ld) = si
+        ld    = ld - 1
+        lo    = lo + 1
+      end do
+
+      return
+      end
+      subroutine meeii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    Vinv, eps, tol, sigsq
+
+c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
+      double precision    x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumz, temp, term, prok, tmax, tmin, rteps
+      double precision    const, hold, hood, err, dnp, ViLog, zsum
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG
+      parameter          (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      dnp = dble(n*p)
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      sigsq = zero
+
+      sumz  = zero
+      zsum  = one
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum/dble(n)
+        zsum = min(sum,zsum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            sum = zero
+            do j = 1, p
+              temp = abs(x(i,j) - mu(j,k))
+              if (temp .gt. RTMIN) sum  = sum + temp*temp
+            end do
+            if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN)
+     *        sigsq  = sigsq + z(i,k)*sum
+            z(i,k) = sum
+          end do
+        else
+          sigsq = FLMAX 
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      if (Vinv .le. zero) then
+        sigsq  = sigsq / dnp
+      else 
+        sigsq = sigsq / (dble(p)*sumz)
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      if (sigsq .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      const = dble(p)*(pi2log+log(sigsq))
+
+      do k = 1, G
+c       temp = pro(k)
+        do i = 1, n
+c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)
+          z(i,k) = -(const+(z(i,k)/sigsq))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine meeiip( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+      double precision    Vinv, eps, tol, sigsq
+
+c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
+      double precision    x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumk, sumz, temp, term, tmax, tmin
+      double precision    const, hold, hood, err, dnp, ViLog, prok
+      double precision    pmupmu, cmu, cgam, rmu, rgam, zsum, rteps 
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMLOG
+      parameter          (SMLOG = -708.d0)
+
+      double precision    ddot
+      external            ddot
+
+c     double precision    ddot, dlngam
+c     external            ddot, dlngam
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      dnp = dble(n*p)
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+      rteps  = sqrt(eps)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+      pmupmu = ddot( p, pmu, 1, pmu, 1)
+
+100   continue
+
+      iter  = iter + 1
+
+      sigsq = zero
+
+      sumz = zero
+      zsum = one
+
+      do k = 1, G
+        sumk = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumk = sumk + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sumk
+        if (.not. EQPRO) pro(k) = sumk/dble(n)
+        zsum = min(zsum,sumk)
+        if (sumk .gt. rteps) then         
+          call dscal( p, (one/sumk), mu(1,k), 1)
+          do i = 1, n
+            sum = zero
+            do j = 1, p
+              temp = x(i,j) - mu(j,k)
+              sum  = sum + temp*temp
+            end do
+            sigsq  = sigsq + z(i,k)*sum
+          end do
+          temp  = pmupmu + ddot( p, mu(1,k), 1, mu(1,k), 1)
+          temp  = temp - two*ddot( p, mu(1,k), 1, pmu, 1)
+          const = sumk+pshrnk
+          sigsq = sigsq + ((pshrnk*sumk)/const)*temp
+          call dscal( p, (sumk/const), mu(1,k), 1)
+          call daxpy(p, (pshrnk/const), pmu, 1, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .le. zero) then
+
+        sigsq  = sigsq / (pdof + dble((n+G)*p) + two)
+
+      else 
+
+        sigsq = sigsq / (pdof + (sumz+dble(G))*dble(p) + two)
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      if (sigsq .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      const = dble(p)*(pi2log+log(sigsq))
+
+      do i = 1, n
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+          z(i,k) = -(const+(sum/sigsq))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMLOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+c     cmu   = dble(p)*(log(pshrnk)-pi2log)/two
+
+c     const = pdof/two
+c     cgam  = const*log(pscale/two)-dlngam(const)
+
+c     rmu   = zero
+c     do k = 1, G
+c       temp = pmupmu + ddot( p, mu(1,k), 1, mu(1,k), 1)
+c       temp = temp - two*ddot( p, mu(1,k), 1, pmu, 1)
+c       rmu  = rmu + (pshrnk*temp)/sigsq
+c     end do
+
+c     term = log(sigsq)
+c     rmu  = -(rmu + dble(p)*term)/two
+
+c     rgam = -(const+one)*term - (pscale/sigsq)/two
+
+c     pdof  = (dble(G)*cmu+cgam) + (rmu+rgam)
+
+      return
+      end
+      subroutine mseii ( x, z, n, p, G, mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
+      double precision   x(n,*), z(n,*), mu(p,*), sigsq, pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, sumz, temp
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+c-----------------------------------------------------------------------------
+
+      sumz  = zero
+      sigsq = zero
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum/dble(n)
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then 
+          call dscal( p, (one/sum), mu(1,k), 1)
+          if (sigsq .ne. FLMAX) then
+            do i = 1, n
+              sum = zero
+              do j = 1, p
+                temp = abs(x(i,j) - mu(j,k))
+                if (temp .gt. RTMIN) sum = sum + temp*temp
+              end do
+              if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN)
+     *          sigsq = sigsq + z(i,k)*sum
+            end do
+          end if
+        else
+          sigsq = FLMAX  
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if      
+      end do
+
+c sumz .eq. n when no noise
+      if (sigsq .ne. FLMAX) sigsq = sigsq / (sumz*dble(p))
+
+      return
+      end
+      subroutine mseiip( x, z, n, p, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, p, G
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+c     double precision    x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
+      double precision    x(n,*), z(n,*), mu(p,*), sigsq, pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k
+
+      double precision    sum, sumz, zsum, pmupmu
+      double precision    const, temp, term, dnp
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    ddot
+      external            ddot
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      dnp = dble(n*p)
+
+      pmupmu = ddot( p, pmu, 1, pmu, 1)
+
+      sumz = zero
+      sigsq = zero
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        pro(k) = sum/dble(n)
+        if (sum .gt. one .or. one .le. sum*FLMAX) then         
+          call dscal( p, (one/sum), mu(1,k), 1)
+          temp  = pmupmu + ddot( p, mu(1,k), 1, mu(1,k), 1)
+          temp  = temp - two*ddot( p, mu(1,k), 1, pmu, 1)
+          const = sum+pshrnk
+          call dscal( p, (sum/const), mu(1,k), 1)
+          call daxpy(p, (pshrnk/const), pmu, 1, mu(1,k), 1)
+          if (sigsq .ne. FLMAX) then
+            sigsq = sigsq + ((pshrnk*sum)/const)*temp
+            do i = 1, n
+              sum = zero
+              do j = 1, p
+                temp = abs(x(i,j) - mu(j,k))
+                if (temp .gt. RTMIN) sum  = sum + temp*temp
+              end do
+              if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN)
+     *            sigsq  = sigsq + z(i,k)*sum
+            end do
+          end if
+        else
+          sigsq = FLMAX  
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (sigsq .eq. FLMAX) return
+
+      temp  = pdof + sumz*dble(p) + two
+      if (pshrnk .gt. zero) temp = temp + dble(G*p)
+      sigsq = sigsq / temp
+
+      return
+      end
+      subroutine esevi ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   scale, hood, Vinv
+
+c     double precision   x(n,p), z(n,G[+1])
+      double precision   x(n,*), z(n,  *  )
+
+c     double precision   mu(p,G), shape(p,G), pro(G[+1])
+      double precision   mu(p,*), shape(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, tmin, tmax
+      double precision        smin, smax, prok
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (scale .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      do k = 1, G
+        call sgnrng( p, shape(1,k), 1, smin, smax)
+        if (smin .eq. zero) then
+          hood = FLMAX
+          return
+        end if
+      end do
+
+      temp = sqrt(scale)
+
+      do k = 1, G
+        do j = 1, p
+          shape(j,k) = temp*sqrt(shape(j,k))
+        end do
+      end do
+
+      const  = dble(p)*(pi2log+log(scale))
+
+      do k = 1, G
+c       prok   = pro(k)
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            if (shape(j,k) .lt. one .and. 
+     *          abs(temp) .ge. shape(j,k)*FLMAX) then
+              hood = FLMAX
+              return
+            end if
+            temp = temp/shape(j,k)
+            if (abs(temp) .ge. RTMAX) then
+              hood = FLMAX
+              return
+            end if 
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+      subroutine meevi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    Vinv, eps, tol, scale
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), shape(p,G), pro(G[+1])
+      double precision    mu(p,*), shape(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumz, temp, term, epsmin
+      double precision    hold, hood, err, smin, smax, const
+      double precision    prok, tmin, tmax, ViLog, zsum, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      sumz  = zero
+      zsum  = one
+       
+      do k = 1, G
+        call dcopy( p, zero, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum /dble(n)
+        zsum = min(sum,zsum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = x(i,j) - mu(j,k)
+              if (sqrt(z(i,k))*abs(temp) .gt. RTMIN)
+     *          sum = sum + z(i,k)*(temp*temp)
+            end do
+            shape(j,k) = shape(j,k) + sum
+          end do
+        else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol   =  zsum
+        eps   = -FLMAX
+        maxi  = iter
+        return
+      end if
+
+      scale  = zero
+      epsmin = FLMAX
+      do k = 1, G
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+        epsmin = min(smin,epsmin)
+        if (smin .gt. zero) then
+          sum = zero
+          do j = 1, p
+            sum = sum + log(shape(j,k))
+          end do
+          temp = sum/dble(p)
+          if (temp .gt. BIGLOG) then
+            scale = FLMAX 
+            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            tol   = err
+            eps   = FLMAX
+            maxi  = iter
+            return
+          end if
+          if (temp .gt. SMALOG) then
+            temp = exp(temp)
+          else
+            temp = zero
+          end if
+          scale  = scale + temp
+          epsmin = min(temp,epsmin)
+          if (temp .lt. eps) then
+            scale = FLMAX 
+            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            tol   = err
+            eps   = FLMAX
+            maxi  = iter
+            return
+          end if
+          call dscal( p, one/temp, shape(1,k), 1)
+        end if
+      end do
+
+      term = zero
+      if (Vinv .gt. zero) then
+        scale = scale /sumz
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else
+        scale = scale /dble(n)
+      end if
+
+      if (scale .le. eps) then
+        tol   = epsmin
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      do k = 1, G
+
+        call sgnrng( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. eps) then
+          tol  = smin
+          eps  = FLMAX
+          maxi = iter
+          return
+        end if
+
+      end do
+
+      const = dble(p)*(pi2log + log(scale))
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j,k)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
+          z(i,k) = -(const+(sum/scale))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp = z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine meevip( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+      double precision    Vinv, eps, tol, scale
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), shape(p,G), pro(G[+1])
+      double precision    mu(p,*), shape(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sum, sumz, temp, term, epsmin, zsum
+      double precision    hold, hood, err, smin, smax, const
+      double precision    prok, tmin, tmax, ViLog, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+ 
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      sumz  = zero
+      zsum  = one
+
+      do k = 1, G
+        call dcopy( p, pscale, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        if (.not. EQPRO) pro(k) = sum /dble(n)
+        zsum = min(sum,zsum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          term  = pshrnk + sum
+          const = (pshrnk*sum)/term
+          do j = 1, p
+            do i = 1, n
+              temp       = x(i,j) - mu(j,k)
+              if (abs(temp)*sqrt(z(i,k)) .gt. RTMIN)
+     *          shape(j,k) = shape(j,k) + z(i,k)*(temp*temp)
+            end do
+            temp       = pmu(j) - mu(j,k)
+            shape(j,k) = shape(j,k) + const*(temp*temp)
+          end do
+          call dscal( p, sum/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+        else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        end if 
+      end do
+
+      if (zsum .le. rteps) then
+        tol   =  zsum
+        eps   = -FLMAX
+        maxi  =  iter
+        return
+      end if
+
+      scale  = zero
+      epsmin = FLMAX
+      do k = 1, G
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+        epsmin = min(smin,epsmin)
+        if (smin .gt. zero) then
+          sum = zero
+          do j = 1, p
+            sum = sum + log(shape(j,k))
+          end do
+          temp = sum/dble(p)
+          if (temp .gt. BIGLOG) then
+            scale = FLMAX 
+            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            tol   = err
+            eps   = FLMAX
+            maxi  = iter
+            return
+          end if
+          if (temp .gt. SMALOG) then
+            temp = exp(temp)
+          else
+            temp = zero
+          end if
+          scale  = scale + temp
+          epsmin = min(temp,epsmin)
+          if (temp .lt. eps) then
+            scale = FLMAX 
+            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            tol   = err
+            eps   = FLMAX
+            maxi  = iter
+            return
+          end if
+          call dscal( p, one/temp, shape(1,k), 1)
+        end if
+      end do
+
+      term = pdof + one
+      if (Vinv .le. zero) then
+        term = term + dble(n)
+      else
+        term = term + sumz
+      end if 
+      if (pshrnk .gt. zero) term = term + one
+
+      scale  = scale/term
+
+      if (Vinv .gt. zero) then
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      end if
+
+      if (scale .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+
+        call sgnrng( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. eps) then
+          tol  = err
+          eps  = FLMAX
+          maxi = iter
+          return
+        end if
+
+      end do
+
+      const = dble(p)*(pi2log + log(scale))
+
+      do k = 1, G
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j,k)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
+          z(i,k) = -(const+(sum/scale))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine msevi ( x, z, n, p, G, mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G)
+      double precision   x(n,*), z(n,*)
+
+c     double precision   mu(p,G), scale, shape(p,G), pro(G)
+      double precision   mu(p,*), scale, shape(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        smin, smax
+      double precision        sum, sumz, temp
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      scale = zero
+      sumz  = zero
+
+      do k = 1, G
+        call dcopy( p, zero, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum/dble(n)
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+        else
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        end if
+      end do
+
+      if (scale .eq. FLMAX) return
+
+c pro(k) now contains n_k
+
+      do j = 1, p
+        do k = 1, G
+          sum = zero
+          do i = 1, n
+            temp = z(i,k)*(x(i,j) - mu(j,k))
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+          shape(j,k) = shape(j,k) + sum
+        end do
+      end do
+
+      scale  = zero
+     
+      do k = 1, G
+
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. zero) then
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100 
+        end if
+
+        sum   = zero
+        do j = 1, p
+          sum = sum + log(shape(j,k))
+        end do      
+        temp   = sum/dble(p)
+
+        if (temp .ge. BIGLOG) then
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+ 
+        if (temp .ge. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if
+    
+        if (scale .ne. FLMAX) scale  = scale + temp
+     
+        if (temp .lt. one .and. one .ge. temp*FLMAX) then
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        call dscal( p, one/temp , shape(1,k), 1)
+
+100   continue
+  
+      end do
+      
+      if (sumz .lt. one .and. one .ge. sumz*FLMAX) then
+        scale = FLMAX
+        return 
+      end if
+
+      scale = scale/sumz
+
+      return
+      end
+
+      subroutine msevip( x, z, n, p, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, p, G
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+c     double precision    x(n,p), z(n,G)
+      double precision    x(n,*), z(n,*)
+
+c     double precision    mu(p,G), scale, shape(p,G), pro(G)
+      double precision    mu(p,*), scale, shape(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k
+
+      double precision    sum, sumz, temp, term, epsmin, zsum
+      double precision    smin, smax, const
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      sumz = zero
+      scale = zero
+
+      do k = 1, G
+        call dcopy( p, pscale, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz   = sumz + sum
+        pro(k) = sum /dble(n)
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          term  = pshrnk + sum
+          const = (pshrnk*sum)/term
+          do j = 1, p
+            do i = 1, n
+              temp = x(i,j) - mu(j,k)
+              if (abs(temp)*sqrt(z(i,k)) .gt. RTMIN)
+     *          shape(j,k) = shape(j,k) + z(i,k)*(temp*temp)
+            end do
+            temp       = pmu(j) - mu(j,k)
+            shape(j,k) = shape(j,k) + const*(temp*temp)
+          end do
+          call dscal( p, sum/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+        else
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        end if 
+      end do
+
+      if (scale .eq. FLMAX) return
+
+      scale  = zero
+      do k = 1, G
+
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. zero) then
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j,k))
+        end do
+        temp = sum/dble(p)
+
+        if (temp .ge. BIGLOG) then
+          scale = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        if (temp .ge. SMALOG) then 
+          temp = exp(temp)
+        else
+          temp = zero
+        endif
+
+        if (scale .ne. FLMAX) scale  = scale + temp
+
+        if (temp .le. one .and. one .ge. temp*FLMAX) then
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+ 
+        call dscal( p, one/temp, shape(1,k), 1)
+
+100   continue
+ 
+      end do
+
+      term = pdof + sumz + two
+      if (pshrnk .gt. zero) term = term + dble(G)
+
+      scale  = scale/term
+
+      return
+      end
+      subroutine es1v  ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n), mu(G), sigsq(G), pro(G[+1]), z(n,G[+1])
+      double precision   x(*), mu(*), sigsq(*), pro(  *  ), z(n,  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, k, nz
+
+      double precision        temp, const, tmin, tmax, sum
+      double precision        muk, sigsqk, prok, sigmin
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      call sgnrng( G, sigsq, 1, sigmin, temp)  
+
+      if (sigmin .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        muk    = mu(k)
+        sigsqk = sigsq(k)
+        const  = pi2log + log(sigsqk)
+        do i = 1, n
+          temp   = x(i) - muk
+c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsqk)/two)
+          if (sigsqk .lt. one .and. 
+     *        abs(temp) .ge. sqrt(sigsqk)*RTMAX) then
+            hood = FLMAX
+            return
+          end if 
+          z(i,k) = -(const+(temp*temp)/sigsqk)/two
+        end do
+      end do
+ 
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       temp = zero
+c       do k = 1, nz
+c         temp = temp + z(i,k)
+c       end do
+c       hood = hood + log(temp)
+c       call dscal( nz, (one/temp), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if  
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
       subroutine hc1v  ( x, n, ic, ng, ns, ALPHA, nd, d)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
 c     integer             n, ic(n), ng, ns, nd
       integer             n, ic(*), ng, ns, nd
 
+c     double precision    x(n), ALPHA, d(ng*(ng-1)/2)
       double precision    x(*), ALPHA, d(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer             lg, ld, ll, lo, ls, i, j, k, m
       integer             ni, nj, nij, nopt, niop, njop  
@@ -572,7 +7044,7 @@ c------------------------------------------------------------------------------
       double precision    EPSMAX
       parameter          (EPSMAX = 2.2204460492503131d-16)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
 c     call dblepr( 'x', -1, x, n) 
 c     call intpr( 'n', -1, n, 1) 
@@ -1081,870 +7553,3564 @@ c       trop  = (tracei + tracej) + ddot(p,v,1,v,1)
 
       return
       end
-
-      subroutine hceee ( x, n, p, ic, ng, ns, io, jo, v, s, u, r)
+      subroutine me1v ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps,
+     *                  mu, sigsq, pro)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
-      integer            n, p, ic(n), ng, ns, io(*), jo(*)
+      logical              EQPRO
 
-      double precision   x(n,*), v(*), s(*), u(*), r(*)
+      integer              n, G, maxi
 
-c------------------------------------------------------------------------------
+      double precision     Vinv, eps, tol
 
-      integer                 q, i, j, k, l, m, i1, i2, l1, l2
-      integer                 ni, nj, nij, lw, ls, lg, ici, icj
-      integer                 nopt, iopt, jopt, idet, jdet, ndet
+c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
+      double precision     x(*), z(n,  *  ), mu(*), sigsq(*), pro(  *  )
 
-      double precision        DELOG
-      double precision        ri, rj, rij, dij, tij, zij
-      double precision        trc0, trc1, trcw, det0, det1, detw
-      double precision        si, sj, siop, sjop, sidt, sjdt
-      double precision        dopt, zopt, dijo, tijo, tdet
+c-----------------------------------------------------------------------------
+      integer                 nz, iter, k, i
+
+      double precision        hold, hood, err, sum, smu, zsum
+      double precision        const, temp, term, sigmin, sigsqk
+      double precision        prok, tmin, tmax, ViLog, rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+      rteps  = sqrt(eps)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+
+100   continue
+
+      iter   = iter + 1
+
+      zsum   = one
+
+      do k = 1, G
+        sum = zero
+        smu = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          smu  = smu + temp*x(i)
+        end do
+        if (.not. EQPRO) pro(k)   = sum / dble(n)
+        zsum = min(sum,zsum)
+        if (sum .gt. rteps) then
+          smu    = smu / sum
+          mu(k)  = smu
+          sigsqk = zero
+          do i = 1, n
+            temp   = x(i) - smu
+            temp   = temp*temp
+            sigsqk = sigsqk + z(i,k)*temp
+            z(i,k) = temp
+          end do
+          sigsq(k) = sigsqk / sum
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+        
+      end if
+
+      sigmin = FLMAX
+      do k = 1, G
+        sigmin = min(sigmin,sigsq(k))
+      end do
+
+      if (sigmin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+        sigsqk = sigsq(k)
+        const  = pi2log + log(sigsqk)
+        do i = 1, n
+c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsqk))/two)           
+          z(i,k) = -(const+(z(i,k)/sigsqk))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine me1vp ( EQPRO, x, n, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c       http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical              EQPRO
+
+      integer              n, G, maxi
+
+      double precision     pshrnk, pmu, pscale, pdof
+
+      double precision     Vinv, eps, tol
+
+c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
+      double precision     x(*), z(n,  *  ), mu(*), sigsq(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, iter, k, i
+
+      double precision        hold, hood, err, pmupmu
+      double precision        sumz, sum, smu, zsum, rteps
+      double precision        const, temp, term, sigmin, sigsqk
+      double precision        prok, tmin, tmax, ViLog
+      double precision        cmu, cgam, rmu, rgam
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        three
+      parameter              (three = 3.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c     double precision        dlngam
+c     external                dlngam
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+      rteps  = sqrt(eps)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+ 
+      pmupmu = pmu*pmu
+
+      iter   = 0
+
+100   continue
+
+      iter   = iter + 1
+
+      zsum   = one
+
+      do k = 1, G
+        sumz = zero
+        smu  = zero
+        do i = 1, n
+          temp = z(i,k)
+	  sumz = sumz + temp
+          smu  = smu + temp*x(i)
+        end do
+        if (.not. EQPRO) pro(k)   = sumz / dble(n)
+        zsum = min(zsum,sumz) 
+        if (sumz .gt. rteps) then
+          smu    = smu/sumz
+          sum    = zero
+          do i = 1, n
+            term   = abs(x(i) - smu)
+            if (term .ge. eps .or. sqrt(z(i,k))*term .gt. RTMIN) 
+     *                 sum = sum + z(i,k)*(term*term)
+          end do
+          term     = (pshrnk*sumz)/(pshrnk+sumz)
+          temp     = (pmupmu + smu*smu) - two*pmu*smu
+          sigsq(k) = (pscale + sum + term*temp)/(pdof+sumz+three)
+          term     = sumz/(pshrnk+sumz)
+          temp     = pshrnk/(pshrnk+sumz)
+          mu(k)    = term*smu + temp*pmu
+        end if
+      end do
+
+      if (zsum .le. rteps) then 
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+        
+      end if
+
+      sigmin = FLMAX
+      do k = 1, G
+        sigmin = min(sigmin,sigsq(k))
+      end do
+
+      if (sigmin .le. eps) then 
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+        sigsqk = sigsq(k)
+        const  = pi2log + log(sigsqk)
+        do i = 1, n
+          term   = abs(x(i) - mu(k))
+          if (term .gt. RTMIN) then
+            z(i,k) = -(const+((term*term)/sigsqk))/two
+          else 
+            z(i,k) = -const/two
+          end if   
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol   = err
+      eps   = hood
+      maxi  = iter
+
+c     cmu   = dble(G)*(pi2log-log(pshrnk))/two
+
+c     const = pdof/two
+c     cgam  = dble(G)*(const*log(pscale/two) - dlngam(const))
+
+c     rmu   = zero
+c     rgam  = zero
+c     do k = 1, G
+c       temp = pmu - mu(k)
+c       temp = temp*temp
+c       term = log(sigsq(k))
+c       rmu  = rmu + (term + (pshrnk/sigsq(k))*temp)
+c       rgam = rgam + ((pdof+3.d0)*term + pscale/sigsq(k))
+c     end do
+c     rmu   = -rmu /two    
+c     rgam  = -rgam/two
+  
+c     pdof  = (cmu+cgam) + (rmu+rgam)
+
+      return
+      end
+
+      subroutine ms1v ( x, z, n, G, mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, G
+
+c     double precision   x(n), z(n,G), mu(G), sigsq(G), pro(G)
+      double precision   x(*), z(n,*), mu(*), sigsq(*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, k
+     
+      double precision        sum, smu, temp, sigsqk
 
       double precision        zero, one
       parameter              (zero = 0.d0, one = 1.d0)
 
-      external                ddot, detmc2
-      double precision        ddot, detmc2
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
 
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    EPSMIN
-      parameter          (EPSMIN = 1.1102230246251565d-16)
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
 
 c------------------------------------------------------------------------------
 
-      i1 = 0
-      i2 = 0
-
-      lw = p*p
-
-c     call intpr('ic', -1, ic, n)
-      
-c form scaled column sums
-      call dscal( n*p, one/sqrt(dble(n)), x, 1)
-
-      si = one/sqrt(dble(p))
-      sj = si / dble(n)
-      call dcopy( p, zero, 0, v, 1)
-      do k = 1, n
-        call daxpy( p, sj, x(k,1), n, v, 1)
-      end do
-
-      trc0 = zero
-      call dcopy( lw, zero, 0, r, 1)
-      do k = 1, n
-        call dcopy( p, v, 1, s, 1)
-        call daxpy( p, (-si), x(k,1), n, s, 1)
-        trc0 = trc0 + ddot( p, s, 1, s, 1)
-        call mclrup( (k+1), p, s, r, p)
-      end do
-      
-      det0 = detmc2( p, r)
-
-      DELOG = log(trc0+EPSMIN)
-
-c group heads should be first among rows of x
-
-      i = 1
-      j = 2
- 1    continue
-        icj = ic(j)
-        if (icj .ne. j) goto 2
-        if (j .eq. ng)  goto 3
-        i = j
-        j = j + 1
-      goto 1
-
- 2    continue
-
-      k = i
-      m = j + 1
-      do j = m, n
-        icj = ic(j)
-        if (icj .gt. k) then
-          k = k + 1
-          call dswap( p, x(k,1), n, x(j,1), n)
-          ic(j) = ic(k)
-          ic(k) = icj
-        end if
-      end do
-
- 3    continue
-
-c     call intpr( 'ic', -1, ic, n)
-
-      trcw = zero
-      call dcopy( lw, zero, 0, r, 1)
-
-      q = 1
-      do j = 1, n
-        i = ic(j)
-        if (i .ne. j) then
-c update trace and Cholesky factor as if a merge
-          q     = q + 2
-          ni    = ic(i)
-          ri    = dble(ni)
-          rij   = dble(ni+1)
-          sj    = sqrt(one/rij)
-          si    = sqrt(ri)*sj
-          call dcopy( p, x(i,1), n, v, 1)
-          call dscal( p, sj, v, 1)
-          call daxpy( p, (-si), x(j,1), n, v, 1)
-          trcw  = trcw + ddot(p, v, 1, v, 1)
-          call mclrup( q, p, v, r, p)
-          ic(j) = 0
-          ic(i) = ic(i) + 1
-          call dscal( p, si, x(i,1), n)
-          call daxpy( p, sj, x(j,1), n, x(i,1), n)
-c         call dcopy( p, FLMAX, 0, x(j,1), n)
-c update column sum in jth row
-        else
-          ic(j) = 1
-        end if
-      end do
-
-c     call intpr('ic', -1, ic, n)
-
-      trc1 = trcw
-
-      if (q .lt. p) then
-        detw = -FLMAX
-      else
-        detw = detmc2( p, r)
-      end if        
-
-      det1 = detw
-
-      ls =  1
-
-      lg = ng
-
-      l1 =  0
-      l2 =  0
-
- 100  continue
-
-      if (q .ge. p) then
-c       if (.false.) 
-c    *    call intpr('PART 2 --------------------------', -1, ls, 0)
-        if (detw .lt. DELOG) then
-          goto 200
-        else
-          goto 300
-        end if
-      end if
-
-      dopt = FLMAX
-
-      do j = 2, lg
-        nj = ic(j)
-        rj = dble(nj)
-        do i = 1, (j-1)
-          ni  = ic(i)
-          ri  = dble(ni)
-          nij = ni + nj
-          rij = dble(nij)
-          si  = sqrt(ri/rij)
-          sj  = sqrt(rj/rij)
-          call dcopy( p, x(i,1), n, s, 1)
-          call dscal( p, sj, s, 1)
-          call daxpy( p, (-si), x(j,1), n, s, 1)
-          tij = trcw + ddot(p, s, 1, s, 1)
-          zij = max(tij,EPSMIN)
-          if (zij .le. dopt) then
-            dopt = zij
-            nopt = nij
-            siop = si
-            sjop = sj
-            iopt = i
-            jopt = j
-            call dcopy( p, s, 1, v, 1)
-          end if
+      do k = 1, G
+        sum = zero
+        smu = zero      
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          smu  = smu + temp*x(i)
         end do
+        pro(k) = sum / dble(n)
+        if (sum .gt. one .or. smu .le. sum*FLMAX) then
+          smu    = smu / sum
+          mu(k)  = smu 
+          sigsqk = zero
+          do i = 1, n
+            temp = abs(x(i) - smu)
+            sigsqk = sigsqk + z(i,k)*(temp*temp)
+          end do
+          sigsq(k) = sigsqk / sum
+        else 
+          mu(k)    = FLMAX  
+          sigsq(k) = FLMAX
+        end if 
       end do
-
-      trcw = dopt
-
-      if (ls .eq. ns) goto 900
-
-      call dscal( p, siop, x(iopt,1), n)
-      call daxpy( p, sjop, x(jopt,1), n, x(iopt,1), n)
-
-      if (jopt .ne. lg) then
-        call dcopy( p, x(lg,1), n, x(jopt,1), n)
-        ic(jopt) = ic(lg)
-      end if
-
-      ic(iopt) = nopt
-
-      x(lg,1)  = detw
-      x(lg,2)  = trcw
-      if (p .ge. 4) then
-        x(lg,3) = dble(iopt)
-        x(lg,4) = dble(jopt)     
-      else if (p .eq. 3) then
-        x(lg,3) = dble(iopt)
-        jo(ls)  = jopt
-      else 
-        io(ls)  = iopt
-        jo(ls)  = jopt
-      end if
-
-c update the Cholesky factor
-
-      q  =  q + 1
-      call mclrup( q, p, v, r, p)
-
-      ls = ls + 1
-      lg = lg - 1
-
-      goto 100
-
- 200  continue
-
-      q  =  q + 1
-
-c     call intpr('ic', -1, ic, n)
-
-      dopt = FLMAX
-      zopt = FLMAX
-
-      do j = 2, lg
-        nj = ic(j)        
-        rj = dble(nj)
-        do i = 1, (j-1)
-          ni  = ic(i)
-          ri  = dble(ni)
-          nij = ni + nj
-          rij = dble(nij)
-          si  = sqrt(ri/rij)
-          sj  = sqrt(rj/rij)
-          call dcopy( p, x(i,1), n, v, 1)
-          call dscal( p, sj, v, 1)
-          call daxpy( p, (-si), x(j,1), n, v, 1)
-          tij = trcw +  ddot(p, v, 1, v, 1)
-          call dcopy( lw, r, 1, u, 1)
-          call mclrup( q, p, v, u, p)
-          dij = detmc2( p, u)
-          if (dij .le. dopt) then
-            dopt = dij
-            tdet = tij
-            ndet = nij
-            sidt = si
-            sjdt = sj
-            idet = i
-            jdet = j
-          end if
-          if (tij .eq. zero) then
-            zij = -FLMAX
-          else 
-            zij = max(tij,EPSMIN)
-            if (dij .eq. (-FLMAX)) then
-              zij = log(zij)
-            else if (dij .le. zero) then
-              zij = log(exp(dij) + zij)
-            else 
-              zij = log(one + zij*exp(-dij)) + dij
-            end if
-          end if
-          if (zij .le. zopt) then
-            zopt = zij
-            dijo = dij
-            tijo = tij
-            nopt = nij
-            siop = si
-            sjop = sj
-            iopt = i
-            jopt = j
-            call dcopy( lw, u, 1, s, 1)
-          end if
-        end do
-      end do
-
-      if (dopt .lt. DELOG) then
-        if (l1 .eq. 0) l1 = ls
-        trcw = tijo
-        detw = dijo
-        call dcopy( lw, s, 1, r, 1)
-      else 
-        l2 = ls
-        trcw = tdet
-        detw = dopt
-        siop = sidt
-        sjop = sjdt
-        nopt = ndet
-        iopt = idet
-        jopt = jdet
-        call dcopy( p, x(iopt,1), n, v, 1)
-        call dscal( p, sjop, v, 1)
-        call daxpy( p, (-siop), x(jopt,1), n, v, 1)
-        call mclrup( q, p, v, r, p)
-      end if
-
-      if (ls .eq. ns) goto 900
-
-      call dscal( p, siop, x(iopt,1), n)
-      call daxpy( p, sjop, x(jopt,1), n, x(iopt,1), n)
-
-      if (jopt .ne. lg) then
-        call dcopy( p, x(lg,1), n, x(jopt,1), n)
-        ic(jopt) = ic(lg)
-      end if
-
-      ic(iopt) = nopt
-
-      x(lg,1)  = detw
-      x(lg,2)  = trcw
-      if (p .ge. 4) then
-        x(lg,3) = dble(iopt)
-        x(lg,4) = dble(jopt)     
-      else if (p .eq. 3) then
-        x(lg,3) = dble(iopt)
-        jo(ls)  = jopt
-      else 
-        io(ls)  = iopt
-        jo(ls)  = jopt
-      end if
-
-      ls = ls + 1
-      lg = lg - 1
-
-      if (detw .ge. DELOG) then
-c       if (.false.)
-c    *    call intpr('PART 3 --------------------------', -1, ls, 0)
-        goto 300
-      end if
-
-      goto 200
-
- 300  continue
-
-      q = q + 1
-
-      detw = FLMAX
-
-      do j = 2, lg
-        nj = ic(j)        
-        rj = dble(nj)
-        do i = 1, (j-1)
-          ni  = ic(i)
-          ri  = dble(ni)
-          nij = ni + nj
-          rij = dble(nij)
-          si  = sqrt(ri/rij)
-          sj  = sqrt(rj/rij)
-          call dcopy( p, x(i,1), n, v, 1)
-          call dscal( p, sj, v, 1)
-          call daxpy( p, (-si), x(j,1), n, v, 1)
-          call dcopy( lw, r, 1, u, 1)
-          call mclrup( q, p, v, u, p)
-          dij = detmc2( p, u)
-          if (dij .le. detw) then
-            detw = dij
-            nopt = nij
-            siop = si
-            sjop = sj
-            iopt = i
-            jopt = j
-            call dcopy( lw, u, 1, s, 1)
-          end if
-        end do
-      end do
-
-c update the trace
-
-      call dcopy( p, x(iopt,1), n, v, 1)
-      call dscal( p, sjop, v, 1)
-      call daxpy( p, (-siop), x(jopt,1), n, v, 1)
-
-      trcw = trcw + ddot( p, v, 1, v, 1)
-
-      if (ls .eq. ns) goto 900
-
-      call dcopy( lw, s, 1, r, 1)
-
-      call dscal( p, siop, x(iopt,1), n)
-      call daxpy( p, sjop, x(jopt,1), n, x(iopt,1), n)
-
-      if (jopt .ne. lg) then
-        call dcopy( p, x(lg,1), n, x(jopt,1), n)
-        ic(jopt) = ic(lg)
-      end if
-
-      ic(iopt) = nopt
-
-      x(lg,1)  = detw
-      x(lg,2)  = trcw
-      if (p .ge. 4) then
-        x(lg,3) = dble(iopt)
-        x(lg,4) = dble(jopt)     
-      else if (p .eq. 3) then
-        x(lg,3) = dble(iopt)
-        jo(ls)  = jopt
-      else 
-        io(ls)  = iopt
-        jo(ls)  = jopt
-      end if
-
-      ls = ls + 1
-      lg = lg - 1
-
-      goto 300
-
- 900  continue
-
-      x(lg,1) = detw
-      x(lg,2) = trcw
-      if (p .ge. 4) then
-        if (iopt .lt. jopt) then
-          x(lg,3) = dble(iopt)
-          x(lg,4) = dble(jopt)     
-        else
-          x(lg,3) = dble(jopt)
-          x(lg,4) = dble(iopt)     
-        end if
-      else if (p .eq. 3) then
-        if (iopt .lt. jopt) then
-          x(lg,3) = dble(iopt)
-          jo(ls)  = jopt
-        else
-          x(lg,3) = dble(jopt)
-          jo(ls)  = iopt
-        end if
-      else 
-        if (iopt .lt. jopt) then
-          io(ls)  = iopt
-          jo(ls)  = jopt
-        else
-          io(ls)  = jopt
-          jo(ls)  = iopt
-        end if
-      end if
-
-c decode
-
-      do k = 1, ng
-       ic(k) = k
-      end do
-
-      m = ng + 1
-      if (p .ge. 4) then
-        l = m
-        do k = 1, ns
-          l      = l - 1
-          i      = int(x(l,3))
-          ici    = ic(i)
-          j      = int(x(l,4))
-          icj    = ic(j)
-          if (ici .gt. icj) ic(i) = icj
-          ic(j)  = ic(m - k)
-          if (ici .lt. icj) then
-            x(l,3) = dble(ici)
-            x(l,4) = dble(icj)
-          else
-            x(l,3) = dble(icj)
-            x(l,4) = dble(ici)
-          end if
-        end do
-      else if (p .eq. 3) then
-        l = m
-        do k = 1, ns
-          l      = l - 1
-          i      = int(x(l,3))
-          ici    = ic(i)
-          j      = jo(k)
-          icj    = ic(j)
-          if (ici .gt. icj) ic(i) = icj
-          ic(j)  = ic(m - k)
-          if (ici .lt. icj) then
-            x(l,3) = dble(ici)
-            jo(k)  = icj
-          else
-            x(l,3) = dble(icj)
-            jo(k)  = ici
-          end if
-        end do
-      else
-        do k = 1, ns
-          i      = io(k)
-          ici    = ic(i)
-          j      = jo(k)
-          icj    = ic(j)
-          if (ici .gt. icj) ic(i) = icj
-          ic(j)  = ic(m - k)
-          if (ici .lt. icj) then
-            io(k)  = ici
-            jo(k)  = icj
-          else
-            io(k)  = icj
-            jo(k)  = ici
-          end if
-        end do
-      end if
-
-      l = 2
-      m = min(p,4)
-      do k = ng, lg, -1
-        if (k .le. l) goto 950
-        call dswap( m, x(k,1), n, x(l,1), n)
-        l  = l + 1
-      end do
-   
- 950  continue
-
-      x(1,1) = det1
-      x(1,2) = trc1
-
-      v(1) = dble(l1)
-      v(2) = dble(l2)
-
-      s(1) = det0
-      s(2) = trc0
 
       return
       end
+      subroutine ms1vp ( x, z, n, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, sigsq, pro)
 
-      subroutine hceii ( x, n, p, ic, ng, ns, v, nd, d)
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c       http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer              n, G
+
+      double precision     pshrnk, pmu, pscale, pdof
+
+c     double precision     x(n), z(n,G), mu(G), sigsq(G), pro(G)
+      double precision     x(*), z(n,*), mu(*), sigsq(*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, iter, k, i
+
+      double precision        pmupmu
+      double precision        sumz, sum, smu
+      double precision        temp, term, sigsqk
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero 
+
+      pmupmu = pmu*pmu
+
+      do k = 1, G
+        sumz = zero
+        smu  = zero
+        do i = 1, n
+          temp = z(i,k)
+	  sumz = sumz + temp
+          smu  = smu + temp*x(i)
+        end do
+        pro(k) = sumz / dble(n)
+        if (sumz .gt. one .or. smu .le. sumz*FLMAX) then
+          smu   = smu/sumz
+          term  = sumz/(pshrnk+sumz)
+          temp  = pshrnk/(pshrnk+sumz)
+          mu(k) = term*smu + temp*pmu
+          sum   = zero
+          do i = 1, n
+            term   = abs(x(i) - smu)
+            sum = sum + z(i,k)*(term*term)
+          end do
+          term = (pshrnk*sumz)/(pshrnk+sumz)
+          temp = (pmupmu + smu*smu) - two*pmu*smu
+          if (pshrnk .gt. zero) then
+            sigsq(k) = (pscale + sum + term*temp)/(pdof+sumz+3.d0)
+          else
+            sigsq(k) = (pscale + sum + term*temp)/(pdof+sumz+two)
+          end if
+        else 
+          mu(k)    = FLMAX
+          sigsq(k) = FLMAX
+        end if
+      end do
+
+      return
+      end
+      subroutine esvei ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
-      integer             n, p, ic(n), ng, ns, nd
+      integer            n, p, G
 
-      double precision    x(n,*), v(*), d(*)
+      double precision   hood, Vinv
 
-*------------------------------------------------------------------------------
+c     double precision   x(n,p), z(n,G[+1])
+      double precision   x(n,*), z(n,  *  )
 
-      integer             lg, ld, ll, lo, ls
-      integer             i, j, k, m
-      integer             ni, nj, nij, iopt, jopt, iold, jold
-      integer             ij, ici, icj, ii, ik, jk
+c     double precision   mu(p,G), scale(G), shape(p), pro(G[+1])
+      double precision   mu(p,*), scale(*), shape(*), pro(  *  )
 
-      double precision    ri, rj, rij, si, sj, sij
-      double precision    dij, dopt, dold
+c-----------------------------------------------------------------------------
 
-      external            wardsw
+      integer                 i, j, k, nz
 
-      double precision    one
-      parameter          (one = 1.d0)
+      double precision        sum, temp, const, tmin, tmax
+      double precision        smin, smax, prok, scalek
 
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision    ddot
-      external            ddot
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
 
-c------------------------------------------------------------------------------
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
 
-      lg     =  ng
-      ld     = (ng*(ng-1))/2
-      ll     =  nd-ng
-      lo     =  nd
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
 
-c     call intpr( 'ic', -1, ic, n)
-c     call intpr( 'no. of groups', -1, lg, 1)
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
 
-c group heads should be first among rows of x
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
 
-      i = 1
-      j = 2
- 1    continue
-        icj = ic(j)
-        if (icj .ne. j) goto 2
-        if (j .eq. lg)  goto 3
-        i = j
-        j = j + 1
-      goto 1
+c-----------------------------------------------------------------------------
 
- 2    continue
+      call sgnrng( G, scale, 1, smin, smax)
 
-      k = i
-      m = j + 1
-      do j = m, n
-        icj = ic(j)
-        if (icj .gt. k) then
-          k = k + 1
-          call dswap( p, x(k,1), n, x(j,1), n)
-          ic(j) = ic(k)
-          ic(k) = icj
-        end if
-      end do
-
- 3    continue
-
-c     call intpr( 'ic', -1, ic, n)
-
-      do j = 1, n
-        i = ic(j)
-        if (i .ne. j) then
-          ic(j) = 0
-          ni    = ic(i)
-          nij   = ni + 1
-          ic(i) = nij
-          ri    = dble(ni)
-          rij   = dble(nij)
-          sj    = sqrt(one/rij)
-          si    = sqrt(ri)*sj
-c update column sum in kth row
-          call dscal( p, si, x(i,1), n)
-          call daxpy( p, sj, x(j,1), n, x(i,1), n)
-        else 
-          ic(j) = 1
-        end if
-      end do
-
-c     call intpr( 'ic', -1, ic, n)
-
-      dopt = FLMAX
-
-      ij   = 0
-      do j = 2, lg
-        nj = ic(j)
-        rj = dble(nj)
-        do i = 1, (j-1)
-          ni    = ic(i)
-          ri    = dble(ni)
-          nij   = ni + nj
-          rij   = dble(nij)
-          si    = sqrt(ri/rij)
-          sj    = sqrt(rj/rij)
-          call dcopy( p, x(i,1), n, v, 1)
-          call dscal( p, sj, v, 1)
-          call daxpy( p, (-si), x(j,1), n, v, 1)
-          dij   = ddot(p, v, 1, v, 1)
-          ij    = ij + 1
-          d(ij) = dij
-          if (dij .le. dopt) then
-            dopt = dij
-            iopt = i
-            jopt = j
-          end if
-        end do
-      end do
-
-c     if (.false.) then
-c       i  = 1
-c       ij = 1
-c       do j = 2, ng
-c         call dblepr( 'dij', -1, d(ij), i)
-c         ij = ij + i
-c         i  = j
-c       end do
-c     end if
-
-      if (ns .eq. 1) then
-        if (iopt .lt. jopt) then
-          x(1,1) = iopt
-          x(1,2) = jopt
-        else
-          x(1,1) = jopt
-          x(1,2) = iopt
-        end if
-        d(1)   = dopt
+      if (smin .le. zero) then
+        hood = FLMAX
         return
       end if
 
-      ls  = 1
+      call sgnrng( p, shape, 1, smin, smax)
 
- 100  continue
-
-      ni       = ic(iopt)
-      nj       = ic(jopt)
-      nij      = ni + nj 
-
-      ic(iopt) =  nij
-      ic(jopt) = -iopt
-
-      if (jopt .ne. lg) then
-        call wardsw( jopt, lg, d)
-        m        = ic(jopt)
-        ic(jopt) = ic(lg)
-        ic(lg)   = m
+      if (smin .le. zero) then
+        hood = FLMAX
+        return
       end if
 
-      si   = dble(ni)
-      sj   = dble(nj)
-      sij  = dble(nij)
-
-      dold = dopt
-
-      iold = iopt
-      jold = jopt
-
-      iopt = -1
-      jopt = -1
-
-      dopt = FLMAX
-
-      lg = lg - 1
-
-      ld = ld - lg
-
-      ii = (iold*(iold-1))/2
-
-      if (iold .gt. 1) then
-        ik = ii - iold + 1
-        do j = 1, (iold - 1)
-          nj    = ic(j)        
-          rj    = dble(nj)
-          ik    = ik + 1
-          jk    = ld + j
-          dij   = (rj+si)*d(ik)+(rj+sj)*d(jk)
-          dij   = (dij-rj*dold)/(rj+sij)
-          d(ik) = dij
-        end do
-      end if
-
-      if (iold .lt. lg) then
-        ik = ii + iold
-        i  = iold
-        do j = (iold + 1), lg
-          nj    = ic(j)        
-          rj    = dble(nj)
-          jk    = ld + j
-          dij   = (rj+si)*d(ik)+(rj+sj)*d(jk)
-          dij   = (dij-rj*dold)/(rj+sij)
-          d(ik) = dij
-          ik    = ik + i
-          i     = j
-        end do
-      end if
-
-      d(lo) = dold
-      lo    = lo - 1
-      d(lo) = dble(iold)
-      lo    = lo - 1
-      d(lo) = dble(jold)
-      lo    = lo - 1
-
-c update d and find max
-
-      jopt = 2
-      iopt = 1
-
-      dopt = d(1)
-
-      if (lg .eq. 2) goto 900
-
-      ij   = 1
-      do i = 2, ld
-        si = d(i)
-        if (si .le. dopt) then
-          ij   = i
-          dopt = si
-        end if
+      do j = 1, p
+        shape(j) = sqrt(shape(j))
       end do
 
-      if (ij .gt. 1) then
-        do i = 2, ij
-          iopt = iopt + 1
-          if (iopt .ge. jopt) then
-            jopt = jopt + 1
-            iopt = 1
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            if (shape(j) .lt. one .and.
+     *          abs(temp) .ge. shape(j)*FLMAX) then
+              hood = FLMAX
+              return
+            end if
+            temp = temp/shape(j)
+            if (abs(temp) .ge. RTMAX) then 
+              hood = FLMAX
+              return
+            end if
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
+          if (scalek .lt. one .and.
+     *        sum .ge. scalek*FLMAX) then
+            hood = FLMAX
+            return
+          end if
+          z(i,k) = -(const+sum/scalek)/two
+        end do
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
           end if
         end do
-      end if
-
-      ls = ls + 1
-
-      if (ls .eq. ns) goto 900
-
-      goto 100
-
- 900  continue
-
-      d(lo)  = dopt
-      lo     = lo - 1
-      d(lo)  = dble(iopt)
-      lo     = lo - 1
-      d(lo)  = dble(jopt)
-
-      do i = 1, ng
-        ic(i) = i
-      end do
-
-      lo          = nd - 1
-      ld          = lo
-      si          = d(lo)
-      lo          = lo - 1
-      sj          = d(lo)
-      ic(int(sj)) = ng
-
-      if (si .lt. sj) then
-        x(1,1) = si 
-        x(1,2) = sj
-      else
-        x(1,1) = sj
-        x(1,2) = si
-      end if
-
-      lg = ng + 1
-      do k = 2, ns
-        lo     = lo - 1
-        d(ld)  = d(lo)
-        ld     = ld - 1
-        lo     = lo - 1
-        i      = int(d(lo))
-        ici    = ic(i)
-        lo     = lo - 1
-        j      = int(d(lo))
-        icj    = ic(j)
-        if (ici .gt. icj) ic(i) = icj
-        ic(j)  = ic(lg-k)
-        if (ici .lt. icj) then
-          x(k,1) = dble(ici)
-          x(k,2) = dble(icj)
-        else
-          x(k,1) = dble(icj)
-          x(k,2) = dble(ici)
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and.
+     *      one .le. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if  
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
         end if
-      end do
-
-      ld = nd
-      lo = 1
-      do k = 1, ns
-        si    = d(lo)
-        d(lo) = d(ld)
-        d(ld) = si
-        ld    = ld - 1
-        lo    = lo + 1
+        call dscal( nz, (one/sum), z(i,1), n)
       end do
 
       return
       end
+      subroutine mevei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro, scl, shp, w)
 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi(2)
+
+      double precision    Vinv, eps, tol(2)
+
+c     double precision    x(n,p), z(n,G[+1]), scl(G), shp(p), w(p,G)
+      double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
+
+c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
+      double precision    mu(p,*), scale(*), shape(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, i, j, k
+      integer             iter, maxi1, maxi2, inner, inmax
+
+      double precision    tol1, tol2, sum, temp, term, tmin, tmax
+      double precision    prok, scalek, smin, smax, const, zsum
+      double precision    hold, hood, err, errin, dnp, ViLog, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMALOG, BIGLOG 
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      maxi1 = maxi(1)
+      maxi2 = max(maxi(2),0)
+
+      if (maxi1 .le. 0) return
+
+      dnp   = dble(n*p)
+    
+      inmax = 0
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps   = max(eps,zero)
+      tol1  = max(tol(1),zero)
+      tol2  = max(tol(2),zero)
+
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+      errin = FLMAX
+
+c start with shape and scale equal to 1
+
+      call dcopy(p, one, 0, shape, 1) 
+
+      call dcopy(G, one, 0, scale, 1) 
+
+      iter  = 0
+
+100   continue
+
+      inner = 0
+
+      zsum = one
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sum
+        zsum   = min(zsum,sum)
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = x(i,j) - mu(j,k)
+              sum  = sum + z(i,k)*(temp*temp)
+            end do
+            w(j,k) = sum
+          end do
+        end if
+      end do
+
+      call dscal( G, dble(p), pro, 1)
+
+      if (zsum .le. rteps) then
+        eps     = -FLMAX
+        tol(1)  =  zsum
+        tol(2)  =  errin
+        maxi(1) =  iter
+        maxi(2) =  max(inner,inmax)
+        return
+      end if
+
+      if (maxi2 .le. 0) goto 120
+
+110   continue
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      inner = inner + 1
+
+c scale estimate
+
+      call dcopy( G, scale, 1, scl, 1)
+
+      do k = 1, G
+        sum = zero
+        do j = 1, p
+          sum = sum + w(j,k)/shape(j)
+        end do
+        scale(k) = sum/pro(k)
+      end do
+
+      call sgnrng(G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+c shape estimate
+
+      call dcopy( p, shape, 1, shp, 1)
+
+      do j = 1, p
+        sum = zero
+        do k = 1, G
+          sum = sum + w(j,k)/scale(k)
+        end do
+        shape(j) = sum
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      if (temp .gt. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      if (temp .le. eps) then
+        eps     = temp
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      errin = zero
+
+      do k = 1, G
+        errin = max(errin, abs(scl(k)-scale(k))/(one + scale(k)))
+      end do
+
+      do j = 1, p
+        errin = max(errin, abs(shp(j)-shape(j))/(one + shape(j)))
+      end do
+
+      if (errin .gt. tol2 .and. inner .le. maxi2) goto 110
+
+120   continue
+
+      iter = iter + 1
+
+      inmax = max(inner, inmax)
+
+      if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+
+      term = zero
+      if (Vinv .gt. zero) then
+     
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j)
+          end do
+c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
+          z(i,k) = -(const+sum/scalek)/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol1 .and. iter .lt. maxi1) goto 100
+
+      tol(1)  = err
+      tol(2)  = errin
+      eps     = hood
+      maxi(1) = iter
+      maxi(2) = inmax
+
+      return
+      end
+      subroutine meveip( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro, scl, shp, w)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi(2)
+
+      double precision    Vinv, eps, tol(2)
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+c     double precision    x(n,p), z(n,G[+1]), scl(G), shp(p), w(p,G)
+      double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
+
+c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
+      double precision    mu(p,*), scale(*), shape(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, i, j, k
+      integer             iter, maxi1, maxi2, inner, inmax
+
+      double precision    tol1, tol2, sum, temp, term, tmin, tmax
+      double precision    prok, scalek, smin, smax, const, sumz
+      double precision    hold, hood, err, errin, dnp, ViLog, zsum
+      double precision    rteps
+    
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+ 
+      maxi1 = maxi(1)
+      maxi2 = max(maxi(2),0)
+
+      if (maxi1 .le. 0) return
+
+      dnp   = dble(n*p)
+    
+      inmax = 0
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps   = max(eps,zero)
+      tol1  = max(tol(1),zero)
+      tol2  = max(tol(2),zero)
+ 
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+      errin = FLMAX
+
+c start with shape and scale equal to 1
+
+      call dcopy(p, one, 0, shape, 1) 
+
+      call dcopy(G, one, 0, scale, 1) 
+
+      iter  = 0
+
+100   continue
+
+      inner = 0
+
+      zsum  = one
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sumz   = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz
+        zsum   = min(zsum,sumz)
+        if (sumz .gt. rteps) then
+          term   = pshrnk + sumz
+          const  = (pshrnk*sumz)/term
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = x(i,j) - mu(j,k)
+              sum  = sum + z(i,k)*(temp*temp)
+            end do
+            temp   = pmu(j) - mu(j,k)
+            w(j,k) = pscale + sum + const*(temp*temp)
+          end do
+          call dscal( p, sumz/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1) 
+        end if
+      end do
+
+      call dscal( G, dble(p), pro, 1)
+
+      if (zsum .le. rteps) then
+        eps     = -FLMAX
+        tol(1)  =  zsum
+        tol(2)  =  errin
+        maxi(1) =  iter
+        maxi(2) =  max(inner,inmax)
+        return
+      end if
+
+      if (maxi2 .le. 0) goto 120
+
+110   continue
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      inner = inner + 1
+
+c scale estimate
+
+      call dcopy( G, scale, 1, scl, 1)
+
+      temp = pdof + two
+      if (pshrnk .gt. zero) temp = temp + one
+      do k = 1, G
+        sum = zero
+        do j = 1, p
+          sum = sum + w(j,k)/shape(j)
+        end do
+        scale(k) = sum/(pro(k)+temp)
+      end do
+
+      call sgnrng(G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+c shape estimate
+
+      call dcopy( p, shape, 1, shp, 1)
+
+      do j = 1, p
+        sum = zero
+        do k = 1, G
+          sum = sum + w(j,k)/scale(k)
+        end do
+        shape(j) = sum
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      if (temp .gt. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      if (temp .le. eps) then
+        eps     = temp
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = max(inner,inmax)
+        return
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      errin = zero
+
+      do k = 1, G
+        errin = max(errin, abs(scl(k)-scale(k))/(one + scale(k)))
+      end do
+
+      do j = 1, p
+        errin = max(errin, abs(shp(j)-shape(j))/(one + shape(j)))
+      end do
+
+      if (errin .gt. tol2 .and. inner .le. maxi2) goto 110
+
+120   continue
+
+      iter = iter + 1
+
+      inmax = max(inner, inmax)
+
+      if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
+
+      term = zero
+      if (Vinv .gt. zero) then
+     
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else
+        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps     = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j)
+          end do
+c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
+          z(i,k) = -(const+sum/scalek)/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol1 .and. iter .lt. maxi1) goto 100
+
+      tol(1)  = err
+      tol(2)  = errin
+      eps     = hood
+      maxi(1) = iter
+      maxi(2) = inmax
+
+      return
+      end
+      subroutine msvei ( x, z, n, p, G, maxi, tol, 
+     *                   mu, scale, shape, pro, scl, shp, w)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G, maxi
+
+      double precision   tol
+
+c     double precision   x(n,p), z(n,G), scl(G), shp(p), w(p,G)
+      double precision   x(n,*), z(n,*), scl(*), shp(*), w(p,*)
+
+c     double precision   mu(p,G), scale(G), shape(p), pro(G)
+      double precision   mu(p,*), scale(*), shape(*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, inner
+
+      double precision        sum, temp, smin, smax, err
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      tol = max(tol,zero)
+      err = FLMAX
+
+c start with the equal volume and shape estimate
+
+      do k = 1, G
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sum
+        if (sum .gt. one .or. one .lt. sum*FLMAX) then
+          err = min(err,sum)
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = x(i,j) - mu(j,k)
+              temp = temp*temp
+              temp = z(i,k)*temp
+              sum  = sum + temp
+            end do
+            w(j,k) = sum
+          end do
+        else
+          err = -FLMAX
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (err .lt. zero) then
+        call dscal( G, one/dble(n), pro, 1)
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        tol  = FLMAX
+        maxi = 0
+        return
+      end if
+
+      call dcopy( p, one, 0, shape, 1)
+
+      call dcopy( G, one, 0, scale, 1)
+
+      call dscal( G, dble(p), pro, 1)
+
+      inner = 0
+      err  = FLMAX
+
+100   continue
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero) goto 200
+
+      inner = inner + 1
+
+c scale estimate
+
+      call dcopy( G, scale, 1, scl, 1)
+
+      do k = 1, G
+        sum = zero       
+        do j = 1, p
+          if (shape(j) .gt. one .or. 
+     *        w(j,k) .lt. shape(j)*FLMAX) then
+            sum = sum + w(j,k)/shape(j)
+          else
+            scale(k) = FLMAX
+            goto 110
+          end if
+        end do
+        scale(k) = sum/pro(k)
+110     continue
+      end do
+
+      call sgnrng(G, scale, 1, smin, smax)
+
+      if (smin .le. zero .or. smax .eq. FLMAX) goto 200
+
+c shape estimate
+
+      call dcopy( p, shape, 1, shp, 1)
+
+      do j = 1, p
+        sum = zero
+        do k = 1, G
+          if (scale(k) .gt. one .or. w(j,k) .lt. scale(k)*FLMAX) then
+            sum = sum + w(j,k)/scale(k)
+          else
+            shape(j) = FLMAX
+            goto 120
+          end if
+        end do
+        shape(j) = sum
+120     continue
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero .or. smax .eq. FLMAX) goto 200
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do      
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        call dcopy( G, FLMAX, 0, scale, 1)
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200 
+      end if 
+  
+      if (temp .ge. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if 
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      err = zero
+      
+      do k = 1, G
+        err = max(err, abs(scl(k) - scale(k))/(one + scale(k)))        
+      end do
+      
+      do j = 1, p
+        err = max(err, abs(shp(j) - shape(j))/(one + shape(j)))       
+      end do
+ 
+      if (err .gt. tol .and. inner .le. maxi) goto 100
+
+200   continue
+
+      call dscal( G, one/dble(n*p), pro, 1)
+    
+      tol  = err
+      maxi = inner
+
+      return
+      end
+      subroutine msveip( x, z, n, p, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   maxi, tol,
+     *                   mu, scale, shape, pro, scl, shp, w)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, p, G, maxi
+
+      double precision    tol
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+c     double precision    x(n,p), z(n,G), scl(G), shp(p), w(p,G)
+      double precision    x(n,*), z(n,*), scl(*), shp(*), w(p,*)
+
+c     double precision    mu(p,G), scale(G), shape(p), pro(G)
+      double precision    mu(p,*), scale(*), shape(*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k, inner
+
+      double precision    sum, temp, term, err
+      double precision    smin, smax, const, sumz
+    
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+    
+      tol   = max(tol,zero)
+
+      err   = FLMAX
+
+c start with shape and scale equal to 1
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz
+        if (sumz .gt. one .or. one .lt. sumz*FLMAX) then
+          err   = min(err,sumz)
+          term  = pshrnk + sumz
+          const = (pshrnk*sumz)/term
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = x(i,j) - mu(j,k)
+              sum  = sum + z(i,k)*(temp*temp)
+            end do
+            temp   = pmu(j) - mu(j,k)
+            w(j,k) = pscale + sum + const*(temp*temp)
+          end do
+          call dscal( p, sumz/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1) 
+        else
+          err = -FLMAX
+          call dcopy( p, FLMAX, 0,  mu(1,k), 1)
+        end if
+      end do
+
+      if (err .lt. zero) then
+        call dscal( G, one/dble(n), pro, 1)
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        tol  = FLMAX
+        maxi = 0
+        return
+      end if
+
+      call dcopy(p, one, 0, shape, 1) 
+
+      call dcopy(G, one, 0, scale, 1) 
+
+      call dscal( G, dble(p), pro, 1)
+
+      if (maxi .le. 0) return
+
+      inner = 0
+      err   = FLMAX
+
+100   continue
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero) goto 200
+
+      inner = inner + 1
+
+c scale estimate
+
+      call dcopy( G, scale, 1, scl, 1)
+
+      do k = 1, G
+        sum = zero
+        do j = 1, p
+          if (shape(j) .ge. one .or. 
+     *        w(j,k) .le. shape(j)*FLMAX) then
+             sum = sum + w(j,k)/shape(j)
+          else 
+            scale(k) = FLMAX
+            goto 110
+          end if
+        end do
+        temp  = pdof + pro(k) + two
+        if (pshrnk .gt. zero) temp = temp + one
+        scale(k) = sum/temp
+110     continue
+      end do
+
+      call sgnrng(G, scale, 1, smin, smax)
+
+      if (smin .le. zero .or. smax .ge. FLMAX) then
+        call dcopy( G, FLMAX, 0, scale, 1)
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200
+      end if
+
+c shape estimate
+
+      call dcopy( p, shape, 1, shp, 1)
+
+      do j = 1, p
+        sum = zero
+        do k = 1, G
+          if (scale(k) .gt. w(j,k) .or. 
+     *        w(j,k) .lt. scale(k)*FLMAX) then
+            sum = sum + w(j,k)/scale(k)
+          else
+            shape(j) = FLMAX
+            goto 120
+          end if
+        end do
+        shape(j) = sum
+120     continue
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero .or. smax .ge. FLMAX) then
+        call dcopy( G, FLMAX, 0, scale, 1)
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+      temp = sum/dble(p)
+
+      if (temp .ge. BIGLOG) then
+        call dcopy( G, FLMAX, 0, scale, 1)
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200
+      end if
+
+      if (temp .ge. SMALOG) then
+        temp = exp(temp)
+      else
+        temp = zero
+      end if
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200         
+      end if
+
+      call dscal( p, one/temp, shape, 1)
+
+      err = zero
+
+      do k = 1, G
+        err = max(err, abs(scl(k)-scale(k))/(one + scale(k)))
+      end do
+
+      do j = 1, p
+        err = max(err, abs(shp(j)-shape(j))/(one + shape(j)))
+      end do
+
+      if (err .gt. tol .and. inner .le. maxi) goto 100
+
+200   continue
+ 
+      call dscal( G, one/dble(n*p), pro, 1)
+    
+      tol  = err
+      maxi = inner
+
+      return
+      end
+      subroutine esvev ( x, mu, scale, shape, O, pro, n, p, G, 
+     *                   Vinv, v, w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   Vinv, hood
+
+c     double precision   x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
+      double precision   x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
+
+c     double precision   v(p), w(p)
+      double precision   v(*), w(*)
+
+c     double precision   scale(G), shape(p), O(p,p,G)
+      double precision   scale(*), shape(*), O(p,p,*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz, p1
+
+      double precision        const, temp, eps, tmin, tmax
+      double precision        smin, smax, scalek, prok, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        hood = FLMAX
+        return
+      end if
+
+      do j = 1, p
+        shape(j) = sqrt(shape(j))
+      end do
+
+      do k = 1, G
+
+        scalek = scale(k)
+        
+        const = dble(p)*(pi2log+log(scalek))
+
+c       prok  = pro(k)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, 
+     *                 w, 1, zero, v, 1)
+          do j = 1, p
+            if (shape(j) .lt. one .and. 
+     *          abs(v(j)) .ge. shape(j)*FLMAX) then
+              hood = FLMAX
+              return
+            end if
+            v(j) = v(j)/shape(j)
+          end do
+          temp   = ddot( p, v, 1, v, 1)
+          if (scalek .lt. one .and. temp .ge. scalek*FLMAX) then
+            hood = FLMAX
+            return
+          end if
+          temp   = temp/scalek
+c         z(i,k) = prok*exp(-(const+temp)/two)
+          z(i,k) = -(const+temp)/two
+        end do
+
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+      subroutine mevev ( EQPRO, x, n, p, G, Vinv, z, 
+     *                   maxi, tol, eps, lwork,
+     *                   mu, scale, shape, O, pro, w, s)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi(2), lwork
+
+      double precision   Vinv, eps, tol(2)
+
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
+
+      double precision   mu(p,*), pro(  *  )
+
+      double precision   scale(*), shape(*), O(p,p,*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 maxi1, maxi2, p1, inmax, iter
+      integer                 nz, i, j, k, l, j1, info, inner
+
+      double precision        tol1, tol2, dnp, term, rteps, ViLog
+      double precision        errin, smin, smax, sumz, tmin, tmax
+      double precision        cs, sn, dummy, hold, hood, err, zsum
+      double precision        const, temp, sum, prok, scalek
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      maxi1  = maxi(1)
+      maxi2  = maxi(2)
+
+      if (maxi1 .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol1   = max(tol(1),zero)
+      tol2   = max(tol(2),zero)
+
+      p1     = p + 1
+
+      dnp    = dble(n*p)
+
+c     FLMAX  = d1mach(2)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+
+      err    = FLMAX
+      errin  = FLMAX
+
+      inmax  = 0
+
+      iter   = 0
+
+100   continue
+
+      sumz = zero
+      zsum = one
+
+      l    = 0
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, zero, 0, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        sumz = sumz + sum
+        zsum = min(zsum,sum) 
+        pro(k) = sum
+        if (sum .ge. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else 
+            do j = 1, p
+              temp     = z(j,k)
+              z(j,k)   = temp*temp
+            end do
+          end if
+        end  if
+      end do
+
+      iter = iter + 1
+
+      if (l .ne. 0 .or. zsum .lt. rteps) then
+
+	if (Vinv .ge. zero) then
+          term = zero
+          do i = 1, n
+            term = term + z(i,nz)
+          end do
+          temp    = term / dble(n)
+          pro(nz) = temp
+
+          call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+          if (EQPRO) then
+            temp = (one - pro(nz))/dble(G)
+            call dcopy( G, temp, 0, pro, 1)
+          end if
+        else
+          if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        end if
+        lwork   = l
+c       w(1)    = FLMAX
+        tol(1)  = err
+        tol(2)  = errin
+        if (l .ne. 0) then
+          eps =  FLMAX
+        else
+          eps = -FLMAX
+        end if
+        maxi(1) = -1
+        maxi(2) = -1
+        return
+      end if
+
+      if (iter .eq. 1) then
+        call dcopy( p, zero, 0, shape, 1)
+        do j = 1, p
+          sum = zero
+          do k = 1, G
+            sum = sum + z(j,k)
+          end do
+          shape(j) = sum
+        end do
+
+        call sgnrng( p, shape, 1, smin, smax)
+
+        if (smin .le. zero) then
+          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+          if (Vinv .ge. zero) then
+            term = zero
+            do i = 1, n
+              term = term + z(i,nz)
+            end do
+            temp    = term / dble(n)
+            pro(nz) = temp
+
+            call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+            if (EQPRO) then
+              temp = (one - pro(nz))/dble(G)
+              call dcopy( G, temp, 0, pro, 1)
+            end if
+	  else if (EQPRO) then
+            call dcopy( G, one/dble(G), 0, pro, 1)
+          end if
+          lwork   = 0
+c         w(1)    = smin
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+          maxi(1) = -1
+          maxi(2) = -1
+          return
+        end if
+
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+        temp  = sum/dble(p)
+ 
+        if (temp .gt. BIGLOG) then
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+          maxi(1) = -1
+          maxi(2) = -1
+          return
+        end if 
+
+        if (temp .gt. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if 
+
+        if (Vinv .le. zero) then
+          call dcopy (G, temp/dble(n), 0, scale, 1)
+        else
+          call dcopy (G, temp/sumz, 0, scale, 1)
+        end if
+
+        if (temp .le. eps) then
+          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+          if (Vinv .gt. zero) then
+            term = zero
+            do i = 1, n
+              term = term + z(i,nz)
+            end do
+            temp    = term / dble(n)
+            pro(nz) = temp
+
+            call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+            if (EQPRO) then
+              temp = (one - pro(nz))/dble(G)
+              call dcopy( G, temp, 0, pro, 1)
+            end if
+          else 
+           if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+          end if
+          lwork   = 0
+c         w(1)    = temp
+c         w(2)    = zero
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+          maxi(1) = -1
+          maxi(2) = -1
+          return
+        end if
+  
+        call dscal( p, one/temp, shape, 1)
+
+      end if
+
+c inner iteration to estimate scale and shape
+c pro now contains n*pro
+
+      inner = 0
+      errin = zero
+
+      if (maxi2 .le. 0) goto 120
+
+110   continue
+
+        call dcopy( p, shape, 1, w    , 1)
+        call dcopy( G, scale, 1, w(p1), 1)
+
+        call dcopy( p, zero, 0, shape, 1)
+
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            sum = sum + z(j,k)/w(j)
+          end do
+          temp     = sum/(pro(k)*dble(p))
+          scale(k) = temp
+          if (temp .le. eps) then
+            lwork   = 0
+c           w(1)    = temp
+            tol(1)  = err
+            tol(2)  = errin
+            eps     = FLMAX
+            maxi(1) = iter
+            maxi(2) = max(inner,inmax)
+            return
+          end if
+          do j = 1, p
+            shape(j) = shape(j) + z(j,k)/temp
+          end do
+        end do
+
+        inner = inner + 1
+
+        call sgnrng( p, shape, 1, smin, smax)
+
+        if (smin .le. zero) then
+           if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+           if (Vinv .gt. zero) then
+             term = zero
+             do i = 1, n
+               term = term + z(i,nz)
+             end do
+             temp    = term / dble(n)
+             pro(nz) = temp
+
+             call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+             if (EQPRO) then
+               temp = (one - pro(nz))/dble(G)
+               call dcopy( G, temp, 0, pro, 1)
+             end if
+          else 
+            if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+          end if
+          lwork   = 0
+c         w(1)    = smin
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+          maxi(1) = iter
+          maxi(2) = max(inner,inmax)
+          return
+        end if
+
+c normalize the shape matrix
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+        temp  = sum/dble(p)
+ 
+        if (temp .gt. BIGLOG) then
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+          maxi(1) = -1
+          maxi(2) = -1
+          return
+        end if 
+
+        if (temp .gt. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if 
+
+        if (temp .le. eps) then
+           if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+           if (Vinv .gt. zero) then
+             term = zero
+             do i = 1, n
+               term = term + z(i,nz)
+             end do
+             temp    = term / dble(n)
+             pro(nz) = temp
+
+             call dcopy( n, ViLog, 0, z(1,nz), 1)
+             if (EQPRO) then
+               temp = (one - pro(nz))/dble(G)
+               call dcopy( G, temp, 0, pro, 1)
+             end if
+          else 
+            if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+          end if
+          lwork   = 0
+c         w(1)    = temp
+          tol(1)  = err
+          tol(2)  = errin
+          eps     = FLMAX
+          maxi(1) = iter
+          maxi(2) = max(inner,inmax)
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+
+        errin = zero
+        do j = 1, p
+          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
+        end do
+
+        do k = 1, G
+          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
+        end do
+
+        if (errin .ge. tol2 .and. inner .lt. maxi2) goto 110
+
+120   continue
+
+      inmax = max(inner,inmax)
+
+      smin = smin/temp
+      smax = smax/temp
+
+      if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
+
+      term = zero
+      if (Vinv .gt. zero) then
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else 
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+      
+      if (smin .le. eps) then
+        lwork   = 0
+c       w(1)    = -smin
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        lwork   = 0
+c       w(1)    = -smin
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      do j = 1, p
+        s(j) = sqrt(shape(j))
+      end do
+
+      call sgnrng( p, s, 1, smin, smax)
+      
+      if (smin .le. rteps) then
+        lwork   = 0
+c       w(1)    = -smin
+        tol(1)  = err
+        tol(2)  = errin
+        eps     = FLMAX
+        maxi(1) = iter
+        maxi(2) = inmax
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log + log(scalek))
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w(p1), 1)
+          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, w, 1)
+          do j = 1, p
+            w(j) = w(j) / s(j)
+          end do
+          sum    = ddot(p,w,1,w,1)/scalek
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol1 .and. iter .lt. maxi1) goto 100
+
+c     smin  = sqrt(smin)
+c     smax  = sqrt(smax)
+
+c     rcmin = FLMAX
+c     do k = 1, G
+c       temp = sqrt(scale(k))
+c       rcmin = min(rcmin,(temp*smin)/(one+temp*smax))
+c      end do
+
+      lwork   = 0
+     
+c     w(1)    = rcmin
+
+      tol(1)  = err
+      tol(2)  = errin
+
+      eps     = hood
+
+      maxi(1) = iter
+      maxi(2) = inmax
+
+      return
+      end
+      subroutine mevevp( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, lwork,
+     *                   mu, scale, shape, O, pro, w, s)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical            EQPRO
+
+      integer            n, p, G, maxi(2), lwork
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+      double precision   Vinv, eps, tol(2)
+
+c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
+      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
+
+c     double precision   mu(p,G), pro(G[+1])
+      double precision   mu(p,*), pro(  *  )
+
+c     double precision   scale(G), shape(p), O(p,p,G)
+      double precision   scale(*), shape(*), O(p,p,*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 maxi1, maxi2, p1, inmax, iter
+      integer                 nz, i, j, k, l, j1, info, inner
+
+      double precision        tol1, tol2, dnp, term, rteps, ViLog
+      double precision        errin, smin, smax, sumz, tmin, tmax
+      double precision        cs, sn, dummy, hold, hood, err, zsum 
+      double precision        const, temp, sum, prok, scalek
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+     
+      maxi1  = maxi(1)
+      maxi2  = maxi(2)
+
+      if (maxi1 .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol1   = max(tol(1),zero)
+      tol2   = max(tol(2),zero)
+
+      p1     = p + 1
+
+      dnp    = dble(n*p)
+
+c     FLMAX  = d1mach(2)
+
+      hold   = FLMAX/two
+      hood   = FLMAX
+
+      err    = FLMAX
+      errin  = FLMAX
+
+      inmax  = 0
+      inner  = 0
+
+      iter   = 0
+
+100   continue
+
+      zsum = one
+      l    = 0
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
+        end do
+        sumz = zero
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz / dble(n)
+        zsum   = min(zsum,sumz)
+        if (sumz .gt. rteps) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          term  = sumz+pshrnk
+          const = (sumz*pshrnk)/term
+          call dscal( p, sqrt(const), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( O(j,j,k), w(j), cs, sn)
+            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( O(p,p,k), w(p), cs, sn)
+          call dscal( p, sumz/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
+     *                 dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else 
+            do j = 1, p
+              temp   = z(j,k)
+              z(j,k) = temp*temp
+            end do
+          end if
+        end if
+      end do
+
+      iter = iter + 1
+
+      if (l .ne. 0 .or. zsum .le. rteps) then
+        lwork   = l
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        if (l .ne. 0) then          
+          eps =  FLMAX
+        else 
+          eps = -FLMAX
+        end if
+        goto 200
+      end if
+
+      if (iter .eq. 1) then
+
+        call dcopy( p, zero, 0, shape, 1)
+        do j = 1, p
+          sum = zero
+          do k = 1, G
+            sum = sum + z(j,k)
+          end do
+          shape(j) = sum
+        end do
+
+        call sgnrng( p, shape, 1, smin, smax)
+
+        if (smin .le. zero) then
+          eps     = FLMAX
+          goto 200
+          return
+        end if
+
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+
+        temp  = sum/dble(p)
+
+        if (temp .gt. BIGLOG) then
+          eps  = FLMAX
+          goto 200
+          return
+        end if 
+
+        if (temp .ge. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if 
+
+        do k = 1, G
+          scale(k) = temp / (pro(k)*dble(n))
+        end do
+
+        if (temp .le. eps) then
+          eps = FLMAX
+          goto 200
+          return
+        end if
+  
+        call dscal( p, one/temp, shape, 1)
+
+      end if
+
+c inner iteration to estimate scale and shape
+c pro now contains n*pro
+
+      inner = 0
+      errin = zero
+
+      if (maxi2 .le. 0) goto 120
+
+110   continue
+
+        call dcopy( p, shape, 1, w    , 1)
+        call dcopy( G, scale, 1, w(p1), 1)
+ 
+        call sgnrng( p+G, w, 1, smin, smax)
+
+        if (smin .le. zero) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          call dcopy( G, FLMAX, 0, scale, 1)
+          goto 200
+        end if
+
+        call dcopy( p, zero, 0, shape, 1)
+
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            if (w(j) .le. z(j,k) .and. z(j,k) .lt. w(j)*rteps) then
+              call dcopy( p, FLMAX, 0, shape, 1) 
+              call dcopy( G, FLMAX, 0, scale, 1)
+              goto 200
+            end if
+            sum = sum + z(j,k)/w(j)
+          end do
+          temp     = sum/(pro(k)*dble(n*p))
+          scale(k) = temp
+          do j = 1, p
+            if (temp .le. z(j,k) .and. z(j,k) .lt. temp*rteps) then
+              call dcopy( p, FLMAX, 0, shape, 1) 
+              call dcopy( G, FLMAX, 0, scale, 1)
+              goto 200
+            end if
+            shape(j) = shape(j) + z(j,k)/temp
+          end do
+        end do
+
+        inner = inner + 1
+
+        call sgnrng( p, shape, 1, smin, smax)
+
+        if (smin .le. zero) then
+          eps  = FLMAX
+          goto 200
+          return
+        end if
+
+c normalize the shape matrix
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+
+        temp  = sum/dble(p)
+
+        if (temp .gt. BIGLOG) then
+          eps  = FLMAX
+          goto 200
+          return
+        end if 
+
+        if (temp .gt. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if 
+
+        if (temp .le. eps) then
+          eps = FLMAX
+          goto 200
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+
+        errin = zero
+        do j = 1, p
+          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
+        end do
+
+        do k = 1, G
+          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
+        end do
+
+        if (errin .ge. tol2 .and. inner .lt. maxi2) goto 110
+
+120   continue
+
+      inmax = max(inner,inmax)
+
+      smin = smin/temp
+      smax = smax/temp
+
+      term = zero
+      if (Vinv .gt. zero) then
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+      else 
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+      
+      if (smin .le. eps) then
+        eps = FLMAX
+        goto 200 
+        return
+      end if
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        eps = FLMAX
+        goto 200
+        return
+      end if
+
+      do j = 1, p
+        s(j) = sqrt(shape(j))
+      end do
+
+      call sgnrng( p, s, 1, smin, smax)
+      
+      if (smin .le. rteps) then
+        eps = FLMAX
+        goto 200
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log + log(scalek))
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w(p1), 1)
+          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
+          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, w, 1)
+          do j = 1, p
+            w(j) = w(j) / s(j)
+          end do
+          sum    = ddot(p,w,1,w,1)/scalek
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol1 .and. iter .lt. maxi1) goto 100
+
+c     smin  = sqrt(smin)
+c     smax  = sqrt(smax)
+
+c     rcmin = FLMAX
+c     do k = 1, G
+c       temp = sqrt(scale(k))
+c       rcmin = min(rcmin,(temp*smin)/(one+temp*smax))
+c      end do
+     
+c     w(1)    = rcmin
+
+      lwork   = 0
+
+      eps     = hood
+
+200   continue
+
+      tol(1)  = err
+      tol(2)  = errin
+
+      maxi(1) = iter
+      maxi(2) = inmax
+
+      return
+      end
+      subroutine msvev ( x, z, n, p, G, w, lwork, maxi, tol, 
+     *                   mu, scale, shape, O, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G, maxi, lwork
+
+      double precision   tol
+
+c     double precision   x(n,p), z(n,G), w(max(4*p,5*p-4,p+G))
+      double precision   x(n,*), z(n,*), w(*)
+
+c     double precision   scale(G), shape(p), O(p,p,G), mu(p,G), pro(G)
+      double precision   scale(*), shape(*), O(p,p,*), mu(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 p1, i, j, k, j1, inner, info
+
+      double precision        dnp, err, dummy
+      double precision        temp, sum, smin, smax, cs, sn
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX =  1.7976931348623157d308)
+
+      double precision        BIGLOG
+      parameter              (BIGLOG =  709.d0)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      tol   = max(tol,zero)
+
+      p1    = p + 1
+
+      err   = FLMAX
+      
+      inner = 0
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, zero, 0, O(1,j,k), 1)
+        end do
+        sum = zero
+        do i = 1, n
+          temp = z(i,k)
+          sum  = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sum
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          if (lwork .gt. 0) then
+            do i = 1, n
+              call dcopy( p, x(i,1), n, w, 1)
+              call daxpy( p, (-one), mu(1,k), 1, w, 1)
+              call dscal( p, sqrt(z(i,k)), w, 1)
+              j = 1
+              do j1 = 2, p
+                call drotg( O(j,j,k), w(j), cs, sn)
+                call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+                j = j1
+              end do
+              call drotg( O(p,p,k), w(p), cs, sn)
+            end do
+            call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
+     *                  dummy, 1, dummy, 1, w, lwork, info)
+            if (info .ne. 0) then
+              inner = info
+            else
+              do j = 1, p
+                temp     = z(j,k)
+                temp     = temp*temp
+                shape(j) = shape(j) + temp
+                z(j,k)   = temp
+              end do
+            end if
+          end if
+        else
+          err = zero
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+c inner iteration estimates scale and shape
+c pro now contains n*pro
+   
+      if (inner .ne. 0 .or. err .eq. zero) then
+        lwork = inner
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if
+
+      lwork = 0
+
+      call sgnrng( p, shape, 1, smin, smax)
+  
+      if (smin .eq. zero) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+
+      temp = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if
+
+      if (temp .ge. SMALOG) then
+        temp = exp(temp)
+      else 
+        temp = zero
+      end if
+
+      do k = 1, G
+        scale(k) = temp / (pro(k)*dble(n))
+      end do
+     
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        goto 200
+      end if  
+
+      call dscal( p, one/temp, shape, 1)
+
+c iteration to estimate scale and shape
+c pro now contains n*pro
+
+      if (maxi .le. 0) goto 200
+      
+100   continue
+
+        call dcopy( p, shape, 1, w    , 1)
+        call dcopy( G, scale, 1, w(p1), 1)
+
+        call absrng( p, w, 1, smin, smax)
+
+        if (smin .le. one .and. one .ge. smin*FLMAX) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          call dcopy( G, FLMAX, 0, scale, 1)
+          goto 200
+        end if
+
+        call dcopy( p, zero, 0, shape, 1)
+
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            sum = sum + z(j,k)/w(j)
+          end do
+          temp     = (sum/pro(k))/dble(p)
+          scale(k) = temp
+          if (temp .lt. one .and. one .ge. temp*FLMAX) then
+            call dcopy( p, FLMAX, 0, shape, 1) 
+            goto 200
+          end if
+          do j = 1, p
+            shape(j) = shape(j) + z(j,k)/temp
+          end do
+        end do
+
+        inner  = inner + 1
+
+        call sgnrng( p, shape, 1, smin, smax)
+ 
+        if (smin .le. zero) then
+          call dcopy( p, FLMAX, 0, shape, 1) 
+          goto 200
+        end if
+
+c normalize the shape matrix
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+
+        temp = sum/dble(p)
+ 
+        if (temp .ge. BIGLOG) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          goto 200
+        end if
+
+        if (temp .ge. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if
+
+        if (temp .lt. one .and. one .ge. temp*FLMAX) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          goto 200
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+
+        err = zero
+        do j = 1, p
+          err = max(abs(w(j)-shape(j))/(one+shape(j)), err)
+        end do
+
+        do k = 1, G
+          err = max(abs(scale(k)-w(p+k))/(one+scale(k)), err)
+        end do
+        
+        if (err .ge. tol .and. inner .lt. maxi) goto 100
+
+200   continue
+
+      call dscal( G, one/dble(n), pro, 1)
+
+      tol  = err
+      maxi = inner
+
+      return
+      end
+      subroutine msvevp( x, z, n, p, G,
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   w, lwork, maxi, tol, 
+     *                   mu, scale, shape, O, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G, maxi, lwork
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+      double precision   tol
+
+c     double precision   x(n,p), z(n,G), w(lwork)
+      double precision   x(n,*), z(n,*), w(  *  )
+
+c     double precision   mu(p,G), pro(G)
+      double precision   mu(p,*), pro(*)
+
+c     double precision   scale(G), shape(p), O(p,p,G)
+      double precision   scale(*), shape(*), O(p,p,*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 p1, i, j, k, l, j1, inner, info
+
+      double precision        sum, term, temp, err, smin, smax, zsum
+      double precision        sumz, tmin, tmax, cs, sn, dummy, const
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (pshrnk .le. zero) pshrnk = zero
+
+      tol   = max(tol,zero)
+
+      p1    = p + 1
+
+      err   = FLMAX
+
+      inner = 0
+      l     = 0 
+
+      call dcopy( p, zero, 0, shape, 1)
+
+      do k = 1, G
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
+        end do
+        sumz = zero
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz / dble(n)
+        if (sumz .ge. one .or. one .lt. sumz*FLMAX) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( O(j,j,k), w(j), cs, sn)
+              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( O(p,p,k), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          term  = sumz+pshrnk
+          const = (sumz*pshrnk)/term
+          call dscal( p, sqrt(const), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( O(j,j,k), w(j), cs, sn)
+            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( O(p,p,k), w(p), cs, sn)
+          call dscal( p, sumz/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
+     *                 dummy, 1, dummy, 1, w, lwork, info)
+          if (info .ne. 0) then
+            l = info
+          else 
+            do j = 1, p
+              temp     = z(j,k)
+              temp     = temp*temp
+              shape(j) = shape(j) + temp
+              z(j,k)   = temp
+            end do
+          end if
+        else
+          err = zero 
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (l .ne. 0 .or. err .eq. zero) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if
+
+      call sgnrng( p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+
+      temp  = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if
+
+      if (temp .ge. SMALOG) then
+        temp = exp(temp)
+      else 
+        temp = zero
+      end if
+
+      do k = 1, G
+        scale(k) = temp / (pro(k)*dble(n))
+      end do
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        call dcopy( G, FLMAX, 0, scale, 1)
+        goto 200
+      end if  
+  
+      call dscal( p, one/temp, shape, 1)
+
+c inner iteration to estimate scale and shape
+c pro now contains n*pro
+
+      if (maxi .le. 0) goto 200
+
+100   continue
+
+        call dcopy( p, shape, 1, w    , 1)
+        call dcopy( G, scale, 1, w(p1), 1)
+
+        call sgnrng( p+G, w, 1, smin, smax)
+
+        if (smin .le. zero) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          call dcopy( G, FLMAX, 0, scale, 1)
+          goto 200
+        end if
+
+        call dcopy( p, zero, 0, shape, 1)
+
+        do k = 1, G
+          sum = zero
+          do j = 1, p
+            if (w(j) .le. z(j,k) .and. z(j,k) .ge. w(j)*FLMAX) then
+              call dcopy( p, FLMAX, 0, shape, 1) 
+              call dcopy( G, FLMAX, 0, scale, 1)
+              goto 200
+            end if
+            sum = sum + z(j,k)/w(j)
+          end do
+          temp     = sum/(pro(k)*dble(n*p))
+          scale(k) = temp
+          do j = 1, p
+            if (temp .le. z(j,k) .and. z(j,k) .ge. temp*FLMAX) then
+              call dcopy( p, FLMAX, 0, shape, 1) 
+              call dcopy( G, FLMAX, 0, scale, 1)
+              goto 200
+            end if
+            shape(j) = shape(j) + z(j,k)/temp
+          end do
+        end do
+
+        inner = inner + 1
+
+        call sgnrng( p, shape, 1, smin, smax)
+
+        if (smin .le. zero) then
+          call dcopy( p, FLMAX, 0, shape, 1) 
+          goto 200
+        end if
+
+c normalize the shape matrix
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j))
+        end do
+
+        temp = sum/dble(p)
+
+        if (temp .ge. BIGLOG) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          goto 200
+        end if
+
+        if (temp .ge. SMALOG) then
+          temp = exp(temp)
+        else
+          temp = zero
+        end if
+
+        if (temp .lt. one .and. one .ge. temp*FLMAX) then
+          call dcopy( p, FLMAX, 0, shape, 1)
+          goto 200
+        end if
+
+        call dscal( p, one/temp, shape, 1)
+
+        err = zero
+        do j = 1, p
+          err = max(abs(w(j)-shape(j))/(one+shape(j)), err)
+        end do
+
+        do k = 1, G
+          err = max(abs(scale(k)-w(p+k))/(one+scale(k)), err)
+        end do
+
+        if (err .ge. tol .and. inner .lt. maxi) goto 100
+
+200   continue
+
+      lwork = l
+      tol   = err
+      maxi  = inner
+
+      return
+      end
+      subroutine esvii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n,p), z(n,G[+1])
+      double precision   x(n,*), z(n,  *  )
+
+c     double precision   mu(p,G), sigsq(G), pro(G[+1])
+      double precision   mu(p,*), sigsq(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, tmin, tmax
+      double precision        prok, sigsqk, sigmin
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      call sgnrng( G, sigsq, 1, sigmin, temp)    
+
+      if (sigmin .le. zero) then
+        hood  = FLMAX
+        return
+      end if
+
+      do k = 1, G
+c       prok   = pro(k)
+        sigsqk = sigsq(k)
+        const  = dble(p)*(pi2log+log(sigsq(k)))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            if (abs(temp) .ge. RTMAX) then
+              hood = FLMAX
+              return  
+            end if
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum/sigsqk)/two)
+          if (sigsqk .lt. one .and. sum .ge. sigsqk*FLMAX) then
+            hood = FLMAX
+            return
+          end if  
+          z(i,k) = -(const+sum/sigsqk)/two
+        end do
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end 
       subroutine hcvii ( x, n, p, ic, ng, ns, ALPHA, v, nd, d)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
       integer             n, p, ic(n), ng, ns, nd
 
+c     double precision    x(n,p), v(p). d(*), ALPHA
       double precision    x(n,*), v(*), d(*), ALPHA
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer             lg, ld, ll, lo, ls, i, j, k, m
       integer             ni, nj, nij, nopt, niop, njop
@@ -1971,7 +11137,7 @@ c------------------------------------------------------------------------------
       double precision    ddot
       external            ddot
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -2441,7 +11607,1666 @@ c       tmop  = rij*log(trop+ALPHA)
 
       return
       end
+      subroutine mevii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
+     *                   mu, sigsq, pro)
 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    Vinv, eps, tol
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), sigsq(G), pro(G[+1])
+      double precision    mu(p,*), sigsq(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sumz, sum, temp, const, term, zsum
+      double precision    sigmin, sigsqk, hold, hood, err
+      double precision    prok, tmin, tmax, ViLog, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG
+      parameter          (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      zsum  = one
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        if (.not. EQPRO) pro(k) = sumz / dble(n)
+        zsum = min(sumz,zsum)
+        if (sumz .gt. rteps) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          sigsqk = zero
+          do i = 1, n
+            sum = zero
+            do j = 1, p
+              temp = abs(x(i,j) - mu(j,k))
+              if (temp .gt. RTMIN) sum  = sum + temp*temp
+            end do
+            if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN)   
+     *          sigsqk = sigsqk + z(i,k)*sum
+            z(i,k) = sum
+          end do
+          sigsq(k) = (sigsqk/sumz)/dble(p)
+        else
+          sigsq(k) = FLMAX
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      call sgnrng( G, sigsq, 1, sigmin, temp)
+
+      if (sigmin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+c       temp   = pro(k)
+        sigsqk = sigsq(k)
+        const  = dble(p)*(pi2log+log(sigsqk))
+        do i = 1, n
+c         z(i,k) = temp*exp(-(const+z(i,k)/sigsqk)/two)           
+          z(i,k) = -(const+z(i,k)/sigsqk)/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        const = zero - tmax
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) + const
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)-const)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine meviip( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+      double precision    Vinv, eps, tol
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), sigsq(G), pro(G[+1])
+      double precision    mu(p,*), sigsq(*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sumz, sum, temp, const, term, zsum
+      double precision    sigmin, sigsqk, hold, hood, err
+      double precision    prok, tmin, tmax, ViLog, rteps
+      double precision    pmupmu, dmudmu, cmu, cgam, rmu, rgam
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    SMALOG
+      parameter          (SMALOG = -708.d0)
+
+      double precision    ddot
+      external            ddot
+
+c     double precision    ddot, dlngam
+c     external            ddot, dlngam 
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      eps    = max(eps,zero)
+      tol    = max(tol,zero)
+
+      rteps  = sqrt(eps)
+
+c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
+
+      iter   = 0
+ 
+      pmupmu = ddot(p,pmu,1,pmu,1)
+
+100   continue
+
+      iter   = iter + 1
+
+      zsum   = one
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        if (.not. EQPRO) pro(k) = sumz / dble(n)
+        zsum = min(sumz,zsum)
+        if (sumz .gt. rteps) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          sigsqk = pscale
+          do i = 1, n
+            sum = zero
+            do j = 1, p
+              temp = abs(x(i,j) - mu(j,k))
+              if (temp .gt. RTMIN) sum  = sum + temp*temp
+            end do
+            if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN)
+     *          sigsqk = sigsqk + z(i,k)*sum
+          end do
+          temp   = pmupmu + ddot(p, mu(1,k), 1, mu(1,k), 1)
+          temp   = temp - two*ddot(p,mu(1,k),1,pmu,1) 
+          const  = sumz+pshrnk
+          sigsqk = sigsqk + ((sumz*pshrnk)/const) * temp
+c         sigsq(k) = sigsqk/(pdof+(sumz+one)*dble(p)+two)
+          temp   = pdof+sumz*dble(p)+two
+          if (pshrnk .gt. zero) temp = temp + dble(p)
+          sigsq(k) = sigsqk/temp
+          call dscal( p, sumz/const, mu(1,k), 1)
+          call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
+        else
+          sigsq(k) = FLMAX
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      call sgnrng( G, sigsq, 1, sigmin, temp)
+
+      if (sigmin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+        sigsqk = sigsq(k)
+        const  = dble(p)*(pi2log+log(sigsqk))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + temp*temp
+          end do
+          z(i,k) = -(const+sum/sigsqk)/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        const = zero - tmax
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) + const
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)-const)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+c     if (pshrnk .gt. zero) then 
+c       cmu   = dble(p)*(log(pshrnk)-pi2log)/two
+
+c       const = pdof/two
+c       cgam  = const*log(pscale/two)-dlngam(const)
+
+c       rmu   = zero
+c       rgam  = zero
+c       do k = 1, G
+c         term = log(sigsq(k))
+c         temp = pmupmu + ddot( p, mu(1,k), 1, mu(1,k), 1)
+c         temp = temp - two*ddot( p, mu(1,k), 1, pmu, 1)
+c         rmu  = rmu + (pshrnk*temp)/sigsq(k)
+c         rgam = rgam + ((pdof+3.d0)*term - (pscale/sigsq(k)))
+c       end do
+
+c       rmu  = -rmu /two
+c       rgam = -rgam/two
+
+c       pdof  = (dble(G)*cmu+rmu) + (dble(G)*cgam+rgam)
+c     else
+c       pdof  = FLMAX
+c     end if
+
+      return
+      end
+      subroutine msvii ( x, z, n, p, G, mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G), mu(p,G), sigsq(G), pro(G)
+      double precision   x(n,*), z(n,*), mu(p,*), sigsq(*), pro(*)
+
+c-----------------------------------------------------------------------------
+      
+      integer                 i, j, k
+     
+      double precision        sum, sumz, temp, sigsqk
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision       FLMAX
+      parameter             (FLMAX = 1.7976931348623157d308)
+
+      double precision       RTMIN
+      parameter             (RTMIN = 1.49166814624d-154)
+
+c-----------------------------------------------------------------------------
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz / dble(n)
+        if (sumz .ge. one .or. one .le. sumz*FLMAX) then  
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          sigsqk = zero
+          do i = 1, n
+            sum = zero
+            do j = 1, p
+              temp = abs(x(i,j) - mu(j,k))
+              if (temp .gt. RTMIN) sum  = sum + temp*temp
+            end do
+            if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN) 
+     *          sigsqk = sigsqk + z(i,k)*sum
+          end do
+          temp = sumz*dble(p)
+          if (temp .ge. one .or. sigsqk .le. temp*FLMAX) then  
+            sigsq(k) = sigsqk/temp
+          else
+            sigsq(k) = FLMAX
+          end if
+        else
+          sigsq(k) = FLMAX 
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if   
+      end do
+
+      return
+      end
+      subroutine msviip( x, z, n, p, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, sigsq, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer             n, p, G
+
+c     double precision    pshrnk, pmu(p), pscale, pdof
+      double precision    pshrnk, pmu(*), pscale, pdof
+
+c     double precision    x(n,p), z(n,G)
+      double precision    x(n,*), z(n,*)
+
+c     double precision    mu(p,G), sigsq(G), pro(G)
+      double precision    mu(p,*), sigsq(*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k
+
+      double precision    sumz, sum, temp, term
+      double precision    sigsqk, const, pmupmu
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)
+
+      double precision    RTMIN
+      parameter          (RTMIN = 1.49166814624d-154)
+
+      double precision    ddot
+      external            ddot
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      pmupmu = ddot(p,pmu,1,pmu,1)
+
+      do k = 1, G
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz / dble(n)
+        if (sumz .ge. one .or. one .lt. sumz*FLMAX) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          sigsqk = pscale
+          do i = 1, n
+            sum = zero
+            do j = 1, p
+              temp = abs(x(i,j) - mu(j,k))
+              if (temp .gt. RTMIN) sum  = sum + temp*temp
+            end do
+            if (sqrt(z(i,k))*sqrt(sum) .gt. RTMIN)
+     *          sigsqk = sigsqk + z(i,k)*sum
+          end do
+          temp     = pmupmu + ddot(p, mu(1,k), 1, mu(1,k), 1)
+          temp     = temp - two*ddot(p,mu(1,k),1,pmu,1) 
+          const    = sumz+pshrnk
+          sigsqk   = sigsqk + ((sumz*pshrnk)/const) * temp
+          temp     = pdof+sumz*dble(p)+two
+          if (pshrnk .gt. zero) temp = temp + dble(p)
+          sigsq(k) = sigsqk/temp
+          call dscal( p, sumz/const, mu(1,k), 1)
+          call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
+        else 
+          sigsq(k) = FLMAX 
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      return
+      end
+      subroutine esvvi ( x, mu, scale, shape, pro, n, p, G, 
+     *                   Vinv, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n,p), z(n,G[+1])
+      double precision   x(n,*), z(n,  *  )
+
+c     double precision   mu(p,G), scale(G), shape(p,G), pro(G[+1])
+      double precision   mu(p,*), scale(*), shape(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, nz
+
+      double precision        sum, temp, const, eps, tmin, tmax
+      double precision        smin, smax, prok, scalek, rteps
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+c-----------------------------------------------------------------------------
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. zero) then
+        hood = FLMAX
+        return
+      end if  
+
+      do k = 1, G
+        call sgnrng( p, shape(1,k), 1, smin, smax)
+        if (smin .le. zero) then
+          hood = FLMAX
+          return
+        end if    
+        temp = sqrt(scale(k))
+        do j = 1, p
+          shape(j,k) = temp*sqrt(shape(j,k))
+        end do
+      end do
+
+      do k = 1, G
+c       prok   = pro(k)
+        scalek = scale(k)
+        const  = dble(p)*(pi2log+log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            if (shape(j,k) .lt. one .and.
+     *         abs(temp) .ge. shape(j,k)*FLMAX) then 
+              hood = FLMAX
+              return
+            end if 
+            temp = temp/shape(j,k)
+            if (abs(temp) .gt. RTMIN) sum = sum + temp*temp
+          end do
+c         z(i,k) = prok*exp(-(const+sum)/two)
+          z(i,k) = -(const+sum)/two
+        end do
+      end do
+
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      return
+      end
+      subroutine mevvi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+      double precision    Vinv, eps, tol
+
+      double precision    x(n,*), z(n,  *  )
+
+      double precision    mu(p,*), scale(*), shape(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+      integer             nz, iter, i, j, k
+
+      double precision    sum, temp, term, scalek, epsmin
+      double precision    hold, hood, err, smin, smax, const
+      double precision    prok, tmin, tmax, ViLog, zsum, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)                  
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      tol   = max(tol,zero)
+      eps   = max(eps,zero)
+      rteps = sqrt(eps)
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      zsum  = one
+
+      do k = 1, G
+        call dcopy( p, zero, 0, shape(1,k), 1)
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        sum = zero
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        pro(k) = sum
+c pro(k) now contains n_k
+        zsum = min(zsum,sum) 
+        if (sum .gt. rteps) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              sum  = sum + temp*temp
+            end do
+            shape(j,k) = shape(j,k) + sum
+          end do
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        call dscal( G, one/dble(n), pro, 1)
+        tol  =  zsum
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+      epsmin = FLMAX
+      do k = 1, G
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+        epsmin = min(smin,epsmin)
+        if (smin .le. zero) then
+          scale(k) = zero
+        else
+          temp = zero
+          do j = 1, p
+            temp = temp + log(shape(j,k))
+          end do
+          temp = temp/dble(p)
+          if (temp .gt. BIGLOG) then
+            call dscal( G, one/dble(n), pro, 1)
+            tol  =  zsum 
+            eps  =  FLMAX
+            maxi =  iter
+            return
+          end if
+          if (temp .gt. SMALOG) then
+            temp = exp(temp)
+          else
+            temp = zero
+          end if
+          scale(k) = temp/pro(k)
+          epsmin   = min(temp,epsmin)
+          if (temp .le. eps) then
+            call dscal( G, one/dble(n), pro, 1)
+            tol  =  zsum 
+            eps  =  FLMAX
+            maxi =  iter
+            return
+          end if
+          call dscal( p, one/temp, shape(1,k), 1)
+        end if
+      end do
+
+      if (.not. EQPRO) then
+        call dscal( G, one/dble(n), pro, 1)
+      else if (Vinv .le. zero) then
+        call dscal( G, one/dble(G), pro, 1)
+      end if
+
+      if (Vinv .gt. zero) then
+
+        term = zero
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      if (epsmin .le. eps) then
+        tol   = err
+        eps   = -FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+
+        call sgnrng( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. eps) then
+          tol  = err
+          eps  = FLMAX
+          maxi = iter
+          return
+        end if
+
+      end do
+
+      do k = 1, G
+        scalek = scale(k)
+        const = dble(p)*(pi2log + log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j,k)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
+          z(i,k) = -(const+(sum/scalek))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err  .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine mevvip( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, 
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      logical             EQPRO
+
+      integer             n, p, G, maxi
+
+c     double precision   pshrnk, pmu(p), pscale, pdof
+      double precision   pshrnk, pmu(*), pscale, pdof
+
+      double precision    Vinv, eps, tol
+
+c     double precision    x(n,p), z(n,G[+1])
+      double precision    x(n,*), z(n,  *  )
+
+c     double precision    mu(p,G), scale(G), shape(p,G), pro(G[+1])
+      double precision    mu(p,*), scale(*), shape(p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer             nz, iter, i, j, k
+
+      double precision    sumz, sum, temp, term, scalek, epsmin
+      double precision    hold, hood, err, smin, smax, const
+      double precision    prok, tmin, tmax, ViLog, zsum, rteps
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    pi2log
+      parameter          (pi2log = 1.837877066409345d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)                  
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      if (maxi .le. 0) return
+
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+      end if
+
+      eps   = max(eps,zero)
+      tol   = max(tol,zero)
+
+      rteps = sqrt(eps) 
+
+c     FLMAX = d1mach(2)
+      hold  = FLMAX/two
+      hood  = FLMAX
+      err   = FLMAX
+
+      iter  = 0
+
+100   continue
+
+      iter  = iter + 1
+
+      zsum  = one 
+
+      do k = 1, G
+        call dcopy( p, pscale, 0, shape(1,k), 1)
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        sumz = zero
+        do i = 1, n
+          temp   = z(i,k)
+          sumz   = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        pro(k) = sumz
+        zsum   = min(zsum,sumz)
+        if (sumz .gt. rteps) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          term   = pshrnk+sumz
+          const  = (pshrnk*sumz)/term
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              sum  = sum + temp*temp
+            end do
+            shape(j,k) = shape(j,k) + sum
+            temp       = pmu(j) - mu(j,k)
+            shape(j,k) = shape(j,k) + const*(temp*temp)
+          end do
+          call dscal( p, sumz/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+        end if
+      end do
+
+      if (zsum .le. rteps) then
+        call dscal( G, one/dble(n), pro, 1)
+        tol  =  zsum 
+        eps  = -FLMAX
+        maxi =  iter
+        return
+      end if
+
+c pro(k) now contains n_k
+
+      epsmin = FLMAX
+      term   = pdof+two
+      if (pshrnk .gt. zero) term = term + one 
+      do k = 1, G
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+        epsmin = min(smin,epsmin)
+        if (smin .eq. zero) then
+          scale(k) = zero
+        else
+          sum = zero
+          do j = 1, p
+            sum = sum + log(shape(j,k))
+          end do
+          temp = sum/dble(p)
+          if (temp .gt. BIGLOG) then
+            call dscal( G, one/dble(n), pro, 1)
+            tol  =  zsum 
+            eps  =  FLMAX
+            maxi =  iter
+            return
+          end if
+          if (temp .gt. SMALOG) then
+            temp = exp(temp)
+          else
+            temp = zero
+          end if
+c pro(k) contains n_k
+          scale(k) = temp/(pro(k)+term)
+          epsmin   = min(temp,epsmin)
+          if (temp .le. eps) then
+            call dscal( G, one/dble(n), pro, 1)
+            tol  =  zsum 
+            eps  =  FLMAX
+            maxi =  iter
+            return
+          end if
+          call dscal( p, one/temp, shape(1,k), 1)
+        end if
+      end do
+
+      if (.not. EQPRO) then
+        call dscal( G, one/dble(n), pro, 1)
+      else if (Vinv .le. zero) then
+        call dcopy( G, one/dble(G), 0, pro, 1)
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
+        end if
+
+      end if
+
+      if (epsmin .le. eps) then
+        tol   = err
+        eps   = FLMAX
+        maxi  = iter
+        return
+      end if
+
+      call sgnrng( G, scale, 1, smin, smax)
+
+      if (smin .le. eps) then
+        tol  = err
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      do k = 1, G
+
+        call sgnrng( p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. eps) then
+          tol  = err
+          eps  = FLMAX
+          maxi = iter
+          return
+        end if
+
+      end do
+
+      do k = 1, G
+        scalek = scale(k)
+        const = dble(p)*(pi2log + log(scalek))
+        do i = 1, n
+          sum = zero
+          do j = 1, p
+            temp = x(i,j) - mu(j,k)
+            sum  = sum + (temp*temp)/shape(j,k)
+          end do
+c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
+          z(i,k) = -(const+(sum/scalek))/two
+        end do
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol .and. iter .lt. maxi) goto 100
+
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+      return
+      end
+      subroutine msvvi ( x, z, n, p, G, mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   x(n,p), z(n,G)
+      double precision   x(n,*), z(n,*)
+
+c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
+      double precision   mu(p,*), scale(*), shape(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k
+
+      double precision        sum, temp, smin, smax
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      do k = 1, G
+        call dcopy( p, zero, 0, shape(1,k), 1)
+        sum = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sum    = sum + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        pro(k) = sum
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+        else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+c pro(k) now contains n_k
+
+      do k = 1, G
+        if (mu(1,k) .ne. FLMAX) then
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              sum  = sum + temp*temp
+            end do
+            shape(j,k) = shape(j,k) + sum
+          end do
+        else
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        end if
+      end do
+
+      do k = 1, G 
+
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+
+        if (smin .le. zero) then
+          scale(k) = zero
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        if (smax .eq. FLMAX) then 
+          scale(k) = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        sum = zero
+        do j = 1, p
+          sum = sum + log(shape(j,k))
+        end do      
+        temp = sum/dble(p)
+
+        if (temp .gt. BIGLOG) then
+          scale(k) = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        if (temp .lt. SMALOG) then
+          temp     = zero
+          scale(k) = zero
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        temp = exp(temp)
+        if (pro(k) .lt. one .and. temp .ge. pro(k)*FLMAX) then
+          scale(k) = FLMAX
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+
+        scale(k) = temp/pro(k)
+        if (temp .lt. one .and. one .ge. temp*FLMAX) then
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          goto 100
+        end if
+            
+        call dscal( p, one/temp, shape(1,k), 1)
+
+ 100    continue
+
+      end do
+
+      call dscal( G, one/dble(n), pro, 1)
+
+      return
+      end
+      subroutine msvvip( x, z, n, p, G, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, scale, shape, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   pshrnk, pmu(p), pscale, pdof
+      double precision   pshrnk, pmu(*), pscale, pdof
+
+c     double precision   x(n,p), z(n,G)
+      double precision   x(n,*), z(n,*)
+
+c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
+      double precision   mu(p,*), scale(*), shape(p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer             i, j, k
+
+      double precision    sumz, sum, temp, term
+      double precision    err, smin, smax, const
+
+      double precision    zero, one, two
+      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision    FLMAX
+      parameter          (FLMAX = 1.7976931348623157d308)                  
+
+      double precision    SMALOG, BIGLOG
+      parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+c-----------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      do k = 1, G
+        call dcopy( p, pscale, 0, shape(1,k), 1)
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        do i = 1, n
+          temp   = z(i,k)
+          sumz   = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+          z(i,k) = sqrt(temp)
+        end do
+        pro(k) = sumz
+        if (sumz .ge. one .or. one .le. sumz*FLMAX) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          term   = pshrnk+sumz
+          const  = (pshrnk*sumz)/term
+          do j = 1, p
+            sum = zero
+            do i = 1, n
+              temp = z(i,k)*(x(i,j) - mu(j,k))
+              sum  = sum + temp*temp
+            end do
+            shape(j,k) = shape(j,k) + sum
+            temp       = pmu(j) - mu(j,k)
+            shape(j,k) = shape(j,k) + const*(temp*temp)
+          end do
+          call dscal( p, sumz/term, mu(1,k), 1)
+          call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
+        else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        end if
+      end do
+
+c pro(k) now contains n_k
+
+      do k = 1, G
+        call sgnrng(p, shape(1,k), 1, smin, smax)
+        if (smin .le. zero) then
+          scale(k) = zero
+          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+        else if (smax .eq. FLMAX) then
+          scale(k) = FLMAX
+        else
+          sum = zero
+          do j = 1, p
+            sum = sum + log(shape(j,k))
+          end do
+          temp = sum/dble(p)
+          if (temp .gt. BIGLOG) then
+            scale(k) = FLMAX
+            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          else if (temp .lt. SMALOG) then
+            temp     = zero
+            scale(k) = zero
+            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          else
+            temp     = exp(temp)
+c pro(k) contains n_k
+            term = pro(k) + pdof + two
+            if (pshrnk .gt. zero) term = term + one
+            scale(k) = temp/term
+            if (temp .ge. one .or. one .le. temp*FLMAX) then
+              call dscal( p, one/temp, shape(1,k), 1)
+            else
+              call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            end if
+          end if
+        end if
+      end do
+ 
+      call dscal( G, one/dble(n), pro, 1)
+
+      return
+      end
+      subroutine esvvv ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv, 
+     *                   w, hood, z)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     character          CHOL
+      logical            CHOL
+
+c     integer            n, p, G
+      integer            n, p, G
+
+      double precision   hood, Vinv
+
+c     double precision   x(n,p), w(p), z(n,G[+1])
+      double precision   x(n,*), w(*), z(n,  *  )
+
+c     double precision   mu(p,G), Sigma(p,p,G), pro(G[+1])
+      double precision   mu(p,*), Sigma(p,p,*), pro(  *  )
+
+c-----------------------------------------------------------------------------
+
+      integer                 nz, p1, info, i, j, k
+
+      double precision        const, detlog, temp, prok, tmin, tmax
+      double precision        umin, umax, sum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        RTMAX
+      parameter              (RTMAX = 1.340780792994260d154)
+
+      double precision        RTMIN
+      parameter              (RTMIN = 1.49166814624d-154)
+
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
+
+      external                ddot
+      double precision        ddot
+
+c-----------------------------------------------------------------------------
+
+      p1    = p + 1
+
+c     if (CHOL .eq. 'N') then
+      if (.not. CHOL) then
+
+        do k = 1, G
+
+          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
+
+          w(1) = dble(info)
+
+          if (info .ne. 0) then
+            hood = FLMAX
+            return
+          end if
+       
+        end do
+
+      end if
+
+      do k = 1, G
+        
+        call absrng( p, Sigma(1,1,k), p1, umin, umax)
+
+        if (umax .le. one .and. umax .ge. umin*RTMAX) then
+          w(1) = zero
+          hood = FLMAX
+          return
+        end if
+
+        if (umax .ge. one .and. umin .le. umax*RTMIN) then
+          w(1) = zero
+          hood = FLMAX
+          return
+        end if
+
+      end do
+
+      do k = 1, G
+
+        detlog = zero
+        do j = 1, p
+          detlog = detlog + log(abs(Sigma(j,j,k)))
+        end do
+
+        const = dble(p)*pi2log/two + detlog
+
+c       prok  = pro(k)
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
+          temp   = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = prok*exp(-(const+temp))
+          z(i,k) = -(const+temp)
+        end do
+
+      end do
+
+      w(1) = zero
+      if (pro(1) .lt. zero) return
+
+      nz = G
+      if (Vinv .gt. zero) then
+        nz = nz + 1
+c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
+        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+      end if
+
+c     hood = zero
+c     do i = 1, n
+c       sum = zero
+c       do k = 1, nz
+c         sum = sum + z(i,k)
+c       end do
+c       hood = hood + log(sum)
+c       call dscal( nz, (one/sum), z(i,1), n)
+c     end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood = hood + (log(sum)+tmax)
+        if (sum .lt. one .and. one .ge. sum*FLMAX) then
+          w(1) = zero
+          hood = FLMAX
+          return
+        end if 
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+
+      w(1) = zero
+
+      return
+      end
        subroutine hcvvv ( x, n, p, ic, ng, ns, ALPHA, BETA, 
      *                    v, u, s, r, nd, d)
 
@@ -2460,6 +13285,8 @@ c     double precision   x(n,p+1), v(p), u(p,p), s(p,p)
 c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision   x(n,*), v(*), u(p,*), s(p,*)
       double precision   r(p,*), d(*)
+
+c-----------------------------------------------------------------------------
 
       integer                 psq, pm1, pp1
       integer                 i, j, k, l, m, ij, iold
@@ -2486,12 +13313,12 @@ c     double precision   r(p,p), d(ng*(ng-1)/2)
       save   /VVVMCL/            
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623d308)
+      parameter          (FLMAX = 1.7976931348623157d308)
 
       double precision    EPSMAX
       parameter          (EPSMAX = 2.2204460492503131d-16)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -3327,7 +14154,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
       save   /VVVMCL/            
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623d308)
+      parameter          (FLMAX = 1.7976931348623157d308)
 
       if (l .le. p) then
         vvvtij = log(BETA*(trac+ALPHA)/dble(l))
@@ -3352,3421 +14179,52 @@ c        http://www.stat.washington.edu/mclust/license.txt
       return
       end
 
-      subroutine em1e ( EQPRO, x, n, G, Vinv, mu, sigsq, pro,
-     *                  maxi, tol, eps, z)
+      double precision function det2mc( n, u, s)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
 
       implicit NONE
 
-      logical            EQPRO
+      integer                          k, n
 
-      integer             n, G, maxi
+      double precision                 q, s
+      double precision                 u(n,*)
 
-      double precision    tol, eps, Vinv
-
-      double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, iter, k, i
-
-      double precision        hold, hood, err, tmin, tmax, ViLog
-      double precision        const, sum, sumz, temp, muk, prok
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      if (sigsq .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter  = iter + 1
-
-      const = pi2log+log(sigsq)
-
-      do k = 1, G
-        muk  = mu(k)
-c       prok = pro(k)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
-          z(i,k) = -(const+(temp*temp)/sigsq)/two
-        end do
-      end do
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sumz  = zero
-
-      sigsq = zero
-
-      do k = 1, G
-        muk = zero
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          muk  = muk + temp*x(i)
-        end do
-        sumz   = sumz + sum
-        muk    = muk / sum
-        mu(k)  = muk
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          temp   = x(i) - muk
-          temp   = temp*temp
-          sigsq  = sigsq + z(i,k)*temp
-        end do
-      end do
-
-      if (Vinv .le. zero) then
-        sigsq  = sigsq / dble(n)
-      else
-        sigsq  = sigsq / sumz
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine em1v ( EQPRO, x, n, G, Vinv, mu, sigsq, pro,
-     *                  maxi, tol, eps, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical              EQPRO
-
-      integer              n, G, maxi
-
-      double precision     Vinv, tol, eps
-
-      double precision     x(*), z(n,  *  )
-
-      double precision     mu(*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, iter, k, i
-
-      double precision        hold, hood, err, const, sum
-      double precision        temp, sigmin, muk, sigsqk
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      err    = FLMAX
-
-      do k = 1, G
-        if (sigsq(k) .le. eps) then
-          tol = FLMAX
-          eps = FLMAX
-          maxi = 0
-        end if
-      end do
-
-      iter   = 0
-
-100   continue
-
-      iter   = iter + 1
-
-      do k = 1, G
-        muk    = mu(k)
-c       prok   = pro(k)
-        sigsqk = sigsq(k)
-        const  = pi2log + log(sigsqk)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+((temp*temp)/sigsqk))/two)           
-          z(i,k) = -(const+((temp*temp)/sigsqk))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum) + tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sum = zero
-        muk = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          muk  = muk + temp*x(i)
-        end do
-        muk    = muk / sum
-        mu(k)  = muk
-        sigsqk = zero
-        do i = 1, n
-          temp   = x(i) - muk
-          temp   = temp*temp
-          sigsqk = sigsqk + z(i,k)*temp
-          z(i,k) = temp
-        end do
-        sigsqk   = sigsqk / sum
-        sigmin   = min(sigmin,sigsqk)
-        sigsq(k) = sigsqk
-        if (.not. EQPRO) pro(k)   = sum / dble(n)
-      end do
-
-      if (sigmin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emeee ( CHOL, EQPRO, x, n, p, G, Vinv, 
-     *                   mu, U, pro, maxi, tol, eps, w, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-c      character          CHOL
-      integer            CHOL
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi
-
-      double precision   Vinv, tol, eps
-
-      double precision   x(n,*), z(n,  *  ), w(*)
-
-      double precision   mu(p,*), U(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, info, p1, iter, i, j, k, j1
-
-      double precision        piterm, sclfac, sum, sumz
-      double precision        temp, cs, sn, umin, umax, rc, rteps
-      double precision        const, hold, hood, err, detlog
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-c     FLMAX = d1mach(2)
-
-c     if (CHOL .eq. 'N') then
-      if (CHOL .eq. 0) then
-
-
-c Cholesky factorization
-        call dpotrf( 'U', p, U, p, info)
-
-        if (info .ne. 0) then
-c         w(1) = FLMAX
-          w(1) = dble(info)
-          tol  = FLMAX
-          eps  = FLMAX
-          return
-        end if
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      piterm = dble(p)*pi2log/two
-
-      p1     = p + 1
-
-      sclfac = one/sqrt(dble(n))
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-c condition number
-
-      call drnge( p, U, p1, umin, umax)
-
-      rc = umin/(one+umax)
-
-      if (rc .le. rteps) then
-c       w(1) = rc
-        w(1) = zero
-        eps  = FLMAX
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-      iter = iter + 1
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(U(j,j)))
-      end do
-
-      const = piterm + detlog
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
-          sum    = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = temp * exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy (G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sumz = zero
-
-      do j = 1, p
-        call dcopy( j, zero, 0, U(1,j), 1)
-      end do
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j), w(j), cs, sn)
-            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( U(p,p), w(p), cs, sn)
-        end do
-
-      end do
-
-      if (Vinv .le. zero) then
-        do j = 1, p
-          call dscal( j, sclfac, U(1,j), 1)
-        end do
-      else 
-        do j = 1, p
-          call dscal( j, one/sqrt(sumz), U(1,j), 1)
-        end do
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      call drnge( p, U, p1, umin, umax)
-
-      rc = umin/(one+umax)
-
-c     w(1) = rc
-      w(1) = zero
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emeei ( EQPRO, x, n, p, G, Vinv, 
-     *                   mu, scale, shape, pro, maxi, tol, eps, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    tol, eps, Vinv, scale
-
-      double precision    x(n,*), z(n,*), mu(p,*), shape(*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, temp, sumz, const
-      double precision    hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
+      double precision                 zero, two
+      parameter                       (zero = 0.d0, two = 2.d0)
 
       double precision    FLMAX
       parameter          (FLMAX = 1.7976931348623157d308)
 
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
+      det2mc = zero
 
-c------------------------------------------------------------------------------
+      do k = 1, n
 
-      if (maxi .le. 0) return
+        q = u(k,k)*s
 
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (scale .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      const = dble(p)*(pi2log + log(scale))
-
-      iter = iter + 1
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
-          z(i,k) = -(const+(sum/scale))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-	hood = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      sumz  = zero
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum/dble(n)
-        do j = 1, p
-          sum = zero
-          do i = 1, n
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + z(i,k)*temp*temp
-          end do
-          shape(j) = shape(j) + sum
-        end do
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        scale = zero
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (Vinv .le. zero) then
-        scale  = temp / dble(n)
-      else
-        scale  = temp / sumz
-      end if
-
-      if (temp .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-      subroutine emeev ( SIGMA, EQPRO, x, n, p, G, Vinv, mu,
-     *                   scale, shape, O, pro, maxi, tol, eps,
-     *                   lwork, w, z, s)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            SIGMA
-c      character          SIGMA
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi, lwork
-
-      double precision	 Vinv, eps, tol, scale
-
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
-
-      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, p1, iter, i, j, k, l, j1, info
-
-      double precision        dnp, dummy, temp, rteps
-      double precision        sumz, sum, smin, smax, cs, sn
-      double precision        const, rc, hood, hold, err
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-c     FLMAX  = d1mach(2)
-
-      p1 = p + 1
-
-      if (SIGMA .ne. 0) then
-
-c Cholesky factorization and singular value decomposition
-
-        call dcopy( p, zero, 0, shape, 1)
-
-        temp = zero
-
-        l = 0
-        do k = 1, G
-          if (SIGMA .ne. 1) then
-            call dpotrf( 'U', p, O(1,1,k), p, info)
-            if (info .ne. 0) then
-              temp = dble(info)
-              goto 10
-            end if
-          end if
-          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
-     *                  dummy, 1, dummy, 1, w, lwork, info)
-          if (info .ne. 0) then
-            l = info
-            goto 10
-          end if
-          do j = 1, p
-            temp     = s(j)
-            shape(j) = shape(j) + temp*temp
-          end do
-        end do
-
-   10   continue
-
-        if (temp .ne. zero .or. l .ne. 0) then
-          lwork = l
-c         w(1)  = FLMAX
-c         w(2)  = temp
-          tol   = FLMAX
-          eps   = FLMAX
-          err   = FLMAX
+        if (abs(q) .le. zero) then
+          det2mc = -FLMAX
           return
         end if
 
-        call drnge( p, shape, 1, smin, smax)
+        det2mc = det2mc + log(abs(q))
 
-        if (smin .eq. zero) then
-          lwork = 0
-c         w(1)  = smin
-c         w(2)  = zero
-          tol   = err
-          eps   = FLMAX
-          maxi  = iter
-          return
-        end if
-
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp  = exp(sum/dble(p))
-
-        if (Vinv .le. zero) then
-          scale = temp/dble(n)
-        else
-          scale = temp/sumz
-        end if
-
-        if (temp .le. eps) then
-          lwork = 0
-c         w(1)  = temp
-c         w(2)  = zero
-          tol   = err
-          eps   = FLMAX
-          maxi  = iter
-          return
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      dnp    = dble(n*p)
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      temp = sqrt(scale)
-      do j = 1, p
-        w(j) = temp*sqrt(shape(j))
       end do
 
-      call drnge( p, w, 1, smin, smax)
-      
-      rc = smin / (one+smax)
-
-      if (rc .le. rteps) then
-        lwork = 0
-c       w(1)  = rc
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      iter = iter + 1
-
-      const = dble(p)*(pi2log + log(scale))/two
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w(p1), 1)
-          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, s, 1)
-          do j = 1, p
-            s(j) = s(j) / w(j)
-          end do
-          sum    = ddot( p, s, 1, s, 1)/two
-c         z(i,k) = temp*exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      sumz = zero
-
-      l    = 0
-
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( O(j,j,k), w(j), cs, sn)
-            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( O(p,p,k), w(p), cs, sn)
-        end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
-     *                dummy, 1, dummy, 1, w, lwork, info)
-        if (info .ne. 0) then
-          l = info
-        else 
-          do j = 1, p
-            temp     = s(j)
-            shape(j) = shape(j) + temp*temp
-          end do
-        end if
-      end do
-
- 110  continue
-
-      if (l .ne. 0) then
-        lwork = l        
-c       w(1)  = FLMAX
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        lwork = 0
-c       w(1)  = smin
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (Vinv .le. zero) then
-        scale = temp/dble(n)
-      else
-        scale = temp/sumz
-      end if
-
-      if (temp .le. eps) then
-        lwork = 0
-c       w(1)  = temp
-c       w(2)  = zero
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      lwork = 0
-
-c     w(1)  = rc
-c     w(2)  = zero
-
-      tol   = err
-      eps   = hood
-      maxi  = iter
+      det2mc = two*det2mc
 
       return
       end
-
-      subroutine emeii ( EQPRO, x, n, p, G, Vinv, mu, sigsq, pro,
-     *                   maxi, tol, eps, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    tol, eps, Vinv, sigsq
-
-      double precision    x(n,*), z(n,*), mu(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    dnp, sum, temp, sumz, tmin, tmax
-      double precision    const, hold, hood, err, prok, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      dnp    = dble(n*p)
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (sigsq .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter = iter + 1
-
-      const  = dble(p)*(pi2log+log(sigsq))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/sigsq))/two)
-          z(i,k) = -(const+(sum/sigsq))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sumz  = zero
-
-      sigsq = zero
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum/dble(n)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsq  = sigsq + z(i,k)*sum
-        end do
-      end do
-
-      if (Vinv .le. zero) then
-        sigsq  = sigsq / dnp
-      else
-        sigsq  = sigsq / (dble(p)*sumz)
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emevi ( EQPRO, x, n, p, G, Vinv, 
-     *                   mu, scale, shape, pro, maxi, tol, eps, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    scale, tol, eps, Vinv
-
-      double precision    x(n,*), z(n,*)
-
-      double precision    mu(p,*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, sumz, temp, const, epsmin
-      double precision    hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (scale .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. eps) then
-          tol  = err
-          eps  = FLMAX
-          maxi = iter
-          return
-        end if
-
-      end do
-
-      iter = iter + 1
-
-      const = dble(p)*(pi2log + log(scale))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j,k)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
-          z(i,k) = -(const+(sum/scale))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      sumz = zero
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      epsmin = FLMAX
-      scale  = zero
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .ne. zero) then
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do
-          temp   = exp(sum/dble(p))
-          scale  = scale + temp
-          epsmin = min(temp,epsmin)
-          if (temp .gt. eps)
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-
-      if (Vinv .gt. zero) then
-        scale = scale / sumz
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        scale = scale / dble(n)
-      end if
-
-      if (epsmin .le. eps) then
-        scale = zero
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emvei ( EQPRO, x, n, p, G, Vinv, mu, scale, shape, pro,
-     *                   maxi, tol, eps, z, scl, shp, w)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi(2)
-
-      double precision    Vinv, eps, tol(2)
-
-      double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
-
-      double precision    mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, i, j, k
-      integer             iter, maxi1, maxi2, inner, inmax
-
-      double precision    tol1, tol2, sum, temp, tmax, tmin
-      double precision    prok, scalek, smin, smax, const
-      double precision    hold, hood, err, errin, dnp, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-     
-      maxi1  = maxi(1)
-      maxi2  = maxi(2)
-
-      if (maxi1 .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-
-      tol1   = max(tol(1),zero)
-      tol2   = max(tol(2),zero)
-
-      dnp    = dble(n*p)
-
-c     FLMAX  = d1mach(2)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-      errin  = FLMAX
-
-      inmax  = 0
-
-      iter   = 0
-
-100   continue
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = inmax
-        eps     = hood
-        return
-      end if
-
-      call drnge( G, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        maxi(1) = iter
-        maxi(2) = inmax
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = hood
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j)
-          end do
-c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
-          z(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do j = 1, p
-          sum = zero
-          do i = 1, n
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + z(i,k)*(temp*temp)
-          end do
-          w(j,k) = sum
-        end do
-      end do
-
-      call dscal( G, dble(p), pro, 1)
-
-c inner iteration to estimate scale and shape
-c prob now contains n*prob
-
-      iter = iter + 1
-
-      inner = 0
-
-      if (maxi2 .le. 0) goto 120
-
-110   continue
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = smin
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      inner = inner + 1
-
-c scale estimate
-
-      call dcopy( G, scale, 1, scl, 1)
-
-      do k = 1, G
-        sum = zero
-        do j = 1, p
-          sum = sum + w(j,k)/shape(j)
-        end do
-        scale(k) = sum/pro(k)
-      end do
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = smin
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-c shape estimate
-
-      call dcopy( p, shape, 1, shp, 1)
-
-      do j = 1, p
-        sum = zero
-        do k = 1, G
-          sum = sum + w(j,k)/scale(k)
-        end do
-        shape(j) = sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = smin
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (temp .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = temp
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      errin = zero
-
-      do k = 1, G
-        errin = max(errin, abs(scl(k)-scale(k))/(one + scale(k)))
-      end do
-
-      do j = 1, p
-        errin = max(errin, abs(shp(j)-shape(j))/(one + shape(j)))
-      end do
-
-      if (errin .gt. tol2 .and. inner .le. maxi2) goto 110
-
-120   continue
-
-      inmax = max(inner, inmax)
-
-      if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      if (err  .gt. tol1 .and. iter .lt. maxi1) goto 100
-
-      maxi(1) = iter
-      maxi(2) = inmax
-
-      tol(1)  = err
-      tol(2)  = errin
-
-      eps     = hood
-
-      return
-      end
-
-      subroutine emvev ( SIGMA, EQPRO, x, n, p, G, Vinv, mu, 
-     *                   scale, shape, O, pro, maxi, tol, eps, 
-     *                   lwork, w, z, s)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-c      character          SIGMA
-      integer            SIGMA
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi(2), lwork
-
-      double precision   Vinv, eps, tol(2)
-
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(p, *)
-
-      double precision   mu(p,*), pro(  *  )
-
-      double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 maxi1, maxi2, nz, p1, inmax, iter
-      integer                 i, j, k, l, j1, info, inner
-
-      double precision        tol1, tol2, dnp, rteps, ViLog
-      double precision        rcmin, errin, smin, smax, tmin, tmax
-      double precision        cs, sn, dummy, hold, hood, err
-      double precision        const, temp, sum, prok, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-     
-      maxi1  = maxi(1)
-      maxi2  = maxi(2)
-
-c     FLMAX  = d1mach(2)
-
-      if (maxi1 .le. 0) return
-
-      if (SIGMA .ne. 0) then
-
-c Cholesky factorization and singular value decomposition
-
-        temp = zero
-
-        l = 0
-        do k = 1, G
-          
-          if (SIGMA .ne. 1) then
-            call dpotrf( 'U', p, O(1,1,k), p, info)
-            if (info .ne. 0) then
-              l = info
-              goto 10
-            end if
-          end if
-          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s,
-     *                  dummy, 1, dummy, 1, w, lwork, info)
-          if (info .ne. 0) then
-            l = info
-            goto 10
-          end if
-
-          do j = 1, p
-            temp     = s(j,1)
-            shape(j) = shape(j) + temp*temp
-          end do
-
-          call drnge( p, s, 1, smin, smax)
-          if (smin .eq. zero) then
-            scale(k) = zero
-          else 
-            sum = zero
-            do j = 1, p
-              sum = sum + log(s(j,1))
-            end do
-            scale(k) = exp(sum)
-          end if
-
-        end do
-
-   10   continue
-
-        if (l .ne. 0) then
-          lwork   = l
-          maxi(1) = -1
-          maxi(2) = -1
-          tol(1)  = FLMAX
-          tol(2)  = FLMAX
-          eps     = FLMAX
-          return
-        end if
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-          lwork   = 0
-c         w(1)    = smin
-          tol(1)  = FLMAX
-          tol(2)  = FLMAX
-          eps     = FLMAX
-          maxi(1) = -1
-          maxi(2) = -1
-          return
-        end if
-
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp  = exp(sum/dble(p))
-
-        if (temp .le. eps) then
-          lwork   = 0
-c         w(1)    = temp
-c         w(2)    = zero
-          tol(1)  = FLMAX
-          tol(2)  = FLMAX
-          eps     = FLMAX
-          maxi(1) = -1
-          maxi(2) = -1
-          return
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz    = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol1   = max(tol(1),zero)
-      tol2   = max(tol(2),zero)
-
-      p1     = p + 1
-
-      dnp    = dble(n*p)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-      errin  = FLMAX
-
-      inmax  = 0
-
-      iter   = 0
-
-100   continue
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        lwork   = 0
-c       w(1)    = smin
-c       w(2)    = zero
-        maxi(1) = iter
-        maxi(2) = inmax
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        return
-      end if
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        lwork   = 0
-        w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do j = 1, p
-        s(j,1) = sqrt(shape(j))
-      end do
-
-      call drnge( p, s, 1, smin, smax)
-
-      if (smin .le. rteps) then
-        lwork   = 0
-c       w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const = dble(p)*(pi2log + log(scalek))
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w(p1), 1)
-          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, 
-     *                 zero, w, 1)
-          do j = 1, p
-            w(j) = w(j) / s(j,1)
-          end do
-          sum    = ddot(p,w,1,w,1)/scalek
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      iter = iter + 1
-
-      l = 0
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( O(j,j,k), w(j), cs, sn)
-            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( O(p,p,k), w(p), cs, sn)
-        end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s(1,k),
-     *                dummy, 1, dummy, 1, w, lwork, info)
-        if (info .ne. 0) then
-          l = info
-        else
-          do j = 1, p
-            temp   = s(j,k)
-            s(j,k) = temp*temp
-          end do
-        end if
-      end do
-
-      if (l .ne. 0) then
-        if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-        if (Vinv .gt. zero) then
-          sum = zero
-          do i = 1, n
-            sum = sum + z(i,nz)
-          end do
-          pro(nz) = sum / dble(n)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else 
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        lwork   = l
-c       w(1)    = FLMAX
-c       w(2)    = zero
-        maxi(1) = iter
-        maxi(2) = inner
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        return
-      end if
-
-c inner iteration to estimate scale and shape
-c prob now contains n*prob
-
-      inner = 0
-
-      if (maxi2 .le. 0) goto 120
-
-110   continue
-
-        call dcopy( p, shape, 1, w    , 1)
-        call dcopy( G, scale, 1, w(p1), 1)
-
-        call dcopy( p, zero, 0, shape, 1)
-
-        do k = 1, G
-          sum = zero
-          do j = 1, p
-            sum = sum + s(j,k)/w(j)
-          end do
-          temp     = (sum/pro(k))/dble(p)
-          scale(k) = temp
-          if (temp .le. eps) then
-            if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-            if (Vinv .gt. zero) then
-              sum = zero
-              do i = 1, n
-                sum = sum + z(i,nz)
-              end do
-              pro(nz) = sum / dble(n)
-              if (EQPRO) then
-                temp = (one - pro(nz))/dble(G)
-                call dcopy( G, temp, 0, pro, 1)
-              end if
-            else 
-              if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-            end if
-            lwork   = 0
-c           w(1)    = temp
-c           w(2)    = zero
-            maxi(1) = iter
-            maxi(2) = max(inner, inmax)
-            tol(1)  = err
-            tol(2)  = errin
-            eps     = FLMAX
-            return
-          end if
-          do j = 1, p
-            shape(j) = shape(j) + s(j,k)/temp
-          end do
-        end do
-
-        inner  = inner + 1
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-          if (Vinv .gt. zero) then
-            sum = zero
-            do i = 1, n
-              sum = sum + z(i,nz)
-            end do
-            pro(nz) = sum / dble(n)
-            if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
-            end if
-          else 
-            if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = smin
-c         w(2)    = zero
-          maxi(1) = iter
-          maxi(2) = max(inner,inmax)
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = hood
-          return
-        end if
-
-c normalize the shape matrix
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp = exp(sum/dble(p))
-
-        if (temp .le. eps) then
-          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-          if (Vinv .gt. zero) then
-            sum = zero
-            do i = 1, n
-              sum = sum + z(i,nz)
-            end do
-            pro(nz) = sum / dble(n)
-            if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
-            end if
-          else 
-            if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = temp
-c         w(2)    = zero
-          maxi(1) = iter
-          maxi(2) = max(inner,inmax)
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = FLMAX
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-        smin = smin/temp
-        smax = smax/temp
-
-        errin = zero
-        do j = 1, p
-          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
-        end do
-
-        do k = 1, G
-          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
-        end do
-
-        if (errin .ge. tol2 .and. inner .lt. maxi2) goto 110
-
-120   continue
-
-      inmax = max(inner, inmax)
-
-      if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-
-      if (Vinv .gt. zero) then
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      if (err  .gt. tol1 .and. iter .lt. maxi1) goto 100
-
-      lwork = 0
-
-      smin  = sqrt(smin)
-      smax  = sqrt(smax)
-
-      rcmin = FLMAX
-      do k = 1, G
-        temp = sqrt(scale(k))
-        rcmin = min(rcmin,(temp*smin)/(one+temp*smax))
-      end do
-
-      lwork   = 0
-     
-c     w(1)    = rcmin
-c     w(2)    = zero
-
-      maxi(1) = iter
-      maxi(2) = inmax
-
-      tol(1)  = err
-      tol(2)  = errin
-
-      eps     = hood
-
-      return
-      end
-
-      subroutine emvii ( EQPRO, x, n, p, G, Vinv, mu, sigsq, pro, 
-     *                   maxi, tol, eps, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, tol, eps
-
-      double precision    x(n,*), z(n,  *  )
-
-      double precision    mu(p,*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sumz, sum, temp, const, err, tmin, tmax
-      double precision    sigmin, sigsqk, prok, hold, hood, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-      sigmin = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      if (sigmin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter   = iter + 1
-
-      do k = 1, G
-c       prok   = pro(k)
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsqk))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+(sum/sigsqk))/two)           
-          z(i,k) = -(const+(sum/sigsqk))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sumz = sumz + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sumz), mu(1,k), 1)
-        sigsqk = zero
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsqk = sigsqk + z(i,k)*sum
-        end do
-        sigsqk   = (sigsqk/sumz)/dble(p)
-        sigsq(k) = sigsqk
-        sigmin   = min(sigsqk,sigmin)
-        if (.not. EQPRO) pro(k) = sumz / dble(n)
-      end do
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emvvi ( EQPRO, x, n, p, G, Vinv, 
-     *                   mu, scale, shape, pro, maxi, tol, eps, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    tol, eps, Vinv
-
-      double precision    x(n,*), z(n,*)
-
-      double precision    mu(p,*), scale(*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, temp, const, epsmin
-      double precision    hold, hood, err, smin, smax, scalek
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. eps) then
-          tol  = err
-          eps  = FLMAX
-          maxi = iter
-          return
-        end if
-
-      end do
-
-      iter = iter + 1
-
-      do k = 1, G
-        scalek = scale(k)
-        const = dble(p)*(pi2log + log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j,k)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
-          z(i,k) = -(const+(sum/scalek))/two
-        end do
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      epsmin = FLMAX
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .eq. zero) then
-          scale(k) = zero
-        else
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do
-          temp     = exp(sum/dble(p))
-          scale(k) = temp/pro(k)
-          epsmin   = min(temp,epsmin)
-          if (temp .gt. eps)
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-
-      if (.not. EQPRO) then
-        call dscal( G, one/dble(n), pro, 1)
-      else if (Vinv .le. zero) then
-        call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      end if
-
-      if (epsmin .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine emvvv ( CHOL, EQPRO, x, n, p, G, Vinv, mu, U, pro,
-     *                   maxi, tol, eps, w, z) 
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-c      character          CHOL
-      integer            CHOL
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi
-
-      double precision   Vinv, eps, tol
-
-      double precision   x(n,*), z(n,*), w(*)
-
-      double precision   mu(p,*), U(p,p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, info, p1, iter, i, j, k, j1
-
-      double precision        piterm, hold, rcmin
-      double precision        temp, cs, sn, umin, umax, rteps
-      double precision        sum, detlog, const, hood, err
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-c     FLMAX = d1mach(2)
-
-      if (CHOL .eq. 0) then
-
-c Cholesky factorization
-
-        temp  = zero
-        do k = 1, G
-          call dpotrf( 'U', p, U(1,1,k), p, info)
-          if (info .ne. 0) temp = dble(info)
-        end do
-
-        if (temp .ne. zero) then
-c         w(1)  = FLMAX
-          w(1)  = temp
-          tol   = FLMAX
-          eps   = FLMAX
-          maxi  = -1
-          return
-        end if
-
-      end if
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-
-      piterm = dble(p)*pi2log/two
-
-      p1     = p + 1
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      rcmin  = FLMAX
-
-      do k = 1, G
-        call drnge( p, U(1,1,k), p1, umin, umax)
-        rcmin = min(umin/(one+umax),rcmin)
-      end do
-
-      if (rcmin .le. rteps) then
-c       w(1) = rcmin
-        w(1) = zero
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      iter  = iter + 1
-
-      do k = 1, G
-
-        detlog = zero
-        do j = 1, p
-          detlog = detlog + log(abs(U(j,j,k)))
-        end do
-
-        const = piterm+detlog
-
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U(1,1,k), p, w, 1)
-          sum    = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = temp*exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-
-      end do
-
-      if (Vinv .gt. zero) call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (Vinv .gt. zero) then
-
-        sum = zero
-        do i = 1, n
-          sum = sum + z(i,nz)
-        end do
-        pro(nz) = sum / dble(n)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( j, zero, 0, U(1,j,k), 1)
-        end do
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j,k), w(j), cs, sn)
-            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( U(p,p,k), w(p), cs, sn)
-        end do
-
-        do j = 1, p
-          call dscal( j, one/sqrt(sum), U(1,j,k), 1)
-        end do
-
-      end do
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-c     w(1) = rcmin
-      w(1) = zero
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine me1e ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps, 
-     *                  mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, G, maxi
-
-      double precision    Vinv, eps, tol
-
-      double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, iter, k, i
-
-      double precision        hold, hood, err, prok, tmin, tmax, ViLog
-      double precision        const, sum, sumz, smu, temp, term
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
-      end if
- 
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX 
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      iter  = iter  + 1
-
-      sumz  = zero
-      sigsq = zero
-
-      do k = 1, G
-        sum = zero
-        smu = zero
-        do i = 1, n
-          temp = z(i,k)   
-          sum  = sum + temp
-          smu  = smu + temp*x(i)
-        end do
-        sumz   = sumz + sum
-        smu    = smu / sum
-        mu(k)  = smu
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          temp   = x(i) - smu
-          temp   = temp*temp
-          sigsq  = sigsq + z(i,k)*temp
-          z(i,k) = temp
-        end do
-      end do
-
-      if (Vinv .le. zero) then
-        sigsq  = sigsq / dble(n)
-      else
-        sigsq  = sigsq / sumz
-      end if
-
-      term = zero
-      if (Vinv .gt. zero) then
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-         
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      if (sigsq .le. eps) then
-        tol  = err
-        eps  = hood
-        maxi = iter
-        return
-      end if
-
-      const = pi2log + log(sigsq)
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)           
-          z(i,k) = -(const+(z(i,k)/sigsq))/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine me1v ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps,
-     *                  mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical              EQPRO
-
-      integer              n, G, maxi
-
-      double precision     Vinv, eps, tol
-
-      double precision     x(*), z(n,  *  ), mu(*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, iter, k, i
-
-      double precision        hold, hood, err, sum, smu
-      double precision        const, temp, term, sigmin, sigsqk
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      iter   = iter + 1
-
-      do k = 1, G
-        sum = zero
-        smu = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          smu  = smu + temp*x(i)
-        end do
-        smu    = smu / sum
-        mu(k)  = smu
-        sigsqk = zero
-        do i = 1, n
-          temp   = x(i) - smu
-          temp   = temp*temp
-          sigsqk = sigsqk + z(i,k)*temp
-          z(i,k) = temp
-        end do
-        sigsq(k) = sigsqk / sum
-        if (.not. EQPRO) pro(k)   = sum / dble(n)
-      end do
-
-      term = zero
-      if (Vinv .gt. zero) then
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-        
-      end if
-
-      sigmin = FLMAX
-      do k = 1, G
-        sigmin = min(sigmin,sigsq(k))
-      end do
-
-      if (sigmin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-        sigsqk = sigsq(k)
-        const  = pi2log + log(sigsqk)
-        do i = 1, n
-c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsqk))/two)           
-          z(i,k) = -(const+(z(i,k)/sigsqk))/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine meeee ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
+      subroutine mevvv ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, U, pro, w)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
 
       implicit NONE
 
@@ -6779,2394 +14237,17 @@ c University of Washington.
 c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p), pro(G)
-      double precision   mu(p,*), U(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, p1, iter, i, j, k, j1
-
-      double precision        piterm, sclfac, sumz, sum
-      double precision        cs, sn, umin, umax, rc, detlog, rteps
-      double precision        const, hold, hood, err, temp, term
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      piterm = dble(p)*pi2log/two
-
-      p1     = p + 1
-
-      sclfac = one/sqrt(dble(n))
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-c zero out the lower triangle
-      i = 1
-      do j = 2, p
-        call dcopy( p-i, zero, 0, U(j,i), 1)
-        i = j
-      end do
-
-      iter   = 0
-
-100   continue
-
-      iter = iter + 1
-
-      do j = 1, p
-        call dcopy( j, zero, 0, U(1,j), 1)
-      end do
-
-      sumz = zero
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j), w(j), cs, sn)
-            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( U(p,p), w(p), cs, sn)
-        end do
-      end do
-
-      term = zero
-      if (Vinv .le. zero) then
-        do j = 1, p
-          call dscal( j, sclfac, U(1,j), 1)
-        end do
-      else
-        do j = 1, p
-          call dscal( j, one/sqrt(sumz), U(1,j), 1)
-        end do
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if   
-      end if
-
-c condition number
-
-      call drnge( p, U, p1, umin, umax)
-
-      rc = umin/(one+umax)
-
-      if (rc .le. rteps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(U(j,j)))
-      end do
-
-      const = piterm + detlog
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
-          sum    = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = temp * exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine meeei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, scale, shape, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, eps, tol, scale
-
-      double precision    x(n,*), z(n,  *  )
-
-      double precision    mu(p,*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, sumz, temp, term
-      double precision    const, hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      iter  = iter + 1
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      sumz = zero
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum/dble(n)
-      end do
-
-      do j = 1, p
-        sum = zero
-        do i = 1, n
-          do k = 1, G
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + (temp*temp)
-          end do
-        end do
-        shape(j) = shape(j) + sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        scale = zero
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      smin  = exp(sum/dble(p))
-
-      term = zero
-      if (Vinv .le. zero) then
-        scale = smin/dble(n)
-      else 
-        scale = smin/sumz
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      end if
-
-      if (smin .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call dscal( p, one/smin, shape, 1)
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (min(scale,smin) .le. eps) then
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      const = dble(p)*(pi2log+log(scale))
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j)             
-          end do        
-c         z(i,k) = prok*exp(-(const+(sum/scale))/two)
-          z(i,k) = -(const+(sum/scale))/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine meeev ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
-     *                   lwork, mu, scale, shape, O, pro, w, s)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi, lwork
-
-      double precision	 Vinv, eps, tol, scale
-
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
-
-      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, p1, iter, i, j, k, l, j1, info
-
-      double precision        dnp, dummy, temp, term, rteps
-      double precision        sumz, sum, smin, smax, cs, sn
-      double precision        const, rc, hood, hold, err
-      double precision        prok, tmin, tmax, ViLog
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      p1     = p + 1
-
-      dnp    = dble(n*p)
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      iter = iter + 1
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      sumz = zero
-
-      l = 0
-
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( O(j,j,k), w(j), cs, sn)
-            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( O(p,p,k), w(p), cs, sn)
-        end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, s, 
-     *                dummy, 1, dummy, 1, w, lwork, info)
-        if (info .ne. 0) then
-          l = info
-        else 
-          do j = 1, p
-            temp     = s(j)
-            shape(j) = shape(j) + temp*temp
-          end do
-        end if
-      end do
-
-      if (l .ne. 0) then
-        lwork = l        
-c       w(1)  = FLMAX
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      term = zero
-      if (Vinv .gt. zero) then
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        lwork = 0
-c       w(1)  = smin
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
- 
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (Vinv .le. zero) then
-        scale = temp/dble(n)
-      else
-        scale = temp/sumz
-      end if
-
-      if (temp .le. eps) then
-        lwork = 0
-c       w(1)  = temp
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      call drnge( p, shape, 1, smin, smax)
-      
-      if (smin .le. eps) then
-        lwork = 0
-c       w(1)  = -smin
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-      
-      if (scale .le. eps) then
-c       w(1)  = -scale
-        lwork = 0
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        w(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, w, 1, smin, smax)
-
-      rc = smin / (one + smax)
-      
-      if (smin .le. rteps) then
-c       w(1)  = -smin
-        lwork = 0
-        tol   = err
-        eps   = FLMAX
-        maxi  = iter
-        return
-      end if
-
-      const = dble(p)*(pi2log + log(scale))/two
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w(p1), 1)
-          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, s, 1)
-          do j = 1, p
-            s(j) = s(j) / w(j)
-          end do
-          sum    = ddot( p, s, 1, s, 1)/two
-c         z(i,k) = temp*exp(-(const+sum))
-          z(i,k) = -(const+sum)
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      lwork = 0
-
-c     w(1)  = rc
-
-      tol   = err
-      eps   = hood
-      maxi  = iter
-
-      return
-      end
-
-      subroutine meeii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, eps, tol, sigsq
-
-      double precision    x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, sumz, temp, term, prok, tmax, tmin
-      double precision    const, hold, hood, err, dnp, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      dnp = dble(n*p)
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      iter  = iter + 1
-
-      sigsq = zero
-
-      sumz = zero
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum/dble(n)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsq  = sigsq + z(i,k)*sum
-          z(i,k) = sum
-        end do
-      end do
-
-      term = zero
-      if (Vinv .le. zero) then
-        sigsq  = sigsq / dnp
-      else 
-        sigsq = sigsq / (dble(p)*sumz)
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      if (sigsq .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      const = dble(p)*(pi2log+log(sigsq))
-
-      do k = 1, G
-c       temp = pro(k)
-        do i = 1, n
-c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)
-          z(i,k) = -(const+(z(i,k)/sigsq))/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine meevi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, scale, shape, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, eps, tol, scale
-
-      double precision    x(n,*), z(n,  *  )
-
-      double precision    mu(p,*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, sumz, temp, term, epsmin
-      double precision    hold, hood, err, smin, smax, const
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      iter  = iter + 1
-
-      sumz = zero
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum /dble(n)
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      scale  = zero
-      epsmin = FLMAX
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .ne. zero) then
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do
-          temp   = exp(sum/dble(p))
-          scale  = scale + temp
-          epsmin = min(temp,epsmin)
-          if (temp .gt. eps)
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-
-      term = zero
-      if (Vinv .gt. zero) then
-        scale = scale /sumz
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else
-        scale = scale /dble(n)
-      end if
-
-      if (epsmin .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      if (scale .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. eps) then
-          tol  = err
-          eps  = FLMAX
-          maxi = iter
-          return
-        end if
-
-      end do
-
-      const = dble(p)*(pi2log + log(scale))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j,k)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
-          z(i,k) = -(const+(sum/scale))/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine mevei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, scale, shape, pro, scl, shp, w)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi(2)
-
-      double precision    Vinv, eps, tol(2)
-
-      double precision    x(n,*), z(n,  *  ), scl(*), shp(*), w(p,*)
-
-      double precision    mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, i, j, k
-      integer             iter, maxi1, maxi2, inner, inmax
-
-      double precision    tol1, tol2, sum, temp, term, tmin, tmax
-      double precision    prok, scalek, smin, smax, const
-      double precision    hold, hood, err, errin, dnp, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      maxi1 = maxi(1)
-      maxi2 = max(maxi(2),0)
-
-      if (maxi1 .le. 0) return
-
-      dnp   = dble(n*p)
-    
-      inmax = 0
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps   = max(eps,zero)
-      tol1  = max(tol(1),zero)
-      tol2  = max(tol(2),zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-      errin = FLMAX
-
-c start with shape and scale equal to 1
-
-      call dcopy(p, one, 0, shape, 1) 
-
-      call dcopy(G, one, 0, scale, 1) 
-
-      iter  = 0
-
-100   continue
-
-      inner = 0
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do j = 1, p
-          sum = zero
-          do i = 1, n
-            temp = x(i,j) - mu(j,k)
-            temp = temp*temp
-            temp = z(i,k)*temp
-            sum  = sum + temp
-          end do
-          w(j,k) = sum
-        end do
-      end do
-
-      call dscal( G, dble(p), pro, 1)
-
-      if (maxi2 .le. 0) goto 120
-
-110   continue
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          term = zero
-          do i = 1, n
-            term = term + z(i,nz)
-          end do
-          temp    = term / dble(n)
-          pro(nz) = temp
-
-          call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = FLMAX
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      inner = inner + 1
-
-c scale estimate
-
-      call dcopy( G, scale, 1, scl, 1)
-
-      do k = 1, G
-        sum = zero
-        do j = 1, p
-          sum = sum + w(j,k)/shape(j)
-        end do
-        scale(k) = sum/pro(k)
-      end do
-
-      call drnge(G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          term = zero
-          do i = 1, n
-            term = term + z(i,nz)
-          end do
-          temp    = term / dble(n)
-          pro(nz) = temp
-
-          call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = FLMAX
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-c shape estimate
-
-      call dcopy( p, shape, 1, shp, 1)
-
-      do j = 1, p
-        sum = zero
-        do k = 1, G
-          sum = sum + w(j,k)/scale(k)
-        end do
-        shape(j) = sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          term = zero
-          do i = 1, n
-            term = term + z(i,nz)
-          end do
-          temp    = term / dble(n)
-          pro(nz) = temp
-
-          call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = FLMAX
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp  = exp(sum/dble(p))
-
-      if (temp .le. eps) then
-        if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-        if (Vinv .gt. zero) then
-          term = zero
-          do i = 1, n
-            term = term + z(i,nz)
-          end do
-          temp    = term / dble(n)
-          pro(nz) = temp
-          term    = temp * Vinv
-          call dcopy( n, term, 0, z(1,nz), 1)
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else
-          if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-        end if
-        eps     = temp
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = max(inner,inmax)
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      errin = zero
-
-      do k = 1, G
-        errin = max(errin, abs(scl(k)-scale(k))/(one + scale(k)))
-      end do
-
-      do j = 1, p
-        errin = max(errin, abs(shp(j)-shape(j))/(one + shape(j)))
-      end do
-
-      if (errin .gt. tol2 .and. inner .le. maxi2) goto 110
-
-120   continue
-
-      iter = iter + 1
-
-      inmax = max(inner, inmax)
-
-      if (.not. EQPRO) call dscal( G, one/dnp, pro, 1)
-
-      term = zero
-      if (Vinv .gt. zero) then
-     
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps     = FLMAX
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps     = FLMAX
-        tol(1)  = err
-        tol(2)  = errin
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j)
-          end do
-c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
-          z(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err .gt. tol1 .and. iter .lt. maxi1) goto 100
-
-      tol(1)  = err
-      tol(2)  = errin
-      eps     = hood
-      maxi(1) = iter
-      maxi(2) = inmax
-
-      return
-      end
-
-      subroutine mevev ( EQPRO, x, n, p, G, Vinv, z, 
-     *                   maxi, tol, eps, lwork,
-     *                   mu, scale, shape, O, pro, w, s)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi(2), lwork
-
-      double precision   Vinv, eps, tol(2)
-
-      double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
-
-      double precision   mu(p,*), pro(  *  )
-
-      double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 maxi1, maxi2, p1, inmax, iter
-      integer                 nz, i, j, k, l, j1, info, inner
-
-      double precision        tol1, tol2, dnp, term, rteps, ViLog
-      double precision        errin, smin, smax, sumz, tmin, tmax
-      double precision        cs, sn, dummy, hold, hood, err
-      double precision        const, temp, sum, prok, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-     
-      maxi1  = maxi(1)
-      maxi2  = maxi(2)
-
-      if (maxi1 .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps    = max(eps,zero)
-      rteps  = sqrt(eps)
-
-      tol1   = max(tol(1),zero)
-      tol2   = max(tol(2),zero)
-
-      p1     = p + 1
-
-      dnp    = dble(n*p)
-
-c     FLMAX  = d1mach(2)
-
-      hold   = FLMAX/two
-      hood   = FLMAX
-
-      err    = FLMAX
-      errin  = FLMAX
-
-      inmax  = 0
-
-      iter   = 0
-
-100   continue
-
-      sumz = zero
-      l    = 0
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( O(j,j,k), w(j), cs, sn)
-            call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( O(p,p,k), w(p), cs, sn)
-        end do
-        call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
-     *                dummy, 1, dummy, 1, w, lwork, info)
-        if (info .ne. 0) then
-          l = info
-        else 
-          do j = 1, p
-            temp     = z(j,k)
-            z(j,k)   = temp*temp
-          end do
-        end if
-      end do
-
-      iter = iter + 1
-
-      if (l .ne. 0) then
-	if (Vinv .ge. zero) then
-          term = zero
-          do i = 1, n
-            term = term + z(i,nz)
-          end do
-          temp    = term / dble(n)
-          pro(nz) = temp
-
-          call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-          if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
-          end if
-        else
-          if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-        end if
-        lwork   = l
-c       w(1)    = FLMAX
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = -1
-        maxi(2) = -1
-        return
-      end if
-
-      if (iter .eq. 1) then
-        call dcopy( p, zero, 0, shape, 1)
-        do j = 1, p
-          sum = zero
-          do k = 1, G
-            sum = sum + z(j,k)
-          end do
-          shape(j) = sum
-        end do
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-          if (Vinv .ge. zero) then
-            term = zero
-            do i = 1, n
-              term = term + z(i,nz)
-            end do
-            temp    = term / dble(n)
-            pro(nz) = temp
-
-            call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-            if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
-            end if
-	  else if (EQPRO) then
-            call dcopy( G, one/dble(G), 0, pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = smin
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = FLMAX
-          maxi(1) = -1
-          maxi(2) = -1
-          return
-        end if
-
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp  = exp(sum/dble(p))
-
-        if (Vinv .le. zero) then
-          call dcopy (G, temp/dble(n), 0, scale, 1)
-        else
-          call dcopy (G, temp/sumz, 0, scale, 1)
-        end if
-
-        if (temp .le. eps) then
-          if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-          if (Vinv .gt. zero) then
-            term = zero
-            do i = 1, n
-              term = term + z(i,nz)
-            end do
-            temp    = term / dble(n)
-            pro(nz) = temp
-
-            call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-            if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
-            end if
-          else 
-           if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = temp
-c         w(2)    = zero
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = FLMAX
-          maxi(1) = -1
-          maxi(2) = -1
-          return
-        end if
-  
-        call dscal( p, one/temp, shape, 1)
-
-      end if
-
-c inner iteration to estimate scale and shape
-c pro now contains n*pro
-
-      inner = 0
-      errin = zero
-
-      if (maxi2 .le. 0) goto 120
-
-110   continue
-
-        call dcopy( p, shape, 1, w    , 1)
-        call dcopy( G, scale, 1, w(p1), 1)
-
-        call dcopy( p, zero, 0, shape, 1)
-
-        do k = 1, G
-          sum = zero
-          do j = 1, p
-            sum = sum + z(j,k)/w(j)
-          end do
-          temp     = (sum/pro(k))/dble(p)
-          scale(k) = temp
-          if (temp .le. eps) then
-            lwork   = 0
-c           w(1)    = temp
-            tol(1)  = err
-            tol(2)  = errin
-            eps     = FLMAX
-            maxi(1) = iter
-            maxi(2) = max(inner,inmax)
-            return
-          end if
-          do j = 1, p
-            shape(j) = shape(j) + z(j,k)/temp
-          end do
-        end do
-
-        inner = inner + 1
-
-        call drnge( p, shape, 1, smin, smax)
-
-        if (smin .eq. zero) then
-           if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-           if (Vinv .gt. zero) then
-             term = zero
-             do i = 1, n
-               term = term + z(i,nz)
-             end do
-             temp    = term / dble(n)
-             pro(nz) = temp
-
-             call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-             if (EQPRO) then
-               temp = (one - pro(nz))/dble(G)
-               call dcopy( G, temp, 0, pro, 1)
-             end if
-          else 
-            if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = smin
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = FLMAX
-          maxi(1) = iter
-          maxi(2) = max(inner,inmax)
-          return
-        end if
-
-c normalize the shape matrix
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-        temp = exp(sum/dble(p))
-
-        if (temp .le. eps) then
-           if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-           if (Vinv .gt. zero) then
-             term = zero
-             do i = 1, n
-               term = term + z(i,nz)
-             end do
-             temp    = term / dble(n)
-             pro(nz) = temp
-
-             call dcopy( n, ViLog, 0, z(1,nz), 1)
-             if (EQPRO) then
-               temp = (one - pro(nz))/dble(G)
-               call dcopy( G, temp, 0, pro, 1)
-             end if
-          else 
-            if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-          end if
-          lwork   = 0
-c         w(1)    = temp
-          tol(1)  = err
-          tol(2)  = errin
-          eps     = FLMAX
-          maxi(1) = iter
-          maxi(2) = max(inner,inmax)
-        end if
-
-        call dscal( p, one/temp, shape, 1)
-
-        errin = zero
-        do j = 1, p
-          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
-        end do
-
-        do k = 1, G
-          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
-        end do
-
-        if (errin .ge. tol2 .and. inner .lt. maxi2) goto 110
-
-120   continue
-
-      inmax = max(inner,inmax)
-
-      smin = smin/temp
-      smax = smax/temp
-
-      if (.not. EQPRO) call dscal( G, one/dble(n), pro, 1)
-
-      term = zero
-      if (Vinv .gt. zero) then
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-      else 
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-      
-      if (smin .le. eps) then
-        lwork   = 0
-c       w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        lwork   = 0
-c       w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do j = 1, p
-        s(j) = sqrt(shape(j))
-      end do
-
-      call drnge( p, s, 1, smin, smax)
-      
-      if (smin .le. rteps) then
-        lwork   = 0
-c       w(1)    = -smin
-        tol(1)  = err
-        tol(2)  = errin
-        eps     = FLMAX
-        maxi(1) = iter
-        maxi(2) = inmax
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log + log(scalek))
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w(p1), 1)
-          call daxpy( p, (-one), mu(1,k), 1, w(p1), 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, w(p1), 1, zero, w, 1)
-          do j = 1, p
-            w(j) = w(j) / s(j)
-          end do
-          sum    = ddot(p,w,1,w,1)/scalek
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err .gt. tol1 .and. iter .lt. maxi1) goto 100
-
-c     smin  = sqrt(smin)
-c     smax  = sqrt(smax)
-
-c     rcmin = FLMAX
-c     do k = 1, G
-c       temp = sqrt(scale(k))
-c       rcmin = min(rcmin,(temp*smin)/(one+temp*smax))
-c      end do
-
-      lwork   = 0
-     
-c     w(1)    = rcmin
-
-      tol(1)  = err
-      tol(2)  = errin
-
-      eps     = hood
-
-      maxi(1) = iter
-      maxi(2) = inmax
-
-      return
-      end
-
-      subroutine mevii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, eps, tol
-
-      double precision    x(n,*), z(n,  *  )
-
-      double precision    mu(p,*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sumz, sum, temp, const, term
-      double precision    sigmin, sigsqk, hold, hood, err
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
-      end if
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
-
-c     FLMAX  = d1mach(2)
-      hold   = FLMAX/two
-      hood   = FLMAX
-      err    = FLMAX
-
-      iter   = 0
-
-100   continue
-
-      iter   = iter + 1
-
-      do k = 1, G
-        sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sumz = sumz + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sumz), mu(1,k), 1)
-        sigsqk = zero
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsqk = sigsqk + z(i,k)*sum
-          z(i,k) = sum
-        end do
-        sigsq(k) = (sigsqk/sumz)/dble(p)
-        if (.not. EQPRO) pro(k) = sumz / dble(n)
-      end do
-
-      term = zero
-      if (Vinv .gt. zero) then
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      sigmin = FLMAX
-      do k = 1, G
-        sigmin = min(sigmin,sigsq(k))
-      end do
-
-      if (sigmin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-c       temp   = pro(k)
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsqk))
-        do i = 1, n
-c         z(i,k) = temp*exp(-(const+z(i,k)/sigsqk)/two)           
-          z(i,k) = -(const+z(i,k)/sigsqk)/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        const = zero - tmax
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) + const
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)-const)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine mevvi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, scale, shape, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical             EQPRO
-
-      integer             n, p, G, maxi
-
-      double precision    Vinv, eps, tol
-
-      double precision    x(n,*), z(n,  *  )
-
-      double precision    mu(p,*), scale(*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer             nz, iter, i, j, k
-
-      double precision    sum, temp, term, scalek, epsmin
-      double precision    hold, hood, err, smin, smax, const
-      double precision    prok, tmin, tmax, ViLog
-
-      double precision    zero, one, two
-      parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision    pi2log
-      parameter          (pi2log = 1.837877066409345d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)                  
-
-      double precision    SMLOG
-      parameter          (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (maxi .le. 0) return
-
-      if (Vinv .gt. zero) then
-        nz = G + 1
-        ViLog = log(Vinv)
-      else
-        nz = G
-      end if
-
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
-
-c     FLMAX = d1mach(2)
-      hold  = FLMAX/two
-      hood  = FLMAX
-      err   = FLMAX
-
-      iter  = 0
-
-100   continue
-
-      iter  = iter + 1
-
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      epsmin = FLMAX
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .eq. zero) then
-          scale(k) = zero
-        else
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do
-          temp     = exp(sum/dble(p))
-          scale(k) = temp/pro(k)
-          epsmin   = min(temp,epsmin)
-          if (temp .gt. eps)
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-
-      if (.not. EQPRO) then
-        call dscal( G, one/dble(n), pro, 1)
-      else if (Vinv .le. zero) then
-        call dscal( G, one/dble(G), pro, 1)
-      end if
-
-      term = zero
-      if (Vinv .gt. zero) then
-
-        do i = 1, n
-          term = term + z(i,nz)
-        end do
-        temp    = term / dble(n)
-        pro(nz) = temp
-
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
-
-        if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
-        end if
-
-      end if
-
-      if (epsmin .le. eps) then
-        tol   = err
-        eps   = -FLMAX
-        maxi  = iter
-        return
-      end if
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        tol  = err
-        eps  = FLMAX
-        maxi = iter
-        return
-      end if
-
-      do k = 1, G
-
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. eps) then
-          tol  = err
-          eps  = FLMAX
-          maxi = iter
-          return
-        end if
-
-      end do
-
-      do k = 1, G
-        scalek = scale(k)
-        const = dble(p)*(pi2log + log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + (temp*temp)/shape(j,k)
-          end do
-c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
-          z(i,k) = -(const+(sum/scalek))/two
-        end do
-      end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-      err  = abs(hold-hood)/(one+abs(hood))
-      hold = hood
-
-      if (err  .gt. tol .and. iter .lt. maxi) goto 100
-
-      tol  = err
-      eps  = hood
-      maxi = iter
-
-      return
-      end
-
-      subroutine mevvv ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, U, pro, w)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      logical            EQPRO
-
-      integer            n, p, G, maxi
-
-      double precision   Vinv, eps, tol
-
-      double precision   x(n,*), z(n,*), w(*)
-
+c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer                 nz, p1, iter, i, j, k, j1
 
       double precision        piterm, hold, rcmin, rteps
       double precision        temp, term, cs, sn, umin, umax
-      double precision        sum, detlog, const, hood, err
-      double precision        prok, tmin, tmax, ViLog
+      double precision        sumz, sum, detlog, const, hood, err
+      double precision        prok, tmin, tmax, ViLog, zsum
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -9177,13 +14258,13 @@ c------------------------------------------------------------------------------
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
 
       external                ddot
       double precision        ddot
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       if (maxi .le. 0) return
 
@@ -9218,45 +14299,58 @@ c zero out the lower triangle
         end do
       end do
 
-      iter   = 0
+      iter = 0
 
 100   continue
 
       iter = iter + 1
 
+      zsum = one
       do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
         do j = 1, p
           call dcopy( j, zero, 0, U(1,j,k), 1)
         end do
+        call dcopy( p, zero, 0, mu(1,k), 1)
+        sumz = zero
         do i = 1, n
           temp = z(i,k)
-          sum  = sum + temp
+          sumz = sumz + temp
           call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
         end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        if (.not. EQPRO) pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j,k), w(j), cs, sn)
-            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
-            j = j1
+        if (.not. EQPRO) pro(k) = sumz / dble(n)
+        zsum = min(sumz,zsum) 
+        if (sumz .gt. rteps) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j,k), w(j), cs, sn)
+              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p,k), w(p), cs, sn)
           end do
-          call drotg( U(p,p,k), w(p), cs, sn)
-        end do
-        do j = 1, p
-          call dscal( j, one/sqrt(sum), U(1,j,k), 1)
-        end do
+          do j = 1, p
+            call dscal( j, one/sqrt(sumz), U(1,j,k), 1)
+          end do
+        else
+          call dcopy( p, FLMAX, 0,  z(1,k), 1) 
+        end if
       end do
 
-      term = zero
+      if (zsum .le. rteps) then
+        tol  = zsum
+        eps  = -FLMAX
+        maxi = iter
+        return
+      end if
+
       if (Vinv .gt. zero) then
 
+        term = zero
         do i = 1, n
           term = term + z(i,nz)
         end do
@@ -9274,13 +14368,12 @@ c zero out the lower triangle
 
       rcmin = FLMAX
       do k = 1, G
-        call drnge( p, U(1,1,k), p1, umin, umax)
+        call absrng( p, U(1,1,k), p1, umin, umax)
         rcmin = min(umin/(one+umax),rcmin)
       end do
 
       if (rcmin .le. rteps) then
-c       w(1) = rcmin
-        tol  = err
+        tol  = rcmin
         eps  = FLMAX
         maxi = iter
         return
@@ -9327,7 +14420,7 @@ c         z(i,k) = temp*exp(-(const+sum))
         do k = 1, nz
           if (pro(k) .ne. zero) then
             temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
+            if (temp .ge. SMALOG) then
               z(i,k) = exp(temp)
               sum    = sum + z(i,k)
             else
@@ -9351,2632 +14444,105 @@ c     w(1) = rcmin
 
       return
       end
-
-      subroutine es1e ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   sigsq, hood, Vinv
-
-      double precision   x(*), mu(*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k, nz
-
-      double precision        temp, const, muk, prok, tmin, tmax, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (sigsq .le. max(hood,zero)) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      const = pi2log + log(sigsq)
-
-      do k = 1, G
-        muk  = mu(k)
-c       prok = pro(k)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
-          z(i,k) = -(const+(temp*temp)/sigsq)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       temp = zero
-c       do k = 1, nz
-c         temp = temp + z(i,k)
-c       end do
-c       hood = hood + log(temp)
-c       call dscal( nz, (one/temp), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine es1v  ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
+      subroutine mevvvp( EQPRO, x, n, p, G, Vinv, 
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   z, maxi, tol, eps, mu, U, pro, w)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
 
       implicit NONE
 
-      integer            n, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n), mu(G), sigsq(G), pro(G[+1]), z(n,G[+1])
-      double precision   x(*), mu(*), sigsq(*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k, nz
-
-      double precision        temp, const, tmin, tmax, sum
-      double precision        muk, sigsqk, prok, sigmin
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sigmin = min(sigmin,sigsq(k))
-      end do
-
-      if (sigmin .le. max(hood,zero)) then
-        hood  = FLMAX
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        muk    = mu(k)
-        sigsqk = sigsq(k)
-        const  = pi2log + log(sigsqk)
-        do i = 1, n
-          temp   = x(i) - muk
-c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsqk)/two)
-          z(i,k) = -(const+(temp*temp)/sigsqk)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       temp = zero
-c       do k = 1, nz
-c         temp = temp + z(i,k)
-c       end do
-c       hood = hood + log(temp)
-c       call dscal( nz, (one/temp), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine eseee ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv,
-     *                   w, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-c      character          CHOL
-      integer            CHOL
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-c     double precision   x(n,p), w(p), z(n,G[+1])
-      double precision   x(n,*), w(*), z(n,  *  )
-
-c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
-      double precision   mu(p,*), Sigma(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 info, i, j, k, nz
-
-      double precision        eps, rteps, detlog, prok, tmin, tmax
-      double precision        umin, umax, const, temp, rc, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-      
-      eps   = max(hood,zero)
-      rteps = sqrt(eps)
-
-c      if (CHOL .eq. 'N') then
-      if (CHOL .eq. 0) then
-
-c Cholesky factorization
-        call dpotrf( 'U', p, Sigma, p, info)
-
-        w(1) = dble(info)
-
-        if (info .ne. 0) then
-          hood  = FLMAX
-          return
-        end if
-
-      end if
-
-      call drnge( p, Sigma, (p+1), umin, umax)
-
-      rc   = umin/(one+umax)
-
-      if (rc .le. rteps) then
-        w(1)  = zero
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(Sigma(j,j)))
-      end do
-
-      const = dble(p)*pi2log/two + detlog
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
-          temp   = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = prok*exp(-(const+temp))
-          z(i,k) = -(const+temp)
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      w(1) = zero
-
-      return
-      end
-
-      subroutine eseei ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, hood, Vinv
-
-c     double precision   x(n,p), z(n,G[+1])
-      double precision   x(n,*), z(n,  *  )
-
-c     double precision   mu(p,G), shape(p), pro(G[+1])
-      double precision   mu(p,*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, tmin, tmax
-      double precision        eps, rteps, smin, smax, prok
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      eps   = max(hood, zero)
-      rteps = sqrt(eps)
-
-      if (scale .le. eps) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. rteps) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      const = dble(p)*(pi2log+log(scale)) 
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine eseev ( x, mu, scale, shape, O, pro, n, p, G, 
-     *                   Vinv, v, w, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   scale, Vinv, hood
-
-      double precision   x(n,*), v(*), w(*), z(n,  *  )
-
-      double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        const, temp, rteps, tmin, tmax
-      double precision        smin, smax, prok, eps, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(hood, zero)
-      rteps  = sqrt(eps)
-  
-      if (scale .le. eps) then
-        hood = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-  
-      if (smin .le. rteps) then
-        hood = FLMAX
-        return
-      end if
-        
-      const = dble(p)*(pi2log + log(scale))
-
-      do k = 1, G
-
-c       prok = pro(k)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp   = ddot( p, v, 1, v, 1)
-c         z(i,k) = prok*exp(-(const+temp)/two)
-          z(i,k) = -(const+temp)/two
-        end do
-
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine eseii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   sigsq, hood, Vinv
-
-c     double precision   x(n,p), mu(p,G), pro(G[+1]), z(n,G[+1])
-      double precision   x(n,*), mu(p,*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, prok, tmin, tmax
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-      if (sigsq .le. max(hood,zero)) then
-c       FLMAX = d1mach(2)
-        hood  = FLMAX
-        return
-      end if
-
-      const = dble(p)*(pi2log+log(sigsq))
-
-      do k = 1, G
-c       prok = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum/sigsq)/two)
-          z(i,k) = -(const+sum/sigsq)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine esevi ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, hood, Vinv
-
-      double precision   x(n,*), z(n,  *  )
-
-      double precision   mu(p,*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood, zero)
-      rteps = sqrt(eps)
-    
-      if (scale .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do k = 1, G
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-        call drnge( p, shape(1,k), 1, smin, smax)
-        if (smin .le. rteps) then
-          hood  = FLMAX
-          return
-        end if
-      end do
-
-      const  = dble(p)*(pi2log+log(scale))
-
-      do k = 1, G
-c       prok   = pro(k)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine estep2( n, ncolz, pro, z, hood)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, ncolz
-
-      double precision   pro(  *  ), z(n,  *  ), hood
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k
-
-      double precision        temp, tmin, tmax, sum, prok
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157D+308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     hood = zero
-c     do i = 1, n
-c       temp = zero
-c       do k = 1, ncolz
-c         temp = temp + z(i,k)
-c       end do
-c       hood = hood + log(temp)
-c       call dscal( ncolz, (one/temp), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, ncolz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, ncolz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( ncolz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine esvei ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-      double precision   x(n,*), z(n,  *  )
-
-      double precision   mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood, zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
-          z(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine esvev ( x, mu, scale, shape, O, pro, n, p, G, 
-     *                   Vinv, v, w, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   Vinv, hood
-
-      double precision   x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
-
-      double precision   v(*), w(*)
-
-      double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        const, temp, eps, tmin, tmax
-      double precision        smin, smax, scalek, prok, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(hood, zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood = FLMAX
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood = FLMAX
-        return
-      end if
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-
-        scalek = scale(k)
-        
-        const = dble(p)*(pi2log+log(scalek))
-
-c       prok  = pro(k)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp   = ddot( p, v, 1, v, 1)/scalek
-c         z(i,k) = prok*exp(-(const+temp)/two)
-          z(i,k) = -(const+temp)/two
-        end do
-
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      smin = FLMAX
-      smax = zero
-      do k = 1, G
-        scalek = sqrt(scale(k))
-        do j = 1, p
-          temp = scalek*shape(j)
-          smin = min(temp, smin)
-          smax = min(temp, smax)
-        end do
-      end do
-
-      w(1) = smin / (one+smax)
-
-      return
-      end
-
-      subroutine esvii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-      double precision   x(n,*), z(n,  *  )
-
-      double precision   mu(p,*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, tmin, tmax
-      double precision        prok, sigsqk, sigmin
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      sigmin = FLMAX
-
-      do k = 1, G
-        sigmin = min(sigmin,sigsq(k))
-      end do
-
-      if (sigmin .le. max(hood,zero)) then
-        hood  = FLMAX
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsq(k)))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum/sigsqk)/two)
-          z(i,k) = -(const+sum/sigsqk)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end 
-
-      subroutine esvvi ( x, mu, scale, shape, pro, n, p, G, 
-     *                   Vinv, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-      double precision   x(n,*), z(n,  *  )
-
-      double precision   mu(p,*), scale(*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, nz
-
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, scalek, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood, zero)
-      rteps = sqrt(eps)
-
-      do k = 1, G
-        temp = sqrt(scale(k))
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-      end do
-
-      do k = 1, G
-       
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. rteps) then
-          hood  = FLMAX
-          return
-        end if
-
-      end do
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        hood  = FLMAX
-        return
-      end if
-
-      do k = 1, G
-c       prok   = pro(k)
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-c         z(i,k) = prok*exp(-(const+sum)/two)
-          z(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      return
-      end
-
-      subroutine esvvv ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv, 
-     *                   w, hood, z)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer          CHOL
-c      character          CHOL
-
-      integer            n, p, G
-
-      double precision   hood, Vinv
-
-      double precision   x(n,*), w(*), z(n,  *  )
-
-      double precision   mu(p,*), Sigma(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-
-      integer                 nz, p1, info, i, j, k
-
-      double precision        const, detlog, temp, prok, tmin, tmax
-      double precision        umin, umax, rcmin, eps, rteps, sum
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      double precision        SMLOG
-      parameter              (SMLOG = -708.d0)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      p1    = p + 1
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(hood,zero)
-      rteps = sqrt(eps)
-
-c      if (CHOL .eq. 'N') then
-      if (CHOL .eq. 0) then
-
-        do k = 1, G
-
-          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
-
-          w(1) = dble(info)
-
-          if (info .ne. 0) then
-            hood = FLMAX
-            return
-          end if
-       
-        end do
-
-      end if
-
-      rcmin = FLMAX
-      do k = 1, G
-        call drnge( p, Sigma(1,1,k), p1, umin, umax)
-        rcmin = min(rcmin,umin/(one+umax))
-      end do
-
-      if (rcmin .le. rteps) then
-        w(1) = zero
-        hood = FLMAX
-        return
-      end if
-
-      do k = 1, G
-
-        detlog = zero
-        do j = 1, p
-          detlog = detlog + log(abs(Sigma(j,j,k)))
-        end do
-
-        const = dble(p)*pi2log/two + detlog
-
-c       prok  = pro(k)
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
-          temp   = ddot( p, w, 1, w, 1)/two
-c         z(i,k) = prok*exp(-(const+temp))
-          z(i,k) = -(const+temp)
-        end do
-
-      end do
-
-      nz = G
-      if (Vinv .gt. zero) then
-        nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
-      end if
-
-c     hood = zero
-c     do i = 1, n
-c       sum = zero
-c       do k = 1, nz
-c         sum = sum + z(i,k)
-c       end do
-c       hood = hood + log(sum)
-c       call dscal( nz, (one/sum), z(i,1), n)
-c     end do
-
-      hood = zero
-      do i = 1, n
-        tmin =  FLMAX
-        tmax = -FLMAX
-        do k = 1, nz
-          prok = pro(k)
-          if (prok .eq. zero) then
-            z(i,k) = zero
-          else
-            temp   = log(prok) + z(i,k)
-            tmin   = min(tmin,temp)
-            tmax   = max(tmax,temp)
-            z(i,k) = temp
-          end if
-        end do
-        sum   = zero
-        do k = 1, nz
-          if (pro(k) .ne. zero) then
-            temp =  z(i,k) - tmax
-            if (temp .ge. SMLOG) then
-              z(i,k) = exp(temp)
-              sum    = sum + z(i,k)
-            else
-              z(i,k) = zero
-            end if
-          end if
-        end do
-        hood  = hood + (log(sum)+tmax)
-        call dscal( nz, (one/sum), z(i,1), n)
-      end do
-
-      w(1) = zero
-
-      return
-      end
-
-      subroutine ms1e ( x, z, n, G, mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer             n, G
-
-      double precision    x(*), z(n,*), mu(*), sigsq, pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k
-
-      double precision        sum, smu, sumz, temp
-
-      double precision        zero
-      parameter              (zero = 0.d0)
-
-c------------------------------------------------------------------------------
-
-      sumz  = zero
- 
-      sigsq = zero
-
-      do k = 1, G
-        sum = zero
-        smu = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          smu  = smu + temp*x(i)
-        end do
-        sumz   = sumz + sum
-	smu    = smu  / sum
-	mu(k)  = smu 
-        pro(k) = sum / dble(n)
-        do i = 1, n
-          temp   = x(i) - smu
-          temp   = temp*temp
-          sigsq  = sigsq + z(i,k)*temp
-        end do
-      end do
-
-c sumz .eq. n when no noise
-      sigsq  = sigsq / sumz
-
-      return
-      end
-
-      subroutine ms1v ( x, z, n, G, mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   x(*), z(n,*), mu(*), sigsq(*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k
-     
-      double precision        sum, smu, temp, sigsqk
-
-      double precision        zero
-      parameter              (zero = 0.d0)
-
-c------------------------------------------------------------------------------
-
-      do k = 1, G
-        sum = zero
-        smu = zero      
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          smu  = smu + temp*x(i)
-        end do
-        smu    = smu / sum
-        mu(k)  = smu 
-        sigsqk = zero
-        do i = 1, n
-          temp   = x(i) - smu
-          temp   = temp*temp
-          sigsqk = sigsqk + z(i,k)*temp
-        end do
-        sigsq(k) = sigsqk / sum
-        pro(k)   = sum / dble(n)
-      end do
-
-      return
-      end
-
-      subroutine mseee ( x, z, n, p, G, w, mu, U, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   x(n,*), z(n,*), w(*)
-
-      double precision   mu(p,*), U(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, j1
-
-      double precision        sum, sumz, temp, cs, sn
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-      do j = 1, p
-        call dcopy( p, zero, 0, U(1,j), 1)
-      end do
-
-      sumz = zero
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum / dble(n)
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
-          j = 1
-          do j1 = 2, p
-            call drotg( U(j,j), w(j), cs, sn)
-            call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
-            j = j1
-          end do
-          call drotg( U(p,p), w(p), cs, sn)
-        end do
-      end do
-
-c sumz .eq. n when no noise
-      do j = 1, p
-        call dscal( j, one/sqrt(sumz), U(1,j), 1)
-      end do
-
-      return
-      end
-
-      subroutine mseei ( x, z, n, p, G, eps, mu, scale, shape, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), z(n,*)
-
-      double precision   mu(p,*), scale, shape(*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, sumz, temp, smin, smax
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-      sumz = zero
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum/dble(n)
-      end do
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      do j = 1, p
-        sum = zero
-        do i = 1, n
-          do k = 1, G
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-        end do
-        shape(j) = shape(j) + sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        scale = zero
-        eps   = smin
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do      
-      temp  = exp(sum/dble(p))
-
-      scale = temp/sumz
-
-      if (temp .le. eps) then
-        eps = temp
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      eps = temp
-      
-      return
-      end
-
-      subroutine mseev ( x, z, n, p, G, w, lwork, eps, 
-     *                   mu, scale, shape, O, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G, lwork
-
-      double precision   eps, scale
-
-      double precision   x(n,*), z(n,*), w(  *  )
-
-      double precision   shape(*), O(p,p,*), mu(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k, j1, l, info
-      double precision        dummy, sum, sumz, temp, const
-      double precision        cs, sn, smin, smax
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-      call dcopy( p, zero, 0, shape, 1)
-
-      l = 0
-
-      sumz = zero
-
-      do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
-        end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum / dble(n)
-        if (lwork .gt. 0) then
-          do i = 1, n
-            call dcopy( p, x(i,1), n, w, 1)
-            call daxpy( p, (-one), mu(1,k), 1, w, 1)
-            call dscal( p, sqrt(z(i,k)), w, 1)
-            j = 1
-            do j1 = 2, p
-              call drotg( O(j,j,k), w(j), cs, sn)
-              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-              j = j1
-            end do
-            call drotg( O(p,p,k), w(p), cs, sn)
-          end do
-          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k), 
-     *                  dummy, 1, dummy, 1, w, lwork, info)
-          if (info .ne. 0) then
-            l = info
-          else 
-            do j = 1, p
-              temp     = z(j,k)
-              shape(j) = shape(j) + temp*temp
-            end do
-          end if
-        end if
-      end do
-
-      lwork = l
-
-      if (lwork .ne. 0) return
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        eps   = smin
-        scale = zero
-        return
-      end if
-        
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      const = exp(sum/dble(p))
-
-c sumz .eq. n when no noise
-      scale = const/sumz
-
-      if (const .le. eps) then
-        eps = const
-        return
-      end if
-
-      call dscal( p, one/const, shape, 1)
-
-      eps = const
-
-      return
-      end
-
-      subroutine mseii ( x, z, n, p, G, mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   x(n,*), z(n,*), mu(p,*), sigsq, pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, sumz, temp
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-      sumz  = zero
-
-      sigsq = zero
-
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum/dble(n)
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsq  = sigsq + z(i,k)*sum
-        end do
-      end do
-
-c sumz .eq. n when no noise
-      sigsq  = sigsq / (sumz*dble(p))
-
-      return
-      end
-
-      subroutine msevi ( x, z, n, p, G, eps, mu, scale, shape, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps, scale
-
-      double precision   x(n,*), z(n,*)
-
-      double precision   mu(p,*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        smin, smax
-      double precision        sum, sumz, temp, epsmin
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      sumz = zero
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        sumz = sumz + sum
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum/dble(n)
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
-          do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
-          end do
-          shape(j,k) = shape(j,k) + sum
-        end do
-      end do
-
-      epsmin = FLMAX
-      scale  = zero
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .ne. zero) then
-          sum   = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do      
-          temp   = exp(sum/dble(p))
-          scale  = scale + temp
-          epsmin = min(temp,epsmin)
-          if (temp .gt. eps) 
-     *      call dscal( p, one/temp, shape(1,k), 1)
-        end if
-      end do
-      
-      if (epsmin .eq. zero) then
-        scale = zero
-      else
-        scale = scale/sumz
-      end if
-
-      eps = epsmin
-      
-      return
-      end
-
-      subroutine msvei ( x, z, n, p, G, maxi, tol, eps,
-     *                   mu, scale, shape, pro, scl, shp, w)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
+      logical            EQPRO
 
       integer            n, p, G, maxi
 
-      double precision   eps, tol
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
 
-      double precision   x(n,*), z(n,*), scl(*), shp(*), w(p,*)
+      double precision   Vinv, eps, tol
 
-      double precision   mu(p,*), scale(*), shape(*), pro(*)
+c     double precision   x(n,p), z(n,G), w(p)
+      double precision   x(n,*), z(n,*), w(*)
 
-c------------------------------------------------------------------------------
+c     double precision   mu(p,G), U(p,p,G), pro(G)
+      double precision   mu(p,*), U(p,p,*), pro(*)
 
-      integer                 i, j, k, iter
+c-----------------------------------------------------------------------------
 
-      double precision        sum, temp, smin, smax, err
+      integer                 nz, p1, iter, i, j, k, j1
 
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
+      double precision        piterm, hold, rcmin, rteps
+      double precision        temp, term, cs, sn, umin, umax
+      double precision        sum, sumz, detlog, const, hood, err
+      double precision        prok, tmin, tmax, ViLog
+      double precision        cmu, cgam, rmu, rgam, zsum
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        twolog
+      parameter              (twolog  = 0.6931471805599453d0)
+
+      double precision        pilog
+      parameter              (pilog = 1.144729885849400d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
 
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
-c------------------------------------------------------------------------------
+      double precision        SMALOG
+      parameter              (SMALOG = -708.d0)
 
-      eps   = max(eps,zero)
-      tol   = max(tol,zero)
+      external                ddot
+      double precision        ddot
 
-c     FLMAX = d1mach(2)
-      err   = FLMAX
+c     external                ddot, dlngam
+c     double precision        ddot, dlngam
 
-c start with the equal volume and shape estimate
+c-----------------------------------------------------------------------------
 
-      do k = 1, G
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        do j = 1, p
-          sum = zero
-          do i = 1, n
-            temp     = x(i,j) - mu(j,k)
-            temp     = temp*temp
-            temp     = z(i,k)*temp
-            sum      = sum + temp
-          end do
-          w(j,k)   = sum
-        end do
-      end do
+      if (pshrnk .lt. zero) pshrnk = zero
 
-      iter = 0
+      if (maxi .le. 0) return
 
-      do j = 1, p
-        sum = zero       
-        do k = 1, G
-          sum = sum + w(j,k)
-        end do
-        shape(j) = sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        call dscal( G, one/dble(n), pro, 1)
-        eps   = smin
-        tol  = err
-        maxi = iter
-        return
+      if (Vinv .gt. zero) then
+        nz = G + 1
+        ViLog = log(Vinv)
+      else
+        nz = G
+        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
       end if
 
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do      
-      temp  = exp(sum/dble(p))
-
-      call dcopy( G, temp/dble(n), 0, scale, 1)
-
-      if (temp .le. eps) then
-        call dscal( G, one/dble(n), pro, 1)
-        eps  = temp
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      call dscal( G, dble(p), pro, 1)
-
-100   continue
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        call dscal( G, one/dble(n*p), pro, 1)
-        eps  = smin
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-      iter = iter + 1
-
-c scale estimate
-
-      call dcopy( G, scale, 1, scl, 1)
-
-      do k = 1, G
-        sum = zero       
-        do j = 1, p
-          sum = sum + w(j,k)/shape(j)
-        end do
-        scale(k) = sum/pro(k)
-      end do
-
-      call drnge(G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        call dscal( G, one/dble(n*p), pro, 1)
-        eps  = smin
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-c shape estimate
-
-      call dcopy( p, shape, 1, shp, 1)
-
-      do j = 1, p
-        sum = zero
-        do k = 1, G
-          sum = sum + w(j,k)/scale(k)
-        end do
-        shape(j) = sum
-      end do
-
-      call drnge(p, shape, 1, smin, smax)
-
-      if (smin .eq. zero) then
-        call dscal( G, one/dble(n*p), pro, 1)
-        eps   = smin
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do      
-      temp  = exp(sum/dble(p))
-
-      if (temp .le. eps) then
-        call dscal( G, one/dble(n*p), pro, 1)
-        eps  = temp
-        tol  = err
-        maxi = iter
-        return
-      end if
-
-      call dscal( p, one/temp, shape, 1)
-
-      err = zero
-      
-      do k = 1, G
-        err = max(err, abs(scl(k) - scale(k))/(one + scale(k)))        
-      end do
-      
-      do j = 1, p
-        err = max(err, abs(shp(j) - shape(j))/(one + shape(j)))       
-      end do
- 
-      if (err .gt. tol .and. iter .le. maxi) goto 100
-
-      call dscal( G, one/dble(n*p), pro, 1)
-
-      call drnge(G, scale, 1, smin, smax)
-
-      eps  = smin
-
-      call drnge(p, shape, 1, smin, smax)
-    
-      eps  = min(eps,smin)
-      tol  = err
-      maxi = iter
-
-      return
-      end
-
-      subroutine msvev ( x, z, n, p, G, w, lwork, maxi, tol, eps,
-     *                   mu, scale, shape, O, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G, maxi, lwork
-
-      double precision   eps, tol
-
-      double precision   x(n,*), z(n,*), w(*)
-
-      double precision   scale(*), shape(*), O(p,p,*), mu(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 p1, i, j, k, j1, inner, info
-
-      double precision        dnp, epsmin, errin, dummy
-      double precision        temp, sum, smin, smax, cs, sn
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX =  1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps    = max(eps,zero)
-      tol    = max(tol,zero)
+      piterm = dble(p)*pi2log/two
 
       p1     = p + 1
 
-      dnp    = dble(n*p)
+      eps    = max(eps,zero)
+      rteps  = sqrt(eps)
+
+      tol    = max(tol,zero)
 
 c     FLMAX  = d1mach(2)
+      hold   = FLMAX/two
+      hood   = FLMAX
+      err    = FLMAX
 
-      epsmin = FLMAX
+      iter = 0
 
-      errin  = FLMAX
+100   continue
 
-      call dcopy( p, zero, 0, shape, 1)
+      iter = iter + 1
 
+      zsum = one
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
         do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
+          call dcopy( p, pscale(1,j), 1, U(1,j,k), 1)
         end do
-        sum = zero
-        do i = 1, n
-          temp = z(i,k)
-          sum  = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-        if (lwork .gt. 0) then
-          do i = 1, n
-            call dcopy( p, x(i,1), n, w, 1)
-            call daxpy( p, (-one), mu(1,k), 1, w, 1)
-            call dscal( p, sqrt(z(i,k)), w, 1)
-            j = 1
-            do j1 = 2, p
-              call drotg( O(j,j,k), w(j), cs, sn)
-              call drot( p-j, O(j,j1,k), p, w(j1), 1, cs, sn)
-              j = j1
-            end do
-            call drotg( O(p,p,k), w(p), cs, sn)
-          end do
-          call dgesvd( 'N', 'O', p, p, O(1,1,k), p, z(1,k),
-     *                  dummy, 1, dummy, 1, w, lwork, info)
-          if (info .ne. 0) then
-            lwork = 0
-          else
-            do j = 1, p
-              temp     = z(j,k)
-              temp     = temp*temp
-              shape(j) = shape(j) + temp
-              z(j,k)   = temp
-            end do
-          end if
-        end if
-      end do
-  
-      lwork = info
- 
-      if (info .ne. 0) then
-        call dscal( G, one/dble(n), pro, 1)
-        maxi = -1
-        eps  = -one
-        tol  = -one
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-  
-      if (smin .eq. zero) then
-        call dscal( G, one/dble(n), pro, 1)
-        maxi = -1
-        tol  = -one
-        eps  = smin
-        return
-      end if
-
-      sum = zero
-      do j = 1, p
-        sum = sum + log(shape(j))
-      end do
-      temp = exp(sum/dble(p))
- 
-      call dcopy( G, temp/dble(n), 0, scale, 1)
-     
-      if (temp .le. eps) then
-        call dscal( G, one/dble(n), pro, 1)
-        maxi = -1
-        tol  = -one
-        eps  = temp
-        return
-      end if 
-
-      epsmin = min(epsmin,temp)
-
-      call dscal( p, one/temp, shape, 1)
-
-c iteration to estimate scale and shape
-c pro now contains n*pro
-
-      inner  = 0
-
-      if (maxi .le. 0) goto 120
-
-110   continue
-
-        call dcopy( p, shape, 1, w    , 1)
-        call dcopy( G, scale, 1, w(p1), 1)
-
-        call dcopy( p, zero, 0, shape, 1)
-
-        do k = 1, G
-          sum = zero
-          do j = 1, p
-            sum = sum + z(j,k)/w(j)
-          end do
-          temp     = (sum/pro(k))/dble(p)
-          scale(k) = temp
-          if (temp .le. eps) then
-            maxi = inner
-            tol  = errin
-            eps  = temp
-            return
-          end if
-          epsmin = min(epsmin,temp)
-          do j = 1, p
-            shape(j) = shape(j) + z(j,k)/temp
-          end do
-        end do
-
-        inner  = inner + 1
-
-        call drnge( p, shape, 1, smin, smax)
- 
-        if (smin .eq. zero) then
-          call dscal( G, one/dble(n), pro, 1)
-          maxi = inner
-          tol  = errin
-          eps  = smin
-          return
-        end if
-
-c normalize the shape matrix
-        sum = zero
-        do j = 1, p
-          sum = sum + log(shape(j))
-        end do
-
-        temp = exp(sum/dble(p))
-
-        if (temp .le. eps) then
-          call dscal( G, one/dble(n), pro, 1)
-          maxi = inner
-          tol  = errin
-          eps  = temp
-          return
-        end if
-
-        epsmin = min(epsmin,temp)
-
-        call dscal( p, one/temp, shape, 1)
-
-        errin = zero
-        do j = 1, p
-          errin = max(abs(w(j)-shape(j))/(one+shape(j)), errin)
-        end do
-
-        do k = 1, G
-          errin = max(abs(scale(k)-w(p+k))/(one+scale(k)), errin)
-        end do
-        
-        if (errin .ge. tol .and. inner .lt. maxi) goto 110
-
-120   continue
-
-      call dscal( G, one/dble(n), pro, 1)
-
-      eps  = epsmin
-      tol  = errin
-      maxi = inner
-
-      return
-      end
-
-      subroutine msvii ( x, z, n, p, G, mu, sigsq, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   x(n,*), z(n,*), mu(p,*), sigsq(*), pro(*)
-
-c------------------------------------------------------------------------------
-      
-      integer                 i, j, k
-     
-      double precision        sum, sumz, temp, sigsqk
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-      do k = 1, G
         sumz = zero
         call dcopy( p, zero, 0, mu(1,k), 1)
         do i = 1, n
@@ -11984,128 +14550,202 @@ c------------------------------------------------------------------------------
           sumz = sumz + temp
           call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
         end do
-        call dscal( p, (one/sumz), mu(1,k), 1)
-        sigsqk = zero
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          sigsqk = sigsqk + z(i,k)*sum
-        end do
-        sigsq(k) = (sigsqk/sumz)/dble(p)
-        pro(k)   = sumz / dble(n)
-      end do
-
-      return
-      end
-
-      subroutine msvvi ( x, z, n, p, G, eps, mu, scale, shape, pro)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), z(n,*)
-
-      double precision   mu(p,*), scale(*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, temp, smin, smax, epsmin
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
-        do i = 1, n
-          temp   = z(i,k)
-          sum    = sum + temp
-          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
-          z(i,k) = sqrt(temp)
-        end do
-        call dscal( p, (one/sum), mu(1,k), 1)
-        pro(k) = sum
-      end do
-
-c pro(k) now contains n_k
-
-      do j = 1, p
-        do k = 1, G
-          sum = zero
+        if (.not. EQPRO) pro(k) = sumz / dble(n)
+        zsum = min(sumz,zsum)
+        if (sumz .gt. rteps) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
           do i = 1, n
-            temp = z(i,k)*(x(i,j) - mu(j,k))
-            sum  = sum + temp*temp
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j,k), w(j), cs, sn)
+              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p,k), w(p), cs, sn)
           end do
-          shape(j,k) = shape(j,k) + sum
-        end do
+          call dcopy( p, pmu, 1, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          const = sumz+pshrnk
+          temp  = (sumz*pshrnk)/const
+          call dscal( p, sqrt(temp), w, 1)
+          j = 1
+          do j1 = 2, p
+            call drotg( U(j,j,k), w(j), cs, sn)
+            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+            j = j1
+          end do
+          call drotg( U(p,p,k), w(p), cs, sn)
+          do j = 1, p
+            temp = pdof+sumz+dble(p)+two
+            call dscal( j, one/sqrt(temp), U(1,j,k), 1)
+          end do
+          call dscal( p, sumz/const, mu(1,k), 1)
+          call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
+        else
+          call dcopy( p, FLMAX, 0,  z(1,k), 1) 
+        end if
       end do
 
-      epsmin = FLMAX
-      do k = 1, G
-        call drnge(p, shape(1,k), 1, smin, smax)
-        epsmin = min(smin,epsmin)
-        if (smin .eq. zero) then
-          scale(k) = zero
-        else 
-          sum = zero
-          do j = 1, p
-            sum = sum + log(shape(j,k))
-          end do      
-          temp     = exp(sum/dble(p))
-          scale(k) = temp/pro(k)
-          epsmin   = min(temp,epsmin)
-          if (temp .gt. eps) 
-     *      call dscal( p, one/temp, shape(1,k), 1)
+      if (zsum .le. rteps) then
+        tol  = zsum
+        eps  = -FLMAX
+        maxi = iter
+        return
+      end if
+
+      term = zero
+      if (Vinv .gt. zero) then
+
+        do i = 1, n
+          term = term + z(i,nz)
+        end do
+        temp    = term / dble(n)
+        pro(nz) = temp
+
+        call dcopy( n, ViLog, 0, z(1,nz), 1)
+
+        if (EQPRO) then
+          temp = (one - pro(nz))/dble(G)
+          call dcopy( G, temp, 0, pro, 1)
         end if
-        pro(k) = pro(k)/dble(n)
+
+      end if
+
+      rcmin = FLMAX
+      do k = 1, G
+        call absrng( p, U(1,1,k), p1, umin, umax)
+        rcmin = min(umin/(one+umax),rcmin)
       end do
-      
-      eps = epsmin
-      
+
+      if (rcmin .le. rteps) then
+        tol  = rcmin
+        eps  = FLMAX
+        maxi = iter
+        return
+      end if
+
+      rmu  = zero
+      rgam = zero 
+      do k = 1, G
+
+c       temp = pro(k)
+
+        detlog = zero
+        do j = 1, p
+          detlog = detlog + log(abs(U(j,j,k)))
+        end do
+
+        rmu  = rmu - detlog
+        rgam = rgam - (pdof+dble(p)+one)*detlog
+
+        const = piterm+detlog
+
+        do i = 1, n
+          call dcopy( p, x(i,1), n, w, 1)
+          call daxpy( p, (-one), mu(1,k), 1, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, U(1,1,k), p, w, 1)
+          sum    = ddot( p, w, 1, w, 1)/two
+c         z(i,k) = temp*exp(-(const+sum))
+          z(i,k) = -(const+sum)
+        end do
+
+      end do
+
+      hood = zero
+      do i = 1, n
+        tmin =  FLMAX
+        tmax = -FLMAX
+        do k = 1, nz
+          prok = pro(k)
+          if (prok .eq. zero) then
+            z(i,k) = zero
+          else
+            temp   = log(prok) + z(i,k)
+            tmin   = min(tmin,temp)
+            tmax   = max(tmax,temp)
+            z(i,k) = temp
+          end if
+        end do
+        sum   = zero
+        do k = 1, nz
+          if (pro(k) .ne. zero) then
+            temp =  z(i,k) - tmax
+            if (temp .ge. SMALOG) then
+              z(i,k) = exp(temp)
+              sum    = sum + z(i,k)
+            else
+              z(i,k) = zero
+            end if
+          end if
+        end do
+        hood  = hood + (log(sum)+tmax)
+        call dscal( nz, (one/sum), z(i,1), n)
+      end do
+      err  = abs(hold-hood)/(one+abs(hood))
+      hold = hood
+
+      if (err .gt. tol .and. iter .lt. maxi) goto 100
+
+c     w(1) = rcmin
+ 
+      tol  = err
+      eps  = hood
+      maxi = iter
+
+c     cmu  = dble(p)*(log(pshrnk) - pi2log)/two
+
+c     sum = zero
+c     do k = 1, G
+c       call daxpy( p, (-one), mu(1,k), 1, pmu, 1)
+c       call dtrsv('U','T','N',p,U,p,pmu,1)
+c       sum = sum + ddot( p, pmu, 1, pmu, 1)
+c     end do
+
+c     rmu = rmu - pshrnk*sum/two
+
+c     sum    = zero
+c     term   = zero
+c     temp   = zero
+c     do j = 1, p
+c       call dcopy( p, pscale(j,1), p, pmu, 1)
+c       call dtrsv('U','T','N', p, U, p, pmu, 1)
+c       i = p-j+1
+c       call dtrsv('U','T','N', i, U(j,j,k),i,pmu(j),1)
+c       sum    = sum + ddot(i, pmu(j), 1, pmu(j), 1)
+c       temp   = temp + log(abs(pscale(j,j)))
+c       term   = term + dlngam((pdof+one-dble(j))/two)
+c     end do
+
+c     rgam  = rgam - sum/two
+
+c     const = -dble(p)*(pdof*twolog+(dble(p)-one)*pilog/two)
+c     cgam  = (const-pdof*temp)/two-term
+
+c     pdof  = (dble(G)*cmu+rmu) + (dble(G)*cgam+rgam)
+
       return
       end
-
       subroutine msvvv ( x, z, n, p, G, w, mu, U, pro)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
       integer            n, p, G
 
+c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
+c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer                 i, j, k, j1
 
@@ -12114,7 +14754,10 @@ c------------------------------------------------------------------------------
       double precision        zero, one
       parameter              (zero = 0.d0, one = 1.d0)
 
-c------------------------------------------------------------------------------
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c-----------------------------------------------------------------------------
 
       do k = 1, G
         call dcopy( p, zero, 0, mu(1,k), 1)
@@ -12127,12 +14770,107 @@ c------------------------------------------------------------------------------
           sum  = sum + temp
           call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
         end do
-        call dscal( p, (one/sum), mu(1,k), 1)
         pro(k) = sum / dble(n)
+        if (sum .ge. one .or. one .lt. sum*FLMAX) then
+          call dscal( p, (one/sum), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j,k), w(j), cs, sn)
+              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p,k), w(p), cs, sn)
+          end do
+          temp = sqrt(sum)
+          if (temp .ge. one .or. one .lt. temp*FLMAX) then
+            do j = 1, p
+              call dscal( j, one/temp, U(1,j,k), 1)
+            end do
+          else
+            do j = 1, p
+              call dcopy( j, FLMAX, 0, U(1,j,k), 1)
+            end do
+          end if
+        else
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
+      end do
+
+      return
+      end
+      subroutine msvvvp( x, z, n, p, G,
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   w, mu, U, pro)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+c EM (M-step first) for unconstrained Gaussian mixtures
+
+      implicit NONE
+
+      integer            n, p, G
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+c     double precision   x(n,p), z(n,G), w(p)
+      double precision   x(n,*), z(n,*), w(*)
+
+c     double precision   mu(p,G), U(p,p,G), pro(G)
+      double precision   mu(p,*), U(p,p,*), pro(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, k, j1
+
+      double precision        sumz, temp, cs, sn, const
+
+      double precision        zero, one
+      parameter              (zero = 0.d0, one = 1.d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+c-----------------------------------------------------------------------------
+
+      do k = 1, G
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, U(1,j,k), 1)
+        end do
+        sumz = zero
+        call dcopy( p, zero, 0, mu(1,k), 1)
         do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
+          temp = z(i,k)
+          sumz = sumz + temp
+          call daxpy( p, temp, x(i,1), n, mu(1,k), 1)
+        end do
+        pro(k) = sumz / dble(n)
+        if (sumz .ge. one .or. one .lt. sumz*FLMAX) then
+          call dscal( p, (one/sumz), mu(1,k), 1)
+          do i = 1, n
+            call dcopy( p, x(i,1), n, w, 1)
+            call daxpy( p, (-one), mu(1,k), 1, w, 1)
+            call dscal( p, sqrt(z(i,k)), w, 1)
+            j = 1
+            do j1 = 2, p
+              call drotg( U(j,j,k), w(j), cs, sn)
+              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              j = j1
+            end do
+            call drotg( U(p,p,k), w(p), cs, sn)
+          end do
+          call dcopy( p, pmu, 1, w, 1)
           call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dscal( p, sqrt(z(i,k)), w, 1)
+          const = sumz+pshrnk
+          temp  = (sumz*pshrnk)/const
+          call dscal( p, sqrt(temp), w, 1)
           j = 1
           do j1 = 2, p
             call drotg( U(j,j,k), w(j), cs, sn)
@@ -12140,23 +14878,26 @@ c------------------------------------------------------------------------------
             j = j1
           end do
           call drotg( U(p,p,k), w(p), cs, sn)
-        end do
-        do j = 1, p
-          call dscal( j, one/sqrt(sum), U(1,j,k), 1)
-        end do
+          temp = pdof+sumz+dble(p)+one
+          if (pshrnk .gt. zero) temp = temp + one
+          do j = 1, p
+            call dscal( j, one/sqrt(temp), U(1,j,k), 1)
+          end do
+          call dscal( p, sumz/const, mu(1,k), 1)
+          call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
+        else 
+          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+        end if
       end do
 
       return
       end
-
       subroutine mvn1d ( x, n, mu, sigsq, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
@@ -12165,11 +14906,12 @@ c     integer            n
 
       double precision   mu,  sigsq, hood
 
+c     double precision   x(n)
       double precision   x(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
-      double precision        dn, scl
+      double precision        dn
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -12183,47 +14925,240 @@ c------------------------------------------------------------------------------
       double precision        ddot
       external                ddot
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
       
-      dn = dble(n)
+      dn    = dble(n)
 
-      scl = one/dble(n)
-      mu  = ddot( n, scl, 0, x, 1)
+      mu    = ddot( n, one/dn, 0, x, 1)
 
       sigsq = zero
 
       call daxpy( n, (-one), mu, 0, x, 1)
-      sigsq = ddot( n, x, 1, x, 1)
+      sigsq = ddot( n, x, 1, x, 1)/dn
  
-      sigsq = sigsq/dn
-
       if (sigsq .eq. zero) then
-        hood  = FLMAX
+        hood = FLMAX
       else 
-        hood  = -dn*(pi2log + (one + log(sigsq)))/two
+        hood = -dn*(pi2log + (one + log(sigsq)))/two
       end if
 
       return
       end
+      subroutine mvn1p ( x, n, pshrnk, pmu, pscale, pdof,
+     *                   mu, sigsq, hood)
 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+      integer            n
+
+      double precision   pshrnk, pmu, pscale, pdof
+      double precision   mu, sigsq, hood
+
+c     double precision   x(n)
+      double precision   x(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i
+
+      double precision        dn, scl, const, term, temp, xbar
+      double precision        cmu, cgam, rmu, rgam
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        ddot
+      external                ddot
+
+c     double precision        ddot, dlngam
+c     external                ddot, dlngam
+
+c------------------------------------------------------------------------------
+
+      if (pshrnk .lt. zero) pshrnk = zero
+
+      dn    = dble(n)
+
+      xbar  = ddot( n, one/dn, 0, x, 1) 
+      const = pshrnk + dn
+      mu    = (dn/const)*xbar + (pshrnk/const)*pmu
+      sigsq = zero
+      do i = 1, n
+        temp  = xbar - x(i)
+        sigsq = sigsq + temp*temp
+      end do     
+      temp  = xbar - pmu
+      sigsq = sigsq + pscale + dn*(pshrnk/const)*(temp*temp)
+      temp = pdof + dn + two 
+      if (pshrnk .gt. zero) temp = temp + one
+      sigsq = sigsq / temp
+      
+      if (sigsq .eq. zero) then
+        hood = FLMAX
+      else 
+        call daxpy( n, (-one), mu, 0, x, 1)
+        temp = ddot( n, x, 1, x, 1)
+        if (sigsq .lt. one .and. temp .ge. sigsq*FLMAX) then
+          hood = FLMAX
+          return
+        end if
+        temp = temp/sigsq
+        hood = -(dn*(pi2log + log(sigsq)) + temp)/two
+      end if
+
+c     if (pshrnk .gt. zero) then
+c       cmu    = (pi2log-log(pshrnk))/two
+c       term   =  pdof/two
+c       cgam   =  term*log(pscale/two) - dlngam(term)
+c       temp   =  pmu - mu
+c       const  =  log(sigsq)
+c       rmu    = -(const - (pshrnk/sigsq)*(temp*temp))/two
+c       rgam   = -(term+one)*const - (pscale/sigsq)/two
+
+c       pdof   = (cmu+rmu) + (cgam+rgam)
+c     else
+c       pdof   = FLMAX
+c     end if
+
+      return
+      end
+      subroutine mnxiip( x, n, p, pshrnk, pmu, pscale, pdof, 
+     *                   mu, sigsq, hood)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     integer            n, p
+      integer            n, p
+
+c     double precision   pshrnk, pmu(p), pscale, pdof
+      double precision   pshrnk, pmu(*), pscale, pdof
+
+      double precision   sigsq, hood
+
+c     double precision   x(n,p), mu(p)
+      double precision   x(n,*), mu(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j
+
+      double precision        dnp, scl, temp, term, sum, const
+      double precision        dmudmu, pmupmu, cmu, cgam, rmu, rgam
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        ddot
+      external                ddot
+
+c     double precision        ddot, dlngam
+c     external                ddot, dlngam
+
+c-----------------------------------------------------------------------------
+      
+      dnp = dble(n*p)
+
+      scl = one/dble(n)
+      do j = 1, p
+        mu(j) = ddot( n, scl, 0, x(1,j), 1)
+      end do
+
+      sum = zero
+      do i = 1, n
+        do j = 1, p
+          temp = x(i,j) - mu(j)
+          sum  = sum + temp*temp
+        end do
+      end do
+
+      pmupmu = ddot(p,pmu,1,pmu,1)
+      dmudmu = ddot(p,mu,1,mu,1)
+      temp   = dmudmu + pmupmu
+      temp   = temp - two*ddot(p,mu,1,pmu,1)
+
+      term   = pshrnk + dble(n)
+      scl    = (pshrnk*dble(n))/term
+      sigsq  = pscale + scl*temp + sum
+
+      temp   = pdof + dble(n*p) + two
+      if (pshrnk .gt. zero) temp = temp + dble(p)
+      sigsq  = sigsq/temp
+
+      call dscal( p, dble(n)/term, mu, 1)
+      call daxpy( p, pshrnk/term, pmu, 1, mu, 1)
+
+      if (sigsq .eq. zero) then
+        hood  = FLMAX
+      else 
+        sum  = zero
+        do i = 1, n
+          do j = 1, p
+            temp = x(i,j) - mu(j)
+            sum  = sum + temp*temp
+          end do
+        end do
+        hood  = -(sum/sigsq + dnp*(pi2log + log(sigsq)))/two
+      end if
+
+c     if (pshrnk .gt. zero) then 
+c       dmudmu = ddot(p,mu,1,mu,1)
+
+c       cmu    = dble(p)*(log(pshrnk)-pi2log)/two
+c       temp   = (dmudmu+pmupmu) - two*ddot(p,pmu,1,mu,1)
+c       term   = log(sigsq)
+c       rmu    = -(dble(p)*term + (pshrnk*temp)/sigsq)/two
+
+c       temp   = pdof/two     
+c       cgam   = temp*log(pscale/two) - dlngam(temp)
+c       rgam   = -(temp+one)*term - pscale/(two*sigsq)
+
+c       pdof   = (cmu+rmu) + (cgam+rgam)
+c     else
+c       pdof   = FLMAX
+c     end if
+
+      return
+      end
       subroutine mvnxii( x, n, p, mu, sigsq, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
+c     integer            n, p
       integer            n, p
 
       double precision   sigsq, hood
 
+c     double precision   x(n,p), mu(p)
       double precision   x(n,*), mu(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer                 j
 
@@ -12241,7 +15176,7 @@ c------------------------------------------------------------------------------
       double precision        ddot
       external                ddot
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
       
       dnp = dble(n*p)
 
@@ -12267,30 +15202,33 @@ c------------------------------------------------------------------------------
 
       return
       end
-
-      subroutine mvnxxi( x, n, p, mu, scale, shape, hood)
+      subroutine mnxxip( x, n, p, pshrnk, pmu, pscale, pdof, 
+     *                   mu, scale, shape, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
 c     integer            n, p
       integer            n, p
 
+c     double precision   pshrnk, pmu(p), pscale, pdof
+      double precision   pshrnk, pmu(*), pscale, pdof
+
       double precision   scale, hood
 
+c     double precision   x(n,p), mu(p), shape(p)
       double precision   x(n,*), mu(*), shape(*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer                 i, j
 
       double precision        sum, temp, smin, smax
+      double precision        term, const, scl, detlog
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -12301,10 +15239,13 @@ c------------------------------------------------------------------------------
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
       double precision        ddot
       external                ddot
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       temp = one/dble(n)
       do j = 1, p
@@ -12316,14 +15257,25 @@ c------------------------------------------------------------------------------
         sum = zero
         do i = 1, n
           temp = x(i,j) - mu(j)
-          sum = sum + temp*temp
+          sum  = sum + temp*temp
         end do
         shape(j) = shape(j) + sum
       end do
 
-      call drnge(p, shape, 1, smin, smax)
+      term = pshrnk + dble(n)
+      scl  = (pshrnk*dble(n))/term
+      do j = 1, p
+        temp     = pmu(j) - mu(j)
+        shape(j) = shape(j) + scl*(temp*temp) + pscale
+      end do
 
-      if (smin .eq. zero) then
+      call dscal( p, dble(n)/term, mu, 1)
+      call daxpy( p, pshrnk/term, pmu, 1, mu, 1)
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        call dcopy( p, FLMAX, 0, shape, 1) 
         scale = zero
         hood  = FLMAX
         return
@@ -12333,9 +15285,149 @@ c------------------------------------------------------------------------------
       do j = 1, p
         sum = sum + log(shape(j))
       end do
-      temp  = exp(sum/dble(p))
+      temp  = sum/dble(p)
 
-      scale = temp/dble(n)
+      if (temp .ge. BIGLOG) then
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        scale = FLMAX
+        hood  = FLMAX
+       return
+      end if
+
+      if (temp .le. SMALOG) then
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        scale = zero
+        hood  = FLMAX
+       return
+      end if
+
+      temp  = exp(temp)
+
+      term = pdof + dble(n) + two
+      if (pshrnk .gt. zero) term = term + one
+
+      scale = temp/term
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1) 
+        hood = FLMAX
+        return
+      end if 
+ 
+      call dscal( p, one/temp, shape, 1)
+
+      const = dble(p)*(pi2log+log(scale))
+
+      hood  = zero
+      do i = 1, n
+        sum = zero
+        do j = 1, p
+          temp = x(i,j) - mu(j)
+          sum  = sum + (temp*temp)/shape(j)             
+        end do    
+        hood = hood - (const+(sum/scale))/two
+      end do
+
+      pdof = FLMAX 
+
+      return
+      end
+      subroutine mvnxxi( x, n, p, mu, scale, shape, hood)
+
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     integer            n, p
+      integer            n, p
+
+      double precision   scale, hood
+
+c     double precision   x(n,p), mu(p), shape(p)
+      double precision   x(n,*), mu(*), shape(*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j
+
+      double precision        dn, scl, sum, temp, smin, smax
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        SMALOG, BIGLOG
+      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+
+      double precision        ddot
+      external                ddot
+
+c-----------------------------------------------------------------------------
+
+      dn  = dble(n)
+
+      scl = one/dn
+      do j = 1, p
+        mu(j)    = ddot( n, scl, 0, x(1,j), 1)
+        shape(j) = zero
+      end do
+
+      do j = 1, p
+        sum = zero
+        do i = 1, n
+          temp = x(i,j) - mu(j)
+          sum  = sum + temp*temp
+        end do
+        shape(j) = shape(j) + sum
+      end do
+
+      call sgnrng(p, shape, 1, smin, smax)
+
+      if (smin .le. zero) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        scale = zero
+        hood  = FLMAX
+        return
+      end if
+
+      sum = zero
+      do j = 1, p
+        sum = sum + log(shape(j))
+      end do
+
+      temp  = sum/dble(p)
+
+      if (temp .gt. BIGLOG) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        scale = FLMAX
+        hood  = FLMAX
+        return
+      end if
+
+      if (temp .lt. SMALOG) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        scale = zero
+        hood  = FLMAX
+        return
+      end if
+
+      temp  = exp(temp)
+
+      scale = temp/dn
+
+      if (temp .lt. one .and. one .ge. temp*FLMAX) then
+        call dcopy( p, FLMAX, 0, shape, 1)
+        hood = FLMAX
+        return
+      end if 
 
       call dscal( p, one/temp, shape, 1)
 
@@ -12343,29 +15435,183 @@ c------------------------------------------------------------------------------
 
       return
       end
+      subroutine mnxxxp( x, n, p, w,
+     *                   pshrnk, pmu, pscale, pdof,
+     *                   mu, U, hood)
 
+c This function is part of the MCLUST software described at
+c       http://www.stat.washington.edu/mclust
+c Copyright information and conditions for use of MCLUST are given at
+c        http://www.stat.washington.edu/mclust/license.txt
+
+      implicit NONE
+
+c     integer            n, p
+      integer            n, p
+
+c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
+      double precision   pshrnk, pmu(*), pscale(p,*), pdof
+
+      double precision   hood
+
+c     double precision   x(n,p), w(p), mu(p), U(p,p)
+      double precision   x(n,*), w(*), mu(*), U(p,*)
+
+c-----------------------------------------------------------------------------
+
+      integer                 i, j, j1
+
+      double precision        dnp, scl, detlog, sum, term, temp
+      double precision        umin, umax, cs, sn, const
+      double precision        cmu, cgam, rmu, rgam
+
+      double precision        zero, one, two
+      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+
+      double precision        twolog
+      parameter              (twolog  = 0.6931471805599453d0)
+
+      double precision        pilog
+      parameter              (pilog = 1.144729885849400d0)
+
+      double precision        pi2log
+      parameter              (pi2log = 1.837877066409345d0)
+
+      double precision        FLMAX
+      parameter              (FLMAX = 1.7976931348623157d308)
+
+      double precision        ddot
+      external                ddot
+
+c     double precision        ddot, dlngam
+c     external                ddot, dlngam
+
+c-----------------------------------------------------------------------------
+
+      dnp = dble(n*p)
+
+      scl = one/dble(n)
+      do j = 1, p
+        mu(j) = ddot( n, scl, 0, x(1,j), 1)
+        call dcopy( p, pscale(1,j), 1, U(1,j), 1)
+      end do
+c mu contains ybar; U contains Cholesky factor of inverse Wishart scale
+
+      do i = 1, n
+        call dcopy( p, x(i,1), n, w, 1)
+        call daxpy( p, (-one), mu, 1, w, 1)
+        j = 1
+        do j1 = 2, p 
+          call drotg( U(j,j), w(j), cs, sn)
+          call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+          j = j1
+        end do
+        call drotg( U(p,p), w(p), cs, sn)
+      end do
+
+      call dcopy( p, pmu, 1, w, 1)
+      call daxpy( p, (-one), mu, 1, w, 1)
+      term = (pshrnk*dble(n))/(pshrnk+dble(n))
+      call dscal( p, sqrt(term), w, 1)
+      j = 1
+      do j1 = 2, p
+        call drotg( U(j,j), w(j), cs, sn)
+        call drot( p-j, U(j,j1), p, w(j1), 1, cs, sn)
+        j = j1
+      end do
+      call drotg( U(p,p), w(p), cs, sn)
+
+      scl = pdof + dble(n+p+1)
+      if (pshrnk .gt. zero) scl = scl + one
+      scl = one/sqrt(scl)
+
+      do j = 1, p
+        call dscal( j, scl, U(1,j), 1)
+      end do
+
+      term = pshrnk + dble(n)
+
+      call dscal( p, dble(n)/term, mu, 1)
+      call daxpy( p, pshrnk/term, pmu, 1, mu, 1)
+
+      call absrng( p, U, p+1, umin, umax)
+
+c     rcond = umin / (one + umax)
+
+      if (umin .eq. zero) then
+        hood  = FLMAX
+        return
+      end if 
+
+      detlog  = zero
+      do j = 1, p
+        detlog = detlog + log(abs(U(j,j)))
+      end do
+      const = dble(n)*(detlog + dble(p)*pi2log/two)
+      sum = zero
+      do i = 1, n
+        call dcopy( p, x(i,1), n, w, 1)
+        call daxpy( p, (-one), mu, 1, w, 1)
+        call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
+        sum = sum + ddot(p, w, 1, w, 1)
+      end do
+      hood = -(const+sum/two)
+
+c     cmu = dble(p)*(log(pshrnk) - pi2log)/two
+
+c     call dcopy( p, pmu, 1, w, 1)
+c     call daxpy( p, (-one), mu, 1, w, 1)
+c     call dtrsv( 'U', 'T', 'N', p, U, p, w, 1)
+c     temp = ddot( p, w, 1, w, 1)
+
+c     sum    = zero
+c     term   = zero
+c     do j = 1, p
+c       term = term + dlngam((pdof+dble(1-j))/two)
+c       call dcopy( p, pscale(j,1), p, pmu, 1)
+cc      call dtrsv('U','T','N', p, U, p, pmu, 1)
+c       i = p-j+1
+c       call dtrsv('U','T','N', i, U(j,j),i,pmu(j),1)
+c       sum  = sum + ddot(i, pmu(j), 1, pmu(j), 1)
+c     end do
+
+c     if (pshrnk .gt. zero) then 
+c       rmu   = -(detlog+pshrnk*temp/two)
+
+c       const = -dble(p)*(pdof*twolog+(dble(p)-one)*pilog/two)
+c       cgam  = (const/two-pdof*detlog) - term
+
+c       rgam = -((pdof+dble(p)+one)*detlog + sum/two)
+
+c       pdof  = (cmu+cgam) + (rmu+rgam)
+c     else
+c       pdof = FLMAX
+c     end if
+
+      return
+      end
       subroutine mvnxxx( x, n, p, mu, U, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
 
       implicit NONE
 
+c     integer            n, p
       integer            n, p
 
       double precision   hood
 
+c     double precision   x(n,p), mu(p), U(p,p)
       double precision   x(n,*), mu(*), U(p,*)
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
       integer                 i, j, j1
 
-      double precision        dnp, scl
+      double precision        dn, dnp, scl
       double precision        umin, umax, cs, sn
 
       double precision        zero, one, two
@@ -12380,11 +15626,12 @@ c------------------------------------------------------------------------------
       double precision        ddot
       external                ddot
 
-c------------------------------------------------------------------------------
+c-----------------------------------------------------------------------------
 
+      dn  = dble(n)
       dnp = dble(n*p)
 
-      scl = one/dble(n)
+      scl = one/dn
       do j = 1, p
         mu(j) = ddot( n, scl, 0, x(1,j), 1)
         call dcopy( p, zero, 0, U(1,j), 1)
@@ -12406,7 +15653,7 @@ c------------------------------------------------------------------------------
         call dscal( j, scl, U(1,j), 1)
       end do
 
-      call drnge( p, U, p+1, umin, umax)
+      call absrng( p, U, p+1, umin, umax)
 
 c     rcond = umin / (one + umax)
 
@@ -12417,7 +15664,7 @@ c     rcond = umin / (one + umax)
         do j = 1, p
           hood = hood + log(abs(U(j,j)))
         end do
-        hood = -dble(n)*(hood + dble(p)*(pi2log + one)/two)
+        hood = -dn*(hood + dble(p)*(pi2log + one)/two)
       end if
 c
 c     do j = 1, p
@@ -12432,1362 +15679,3 @@ c     end do
 
       return
       end
-
-      subroutine drnge( l, v, i, vmin, vmax)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      double precision v(*)
-
-      integer          i, j, k, l
-
-      double precision temp, vmin, vmax
-
-c----------------------------------------------------------------------------
-
-      temp  = abs(v(1))
-      vmin  = temp
-      vmax  = temp
-
-      if (l .eq. 1) return
-
-      if (i .eq. 1) then
-        do j = 2, l
-          temp = abs(v(j))
-          vmin = min(vmin,temp)
-          vmax = max(vmax,temp)
-        end do
-      else
-        k = 1 + i
-        do j = 2, l
-          temp = abs(v(k))
-          vmin = min(vmin,temp)
-          vmax = max(vmax,temp)
-          k    = k + i
-        end do
-      end if
-
-      return  
-      end 
-
-      subroutine mcltrw( x, n, p, u, ss)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit double precision (a-h,o-z)
-
-      integer            n, p
-
-      double precision   x(n,*), u(*)
-
-c------------------------------------------------------------------------------
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-c form mean
-      fac = one / sqrt(dble(n))
-      call dcopy( p, zero, 0, u, 1)
-      do i = 1, n
-        call daxpy( p, fac, x(i,1), n, u, 1)
-      end do
-
-c subtract mean and form sum of squares
-      ss = zero
-      do j = 1, p
-        call daxpy( n, (-fac), u(j), 0, x(1,j), 1)
-        ss = ss + ddot(n, x(1,j), 1, x(1,j), 1)
-      end do
-
-      return
-      end
-
-      subroutine mclvol( x, n, p, u, v, w,
-     *                   work, lwork, iwork, liwork, 
-     *                   info)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit double precision (a-h,o-z)
-
-c     integer            n, p, iwork(liwork)
-      integer            n, p, iwork(*)
-
-      double precision   x(n,*), u(*), v(p,*), w(p,p), work(*)
-
-c------------------------------------------------------------------------------
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-      double precision    EPSMAX
-      parameter          (EPSMAX = 2.2204460492503131d-16)
-
-      double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157D+308)
-
-c     double precision        d1mach
-
-c------------------------------------------------------------------------------
-
-c form mean
-      s = one / dble(n)
-      call dcopy( p, zero, 0, u, 1)
-      do i = 1, n
-        call daxpy( p, s, x(i,1), n, u, 1)
-      end do
-
-c subtract mean
-      do j = 1, p
-        call daxpy( n, (-one), u(j), 0, x(1,j), 1)
-      end do
-
-c     if (.false.) then
-c this gets the eigenvectors but x is overwritten
-
-c get right singular vectors
-c       call dgesvd( 'N', 'A', n, p, x, n, u, 
-c    *                dummy, 1, w, p, work, lwork, info)
-
-c       if (info .lt. 0) return
-
-c       if (info .eq. 0) then
-c         lwork = int(work(1))
-c         do i = 1, p
-c           v(i,i) = w(i,i)
-c           if (i .gt. 1) then
-c             do j = 1, (i-1)
-c               v(i,j) = w(j,i)
-c               v(j,i) = w(i,j)
-c             end do
-c           end if
-c         end do
-c         goto 100
-c       end if
-
-c     end if
-
-c form crossproduct
-      call dsyrk( 'U', 'T', p, n, one, x, n, zero, w, p)
-
-c get eigenvectors
- 
-      do j = 1, p
-        do i = 1, j
-          v(i,j) = w(i,j)
-        end do
-      end do
-
-      call dsyevd( 'V', 'U', p, v, p, u, 
-     *              work, lwork, iwork, liwork, info)
-
-      if (info .lt. 0) return
-
-      if (info .eq. 0) then
-        lwork  = int(work(1))
-        liwork = iwork(1)
-        goto 100
-      end if
-
-c     EPSMAX = d1mach(4)
-
-      call dsyevx( 'V', 'A', 'U', p, w, p, dummy, dummy, i, i,
-     *              sqrt(EPSMAX), j, u, v, p,
-     *              work, lwork, iwork(p+1), iwork, info)
-          
-      if (info .ne. 0) return
-
-      lwork  = int(work(1))
-      liwork = -1 
-
- 100  continue
-  
-c      FLMAX = d1mach(2)
-
-c form xv
-
-c     vol = one
-      do j = 1, p
-        call dgemv( 'N', n, p, one, x, n, v(1,j), 1, zero, work, 1)
-        cmax = -FLMAX
-        cmin =  FLMAX
-        do i = 1, n
-          temp = work(i)
-          if (temp .gt. cmax) cmax = temp
-          if (temp .lt. cmin) cmin = temp
-        end do
-        u(j) = cmax - cmin
-c       vol  = vol * (cmax - cmin)
-      end do
-
-      return
-
-      end
-
-      subroutine shapeo( TRANSP, s, O, l, m, w, info)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-c      character          TRANSP
-      integer            TRANSP
-
-      integer            l, m, info
-
-      double precision   s(*), O(l,l,*), w(l,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 j, k
-
-      double precision        temp
-
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
-
-c------------------------------------------------------------------------------
-
-      if (TRANSP .eq. 1) then
- 
-        do j = 1, l
-          temp = sqrt(s(j))
-          do k = 1, m
-            call dscal( l, temp, O(j,1,k), l)
-          end do
-        end do
-
-        do k = 1, m
-          call dsyrk( 'U', 'T', l, l, one, O(1,1,k), l, zero, w, l)
-          do j = 1, l
-            call dcopy( j, w(1,j), 1, O(1,j,k), 1)
-          end do
-          do j = 2, l
-            call dcopy( j-1, w(1,j), 1, O(j,1,k), l)
-          end do
-        end do
-
-        info = 0
-        return
-      end if
-
-      if (TRANSP .eq. 0) then
-
-        do j = 1, l
-          temp = sqrt(s(j))
-          do k = 1, m
-            call dscal( l, temp, O(1,j,k), 1)
-          end do
-        end do
-
-        do k = 1, m
-          call dsyrk( 'U', 'N', l, l, one, O(1,1,k), l, zero, w, l)
-          do j = 1, l
-            call dcopy( j, w(1,j), 1, O(1,j,k), 1)
-          end do
-          do j = 2, l
-            call dcopy( j-1, w(1,j), 1, O(j,1,k), l)
-          end do
-        end do
-
-        info = 0
-        return
-      end if
-
-      info = -1
-
-      return
-      end
-
-      subroutine unchol ( UPLO, T, l, n, info)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-c      character          UPLO
-      integer          UPLO
-
-      integer            l, n, info
-
-c     double precision   T(abs(n), abs(n))
-      double precision   T(  l   ,   *   )
-
-c------------------------------------------------------------------------------
-
-       integer            i, j, k
-
-       external           ddot
-       double precision   ddot
-
-c------------------------------------------------------------------------------
-
-      if (UPLO .eq. 1) then
-
-        do i = 2, n
-          do j = 1, (i-1)
-            T(i,j) = ddot( j, T(1,i), 1, T(1,j), 1)
-          end do
-        end do
-
-        do k = 1, n
-          T(k,k) = ddot( k, T(1,k), 1, T(1,k), 1)
-        end do
-
-        do k = 1, n-1
-          call dcopy( n-k, T(k+1,k), 1, T(k,k+1), l)
-        end do
-
-        info = 0
-        return
-      end if
-
-      if (UPLO .eq. 0) then
-
-        do i = 2, n
-          do j = 1, (i-1)
-            T(j,i) = ddot( j, T(i,1), l, T(j,1), l)
-          end do
-        end do
-        
-        do k = 1, n
-          T(k,k) = ddot( k, T(k,1), l, T(k,1), l)
-        end do
-
-        do k = 2, n
-          call dcopy( k-1, T(1,k), 1, T(k,1), l)
-        end do
-
-        return
-        end if
-
-      info = -1
-      return
-      end
-
-      subroutine den1e ( x, mu, sigsq, n, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   sigsq, eps
-
-      double precision   x(*), mu(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k
-
-      double precision        sumz, temp, const
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps   = max(eps,zero)
-
-      if (sigsq .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = sigsq
-
-      const = pi2log+log(sigsq)
-
-      do i = 1, n
-        sumz = zero
-        do k = 1, G
-          temp      = x(i) - mu(k)
-          temp      = temp*temp
-          dens(i,k) = -(const+temp/sigsq)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine den1v ( x, mu, sigsq, n, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, G
-
-      double precision   eps
-
-      double precision   x(*), mu(*), sigsq(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, k
-
-      double precision        temp, const, muk, sigsqk
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps  = max(eps,zero)
-
-      temp = sigsq(1)
-
-      if (G .gt. 1) then
-        do k = 2, G
-          temp = min(temp,sigsq(k))
-        end do
-      end if
-
-      if (temp .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = temp
-
-      do k = 1, G
-        sigsqk = sigsq(k)
-        const  = pi2log+log(sigsqk)
-        muk    = mu(k)
-        do i = 1, n
-          temp      = x(i) - muk
-          dens(i,k) = -(const+(temp*temp)/sigsqk)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine deneee( CHOL, x, mu, Sigma, n, p, G, w, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            CHOL
-c      character          CHOL
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), mu(p,*), Sigma(p,*)
-
-      double precision   w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 info, i, j, k
-
-      double precision        detlog, const, temp
-      double precision        umin, umax, rc
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      if (CHOL .eq. 0) then
-
-c Cholesky factorization
-        call dpotrf( 'U', p, Sigma, p, info)
-
-        w(1) = dble(info)
-
-        if (info .ne. 0) then
-          w(1)  = FLMAX
-          return
-        end if
-
-      end if
-
-      call drnge( p, Sigma, (p+1), umin, umax)
-
-      eps = max(eps,zero)
-      eps = sqrt(eps)
-
-      rc  = umin/(one+umax)
-
-      if (rc .le. eps) then
-        eps = rc
-        return
-      end if
-
-      eps = rc
-
-      detlog = zero
-      do j = 1, p
-        detlog = detlog + log(abs(Sigma(j,j)))
-      end do
-
-      const = dble(p)*pi2log/two + detlog
-
-      do k = 1, G
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma, p, w, 1)
-          temp      = ddot( p, w, 1, w, 1)/two
-          dens(i,k) = -(const+temp)
-        end do
-      end do
-
-      w(1) = zero
-
-      return
-      end
-
-      subroutine deneei ( x, mu, scale, shape, n, p, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, eps
-
-      double precision   x(n,*), mu(p,*), shape(*)
-
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const, smin, smax
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps = max(eps,zero)
-
-      if (scale .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. sqrt(eps)) then
-c       FLMAX = d1mach(2)
-        eps   = FLMAX
-        return
-      end if
-
-      eps = smin*smin
-
-      const = dble(p)*(pi2log+log(scale)) 
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine deneev( x, mu, scale, shape, O, n, p, G, 
-     *                   v, w, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, eps
-
-      double precision   x(n,*), mu(p,*), shape(*), O(p,p,*)
-
-      double precision   v(*), w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        const, temp, smin, smax
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(eps, zero)
-  
-      if (scale .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do j = 1, p
-        shape(j) = temp*sqrt(shape(j))
-      end do
-
-      call drnge( p, shape, 1, smin, smax)
-  
-      if (smin .le. sqrt(eps)) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin*smin
-        
-      const = dble(p)*(pi2log + log(scale))/two
-
-      do k = 1, G
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp      = ddot( p, v, 1, v, 1)/two
-          dens(i,k) = -(const+temp)
-        end do
-
-      end do
-
-      return
-      end
-
-      subroutine deneii( x, mu, sigsq, n, p, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   sigsq, eps
-
-      double precision   x(n,*), mu(p,*), dens(n, *)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, sumz, temp, const
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps   = max(eps,zero)
-
-      if (sigsq .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = sigsq
-
-      const = dble(p)*(pi2log+log(sigsq))
-
-      do i = 1, n
-        sumz = zero
-        do k = 1, G
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum/sigsq)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine denevi( x, mu, scale, shape, n, p, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   scale, eps
-
-      double precision   x(n,*), mu(p,*), shape(p,*)
-
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const
-      double precision        smin, smax, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(eps, zero)
-      rteps = sqrt(eps)
-    
-      if (scale .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      temp = sqrt(scale)
-      do k = 1, G
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-        call drnge( p, shape(1,k), 1, smin, smax)
-        if (smin .le. rteps) then
-          eps = FLMAX
-          return
-        end if
-      end do
-
-      const  = dble(p)*(pi2log+log(scale))
-
-      do k = 1, G
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine denvei( x, mu, scale, shape, n, p, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), mu(p,*), scale(*), shape(*)
-
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const, smin, smax, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
- 
-      eps   = max(eps,zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum/scalek)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine denvev( x, mu, scale, shape, O, n, p, G, 
-     *                   v, w, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-c     integer            n, p, G
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), mu(p,*)
-
-      double precision   scale(*), shape(*), O(p,p,*)
-
-      double precision   v(*), w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        const, temp, smin, smax, scalek
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-c     FLMAX  = d1mach(2)
-
-      eps    = max(eps, zero)
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      call drnge( p, shape, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin
-
-      do j = 1, p
-        shape(j) = sqrt(shape(j))
-      end do
-
-      do k = 1, G
-
-        scalek = scale(k)
-        
-        const = dble(p)*(pi2log+log(scalek))
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dgemv( 'N', p, p, one, O(1,1,k), p, 
-     *                 w, 1, zero, v, 1)
-          do j = 1, p
-            v(j) = v(j)/shape(j)
-          end do
-          temp      = ddot( p, v, 1, v, 1)/scalek
-          dens(i,k) = -(const+temp)/two
-        end do
-
-      end do
-
-      return
-      end
-
-      subroutine denvii( x, mu, sigsq, n, p, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   sigsq(*), eps
-
-      double precision   x(n,*), mu(p,*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, sigsqk, temp, const
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-      eps  = max(eps,zero)
-
-      temp = sigsq(1)
-
-      if (G .gt. 1) then
-        do k = 2, G
-          temp = min(temp,sigsq(k))
-        end do
-      end if
-
-      if (temp .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = temp
-
-      do k = 1, G
-        sigsqk = sigsq(k)
-        const  = dble(p)*(pi2log+log(sigsq(k)))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = x(i,j) - mu(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum/sigsqk)/two
-        end do
-      end do
-
-      return
-      end
-      subroutine denvvi( x, mu, scale, shape, n, p, G, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), mu(p,*), scale(*), shape(p,*)
-
-      double precision   dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 i, j, k
-
-      double precision        sum, temp, const
-      double precision        smin, smax, scalek, rteps
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-c------------------------------------------------------------------------------
-
-c     FLMAX = d1mach(2)
-
-      eps   = max(eps, zero)
-      rteps = sqrt(eps)
-
-      do k = 1, G
-        temp = sqrt(scale(k))
-        do j = 1, p
-          shape(j,k) = temp*sqrt(shape(j,k))
-        end do
-      end do
-
-      do k = 1, G
-       
-        call drnge( p, shape(1,k), 1, smin, smax)
-
-        if (smin .le. rteps) then
-          eps = FLMAX
-          return
-        end if
-
-      end do
-
-      call drnge( G, scale, 1, smin, smax)
-
-      if (smin .le. eps) then
-        eps = FLMAX
-        return
-      end if
-
-      eps = smin
-
-      do k = 1, G
-        scalek = scale(k)
-        const  = dble(p)*(pi2log+log(scalek))
-        do i = 1, n
-          sum = zero
-          do j = 1, p
-            temp = (x(i,j) - mu(j,k))/shape(j,k)
-            sum  = sum + temp*temp
-          end do
-          dens(i,k) = -(const+sum)/two
-        end do
-      end do
-
-      return
-      end
-
-      subroutine denvvv( CHOL, x, mu, Sigma, n, p, G, w, eps, dens)
-
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-
-      implicit NONE
-
-      integer          CHOL
-c      character          CHOL
-
-      integer            n, p, G
-
-      double precision   eps
-
-      double precision   x(n,*), mu(p,*), Sigma(p,p,*)
-
-      double precision   w(*), dens(n,*)
-
-c------------------------------------------------------------------------------
-
-      integer                 p1, info, i, j, k
-
-      double precision        const, detlog, temp
-      double precision        umin, umax, rc
-
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
-
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
-
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
-
-      external                ddot
-      double precision        ddot
-
-c------------------------------------------------------------------------------
-
-      p1    = p + 1
-
-c     FLMAX = d1mach(2)
-
-c      if (CHOL .eq. 'N') then
-      if (CHOL .eq. 0) then
-
-        do k = 1, G
-
-          call dpotrf( 'U', p, Sigma(1,1,k), p, info)
-
-          w(1) = dble(info)
-
-          if (info .ne. 0) then
-            w(1) = FLMAX
-            return
-          end if
-       
-        end do
-
-      end if
-
-      eps = max(eps,zero)
-      eps = sqrt(eps)
-
-      rc   = FLMAX
-      do k = 1, G
-        call drnge( p, Sigma(1,1,k), p1, umin, umax)
-        rc  = min(rc,umin/(one+umax))
-      end do
-
-      if (rc .le. eps) then
-        eps = rc
-        return
-      end if
- 
-      eps = rc
-
-      do k = 1, G
-
-        detlog = zero
-        do j = 1, p
-          detlog = detlog + log(abs(Sigma(j,j,k)))
-        end do
-
-        const = dble(p)*pi2log/two + detlog
-
-        do i = 1, n
-          call dcopy( p, x(i,1), n, w, 1)
-          call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, Sigma(1,1,k), p, w, 1)
-          temp      = ddot( p, w, 1, w, 1)/two
-          dens(i,k) = -(const+temp)
-        end do
-
-      end do
-
-      w(1) = zero
-
-      return
-      end
-c This function is part of the MCLUST software described at
-c       http://www.stat.washington.edu/mclust
-c Copyright information and conditions for use of MCLUST are given at
-c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the 
-c University of Washington.
-      SUBROUTINE D2NORM ( N, X, INCX, VALUE )
-*     .. Scalar Arguments ..
-      INTEGER                           INCX, N
-*     .. Array Arguments ..
-      DOUBLE PRECISION                  X( * ), VALUE
-*     ..
-*     
-*  DNRM2 returns the euclidean norm of a vector via the function
-*  name, so that
-*
-*     DNRM2 := sqrt( x'*x )
-*
-*     THIS FUNCTION MODELLED AFTER DNRM2 BUT WRITTEN AS A SUBROUTINE
-*
-*  -- This version written on 25-October-1982.
-*     Modified on 14-October-1993 to inline the call to DLASSQ.
-*     Sven Hammarling, Nag Ltd.
-*
-*
-*     .. Parameters ..
-      DOUBLE PRECISION      ONE         , ZERO
-      PARAMETER           ( ONE = 1.0D+0, ZERO = 0.0D+0 )
-*     .. Local Scalars ..
-      INTEGER               IX
-      DOUBLE PRECISION      ABSXI, NORM, SCALE, SSQ
-*     .. Intrinsic Functions ..
-      INTRINSIC             ABS, SQRT
-*     ..
-*     .. Executable Statements ..
-      IF( N.LT.1 .OR. INCX.LT.1 )THEN
-         NORM  = ZERO
-      ELSE IF( N.EQ.1 )THEN
-         NORM  = ABS( X( 1 ) )
-      ELSE
-         SCALE = ZERO
-         SSQ   = ONE
-*        The following loop is equivalent to this call to the LAPACK
-*        auxiliary routine:
-*        CALL DLASSQ( N, X, INCX, SCALE, SSQ )
-*
-         DO 10, IX = 1, 1 + ( N - 1 )*INCX, INCX
-            IF( X( IX ).NE.ZERO )THEN
-               ABSXI = ABS( X( IX ) )
-               IF( SCALE.LT.ABSXI )THEN
-                  SSQ   = ONE   + SSQ*( SCALE/ABSXI )**2
-                  SCALE = ABSXI
-               ELSE
-                  SSQ   = SSQ   +     ( ABSXI/SCALE )**2
-               END IF
-            END IF
-   10    CONTINUE
-         NORM  = SCALE * SQRT( SSQ )
-      END IF
-*
-      VALUE = NORM
-      RETURN
-*
-*     End of D2NORM.
-*
-      END

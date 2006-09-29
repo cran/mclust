@@ -1,9 +1,8 @@
-R port of the 2002 version of MCLUST, by Fraley and Raftery
-(Dept. of Statistics, University of Washington) by Ron Wehrens.
+2006 version of MCLUST, by Fraley and Raftery
+(Dept. of Statistics, University of Washington)
 
-Note that this version differs considerably from the older version.
+New functionality added, including conjugate priors for Bayesian 
+regularization. 
+Backward compatibility is not guaranteed since the implementation of some 
+functions has changed to make them easier to use or maintain.
 
-The Splus functionality, as described in
-the technical report (contained in directory inst/doc/tr415.pdf) is
-fully present. Implementation of some functions is slightly different
-(notably density and clpairs).

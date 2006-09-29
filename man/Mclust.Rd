@@ -5,115 +5,137 @@
   Model-Based Clustering
 }
 \description{
-  Clustering via EM initialized by hierarchical clustering for
-  parameterized Gaussian mixture models. The number of clusters and the
-  clustering model is chosen to maximize the BIC. 
+  The optimal model according to BIC for EM initialized by hierarchical 
+  clustering for parameterized Gaussian mixture models.
 }
 \usage{
-Mclust(data, minG, maxG)
+Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(), 
+       initialization=NULL, warn=FALSE, \dots)
 }
 \arguments{
   \item{data}{
-    A numeric vector, matrix, or data frame of observations.
-    Categorical variables are not allowed.
-    If a matrix or data frame, rows correspond to observations and
-    columns correspond to variables.
+    A numeric vector, matrix, or data frame of observations. Categorical
+    variables are not allowed. If a matrix or data frame, rows
+    correspond to observations and columns correspond to variables. 
   }
-  \item{minG}{
-    An integer vector specifying the minimum number of mixture components 
-    (clusters) to be considered.
-    The default is \code{1} component.
+  \item{G}{
+    An integer vector specifying the numbers of mixture components
+    (clusters) for which the BIC is to be calculated. 
+    The default is \code{G=1:9}. 
   }
-  \item{maxG}{
-    An integer vector specifying the maximum number of mixture components 
-    (clusters) to be considered.
-    The default is \code{9} components.
+  \item{modelNames}{
+   A vector of character strings indicating the models to be fitted 
+    in the EM phase of clustering. The help file for
+    \code{mclustModelNames} describes the available models.
+    The default is \code{c("E", "V")} for univariate data and
+    \code{mclustOptions()\$emModelNames} for multivariate data (n > d),
+    the spherical and diagonal models 
+   \code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")} 
+    for multivariate data (n <= d).
+   }
+  \item{prior}{
+    The default assumes no prior, but this argument allows specification of a 
+    conjugate prior on the means and variances through the function 
+    \code{priorControl}.
+    }
+  \item{control}{
+    A list of control parameters for EM. The defaults are set by the call
+    \code{emControl()}. 
+  }
+ \item{initialization}{
+   A list containing zero or more of the following components:
+  \itemize{
+  \item{hcPairs}{
+    A matrix of merge pairs for hierarchical clustering such as produced
+    by function \code{hc}. For multivariate data, the default is to compute
+    a hierarchical clustering tree by applying function \code{hc} with
+    \code{modelName = "VVV"} to the data or a
+    subset as indicated by the \code{subset} argument.
+    The hierarchical clustering results are to start EM.
+    For univariate data, the default is to use quantiles to start EM.
+  }
+  \item{subset}{
+    A logical or numeric vector specifying a subset of the data
+    to be used in the initial hierarchical clustering phase.
+  }
+  }
+  }
+ \item{warn}{
+    A logical value indicating whether or not certain warnings 
+    (usually related to singularity) should be issued.
+    The default is to suppress these warnings.
+  }
+  \item{\dots }{
+    Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
 \value{
-  A list representing the best model (according to BIC) for the given range
-  of numbers of clusters. The following components are included: 
-  \item{BIC}{ 
-    A matrix giving the BIC value for each model (rows) and number of
-    clusters (columns).
+ A list giving the optimal (according to BIC) parameters,
+  conditional probabilities \code{z}, and loglikelihood,
+  together with the associated classification and its uncertainty.
+  The details of the output components are as follows:
+  \item{modelName}{
+    A character string denoting the model at which the optimal BIC occurs.
   }
-  \item{bic}{ 
-    A scalar giving the optimal BIC value.
+  \item{n}{
+    The number of observations in the data.
   }
-  \item{modelName}{ 
-    The MCLUST name for the best model according to BIC. 
+  \item{d}{
+    The dimension of the data.
   }
-  \item{classification}{ 
-    The classification corresponding to the optimal BIC value. 
+  \item{G}{
+    The optimal number of mixture components.
   }
-  \item{uncertainty}{ 
-    The  uncertainty in the classification corresponding to the
-    optimal BIC value.
+  \item{BIC}{
+    All BIC values.
   }
-  \item{mu}{ 
-    For multidimensional models, a matrix whose columns are the means
-    of each group in the best model. For one-dimensional models, a
-    vector whose entries are the means for each group in the best
-    model. 
+  \item{bic}{
+    Optimal BIC value.
   }
-  \item{sigma}{ 
-    For multidimensional models, a three dimensional array in which
-    \code{sigma[,,k]} gives the covariance for the \emph{k}th group in
-    the best model. For one-dimensional models, either a scalar giving
-    a common variance for the groups or a vector whose entries are the
-    variances for each group in the best model.
+  \item{loglik}{
+    The loglikelihood corresponding to the optimal BIC.
   }
-  \item{pro}{ 
-    The mixing probabilities for each component in the best model.
+  \item{z}{
+    A  matrix whose \emph{[i,k]}th entry is the probability that observation
+    \emph{i} in the test data belongs to the \emph{k}th class.
   }
-  \item{z}{ 
-    A matrix whose \emph{[i,k]}th entry is the probability that
-    observation \emph{i} belongs to the \emph{k} component in the
-    model. The optimal classification is derived from this, chosing
-    the class to be the one giving the maximum probability.
+  \item{classification}{
+    \code{map(z)}: The classification corresponding to \code{z}.
   }
-  \item{loglik}{ 
-    The log likelihood for the data under the best model.
+  \item{uncertainty}{
+     The uncertainty associated with the classification.
   }
-}
-\section{Details}{
-  The following models are compared in \code{Mclust}: \cr\cr 
-  "E" for spherical, equal variance (one-dimensional) \cr
-  "V" for spherical, variable variance (one-dimensional) \cr\cr
-  "EII": spherical, equal volume \cr
-  "VII": spherical, unequal volume \cr
-  "EEI": diagonal, equal volume, equal shape \cr
-  "VVI": diagonal, varying volume, varying shape \cr
-  "EEE": ellipsoidal, equal volume, shape, and orientation \cr
-  "VVV": ellipsoidal, varying volume, shape, and orientation \cr\cr
-  \code{Mclust} is intended to combine \code{EMclust} and its
-  \code{summary} in a simiplified one-step model-based clustering
-  function. The latter provide more flexibility including choice of
-  models. 
+  \item{Attributes:}{
+     The input parameters other than the data.
+  }
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}.
- 
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
+  \emph{Journal of the American Statistical Association 97:611:631}. 
+  
+  C. Fraley and A. E. Raftery (2005).
+  Bayesian regularization for normal mixture estimation and model-based
+  clustering.
   Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
-  \code{\link{plot.Mclust}},
-  \code{\link{EMclust}}
+  \code{\link{priorControl}}, 
+  \code{\link{emControl}}, 
+  \code{\link{mclustBIC}}, 
+  \code{\link{mclustModelNames}},
+  \code{\link{mclustOptions}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
-irisMclust <- Mclust(irisMatrix)
-
-\dontrun{plot(irisMclust,irisMatrix)}
+irisMclust <- Mclust(iris[,-5])
+\dontrun{
+ plot(irisMclust)
+}
 }
 \keyword{cluster}
 % docclass is function

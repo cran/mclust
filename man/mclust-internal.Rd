@@ -1,23 +1,23 @@
 \name{mclust-internal}
 \title{Internal MCLUST functions}
-\alias{[.mclustDAtest}
+\alias{pickBIC}
+\alias{bicFill}
+\alias{grid1}
+\alias{grid2}
 \alias{mvn2plot}
 \alias{vecnorm}
 \alias{traceW}
+\alias{qclass}
 \alias{unchol}
 \alias{shapeO}
 \alias{orth2}
-\alias{mclustProjControl}
-\alias{mclust2DplotControl}
-\alias{[.EMclust}
-\alias{[.EMclustN}
-\alias{nextPerm}
 \alias{charconv}
-\alias{estep2}
+\alias{[.mclustBIC}
+\alias{[.mclustDAtest}
 \description{
-  Internal tools functions.
+  Internal functions.
 }
 \details{
-  These are not to be called by the user directly.
+  Not intended to be called directly by users.
 }
 \keyword{internal}

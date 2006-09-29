@@ -1,18 +1,18 @@
 \name{coordProj}
 \alias{coordProj}
 \title{
-  Coordinate projections of data in more than two dimensions modelled by an MVN
-  mixture.
+  Coordinate projections of multidimensional data modeled by an MVN mixture.
 }
 \description{
-  Plots coordinate projections given data in more than two dimensions
+  Plots coordinate projections given multidimensional data
   and parameters of an MVN mixture model for the data.
 }
 \usage{
-coordProj(data, \dots, dimens = c(1, 2),
-          type = c("classification","uncertainty","errors"), ask = TRUE,
-          quantiles = c(0.75, 0.95), symbols, scale = FALSE,
-          identify = FALSE, CEX = 1, PCH = ".", xlim, ylim)
+coordProj(data, dimens=c(1,2), parameters=NULL, z=NULL,
+          classification=NULL, truth=NULL, uncertainty=NULL, 
+          what = c("classification", "errors", "uncertainty"),
+          quantiles = c(0.75, 0.95), symbols=NULL, scale = FALSE, 
+          xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -27,56 +27,50 @@ coordProj(data, \dots, dimens = c(1, 2),
     \code{c(1,2)}, in which the first
     dimension is plotted against the second.
   }
-  \item{\dots}{
-    One or more of the following:
-    \describe{
-      \item{classification}{
-	A numeric or character vector representing a classification of
-	observations (rows) of \code{data}.
-      }
-      \item{uncertainty}{
-	A numeric vector of values in \emph{(0,1)} giving the
-	uncertainty of each data point.
-      }
-      \item{z}{
+ \item{parameters}{
+     A named list giving the parameters of an \emph{MCLUST} model, 
+     used to produce superimposing ellipses on the plot. 
+     The relevant components are as follows:
+     \describe{
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+     }
+  }
+ \item{z}{
 	A matrix in which the \code{[i,k]}th entry gives the
 	probability of observation \emph{i} belonging to the \emph{k}th class. 
 	Used to compute \code{classification} and
 	\code{uncertainty} if those arguments aren't available.
-      }
-      \item{truth}{
+  }
+  \item{classification}{
+	A numeric or character vector representing a classification of
+	observations (rows) of \code{data}. If present argument \code{z}
+        will be ignored.
+  }
+  \item{truth}{
 	A numeric or character vector giving a known
 	classification of each data point.
 	If \code{classification}
 	or \code{z} is also present, 
 	this is used for displaying classification errors.
-      }
-      \item{mu}{
-	A matrix whose columns are the means of each group. 
-      }
-      \item{sigma}{
-	A three dimensional array 
-	in which \code{sigma[,,k]} gives the covariance
-	for the \emph{k}th group.
-      }
-      \item{decomp}{
-	A list with \code{scale}, \code{shape} and \code{orientation}
-	components giving an alternative form for the covariance
-	structure of the mixture model. 
-      }
-    }
   }
-  \item{type}{
-    Any subset of 
-    \code{c("classification","uncertainty","errors")}. The function will
-    produce the corresponding plot if it has been supplied sufficient
-    information to do so. If more than one plot is possible then users
-    will be asked to choose from a menu if \code{ask=TRUE}. 
+  \item{uncertainty}{
+        A numeric vector of values in \emph{(0,1)} giving the
+	uncertainty of each data point. If present argument \code{z}
+        will be ignored.
   }
-  \item{ask}{
-    A logical variable indicating whether or not a menu should be
-    produced when more than one plot is possible. The default is
-    \code{ask=TRUE}. 
+  \item{what}{
+    Choose from one of the following three options: \code{"classification"}
+    (default), \code{"errors"}, \code{"uncertainty"}. 
   }
   \item{quantiles}{
     A vector of length 2 giving quantiles used in plotting
@@ -91,9 +85,9 @@ coordProj(data, \dots, dimens = c(1, 2),
     each unique class in \code{classification}. Elements in
     \code{symbols} correspond to classes in \code{classification} in
     sorted order. Default: If \emph{G} is the number of groups in the
-    classification, the first \emph{G} symbols in
-    \code{.Mclust\$symbols}, otherwise if \emph{G} is less than 27 then
-    the first \emph{G} capital letters in the Roman alphabet. 
+    classification, the first \emph{G} symbols in 
+     \code{.Mclust\$classPlotSymbols}, otherwise if \emph{G} is less than 
+     27 then the first \emph{G} capital letters in the Roman alphabet. 
   }
   \item{scale}{
     A logical variable indicating whether or not the two chosen
@@ -101,9 +95,9 @@ coordProj(data, \dots, dimens = c(1, 2),
     thus preserve the shape of the distribution.
     Default: \code{scale=FALSE} 
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{xlim, ylim}{
+    Arguments specifying bounds for the ordinate, abscissa of the plot.
+    This may be useful for when comparing plots.
   }
   \item{CEX}{
     An argument specifying the size of the plotting symbols. 
@@ -113,48 +107,47 @@ coordProj(data, \dots, dimens = c(1, 2),
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{xlim, ylim}{
-    Arguments specifying bounds for the ordinate, abscissa of the plot.
-    This may be useful for when comparing plots.
+  \item{identify}{
+    A logical variable indicating whether or not to add a title to the plot
+    identifying the dimensions used.
+  }
+  \item{\dots}{
+    Other graphics parameters.
   }
 }
 \section{Side Effects}{
-  Coordinate projections of the data, possibly showing location of the
-  mixture components, classification, uncertainty, and/or classification
-  errors. 
+  A plot showing a two-dimensional coordinate projection of the data, together
+  with the location of the  mixture components, classification, uncertainty,
+  and/or classification errors.
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}.
-  
-  
-  C. Fraley and A. E. Raftery (2002).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis.
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{clPairs}},
   \code{\link{randProj}},
   \code{\link{mclust2Dplot}},
-  \code{\link{mclustOptions}},
-  \code{\link{do.call}}
+  \code{\link{mclustOptions}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
+est <- meVVV(iris[,-5], unmap(iris[,5]))
 
-msEst <- mstepVVV(irisMatrix, unmap(irisClass))
-
-par(pty = "s", mfrow = c(1,2))
-coordProj(irisMatrix,dimens=c(2,3), truth = irisClass, 
-          mu = msEst$mu, sigma = msEst$sigma, z = msEst$z)
-do.call("coordProj", c(list(data=irisMatrix, dimens=c(2,3), truth=irisClass),
-                       msEst))
+\dontrun{
+par(pty = "s", mfrow = c(1,1))
+coordProj(iris[,-5], dimens=c(2,3), parameters = msEst$parameters, z = est$z,
+          what = "classification", identify = TRUE) 
+coordProj(iris[,-5], dimens=c(2,3), parameters = msEst$parameters, z = est$z,
+          truth = iris[,5], what = "errors", identify = TRUE) 
+coordProj(iris[,-5], dimens=c(2,3), parameters = msEst$parameters, z = est$z,
+          what = "uncertainty", identify = TRUE) 
+}
 }
 \keyword{cluster}
 % docclass is function

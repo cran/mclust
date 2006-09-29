@@ -8,11 +8,12 @@
   for the data.
 }
 \usage{
-mclust2Dplot(data, \dots,
-             type = c("classification","uncertainty","errors"), ask = TRUE,
-             quantiles = c(0.75, 0.95), symbols, scale = FALSE,
-             identify = FALSE, CEX = 1, PCH = ".", xlim, ylim,
-             swapAxes = FALSE) 
+mclust2Dplot(data, parameters=NULL, z=NULL,
+             classification=NULL, truth=NULL, uncertainty=NULL,
+             what = c("classification","uncertainty","errors"), 
+             quantiles = c(0.75, 0.95), symbols=NULL, scale = FALSE,
+             xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, 
+             swapAxes = FALSE, \dots) 
 }
 \arguments{
   \item{data}{
@@ -22,64 +23,55 @@ mclust2Dplot(data, \dots,
     columns correspond to variables. 
     In this case the data are two dimensional, so there are two columns.
   }
-  \item{\dots}{
-    One or more of the following:
-    \describe{
-      \item{classification}{
-	A numeric or character vector representing a classification of
-	observations (rows) of \code{data}.
-      }
-      \item{uncertainty}{
-	A numeric vector of values in \emph{(0,1)} giving the
-	uncertainty of each data point.
-      }
-      \item{z}{
-	A matrix in which the \emph{[i,k]}the entry gives the
-	probability of observation \emph{i} belonging to the \emph{k}th class. 
-	Used to compute \code{classification} and
-	\code{uncertainty} if those arguments aren't available.
-      }
-      \item{truth}{
-	A numeric or character vector giving a known
-	classification of each data point.
-	If \code{classification}
-	or \code{z} is also present, this  
-	is used for displaying classification errors.
-      }
-      \item{mu}{
-	A matrix whose columns are the means of each group. 
-      }
-      \item{sigma}{
-	A three dimensional array 
-	in which \code{sigma[,,k]} gives the covariance
-	for the \emph{k}th group.
-      }
-      \item{decomp}{
-	A list with \code{scale},
-	\code{shape} and 
-	\code{orientation}
-	components giving an alternative form for the covariance structure 
-	of the mixture model.
-      }
-    }
+  \item{parameters}{
+     A named list giving the parameters of an \emph{MCLUST} model, 
+     used to produce superimposing ellipses on the plot. 
+     The relevant components are as follows:
+     \describe{
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+     }
   }
-  \item{type}{
-    Any subset of 
-    \code{c("classification","uncertainty","errors")}. 
-    The function will produce the corresponding plot if
-    it has been supplied sufficient information to do so. If more than one
-    plot is possible then users will be asked to choose from a menu
-    if \code{ask=TRUE}.
+ \item{z}{
+        A matrix in which the \code{[i,k]}th entry gives the
+        probability of observation \emph{i} belonging to the \emph{k}th class. 
+        Used to compute \code{classification} and
+        \code{uncertainty} if those arguments aren't available.
   }
-  \item{ask}{
-    A logical variable indicating whether or not a menu should be produced
-    when more than one plot is possible. 
-    The default is \code{ask=TRUE}.
+ \item{classification}{
+        A numeric or character vector representing a classification of
+        observations (rows) of \code{data}. If present argument \code{z}
+        will be ignored.
+  }
+\item{truth}{
+        A numeric or character vector giving a known
+        classification of each data point.
+        If \code{classification}
+        or \code{z} is also present, 
+        this is used for displaying classification errors.
+  }
+  \item{uncertainty}{
+        A numeric vector of values in \emph{(0,1)} giving the
+        uncertainty of each data point. If present argument \code{z}
+        will be ignored.
+  }
+  \item{what}{
+    Choose from one of the following three options: \code{"classification"}
+    (default), \code{"errors"}, \code{"uncertainty"}. 
   }
   \item{quantiles}{
     A vector of length 2 giving quantiles used in plotting uncertainty.
-    The smallest symbols correspond to the smallest quantile 
-    (lowest uncertainty), medium-sized (open) symbols to points falling between 
+    The smallest symbols correspond to the smallest quantile (lowest 
+    uncertainty), medium-sized (open) symbols to points falling between 
     the given quantiles, and large (filled) symbols to those in the largest 
     quantile (highest uncertainty).
     The default is \emph{(0.75,0.95)}.
@@ -92,8 +84,8 @@ mclust2Dplot(data, \dots,
     in order of appearance in the observations
     (the order used by the S-PLUS function 
     \code{unique}). 
-    Default: If \emph{G} is the number of groups in the classification, the first
-    \emph{G} symbols in \code{.Mclust\$symbols},
+    Default: If \emph{G} is the number of groups in the classification, 
+    the first \emph{G} symbols in \code{.Mclust\$symbols},
     otherwise if \emph{G} is less than 27 then the first \emph{G} capital
     letters in the Roman alphabet.
   }
@@ -103,9 +95,9 @@ mclust2Dplot(data, \dots,
     thus preserve the shape of the distribution.
     Default: \code{scale=FALSE} 
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{xlim, ylim}{
+    An argument specifying bounds for the ordinate, abscissa of the plot.
+    This may be useful for when comparing plots.
   }
   \item{CEX}{
     An argument specifying the size of the plotting symbols. 
@@ -115,55 +107,46 @@ mclust2Dplot(data, \dots,
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{xlim, ylim }{
-    An argument specifying bounds for the ordinate, abscissa of the plot.
-    This may be useful for when comparing plots.
+  \item{identify}{
+    A logical variable indicating whether or not to add a title to the plot
+    identifying the dimensions used.
   }
   \item{swapAxes}{
     A logical variable indicating whether or not the axes should be swapped
     for the plot.
   }
+  \item{\dots}{
+    Other graphics parameters.
+  }
 }
 \section{Side Effects}{
-  One or more plots showing location of the mixture components, classification,
-  uncertainty, and/or classification errors.
+  A plot showing the data, together with the location of the mixture 
+  components, classification, uncertainty, and/or classification errors.
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}.
-  
-  
-  C. Fraley and A. E. Raftery (2002).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis.
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{surfacePlot}},
   \code{\link{clPairs}},
   \code{\link{coordProj}},
-  \code{\link{randProj}},
-  \code{\link{spinProj}},
-  \code{\link{mclustOptions}},
-  \code{\link{do.call}}
+  \code{\link{mclustOptions}}
 }
 \examples{
-n <- 250 ## create artificial data
-set.seed(0)
-x <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
-           matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
-xclass <- c(rep(1,n),rep(2,n))
+faithfulModel <- mclustModel(faithful,mclustBIC(faithful))
 
-xEMclust <- summary(EMclust(x),x)
+mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
+             z=faithfulModel$z, what = "classification", identify = TRUE)
 
-mclust2Dplot(x, truth = xclass, z = xEMclust$z, ask=FALSE,
-                mu = xEMclust$mu, sigma = xEMclust$sigma)
-
-do.call("mclust2Dplot", c(list(data = x, truth = xclass, ask=FALSE), xEMclust))
-
+mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
+             z=faithfulModel$z, what = "uncertainty", identify = TRUE)
 }
 \keyword{cluster}
 % docclass is function

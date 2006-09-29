@@ -4,8 +4,8 @@
   Convert mixture component covariances to matrix form.
 }
 \description{
-  Converts a set of covariances from a parameterization by 
-  eigenvalue decomposition to representation as a 3-D array.
+  Converts covariances from a parameterization by  eigenvalue decomposition 
+  or cholesky factorization to representation as a 3-D array.
 }
 \usage{
 decomp2sigma(d, G, scale, shape, orientation, \dots)
@@ -40,7 +40,7 @@ decomp2sigma(d, G, scale, shape, orientation, \dots)
     orientation matrix is the identity.  
   }
   \item{\dots}{
-    Catch unused arguments from a \code{do.call} call.
+    Catches unused arguments from an indirect or list call via \code{do.call}.
   }
 }
 \value{
@@ -48,35 +48,28 @@ decomp2sigma(d, G, scale, shape, orientation, \dots)
   covariance matrix of the \emph{k}th component in an MVN mixture model.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation, and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{sigma2decomp}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
-
-meEst <- meVEV(irisMatrix, unmap(irisClass)) 
+meEst <- meVEV(iris[,-5], unmap(iris[,5])) 
 names(meEst)
-meEst$decomp
-meEst$sigma
+meEst$parameters$variance
 
-dec <- meEst$decomp
+dec <- meEst$parameters$variance
 decomp2sigma(d=dec$d, G=dec$G, shape=dec$shape, scale=dec$scale,
              orientation = dec$orientation)
 \dontrun{
-do.call("decomp2sigma", meEst$decomp)  ## alternative call
+do.call("decomp2sigma", dec)  ## alternative call
 }
 }
 \keyword{cluster}

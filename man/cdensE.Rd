@@ -18,18 +18,18 @@
   Computes component densities for points in a parameterized MVN mixture model.
 }
 \usage{
-cdensE(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
-cdensV(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
-cdensEII(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
-cdensVII(data, mu, sigmasq, eps, warnSingular, logarithm = FALSE, \dots)
-cdensEEI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
-cdensVEI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
-cdensEVI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
-cdensVVI(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
-cdensEEE(data, mu, eps, warnSingular, logarithm = FALSE, \dots)
-cdensEEV(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
-cdensVEV(data, mu, decomp, eps, warnSingular, logarithm = FALSE, \dots)
-cdensVVV(data, mu, eps, warnSingular, logarithm = FALSE, \dots)
+cdensE(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEII(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVII(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEEI(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVEI(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEVI(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVVI(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEEE(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEEV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVEV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVVV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -38,64 +38,34 @@ cdensVVV(data, mu, eps, warnSingular, logarithm = FALSE, \dots)
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
   }
-  \item{mu}{
-    The mean for each component. If there is more than one component,
-    \code{mu} is a matrix whose columns are the
-    means of the components.
-  }
-  \item{sigmasq}{
-    for the one-dimensional models ("E", "V") and spherical
-    models ("EII", "VII"). This is either a vector whose \emph{k}th
-    component is the variance for the \emph{k}th component in the
-    mixture model ("V" and "VII"), or a scalar giving the common
-    variance for all components in the mixture model ("E" and "EII").
-  }
-  \item{decomp}{
-    for the diagonal models ("EEI", "VEI", "EVI", "VVI") and some
-    ellipsoidal models ("EEV", "VEV"). This is a list described in more
-    detail in \code{\link{cdens}}.
-  }
   \item{logarithm}{
     A logical value indicating whether or not the logarithm of the
     component densities should be returned.
     The default is to return the component densities,
     obtained from the log component densities by exponentiation.
   }
-  \item{\dots}{
-    An argument giving the variance that takes one of the following forms:
-    \describe{
-      \item{decomp}{for models "EII" and "VII"; see above.}
-      \item{cholSigma}{see Sigma, for "EEE".}
-      \item{Sigma}{ 
-	for the equal variance model "EEE". A \emph{d} by \emph{d} matrix
-	giving the common covariance for all components of the mixture
-	model.
-      }
-      \item{cholsigma}{see sigma, for "VVV".}
-      \item{sigma}{ 
-	for the unconstrained variance model "VVV".
-	A \emph{d} by \emph{d} by \emph{G} matrix array whose 
-	\code{[,,k]}th entry is the covariance matrix for the
-	\emph{k}th component of the mixture model.
-      }
-      
-      The form of the variance specification is the same as for the output
-      for the \code{em}, \code{me}, or \code{mstep} methods for the
-      specified mixture model.
-      
-      Also used to catch unused arguments from a \code{do.call} call.
-    }
+ \item{parameters}{
+     The parameters of the model:
+     \describe{
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+     }
   }
-  \item{eps}{
-    A scalar tolerance for deciding when to terminate computations due
-    to computational singularity in covariances. Smaller values of
-    \code{eps} allow computations to proceed nearer to singularity. The
-    default is \code{.Mclust\$eps}. 
-  }
-  \item{warnSingular}{
+ \item{warn}{
     A logical value indicating whether or not a warning should be issued
-    whenever a singularity is encountered. The default is
-    \code{.Mclust\$warnSingular}. 
+    when computations fail. The default is \code{warn=FALSE}.
+  }
+ \item{\dots}{
+    Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
 \value{
@@ -103,63 +73,44 @@ cdensVVV(data, mu, eps, warnSingular, logarithm = FALSE, \dots)
   entry is the density of observation \emph{i} in component \emph{j}. 
   The densities are not scaled by mixing proportions.
 }
+\note{
+  When one or more component densities are very large in magnitude,
+  then it may be possible to compute the logarithm of the component
+  densities but not the component densities themselves due to overflow.
+}
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
   See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{cdens}},
   \code{\link{dens}},
-  \code{\link{EMclust}},
+  \code{\link{mclustBIC}},
   \code{\link{mstep}},
   \code{\link{mclustOptions}},
   \code{\link{do.call}}
 }
 \examples{
-n <- 100 ## create artificial data
 
-set.seed(0)
-x <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
-           matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
-xclass <- c(rep(1,n),rep(2,n))
-clPairs(x, cl = xclass, sym = c("1","2")) ## display the data
+z2 <- unmap(hclass(hcVVV(faithful),2)) # initial value for 2 class case
 
-modelVII <- meVII(x, z = unmap(xclass))
-modelVVI <- meVVI(x, z = unmap(xclass))
-modelVVV <- meVVV(x, z = unmap(xclass))
+model <- meVVV(data=faithful, z=z2)
+cdensVVV(data=faithful, logarithm = TRUE, parameters = model$parameters)
 
-names(modelVII)
-args(cdensVII)
-cdenVII <- cdensVII(data = x, mu = modelVII$mu, pro = modelVII$pro,
-                    decomp = modelVII$decomp)
-names(modelVVI)
-args(cdensVVI)
-cdenVVI <- cdensVII(data = x, mu = modelVVI$mu, pro = modelVVI$pro,
-                    decomp = modelVVI$decomp)
-names(modelVVV)
-args(cdensVVV)
-cdenVVV <- cdensVVV( data = x, mu = modelVVV$mu, pro = modelVVV$pro,
-                     cholsigma = modelVVV$cholsigma)
+z2 <- unmap(cross[,1])
 
-cbind(class=xclass,VII=map(cdenVII),VVI=map(cdenVVI),VVV=map(cdenVVV))
+model <- meEEV(data = cross[,-1], z = z2)
 
-## alternative call
+EEVdensities <- cdensEEV( data = cross[,-1], parameters = model$parameters)
 
-\dontrun{
-cdenVII <- do.call("cdensVII", c(list(data = x), modelVII))
-cdenVVI <- do.call("cdensVVI", c(list(data = x), modelVVI))
-cdenVVV <- do.call("cdensVVV", c(list(data = x), modelVVV))
-
-cbind(class=xclass,VII=map(cdenVII),VVI=map(cdenVVI),VVV=map(cdenVVV))
-}
+cbind(cross[,-1],map(EEVdensities))
 }
 \keyword{cluster}
 % docclass is function

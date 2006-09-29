@@ -4,7 +4,7 @@
   Uncertainty Plot for Model-Based Clustering
 }
 \description{
-  Plots the uncertainty in converting a conditional probablility from EM
+  Displays the uncertainty in converting a conditional probablility from EM
   to a classification in model-based clustering.
 }
 \usage{
@@ -38,35 +38,28 @@ uncerPlot(z, truth, \dots)
   correspondence between classes in \code{truth} and \code{z}.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}.
-  See \url{http://www.stat.washington.edu/mclust}.
-    
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST: Software for model-based clustering, density estimation and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+ 
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
-  \code{\link{EMclust}},
+  \code{\link{mclustBIC}},
   \code{\link{em}},
   \code{\link{me}},
   \code{\link{mapClass}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
+irisBIC <- mclustBIC(iris[,-5])
+irisModel3 <-  mclustModel(iris[,-5], irisBIC, G = 3)
 
-irisBic <- EMclust(irisMatrix)
-irisSumry3 <-  summary(irisBic, irisMatrix, G = 3)
-
-uncerPlot(z = irisSumry3$z)
+uncerPlot(z = irisModel3$z)
  
-uncerPlot(z = irisSumry3$z, truth = rep(1:3, rep(50,3)))
-
-do.call("uncerPlot", c(irisSumry3, list(truth = rep(1:3, rep(50,3)))))
+uncerPlot(z = irisModel3$z, truth = iris[,5])
 }
 \keyword{cluster}
 % docclass is function

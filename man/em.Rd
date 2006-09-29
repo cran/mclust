@@ -1,180 +1,137 @@
 \name{em}
 \alias{em}
 \title{
-  EM algorithm starting with E-step for parameterized MVN mixture models.
+  EM algorithm starting with E-step for parameterized Gaussian mixture models.
 }
 \description{
-  Implements the EM algorithm for parameterized MVN mixture models,
+  Implements the EM algorithm for parameterized Gaussian mixture models,
   starting with the expectation step.
 }
 \usage{
-em(modelName, data, mu, \dots)
+em(modelName, data, parameters, prior = NULL, control = emControl(),
+   warn = NULL, \dots)
 }
 \arguments{
   \item{modelName}{
-    A character string indicating the model: \cr\cr
-    "E": equal variance  (one-dimensional) \cr
-    "V": variable variance (one-dimensional) \cr\cr
-    "EII": spherical, equal volume \cr
-    "VII": spherical, unequal volume \cr
-    "EEI": diagonal, equal volume and shape\cr 
-    "VEI": diagonal, varying volume, equal shape\cr 
-    "EVI": diagonal, equal volume, varying shape \cr
-    "VVI": diagonal, varying volume and shape \cr
-    "EEE": ellipsoidal, equal volume, shape, and orientation\cr 
-    "EEV": ellipsoidal, equal volume and equal shape\cr
-    "VEV": ellipsoidal, equal shape \cr
-    "VVV": ellipsoidal, varying volume, shape, and orientation
+    A character string indicating the model. The help file for
+    \code{mclustModelNames} describes the available models.
   }
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
     variables are not allowed. If a matrix or data frame, rows
     correspond to observations and columns correspond to variables. 
+   }
+  \item{parameters}{
+     A names list giving the parameters of the model.
+     The components are as follows:
+     \describe{
+         \item{pro}{
+               Mixing proportions for the components of the mixture. 
+               If the model includes a Poisson term for noise, there 
+               should be one more mixing proportion than the number 
+               of Gaussian components.
+        }
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+       \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+        \item{Vinv}{
+              An estimate of the reciprocal hypervolume of the data region.
+              If set to NULL or a negative value, the default is determined by 
+              applying function \code{hypvol} to the data.
+              Used only when \code{pro} includes an additional
+              mixing proportion for a noise component.
+        }
+     }
   }
-  \item{mu}{
-    The mean for each component. If there is more than one component,
-    \code{mu} is a matrix whose columns are the means of the
-    components.
+ \item{prior}{
+      Specification of a conjugate prior on the means and variances.
+      The default assumes no prior.
+ }
+ \item{control}{
+       A list of control parameters for EM. The defaults are set by the call 
+       \code{emControl()}.
+ }
+ \item{warn}{
+    A logical value indicating whether or not a warning should be issued
+    when computations fail. The default is \code{warn=FALSE}.
   }
-  \item{\dots}{
-    Arguments for model-specific em functions. Specifically:
-    \itemize{
-      \item An argument describing the variance (depends on the model):
-      \describe{
-	\item{sigmasq}{
-	  for the one-dimensional models ("E", "V") and spherical models
-	  ("EII", "VII"). This is either a vector whose \emph{k}th
-	  component is the variance for the \emph{k}th component in the
-	  mixture model ("V" and "VII"), or a scalar giving the common
-	  variance for all components in the mixture model ("E" and
-	  "EII").
-	}
-	\item{decomp}{
-	  for the diagonal models ("EEI", "VEI", "EVI", "VVI") and some
-	  ellipsoidal models ("EEV", "VEV"). For a description,
-	  see \code{\link{cdens}}.
-	}
-	\item{Sigma}{
-	  for the equal variance model "EEE". A \emph{d} by \emph{d}
-	  matrix giving the common covariance for all components of the
-	  mixture model.
-	}
-	\item{sigma}{
-	  for the unconstrained variance model "VVV". A \emph{d} by
-	  \emph{d} by \emph{G} matrix array whose \code{[,,k]}th entry
-	  is the covariance matrix for the \emph{k}th component of the
-	  mixture model.
-	}
-	The form of the variance specification is the same as for the
-	output for the \code{em}, \code{me}, or \code{mstep} methods for
-	the specified mixture model. 
-      }
-      
-      \item \code{pro}:
-      Mixing proportions for the components of the mixture. There
-      should one more mixing proportion than the number of MVN
-      components if the mixture model includes a  Poisson noise term. 
-      \item \code{eps}:
-      A scalar tolerance for deciding when to terminate computations
-      due to computational singularity in covariances. Smaller values
-      of \code{eps} allow computations to proceed nearer to
-      singularity. The default is \code{.Mclust\$eps}. 
-      
-      For those models with iterative M-step ("VEI", "VEV"), two
-      values can be entered for \code{eps}, in which case the second
-      value is used for determining singularity in the M-step. 
-
-      \item \code{tol}:
-      A scalar tolerance for relative convergence of the loglikelihood. 
-      The default is \code{.Mclust\$tol}.
-      
-      For those models with iterative M-step ("VEI", "VEV"), two
-      values can be entered for \code{tol}, in which case the second
-      value governs parameter convergence in the M-step. 
-
-      \item \code{itmax}:
-      An integer limit on the number of EM iterations. 
-      The default is \code{.Mclust\$itmax}.
-      
-      For those models with iterative M-step ("VEI", "VEV"), two
-      values can be entered for \code{itmax}, in which case the second
-      value is an upper limit on the number of iterations in the
-      M-step. 
-
-      \item \code{equalPro}:
-      Logical variable indicating whether or not the mixing proportions are
-      equal in the model. The default is \code{.Mclust\$equalPro}.
-      
-      \item \code{warnSingular}:
-      A logical value indicating whether or not a warning should be issued
-      whenever a singularity is encountered.
-      The default is \code{.Mclust\$warnSingular}.
-      
-      \item \code{Vinv}:
-      An estimate of the reciprocal hypervolume of the data region.
-      The default is determined by applying function 
-      \code{hypvol} to the data.
-      Used only when \code{pro} includes an additional
-      mixing proportion for a noise component.
-    }
+ \item{\dots}{
+    Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
-
 \value{
   A list including the following components: 
-  
-  \item{z}{
-    A matrix whose \code{[i,k]}th entry is the conditional probability of
-    the \emph{i}th observation belonging to the \emph{k}th component of the
-    mixture.   
-  }
-  \item{loglik}{
-    The logliklihood for the data in the mixture model. 
-  }
-  \item{mu}{
-    A matrix whose kth column is the
-    mean of the \emph{k}th component of the mixture model.
-  }
-  \item{sigma}{
-    For multidimensional models, a three dimensional array 
-    in which the \code{[,,k]}th entry gives the
-    the covariance for the \emph{k}th group in the best model. <br>
-    For one-dimensional models, either a scalar giving a common variance for
-    the groups or a vector whose entries are the variances for each group
-    in the best model.
-  }
-  \item{pro}{
-    A vector whose \emph{k}th component
-    is the mixing proportion for the \emph{k}th component of the mixture model.
-  }
   \item{modelName}{
     A character string identifying the model (same as the input argument).
   }
+  \item{z}{
+    A matrix whose \code{[i,k]}th entry is the
+    conditional probability of the \emph{i}th observation belonging to
+    the \emph{k}th component of the mixture.  
+  }
+  \item{parameters}{
+     \describe{
+        \item{pro}{
+              A vector whose \emph{k}th component is the mixing proportion for 
+              the \emph{k}th component of the mixture model.
+              If the model includes a Poisson term for noise, there 
+              should be one more mixing proportion than the number 
+              of Gaussian components.
+        }
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th 
+              component of the mixture model. 
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance} 
+              for details.  
+        }
+        \item{Vinv}{
+              The estimate of the reciprocal hypervolume of the data region
+              used in the computation when the input indicates the
+              addition of a noise component to the model.
+        }
+      }
+  }
+  \item{loglik}{
+    The log likelihood for the data in the mixture model. 
+  }
   \item{Attributes:}{
     \itemize{
-      \item \code{"info"}: Information on the iteration.
-      \item \code{"warn"}: An appropriate warning if problems are
-      encountered in the computations.
+      \item{"info"}{
+        Information on the iteration.
+      }
+      \item{"WARNING"}{
+        An appropriate warning if problems are encountered in the computations.
+      }
     }
   }
 }
-\details{
-  This function can be used with an indirect or list call
-  using \code{do.call}, allowing the output
-  of e.g. \code{mstep} to be passed
-  without the need to specify individual parameters as arguments.
-}
 \section{References}{
-  C. Fraley and A. E. Raftery (2002a).
+  C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
-  See \url{http://www.stat.washington.edu/mclust}. 
-  
-  C. Fraley and A. E. Raftery (2002b).
-  MCLUST:Software for model-based clustering, density estimation and 
-  discriminant analysis. 
-  Technical Report, Department of Statistics, University of Washington. 
-  See \url{http://www.stat.washington.edu/mclust}.
+
+  C. Fraley and A. E. Raftery (2005).
+  Bayesian regularization for normal mixture estimation and model-based
+  clustering.
+  Technical Report, Department of Statistics, University of Washington.
+
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
 }
 \seealso{
   \code{\link{emE}}, \ldots,
@@ -186,18 +143,14 @@ em(modelName, data, mu, \dots)
   \code{\link{do.call}}
 }
 \examples{
-data(iris)
-irisMatrix <- as.matrix(iris[,1:4])
-irisClass <- iris[,5]
- 
-msEst <- mstep(modelName = "EEE", data = irisMatrix, 
-               z = unmap(irisClass))
+msEst <- mstep(modelName = "EEE", data = iris[,-5], 
+               z = unmap(iris[,5]))
 names(msEst)
 
-em(modelName = msEst$modelName, data = irisMatrix,
-   mu = msEst$mu, Sigma = msEst$Sigma, pro = msEst$pro)
+em(modelName = msEst$modelName, data = iris[,-5],
+   parameters = msEst$parameters)
 \dontrun{
-do.call("em", c(list(data = irisMatrix), msEst))   ## alternative call
+do.call("em", c(list(data = iris[,-5]), msEst))   ## alternative call
 }
 }
 \keyword{cluster}

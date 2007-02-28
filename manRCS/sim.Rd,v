@@ -1,4 +1,27 @@
-\name{sim}
+head	1.1;
+access;
+symbols;
+locks
+	fraley:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	2007.02.08.16.20.02;	author fraley;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@\name{sim}
 \alias{sim}
 \title{
   Simulate from Parameterized MVN Mixture Models
@@ -7,7 +30,7 @@
   Simulate data from parameterized MVN mixture models.
 }
 \usage{
-sim(modelName, parameters, n, seed = NULL, ...)
+sim(modelName, parameters, n, seed = 0, ...)
 }
 \arguments{
   \item{modelName}{
@@ -39,10 +62,8 @@ sim(modelName, parameters, n, seed = NULL, ...)
       An integer specifying the number of data points to be simulated.
   }
   \item{seed}{
-    An optional integer argument to \code{set.seed} for reproducible
-    random class assignment.  By default the current seed will be used.
-    Reproducibility can also be achieved by calling \code{set.seed}
-    before calling \code{sim}.
+    A integer for specifying a seed for random class assignment. 
+    The default value is 0.
   }
   \item{\dots }{
      Catches unused arguments in indirect or list calls via \code{do.call}.
@@ -88,8 +109,7 @@ irisBIC <- mclustBIC(iris[,-5])
 irisModel <- mclustModel(iris[,-5], irisBIC)
 names(irisModel)
 irisSim <- sim(modelName = irisModel$modelName, 
-               parameters = irisModel$parameters, 
-               n = nrow(iris))
+               parameters = irisModel$parameters, n = nrow(iris))
 
 \dontrun{
   do.call("sim", irisModel) # alternative call
@@ -126,3 +146,4 @@ clPairs(irisSim3[,-1], cl = irisSim3[,1])
 \keyword{cluster}
 % docclass is function
 % Converted by Sd2Rd version 1.21.
+@

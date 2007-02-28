@@ -437,35 +437,36 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simE" <-
-function(parameters, n, seed=0, ...) 
+"simE" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        if(any(is.na(parameters[c("mean", "variance")])) ||
-           any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, 2), modelName = "E"))
-        }
-        mu <- parameters$mean
-        G <- length(mu)
-        pro <- parameters$pro
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- rep(0, n)
-        sd <- sqrt(parameters$variance$sigmasq)
-        for(k in 1:G) {
-                x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd)
-        }
-        structure(cbind(group = clabels, "1" = x), modelName = "E")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, 2), modelName = "E"))
+  }
+  if(!is.null(seed))
+    set.seed(seed)
+  mu <- parameters$mean
+  G <- length(mu)
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- rep(0, n)
+  sd <- sqrt(parameters$variance$sigmasq)
+  for(k in 1:G) {
+    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd)
+  }
+  structure(cbind(group = clabels, "1" = x), modelName = "E")
 }
 
 "cdensEEE" <-
@@ -964,45 +965,46 @@ function(data, z, prior = NULL,  warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simEEE" <-
-function(parameters, n, seed = 0, ...) 
+"simEEE" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "EEE"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        if (is.null(cholSigma <- parameters$variance$cholSigma)) {
-          if (is.null(Sigma <- parameters$variance$Sigma)) {
-            stop("variance parameters must inlcude either Sigma or cholSigma")
-          }
-          cholSigma <- chol(Sigma)
-        }
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-                        FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d)
-        structure(cbind(group=clabels,x), modelName = "EEE")
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "EEE"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	if(is.null(cholSigma <- parameters$variance$cholSigma)) {
+		if(is.null(Sigma <- parameters$variance$Sigma)) {
+			stop("variance parameters must inlcude either Sigma or cholSigma"
+				)
+		}
+		cholSigma <- chol(Sigma)
+	}
+	for(k in 1:G) {
+		m <- ctabel[k]
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+			FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "EEE")
 }
 
 "cdensEEI" <-
@@ -1413,43 +1415,43 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simEEI" <-
-function(parameters, n, seed = 0, ...) 
+"simEEI" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "EEI"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        shape <- parameters$variance$shape
-        if(length(shape) != d)
-                stop("shape incompatible with mean")
-        cholSigma <- diag(sqrt(parameters$variance$scale * shape))
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-                        FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d)
-        structure(cbind(group=clabels,x), modelName = "EEI")
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "EEI"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	shape <- parameters$variance$shape
+	if(length(shape) != d)
+		stop("shape incompatible with mean")
+	cholSigma <- diag(sqrt(parameters$variance$scale * shape))
+	for(k in 1:G) {
+		m <- ctabel[k]
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+			FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "EEI")
 }
 
 "cdensEEV" <-
@@ -1906,44 +1908,44 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simEEV" <-
-function(parameters, n, seed = 0, ...) 
+"simEEV" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "EEV"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        shape <- parameters$variance$shape
-        if(length(shape) != d)
-                stop("shape incompatible with mean")
-        sss <- sqrt(parameters$variance$scale * shape)
-        for(k in 1:G) {
-                m <- ctabel[k]
-                cholSigma <- parameters$variance$orientation[,,k] * sss
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-                        FUN = "+")
-        }
-        dimnames(x) <- list(NULL, 1:d)
-        structure(cbind(group = clabels,x), modelName = "EEV")
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "EEV"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	shape <- parameters$variance$shape
+	if(length(shape) != d)
+		stop("shape incompatible with mean")
+	sss <- sqrt(parameters$variance$scale * shape)
+	for(k in 1:G) {
+		m <- ctabel[k]
+		cholSigma <- parameters$variance$orientation[,  , k] * sss
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+			FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "EEV")
 }
 
 "cdensEII" <-
@@ -2407,42 +2409,40 @@ function(data, z, prior = NULL, warn = NULL, ...)
 
 }
 
-"simEII" <-
-function(parameters, n, seed=0, ...) 
+"simEII" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d), modelName = "EII"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        sigmasq <- parameters$variance$sigmasq   
-        cholSigma <- diag(rep(sqrt(sigmasq), d))
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-                        FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d)
-        structure(cbind(group=clabels,x), modelName = "EII")
-
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EII"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  sigmasq <- parameters$variance$sigmasq
+  cholSigma <- diag(rep(sqrt(sigmasq), d))
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "EII")
 }
 
 "cdensEVI" <-
@@ -2836,43 +2836,42 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simEVI" <-
-function(parameters, n, seed = 0, ...) 
+"simEVI" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "EVI"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        shape <- as.matrix(parameters$variance$shape)
-        if(!all(dim(shape) == dim(mean)))
-                stop("shape incompatible with mean")
-        sss <- sqrt(parameters$variance$scale * shape)
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                       ncol = d) %*% diag(sss[,k]), MARGIN = 2, STAT = mu[, k],
-                        FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d) 
-        structure(cbind(group=clabels,x), modelName = "EVI")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "EVI"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  shape <- as.matrix(parameters$variance$shape)
+  if(!all(dim(shape) == dim(mean)))
+    stop("shape incompatible with mean")
+  sss <- sqrt(parameters$variance$scale * shape)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(sss[, k]), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "EVI")
 }
 
 "cdensV" <-
@@ -3312,35 +3311,36 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simV" <-
-function(parameters, n, seed=0, ...) 
+"simV" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        if(any(is.na(parameters[c("mean", "variance")])) ||
-           any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, 2), modelName = "V"))
-        }
-        mu <- parameters$mean
-        G <- length(mu)
-        pro <- parameters$pro
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- rep(0, n)
-        sd <- sqrt(parameters$variance$sigmasq)
-        for(k in 1:G) {
-                x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd[k])
-        }
-        structure(cbind(group=clabels, "1"=x), modelName = "V")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, 2), modelName = "V"))
+  }
+  if(!is.null(seed))
+    set.seed(seed)
+  mu <- parameters$mean
+  G <- length(mu)
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- rep(0, n)
+  sd <- sqrt(parameters$variance$sigmasq)
+  for(k in 1:G) {
+    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd[k])
+  }
+  structure(cbind(group = clabels, "1" = x), modelName = "V")
 }
 
 "cdensVEI" <-
@@ -3779,45 +3779,44 @@ function(data, z, prior = NULL, warn = NULL, control = NULL,...)
 
 }
 
-"simVEI" <-
-function(parameters, n, seed = 0, ...) 
+"simVEI" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "VEI"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d) 
-        rtshape <- sqrt(parameters$variance$shape)
-        if(length(rtshape) != d)
-                stop("shape incompatible with mean")
-        rtscale <- sqrt(parameters$variance$scale)
-        if(length(rtscale) != G)
-                stop("scale incompatible with mean")
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% diag(rtscale[k]* rtshape), MARGIN = 2, 
-                        STAT = mu[, k], FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d)
-        structure(cbind(group=clabels, x), modelName = "VEI")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "VEI"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtshape <- sqrt(parameters$variance$shape)
+  if(length(rtshape) != d)
+    stop("shape incompatible with mean")
+  rtscale <- sqrt(parameters$variance$scale)
+  if(length(rtscale) != G)
+    stop("scale incompatible with mean")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(rtscale[k] * rtshape), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VEI")
 }
 
 "cdensVEV" <-
@@ -4305,47 +4304,46 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 
 }
 
-"simVEV" <-
-function(parameters, n, seed = 0, ...) 
+"simVEV" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "VEV"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d) 
-        rtshape <- sqrt(parameters$variance$shape)
-        if(length(rtshape) != d)
-                stop("shape incompatible with mean")
-        rtscale <- sqrt(parameters$variance$scale)
-        if(length(rtscale) != G)
-                stop("scale incompatible with mean")
-        for(k in 1:G) {
-                m <- ctabel[k]
-                sss <- rtscale[k]* rtshape
-                cholSigma <- parameters$variance$orientation[,,k] * sss
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k], 
-                        FUN = "+")
-        }
-        dimnames(x) <- list(NULL, 1:d)
-        structure(cbind(group = clabels, x), modelName = "VEV")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "VEV"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtshape <- sqrt(parameters$variance$shape)
+  if(length(rtshape) != d)
+    stop("shape incompatible with mean")
+  rtscale <- sqrt(parameters$variance$scale)
+  if(length(rtscale) != G)
+    stop("scale incompatible with mean")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    sss <- rtscale[k] * rtshape
+    cholSigma <- parameters$variance$orientation[,  , k] * sss
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VEV")
 }
 
 "cdensVII" <-
@@ -4948,40 +4946,39 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simVII" <-
-function(parameters, n, seed = 0, ...) 
+"simVII" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d), modelName = "VII"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        sigmasq <- parameters$variance$sigmasq
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                        ncol = d) %*% diag(rep(sqrt(sigmasq[k]), d)), MARGIN = 
-                        2, STAT = mu[, k], FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d)
-        structure(cbind(group=clabels,x), modelName = "VII")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VII"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  sigmasq <- parameters$variance$sigmasq
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(rep(sqrt(sigmasq[k]), d)), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VII")
 }
 
 "cdensVVI" <-
@@ -5378,45 +5375,44 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simVVI" <-
-function(parameters, n, seed = 0, ...) 
+"simVVI" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "VVI"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d) 
-        rtshape <- sqrt(parameters$variance$shape)
-        if(!all(dim(rtshape) == dim(mu)))
-                stop("shape incompatible with mean")
-        rtscale <- sqrt(parameters$variance$scale)
-        if(length(rtscale) != G)
-                stop("scale incompatible with mean")
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                      ncol = d) %*% diag(rtscale[k]* rtshape[,k]), MARGIN = 2, 
-                        STAT = mu[, k], FUN = "+")
-        }
-        dimnames(x) <- list( NULL, 1:d)
-        structure(cbind(group=clabels,x), modelName = "VVI")
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "VVI"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtshape <- sqrt(parameters$variance$shape)
+  if(!all(dim(rtshape) == dim(mu)))
+    stop("shape incompatible with mean")
+  rtscale <- sqrt(parameters$variance$scale)
+  if(length(rtscale) != G)
+    stop("scale incompatible with mean")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(rtscale[k] * rtshape[, k]), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VVI")
 }
 
 "cdensVVV" <-
@@ -5905,49 +5901,51 @@ function(data, z, prior = NULL, warn = NULL, ...)
 
 }
 
-"simVVV" <-
-function(parameters, n, seed = 0, ...) 
+"simVVV" <- 
+function(parameters, n, seed = NULL, ...)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
-        mu <- as.matrix(parameters$mean)
-        d <- nrow(mu)
-        G <- ncol(mu)
-        if (any(is.na(parameters[c("mean", "variance")])) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                warn <- "parameters are missing"
-                warning("parameters are missing")
-                return(structure(matrix(NA, n, d+1), modelName = "VVV"))
-        }
-        pro <- parameters$pro    
-        if(is.null(pro))
-                pro <- rep(1/G, G)
-        set.seed(seed)
-        clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-        ctabel <- table(clabels)
-        x <- matrix(0, n, d)
-        if (is.null(cholsigma <- parameters$variance$cholsigma)) {
-          if (is.null(sigma <- parameters$variance$sigma)) {
-            stop("variance parameters must inlcude either sigma or cholsigma")
-          }
-          cholsigma <- apply(sigma,3,chol)
-          for(k in 1:ncol(cholsigma)) sigma[,  , k] <- cholsigma[, k]
-          cholsigma <- sigma
-
-        }
-        if (dim(cholsigma)[3] != G) stop("variance incompatible with mean")
-        for(k in 1:G) {
-                m <- ctabel[k]
-                x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                     ncol = d) %*% cholsigma[,,k], MARGIN = 2, STAT = mu[, k],
-                        FUN = "+")
-        }
-        dimnames(x) <- list(NULL, 1:d)
-        structure(cbind(group = clabels,x), modelName = "VVV")
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "VVV"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	if(is.null(cholsigma <- parameters$variance$cholsigma)) {
+		if(is.null(sigma <- parameters$variance$sigma)) {
+			stop("variance parameters must inlcude either sigma or cholsigma"
+				)
+		}
+		cholsigma <- apply(sigma, 3, chol)
+		for(k in 1:ncol(cholsigma))
+			sigma[,  , k] <- cholsigma[, k]
+		cholsigma <- sigma
+	}
+	if(dim(cholsigma)[3] != G)
+		stop("variance incompatible with mean")
+	for(k in 1:G) {
+		m <- ctabel[k]
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholsigma[,  , k], MARGIN = 2, STAT = mu[
+			, k], FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "VVV")
 }
 
 "mvnX" <-
@@ -10166,10 +10164,12 @@ function(modelName, loglik, n, d, G, noise = FALSE, equalPro = FALSE, ...)
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
 	modelName <- switch(EXPR = modelName,
+		X = "E",
 		XII = "EII",
 		XXI = "EEI",
 		XXX = "EEE",
   		modelName)
+        checkModelName(modelName)
         if (G == 0) {
                 ## one cluster case
                 if(!noise) stop("undefined model")
@@ -10194,16 +10194,46 @@ function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
-        
-        if (modelName == "X") modelName <- "E"
-        if (modelName == "XII") modelName <- "EII"
-        if (modelName == "XXI") modelName <- "EEI"
-        if (modelName == "XXX") modelName <- "EEE"
+         modelName <- switch(EXPR = modelName,
+                X = "E",
+                XII = "EII",
+                XXI = "EEI",
+                XXX = "EEE",
+                modelName)
+        checkModelName(modelName)
 	funcName <- paste("cdens", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)
         mc$modelName <- NULL
         eval(mc, parent.frame())
+}
+
+"checkModelName" <-
+function(modelName)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##	
+        switch(EXPR = modelName,
+		E = ,
+		V = ,
+	        EII  = ,
+		VII = ,
+		EEI  = ,
+		VEI = ,
+		EVI = ,
+		VVI = ,
+		EEE = ,
+		VEE = ,
+		EVE = ,
+		VVE = ,
+		EEV = ,
+		VEV = ,
+		VVV = TRUE,
+		stop("invalid model name"))
 }
 
 "dens" <-
@@ -10255,6 +10285,7 @@ function(modelName, data, parameters, prior = NULL, control = emControl(),
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        checkModelName(modelName)
 	funcName <- paste("em", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)
@@ -10271,6 +10302,7 @@ function(modelName, data, parameters, warn = NULL, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        checkModelName(modelName)
 	funcName <- paste("estep", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)
@@ -10286,7 +10318,15 @@ function(modelName, data, ...)
 	#       http://www.stat.washington.edu/mclust
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+	##        
+        switch(EXPR = modelName,
+                E = ,
+                V = ,
+                EII  = ,
+                VII = ,
+                EEE = ,
+                VVV = TRUE,
+                stop("invalid model name for hierarchical clustering"))
         funcName <- paste("hc", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)
@@ -10352,6 +10392,7 @@ function(modelName, data, z, prior = NULL, control = emControl(),
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        checkModelName(modelName)
 	funcName <- paste("me", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)
@@ -10368,6 +10409,7 @@ function(modelName, data, z, prior = NULL, warn = NULL, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        checkModelName(modelName)
 	funcName <- paste("mstep", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)
@@ -10446,7 +10488,7 @@ function(modelName, d, G)
 }
 
 "sim" <-
-function(modelName, parameters, n, seed = 0, ...)
+function(modelName, parameters, n, seed = NULL, ...)
 {
 	##
 	# This function is part of the MCLUST software described at
@@ -10454,6 +10496,13 @@ function(modelName, parameters, n, seed = 0, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        modelName <- switch(EXPR = modelName,
+                X = "E",
+                XII = "EII",
+                XXI = "EEI",
+                XXX = "EEE",
+                modelName)
+        checkModelName(modelName)
 	funcName <- paste("sim", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name(funcName)

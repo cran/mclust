@@ -6,7 +6,12 @@ for Bayesian regularization.
 Backward compatibility is not guaranteed since the implementation of some 
 functions has changed to make them easier to use or maintain.
 
-Version 3.1: Plotting functions changed mainly to use color.
+Version 3.1: Most plotting functions changed to use color.
+Mclust/mclustBIC fixed to work with G=1
+Otherwise backward compatible with version 3.0.
+
+Version 3.1-1: Default seed changed in sim functions.
+model name check added to various functions. 
 Otherwise backward compatible with version 3.0
  
 

@@ -14,10 +14,9 @@
 \alias{charconv}
 \alias{[.mclustBIC}
 \alias{[.mclustDAtest}
+\alias{checkModelName}
 \description{
-  Internal functions.
+  Internal functions not intended to be called directly by users.
 }
-\details{
-  Not intended to be called directly by users.
-}
+
 \keyword{internal}

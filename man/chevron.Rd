@@ -1,6 +1,5 @@
 \name{chevron}
 \alias{chevron}
-\non_function{}
 \title{Simulated minefield data}
 \usage{data(chevron)}
 \description{A two-dimensional data set of simulated minefield data

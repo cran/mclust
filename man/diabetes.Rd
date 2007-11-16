@@ -1,7 +1,6 @@
 \name{diabetes}
 \alias{diabetes}
 \alias{diabetes.class}
-\non_function{}
 \title{Diabetes data}
 \usage{data(diabetes)}
 \description{

@@ -1,6 +1,5 @@
 \name{cross}
 \alias{cross}
-\non_function{}
 \title{Simulated Cross Data}
 \usage{data(cross)}
 \description{

@@ -8,7 +8,7 @@
 }
 \usage{
 plot.mclustBIC(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
-               ylim = NULL, legendArgs = list(x="bottomright", ncol=2, cex=1), 
+               xlab = NULL, ylim = NULL, legendArgs = list(x="bottomright", ncol=2, cex=1), 
                CEX = 1, \dots)
 }
 \arguments{
@@ -37,8 +37,11 @@ plot.mclustBIC(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
     observations (the order used by the function \code{unique}). 
     The default is given is \code{.Mclust\$classPlotColors}.
   }
+ \item{xlab}{
+    Optional label for the horizontal axis of the BIC plot.
+  }
  \item{ylim}{
-    Limits for the vertical axis of the BIC plot.
+    Optional limits for the vertical axis of the BIC plot.
   }
  \item{legendArgs}{
     Arguments to pass to the \code{legend} function. Set to \code{NULL}

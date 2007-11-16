@@ -1,6 +1,6 @@
 \name{wreath}
 \alias{wreath}
-\non_function{}
+
 \title{Data Simulated from a 14-Component Mixture}
 \usage{data(wreath)}
 \description{

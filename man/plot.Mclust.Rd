@@ -9,7 +9,7 @@
 }
 \usage{
 plot.Mclust(x, data = NULL, what = c("BIC", "classification", 
-            "uncertainty", "density"), dimens = c(1,2), ylim = NULL,
+            "uncertainty", "density"), dimens = c(1,2),  xlab = NULL, ylim = NULL,
             legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
             identify = TRUE, \dots)
 }
@@ -30,8 +30,11 @@ plot.Mclust(x, data = NULL, what = c("BIC", "classification",
     desired coordinate projections for multivariate data. The default is
     \code{c(1,2)}, in which the first dimension is plotted against the second.
   }
+ \item{xlab}{
+    Optional label for the horizontal axis of the BIC plot.
+  }
  \item{ylim}{
-    Limits for the vertical axis of the BIC plot.
+    Optiomnal limits for the vertical axis of the BIC plot.
   }
  \item{legendArgs}{
     Arguments to pass to the \code{legend} function. Set to \code{NULL}

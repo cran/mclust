@@ -6827,8 +6827,10 @@ function(object, pro=NULL, ...)
 			stop("wrong number of prior probabilities")
 		if(any(pro) < 0)
 			stop("pro must be nonnegative")
-		object <- sweep(object, MARGIN = 2, 
-                                STATS = pro/sum(pro), FUN = "*")
+                object <- sweep(object, MARGIN = 1, FUN = "/", 
+                                STATS = apply( object, 1, max))
+		object <- sweep(object, MARGIN = 2, FUN = "*",
+                                STATS = pro/sum(pro))
 	}
 	cl <- apply(object, 1, clfun)
 	z <- sweep(object, MARGIN=1, STATS=apply(object, 1, sum), FUN="/")
@@ -7726,6 +7728,10 @@ function(object, data, G=NULL, modelNames=NULL, ...)
   if (is.null(modelNames))
     modelNames <- dimnames(object)[[2]]
   bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
+  if (all(is.na(bestBICs))) {
+    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, control
+      = control, initialization = initialization, class = "summary.mclustBIC"))
+  }
   temp <- unlist(strsplit(names(bestBICs)[1], ","))
   bestModel <- temp[1]
   G <- as.numeric(temp[2])
@@ -7820,6 +7826,10 @@ function(object, data, G=NULL, modelNames=NULL, ...)
   if (is.null(G)) G <- dimnames(object)[[1]]
   if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
   bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
+  if (all(is.na(bestBICs))) {
+    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, control
+      = control, initialization = initialization, class = "summary.mclustBIC"))
+  }
   temp <- unlist(strsplit(names(bestBICs)[1], ","))
   bestModel <- temp[1] 
   G <- as.numeric(temp[2])
@@ -8790,7 +8800,7 @@ function (mu, sigma, k = 15, alone = FALSE, col = 1)
 "plot.Mclust" <-
 function (x, data = NULL, 
           what = c("BIC","classification","uncertainty","density"), 
-          dimens = c(1,2), ylim = NULL,  
+          dimens = c(1,2), xlab = NULL, ylim = NULL,  
           legendArgs = list(x="bottomright", ncol=2, cex=1),
           identify = TRUE, ...) 
 {
@@ -8798,7 +8808,7 @@ function (x, data = NULL,
     on.exit(par(parSave))
     par(ask = TRUE)
     if (any(match("BIC", what, nomatch = 0)))
-      plot.mclustBIC(x$BIC, ylim = ylim, legendArgs = legendArgs,...)
+      plot.mclustBIC(x$BIC, xlab=xlab, ylim=ylim, legendArgs=legendArgs,...)
     # title("BIC")
     if (is.null(data)) {
         warning("data not supplied")
@@ -8844,8 +8854,8 @@ function (x, data = NULL,
 
 "plot.mclustBIC" <-
 function(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL, 
-         ylim = NULL, legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
-         CEX = 1, ...)
+         xlab = NULL, ylim = NULL, 
+         legendArgs = list(x = "bottomright", ncol = 2, cex = 1), CEX = 1, ...)
 {
   ##
   # This function is part of the MCLUST software described at
@@ -8853,6 +8863,7 @@ function(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
   # Copyright information and conditions for use of MCLUST are given at
   #        http://www.stat.washington.edu/mclust/license.txt
   ##
+  if (is.null(xlab)) xlab <- "number of components"
   fill <- FALSE
   subset <- !is.null(attr(x, "initialization")$subset)
   noise <- !is.null(attr(x, "initialization")$noise)
@@ -8898,7 +8909,7 @@ function(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
     ylim <- range(as.vector(x[!is.na(x)]))
   matplot(x, type = "b", xlim = range(G), ylim = ylim,
           pch = symbols, col = colors, lty = 1,
-          xlab ="number of components", ylab = "BIC", main = "")
+          xlab = xlab, ylab = "BIC", main = "")
  if (!is.null(legendArgs)) 
    do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
             legendArgs))

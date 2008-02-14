@@ -1,0 +1,169 @@
+MCLUST: Copyright 1991-2008 University of Washington.  All rights reserved.
+
+Use of MCLUST by commercial organizations, or by academic or non-profit users 
+in conjunction with fee based services such as consulting requires completion
+of a commercial MCLUST agreement found at the following URL:
+http://depts.washington.edu/ventures/UW_Technology/Express_Licenses/mclust.php
+
+The term MCLUST used here refers to all versions of the software, including
+contributed R language (CRAN) packages named mclust, mclust02, and mclust98, 
+and the mclust package available in the S archive of Statlib. 
+
+Conditions under which the University of Washington allows the use of MCLUST 
+by academic and non-profit users for internal research are described below.
+
+The University of Washington and the developers of MCLUST, Chris Fraley 
+and Adrian Raftery in the Department of Statistics, give permission for you 
+and your Institution to copy, perform, display and modify the MCLUST software 
+under the following conditions:  
+
+1. the MCLUST software, including any modifications you may have made to it, 
+   remains at your Institution and is not published, distributed, or 
+   otherwise transferred or made available in whole or in part, modified or 
+   unmodified, to other than Institution employees and/or students under your 
+   direct supervision;
+
+2. you retain in MCLUST and any modifications to MCLUST the copyright, 
+   trademark, or other notices pertaining to MCLUST as provided by the 
+   University of Washington;
+
+3. you provide the MCLUST developers with feedback on the use of the MCLUST 
+   software in your research, and you permit the MCLUST developers and 
+   University of Washington to use any information you provide in making 
+   changes to the MCLUST software; 
+
+4. you acknowledge the right of the University of Washington to prepare and 
+   publish modifications to MCLUST that may be substantially similar or 
+   functionally equivalent to your modifications and improvements, and if you 
+   obtain patent protection for any modification or improvement to MCLUST you 
+   agree not to allege or enjoin infringement of your patent by the 
+   University of Washington or by any of the University of Washington's 
+   licensees obtaining modifications or improvements to MCLUST from the 
+   University of Washington; 
+
+5. you acknowledge in your publications contributions to your research 
+   involving or based on the MCLUST software by citing the following 
+   references (bibtex entries can be found at the bottom of this file);
+
+J. D. Banfield and A. E. Raftery, Model-based Gaussian and non-Gaussian 
+Clustering, Biometrics, Vol. 49, pages 803-821 (1993).
+
+C. Fraley and A. E. Raftery, MCLUST: Software for model-based cluster 
+analysis, Journal of Classification, Vol. 16, pages 297-206 (1999).
+
+C. Fraley and A. E. Raftery, Model-based clustering, discriminant analysis, 
+and density estimation, Journal of the American Statistical Association, 
+Vol. 97, pages 611-631 (2002).
+
+C. Fraley and A. E. Raftery, Enhanced Software for model-based clustering, 
+discriminant analysis, and density estimation: MCLUST, Journal of 
+Classification, Vol. 20, pages 263-286 (2003).
+
+and one of the following technical reports depending on the version used:
+C. Fraley and A. E. Raftery, MCLUST: Software for model-based clustering, 
+discriminant analysis, and density estimation, Technical Report No. 415, 
+Department of Statistics, University of Washington, October 2002.
+
+C. Fraley and A. E. Raftery, MCLUST Version 3 for R: Normal Mixture
+Modeling and Model-based Clustering, Technical Report No. 504,
+Department of Statistics, University of Washington, September 2006.
+
+In addition, if results are reported that come directly from any of the 
+hierarchical clustering (hc) functions, the following must also be cited:
+
+C. Fraley, Model-based Gaussian Hierarchical Clustering, 
+Journal on Scientific Computing, Vol. 20, pages 270-281 (1998). 
+
+6. those whose only use of MCLUST is through one of the following packages
+   prabclus, fpc, clustvarsel, spotSegmentation, or latentnet must cite the primary 
+   references associated with those  packages but need not cite the 
+   above references as a condition for software use --- 
+   all other provisions of the license apply;
+
+7. any risk associated with using the MCLUST software at your Institution 
+   is with you and your Institution. MCLUST is experimental in nature and 
+   is made available as a research courtesy "AS IS," without obligation 
+   by the University of Washington to provide accompanying services or 
+   support.  
+
+THE UNIVERSITY OF WASHINGTON, THE AUTHORS, AND THE FUNDING AGENCIES, 
+EXPRESSLY DISCLAIM ANY AND ALL WARRANTIES REGARDING THE SOFTWARE, 
+WHETHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES 
+PERTAINING TO NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A 
+PARTICULAR PURPOSE.
+
+@article{BanfieldRaftery1993,
+         author = "J. D. Banfield and A. E. Raftery",
+         title = "Model-based {G}aussian and non-{G}aussian clustering",
+         journal = "Biometrics",
+         year = 1993,
+         volume = 49,
+         pages = "803-821"}
+
+@article{Fraley1998,
+            author = "C. Fraley",
+            title = "Algorithms for Model-Based {G}aussian Hierarchical
+                     Clustering",
+            journal = "SIAM Journal on Scientific Computing",
+            volume = 20,
+            pages = "270-281",
+            year = 1998}
+
+@article{FraleyRaftery1998,
+            author = "C. Fraley and A. E. Raftery",
+            title = "How many clusters? {W}hich clustering method? -
+                     {A}nswers via Model-Based Cluster Analysis",
+            journal = "Computer Journal",
+            volume = "41",
+            pages = "578-588",
+            year = 1998}
+
+@article{FraleyRaftery1999,
+            author = "C. Fraley and A. E. Raftery",
+            title = "{MCLUST}: Software for Model-Based Cluster Analysis",
+            journal = "Journal of Classification",
+            volume = 16,
+            pages = "297-306",
+            year = 1999}
+
+@article{FraleyRaftery2002,
+            author = "C. Fraley and A. E. Raftery",
+            title = "Model-Based Clustering, Discriminant Analysis and
+                     Density Estimation",
+            journal = "Journal of the American Statistical Association",
+            volume = 97,
+            pages = "611-631",
+            year = 2002}
+
+@techreport{MclustSoftwareManual2002,
+            author = "C. Fraley and A. E. Raftery",
+	        title = "{MCLUST}: {S}oftware for 
+                    Model-Based Clustering, Density Estimation,
+                     and Discriminant Analysis",
+            type = "Technical Report",
+            number = "415",
+            address = "Department of Statistics",
+            institution = "University of Washington",
+            month = "October",
+	        year = 2002}
+
+@article{FraleyRaftery2003,
+            author = "C. Fraley and A. E. Raftery",
+            title = "Enhanced Software for
+                    Model-Based Clustering, Density Estimation,
+                     and Discriminant Analysis: {MCLUST}",
+            journal = "Journal of Classification",
+            volume = 20,
+            pages = "263-286",
+            year = 2003}
+
+@techreport{MclustSoftwareManual2006,
+            author = "C. Fraley and A. E. Raftery",
+	        title = "{MCLUST} Version 3 for {R}: {N}ormal 
+                    Mixture Modeling and Model-Based Clustering",
+            type = "Technical Report",
+            number = "504",
+            address = "Department of Statistics",
+            institution = "University of Washington",
+            month = "September",
+	        year = 2006}

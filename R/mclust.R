@@ -7873,48 +7873,6 @@ function(object, data, G=NULL, modelNames=NULL, ...)
      = control, initialization = initialization, class = "summary.mclustBIC")
 }
 
-"clPairs" <-
-function (data, classification=NULL, symbols=NULL, colors=NULL, 
-          labels = dimnames(data)[[2]],  CEX = 1, ...) 
-{
-    data <- as.matrix(data)
-    m <- nrow(data)
-    n <- ncol(data)
-    if (is.null(classification)) 
-        classification <- rep(1, m)
-    if (!is.factor(classification)) 
-        classification <- as.factor(classification)
-    l <- length(levels(classification))
-    if (is.null(symbols)) {
-        if (l == 1) {
-            symbols <- "."
-        }
-        if (l <= length(.Mclust$classPlotSymbols)) {
-            symbols <- .Mclust$classPlotSymbols
-        }
-        else if (l <= 9) {
-            symbols <- as.character(1:9)
-        }
-        else if (l <= 26) {
-            symbols <- LETTERS[1:l]
-        }
-        else stop("need more than 26 symbols")
-    }
-    else if (length(symbols) < l) 
-        stop("more symbols needed")
-    if (is.null(colors)) 
-        colors <- .Mclust$classPlotColors
-    if (length(colors) == 1) 
-        colors <- rep(colors, l)
-    if (length(unique(colors)) > l) {
-       colors <- rep("black", l)
-       warning("more colors needed")
-    }
-    pairs(x = data, labels = labels, pch = symbols[classification], 
-        cex = CEX, col = colors[classification], ...)
-    invisible()
-}
-
 "defaultPrior" <-
 function(data, G, modelName, ...)
 {
@@ -8110,7 +8068,7 @@ function(functionName = "defaultPrior", ...)
 	c(list(functionName = functionName), list(...))
 }
 
-"clPairs" <-
+`clPairs` <-
 function (data, classification, symbols=NULL, colors=NULL, 
           labels = dimnames(data)[[2]], CEX = 1, ...) 
 {
@@ -8135,12 +8093,12 @@ function (data, classification, symbols=NULL, colors=NULL,
         else if (l <= 26) {
             symbols <- LETTERS[1:l]
         }
-        else stop("need more than 26 symbols")
+        else symbols <- rep( 16,l)
     }
     if (length(symbols) == 1) symbols <- rep(symbols, l)
     if (length(symbols) < l) {
+        symbols <- rep( 16, l)
         warning("more symbols needed")
-        symbols <- rep(symbols, length = l)
     }
     if (is.null(colors)) {
         if (l <= length(.Mclust$classPlotColors)) 
@@ -8148,15 +8106,15 @@ function (data, classification, symbols=NULL, colors=NULL,
     }
     if (length(colors) == 1) colors <- rep(colors, l)
     if (length(colors) < l) {
+       colors <- rep( "black", l)
        warning("more colors needed")
-       colors <- rep(colors, length = l)
     }
     pairs(x = data, labels = labels, pch = symbols[classification], 
         cex = CEX, col = colors[classification], ...)
     invisible()
 }
 
-"coordProj" <-
+`coordProj` <-
 function(data, dimens = c(1,2), parameters = NULL, z = NULL, classification = 
   NULL, truth = NULL, uncertainty = NULL, what = c("classification", "errors", 
   "uncertainty"), quantiles = c(0.75, 0.94999999999999996), symbols = NULL, 
@@ -8260,9 +8218,13 @@ function(data, dimens = c(1,2), parameters = NULL, z = NULL, classification =
     }
     else if(length(colors) == 1)
       colors <- rep(colors, L)
-    if(length(symbols) < L && length(colors) < L) {
-      warning("more symbols/colors needed to show classification ")
-      classification <- NULL
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification ")
+      symbols <- rep(16,L)
+    }
+    if(length(colors) < L) {
+      warning("more colors needed to show classification ")
+      colors <- rep("black",L)
     }
   }
   if(length(what) > 1)
@@ -8557,7 +8519,7 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
     invisible()
 }
 
-"mclust2Dplot" <-
+`mclust2Dplot` <-
 function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
           uncertainty=NULL, what=c("classification", "uncertainty", "errors"), 
           quantiles = c(0.75, 0.95), symbols = NULL, colors = NULL, 
@@ -8665,9 +8627,13 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
                         }
                 }
                 else if (length(colors) == 1) colors <- rep(colors, L)
-            if(length(symbols) < L && length(colors) < L) {
-                warning("more symbols/colors needed to show classification ")
-                        classification <- NULL
+            if(length(symbols) < L) {
+                warning("more symbols needed to show classification ")
+                symbols <- rep(16,L)
+            }
+            if(length(colors) < L) {
+                warning("more colors needed to show classification ")
+                colors <- rep("black",L)
             }
         }
         if (length(what) > 1) what <- what[1]
@@ -9059,7 +9025,7 @@ function(x, trainData, testData, ...)
 	invisible()
 }
 
-"plot.mclustDAtrain" <-
+`plot.mclustDAtrain` <-
 function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
          scale = FALSE, xlim = NULL, ylim = NULL,  CEX = 1, ...)
 {
@@ -9093,14 +9059,16 @@ function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
             else if (L <= 26) {
                 symbols <- LETTERS
             }
-            if (length(symbols) < L && length(symbols) != 1) {
+            if (length(symbols) == 1) symbols <- rep(symbols,L)
+            if (length(symbols) < L) {
               warning("more symbols needed to show classification")
               symbols <- rep(16, L)
             }
            if (is.null(colors)) 
              colors <- .Mclust$classPlotColors
             }
-            if (length(colors) < L && length(colors) != 1) {
+            if (length(colors) == 1) colors <- rep(colors,L)
+            if (length(colors) < L) {
               warning("more colors needed to show classification")
               colors <- rep("black", L)
             }
@@ -9172,7 +9140,7 @@ function (x, ndigits = options()$digits, ...)
     invisible()
 }
 
-"randProj" <-
+`randProj` <-
 function(data, seeds = 0, parameters = NULL, z = NULL, classification = NULL, 
   truth = NULL, uncertainty = NULL, what = c("classification", "errors", 
   "uncertainty"), quantiles = c(0.75, 0.94999999999999996), symbols = NULL, 
@@ -9259,9 +9227,13 @@ function(data, seeds = 0, parameters = NULL, z = NULL, classification = NULL,
     }
     else if(length(colors) == 1)
       colors <- rep(colors, L)
-    if(length(symbols) < L && length(colors) < L) {
-      warning("more symbols/colors needed to show classification ")
-      classification <- NULL
+    if(length(symbols) < L) {
+      warning("more symbols needed to show classification ")
+      symbols <- rep(16,L)
+    }
+    if (length(colors) < L) {
+      warning("more colors needed to show classification ")
+      colors <- rep("black",L)
     }
   }
   if(length(what) > 1)

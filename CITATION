@@ -1,72 +1,75 @@
-@Manual{mclustRpackage,
-  title        = {mclust: Model-based Cluster Analysis},
-  author       = {Chris Fraley and Adrian E. Raftery and Ron Wehrens},
-  year         = 2005,
-  note         = {R package version 2.1-11},
-  url          = {http://www.stat.washington.edu/mclust},
-}
-
-@article{FraleyRaftery2003,
-   author    = {Chris Fraley and Adrian E. Raftery},
-   title     = {Enhanced software for model-based clustering,
-       discriminant analysis, and density estimation: {MCLUST}},
-   journal   = {Journal of Classification},
-   pages     = {263--286},
-   year      = {2003},
-   volume    = {20},
-   number    = {2}
-}
-
-@techreport{MclustSoftwareManual2002,
-   author = "Chris Fraley and Adrian E. Raftery",
-   title =  "{MCLUST}: {S}oftware for Model-Based Clustering, 
-               Density Estimation, and Discriminant Analysis",
-   type = "Technical Report",
-   number = "415",
-   address = "Department of Statistics",
-   institution = "University of Washington",
-   month = "October",
-   year = 2002}
-
-@article{FraleyRaftery2002,
-   author = "Chris Fraley and Adrian E. Raftery",
-   title = "Model-Based Clustering, Discriminant Analysis and
-            Density Estimation",
-   journal = "Journal of the American Statistical Association",
-   volume = 97,
-   pages = "611-631",
-   year = 2002}
-
-@article{FraleyRaftery1999,
-   author = "C. Fraley and A. E. Raftery",
-   title = "{MCLUST}: Software for Model-Based Cluster Analysis",
-  journal = "Journal of Classification",
-  volume = 16,
-  pages = "297-306",
-  year = 1999}
-
-@article{FraleyRaftery1998,
-   author = "C. Fraley and A. E. Raftery",
-   title = "How many clusters? {W}hich clustering method? -
-            {A}nswers via Model-Based Cluster Analysis",
-   journal = "Computer Journal",
-   volume = "41",
-   pages = "578-588",
-   year = 1998}
+@article{BanfieldRaftery1993,
+         author = "J. D. Banfield and A. E. Raftery",
+         title = "Model-based {G}aussian and non-{G}aussian clustering",
+         journal = "Biometrics",
+         year = 1993,
+         volume = 49,
+         pages = "803-821"}
 
 @article{Fraley1998,
-   author = "Chris Fraley",
-   title = "Algorithms for Model-Based {G}aussian Hierarchical Clustering",
-   journal = "SIAM Journal on Scientific Computing",
-   volume = 20,
-   pages = "270-281",
-   year = 1998}
+            author = "C. Fraley",
+            title = "Algorithms for Model-Based {G}aussian Hierarchical
+                     Clustering",
+            journal = "SIAM Journal on Scientific Computing",
+            volume = 20,
+            pages = "270-281",
+            year = 1998}
 
-@article{BanfieldRaftery1993,
-   author = "Jeffrey D. Banfield and Adrian E. Raftery",
-   title = "Model-based {G}aussian and non-{G}aussian clustering",
-   journal = "Biometrics",
-   year = 1993,
-   volume = 49,
-   pages = "803-821"}
+@article{FraleyRaftery1998,
+            author = "C. Fraley and A. E. Raftery",
+            title = "How many clusters? {W}hich clustering method? -
+                     {A}nswers via Model-Based Cluster Analysis",
+            journal = "Computer Journal",
+            volume = "41",
+            pages = "578-588",
+            year = 1998}
 
+@article{FraleyRaftery1999,
+            author = "C. Fraley and A. E. Raftery",
+            title = "{MCLUST}: Software for Model-Based Cluster Analysis",
+            journal = "Journal of Classification",
+            volume = 16,
+            pages = "297-306",
+            year = 1999}
+
+@article{FraleyRaftery2002,
+            author = "C. Fraley and A. E. Raftery",
+            title = "Model-Based Clustering, Discriminant Analysis and
+                     Density Estimation",
+            journal = "Journal of the American Statistical Association",
+            volume = 97,
+            pages = "611-631",
+            year = 2002}
+
+@techreport{MclustSoftwareManual2002,
+            author = "C. Fraley and A. E. Raftery",
+	        title = "{MCLUST}: {S}oftware for 
+                    Model-Based Clustering, Density Estimation,
+                     and Discriminant Analysis",
+            type = "Technical Report",
+            number = "415",
+            address = "Department of Statistics",
+            institution = "University of Washington",
+            month = "October",
+	        year = 2002}
+
+@article{FraleyRaftery2003,
+            author = "C. Fraley and A. E. Raftery",
+            title = "Enhanced Software for
+                    Model-Based Clustering, Density Estimation,
+                     and Discriminant Analysis: {MCLUST}",
+            journal = "Journal of Classification",
+            volume = 20,
+            pages = "263-286",
+            year = 2003}
+
+@techreport{MclustSoftwareManual2006,
+            author = "C. Fraley and A. E. Raftery",
+	        title = "{MCLUST} Version 3 for {R}: {N}ormal 
+                    Mixture Modeling and Model-Based Clustering",
+            type = "Technical Report",
+            number = "504",
+            address = "Department of Statistics",
+            institution = "University of Washington",
+            month = "September",
+	        year = 2006}

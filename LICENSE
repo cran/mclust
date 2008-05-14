@@ -1,21 +1,24 @@
 MCLUST: Copyright 1991-2008 University of Washington.  All rights reserved.
 
-Use of MCLUST by commercial organizations, or by academic or non-profit users 
-in conjunction with fee based services such as consulting requires completion
-of a commercial MCLUST agreement found at the following URL:
-http://depts.washington.edu/ventures/UW_Technology/Express_Licenses/mclust.php
-
 The term MCLUST used here refers to all versions of the software, including
 contributed R language (CRAN) packages named mclust, mclust02, and mclust98, 
-and the mclust package available in the S archive of Statlib. 
+and the mclust package available in the S archive of StatLib. 
 
-Conditions under which the University of Washington allows the use of MCLUST 
-by academic and non-profit users for internal research are described below.
+In-house use of MCLUST by commercial and nonprofit organizations, and by academic
+users in conjunction with fee-based  products or services such as consulting 
+requires payment of an annual license fee and completion of a license agreement 
+for MCLUST found at the following URL:
+http://depts.washington.edu/ventures/UW_Technology/Express_Licenses/mclust.php
+Nonprofit use for internal research may be exempt from license fees under certain
+conditions - send inquiries to license@u.washington.edu.
 
-The University of Washington and the developers of MCLUST, Chris Fraley 
-and Adrian Raftery in the Department of Statistics, give permission for you 
-and your Institution to copy, perform, display and modify the MCLUST software 
-under the following conditions:  
+Distribution of MCLUST or of modifications thereof is prohibited except by
+special license agreement with the University of Washington.
+
+For academic users for internal research, the University of Washington and 
+the developers of MCLUST, Chris Fraley and Adrian Raftery in the Department of 
+Statistics, give permission for you and your Institution to copy, perform, 
+display and modify the MCLUST software under the following conditions:  
 
 1. the MCLUST software, including any modifications you may have made to it, 
    remains at your Institution and is not published, distributed, or 

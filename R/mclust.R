@@ -6862,7 +6862,7 @@ function(object, ...)
 	structure(s, class = "summary.mclustDAtrain")
 }
 
-"EMclust" <-
+`EMclust` <-
 function(data, G = NULL, modelNames = NULL, prior = NULL, control = 
   emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),
   Vinv = NULL, warn = FALSE, x = NULL, ...)
@@ -6936,7 +6936,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
     Gall <- sort(as.numeric(unique(c(as.character(G), Glabels))))
     Mall <- unique(c(modelNames, Mlabels))
   }
-  if (any(as.numeric(G)) < 0) {
+  if (any(as.logical(as.numeric(G))) < 0) {
     if (is.null(initialization$noise)) {
       stop("G must be positive")
     }
@@ -7182,7 +7182,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL,
 	structure(ans[orderedNames], class = "Mclust")
 }
 
-"mclustBIC" <-
+`mclustBIC` <-
 function(data, G = NULL, modelNames = NULL, prior = NULL, control = 
   emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),
   Vinv = NULL, warn = FALSE, x = NULL, ...)
@@ -7256,7 +7256,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
     Gall <- sort(as.numeric(unique(c(as.character(G), Glabels))))
     Mall <- unique(c(modelNames, Mlabels))
   }
-  if (any(as.numeric(G)) < 0) {
+  if (any(as.logical(as.numeric(G))) < 0) {
     if (is.null(initialization$noise)) {
       stop("G must be positive")
     }

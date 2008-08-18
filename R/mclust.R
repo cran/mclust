@@ -9785,7 +9785,7 @@ function(data, reciprocal = FALSE)
 			ans <- Inf
 		}
 		else {
-			ans <- min(pcvol, bdvol)
+			ans <- exp(min(pcvol, bdvol))
 		}
 	}
 	ans

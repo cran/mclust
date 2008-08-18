@@ -10,7 +10,7 @@
    the covariance matrices.
 }
 \usage{
-plot.mclustDAtrain(x, data, dimens=c(1,2), symbols=NULL, colors=NULL,
+\method{plot}{mclustDAtrain}(x, data, dimens=c(1,2), symbols=NULL, colors=NULL,
           scale = FALSE, xlim=NULL, ylim=NULL, CEX = 1, \dots)
 }
 \arguments{

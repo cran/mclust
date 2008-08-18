@@ -124,7 +124,7 @@ mclustDA(train, test, pro=NULL, G=NULL, modelNames=NULL, prior=NULL,
   \code{mclustDA} combines functions \code{mclustDAtrain} and 
   \code{mclustDAtest} and their summaries. This is suitable when 
    all test data are available in advance, so that the training
-   model is only used once.
+   model is only used once. 
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).

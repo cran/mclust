@@ -8,8 +8,8 @@
   (for one- and two-dimensional data) density.
 }
 \usage{
-plot.Mclust(x, data = NULL, what = c("BIC", "classification", 
-            "uncertainty", "density"), dimens = c(1,2),  xlab = NULL, ylim = NULL,
+\method{plot}{Mclust}(x, data = NULL, what = c("BIC", "classification", 
+        "uncertainty", "density"), dimens = c(1,2), xlab = NULL, ylim = NULL,
             legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
             identify = TRUE, \dots)
 }

@@ -8,7 +8,7 @@
   mclustDA test data classification, and/or training errors.
 }
 \usage{
-plot.mclustDA(x, trainData, testData, \dots)
+\method{plot}{mclustDA}(x, trainData, testData, \dots)
 }
 \arguments{
   \item{x}{

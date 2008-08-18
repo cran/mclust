@@ -1,5 +1,5 @@
 .First.lib <- function(lib, pkg) {
-  cat("use of mclust requires a license agreement\n")
-  cat("see http://www.stat.washington.edu/mclust/license.txt\n")
+cat("by using mclust, you accpect the license agreement in the LICENSE file\n")
+cat("and at http://www.stat.washington.edu/mclust/license.txt\n")
   library.dynam("mclust", pkg, lib)
 }

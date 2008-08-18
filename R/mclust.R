@@ -490,7 +490,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "EEE", 
                                  WARNING = WARNING, returnCode = 9))
@@ -896,7 +896,7 @@ function(data, z, prior = NULL,  warn = NULL, ...)
                                   variance=variance)
                return(structure(list(modelName="EEE", prior=prior, n=n, d=p, 
                                      G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
+                                     loglik=NA), 
                           WARNING = WARNING, returnCode = 9))
 	}
 	if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -1029,7 +1029,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "EEI", 
                                  WARNING = WARNING, returnCode = 9))
@@ -1475,7 +1475,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "EEV", 
                                  WARNING = WARNING, returnCode = 9))
@@ -1970,7 +1970,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "EII", 
                                  WARNING = WARNING, returnCode = 9))
@@ -1981,7 +1981,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 	if(!sigmasq) {
 		WARNING <- "sigma-squared vanishes"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "EII", 
                                  WARNING = WARNING, returnCode = 9))
@@ -2467,7 +2467,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "EVI", 
                                  WARNING = WARNING, returnCode = 9))
@@ -3365,7 +3365,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "VEI", 
                                  WARNING = WARNING, returnCode = 9))
@@ -3680,7 +3680,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL,...)
                if (warn) warning(WARNING)
                variance <- list(modelName = "VEI", d = p, G = G, 
                                  scale = rep(NA,G), shape = rep(NA,p)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+               parameters <- list(pro=rep(NA,G), 
                                   mean=matrix(NA,p,G), variance=variance)
                return(structure(list(modelName="VEI", prior=prior, n=n, d=p, 
                                      G=G, z=z, parameters=parameters, 
@@ -3840,7 +3840,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "VEV", 
                                  WARNING = WARNING, returnCode = 9))
@@ -4194,7 +4194,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 			p, G), sigma = array(NA, c(p, p, G)), decomp = list(
 			d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
 			orientation = array(NA, c(p, p, G))), pro = rep(NA,
-			K), modelName = "VEV", prior = prior), WARNING = 
+			G), modelName = "VEV", prior = prior), WARNING = 
 			WARNING))
 	}
 	#	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
@@ -4368,7 +4368,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "VII", 
                                  WARNING = WARNING, returnCode = 9))
@@ -4379,7 +4379,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 	if(any(!sigmasq)) {
 		WARNING <- "sigma-squared vanishes"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "VII", 
                                  WARNING = WARNING, returnCode = 9))
@@ -4879,7 +4879,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
 	if(all(is.na(z))) {
                WARNING <- "z is missing"
                if (warn) warning(WARNING)
-               variance <- list(modelName = "VII", d=p, G=G, sigmasq=re(NA,G))
+               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
                parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
                                   variance=variance)
                return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
@@ -5003,7 +5003,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mu", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(z, logarithm = logarithm, modelName = "VVI", 
                                  WARNING = WARNING, returnCode = 9))
@@ -5299,7 +5299,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
 	if(all(is.na(z))) {
                WARNING <- "z is missing"
                if (warn) warning(WARNING)
-               variance <- list(modelName = "VII", d=p, G=G, sigmasq=re(NA,G))
+               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
                parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
                                   variance=variance)
                return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
@@ -5437,7 +5437,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             any(is.null(parameters[c("pro", "mean", "variance")]))) {
                 WARNING <- "parameters are missing"
                 if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
+                z <- matrix(NA,n,G)
                 dimnames(z) <- list(dimnames(data)[[1]], NULL)
                 return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
                                       parameters=parameters, loglik=NA), 
@@ -5831,7 +5831,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
                                   variance=variance)
                return(structure(list(modelName="VVV", prior=prior, n=n, d=p, 
                                      G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
+                                     loglik=NA), 
                           WARNING = WARNING, returnCode = 9))
 	}
 	if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -6304,7 +6304,7 @@ function(classification, truth)
 			i <- k - j
 			m <- mask[i]
 			counter[m] <- (counter[m] %% len[m]) + 1
-			y[x == name(map)[m]] <- map[[m]][counter[m]]
+			y[x == names(map)[m]] <- map[[m]][counter[m]]
 			temp <- y != x
 			err <- sum(as.numeric(temp))
 			if(err < errmin) {
@@ -7588,9 +7588,11 @@ function(x, fill = FALSE, ...)
 	n <- attr(x, "n")
 	d <- attr(x, "d")
 	attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
-	if(!subset && any(ret) && fill) {
-		x <- bicFill(x, ret, n, d)
-	}
+        ##
+	## if(!subset && any(ret) && fill) {
+	##	x <- bicFill(x, ret, n, d)
+	## }
+        ##
 	cat("\n BIC:\n")
 	NextMethod("print")
 	cat("\n")
@@ -7856,7 +7858,7 @@ function(object, data, G=NULL, modelNames=NULL, ...)
   out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
     control = control, warn = warn, Vinv = Vinv)
   obsNames <- if (is.null(dim(data))) {
-                names(datatset)
+                names(data)
               }  
               else {
                 dimnames(data)[[1]]
@@ -8818,68 +8820,62 @@ function (x, data = NULL,
     invisible()
 }
 
-"plot.mclustBIC" <-
-function(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL, 
-         xlab = NULL, ylim = NULL, 
-         legendArgs = list(x = "bottomright", ncol = 2, cex = 1), CEX = 1, ...)
+`plot.mclustBIC` <-
+function (x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL, 
+    xlab = NULL, ylim = NULL, legendArgs = list(x = "bottomright", 
+        ncol = 2, cex = 1), CEX = 1, ...) 
 {
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if (is.null(xlab)) xlab <- "number of components"
-  fill <- FALSE
-  subset <- !is.null(attr(x, "initialization")$subset)
-  noise <- !is.null(attr(x, "initialization")$noise)
-  ret <- attr(x, "returnCodes") == -3
-  if(!subset && any(ret) && fill) {
-    x <- bicFill(x, ret, n, d)
-  }
-  n <- ncol(x)
-  dnx <- dimnames(x)
-  ##
-  x <- matrix(as.vector(x), ncol = n)
-  dimnames(x) <- dnx
-  if(is.null(modelNames))
-    modelNames <- dimnames(x)[[2]]
-  if(is.null(G))
-    G <- as.numeric(dimnames(x)[[1]])
-# BIC <- x[as.character(G), modelNames, drop = FALSE]
-# X <- is.na(BIC)
-# nrowBIC <- nrow(BIC)
-# ncolBIC <- ncol(BIC)
-  if(is.null(symbols)) {
-    colNames <- dimnames(x)[[2]]
-    m <- length(modelNames)
-    if(is.null(colNames)) {
-      symbols <- if(m > 9) LETTERS[1:m] else as.character(1:m)
-      names(symbols) <- modelNames
+    if (is.null(xlab)) 
+        xlab <- "number of components"
+    fill <- FALSE
+    subset <- !is.null(attr(x, "initialization")$subset)
+    noise <- !is.null(attr(x, "initialization")$noise)
+    ret <- attr(x, "returnCodes") == -3
+##
+##    if (!subset && any(ret) && fill) {
+##        x <- bicFill(x, ret, n, d)
+##    }
+##
+    n <- ncol(x)
+    dnx <- dimnames(x)
+    x <- matrix(as.vector(x), ncol = n)
+    dimnames(x) <- dnx
+    if (is.null(modelNames)) 
+        modelNames <- dimnames(x)[[2]]
+    if (is.null(G)) 
+        G <- as.numeric(dimnames(x)[[1]])
+    if (is.null(symbols)) {
+        colNames <- dimnames(x)[[2]]
+        m <- length(modelNames)
+        if (is.null(colNames)) {
+            symbols <- if (m > 9) 
+                LETTERS[1:m]
+            else as.character(1:m)
+            names(symbols) <- modelNames
+        }
+        else {
+            symbols <- .Mclust$bicPlotSymbols[modelNames]
+        }
     }
-    else {
-      symbols <- .Mclust$bicPlotSymbols[modelNames]
+    if (is.null(colors)) {
+        colNames <- dimnames(x)[[2]]
+        if (is.null(colNames)) {
+            colors <- 1:m
+            names(colors) <- modelNames
+        }
+        else {
+            colors <- .Mclust$bicPlotColors[modelNames]
+        }
     }
-  }
-  if(is.null(colors)) {
-    colNames <- dimnames(x)[[2]]
-    if(is.null(colNames)) {
-      colors <- 1:m
-      names(colors) <- modelNames
-    }
-    else {
-      colors <- .Mclust$bicPlotColors[modelNames]
-    }
-  }
-  if(is.null(ylim))
-    ylim <- range(as.vector(x[!is.na(x)]))
-  matplot(x, type = "b", xlim = range(G), ylim = ylim,
-          pch = symbols, col = colors, lty = 1,
-          xlab = xlab, ylab = "BIC", main = "")
- if (!is.null(legendArgs)) 
-   do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
-            legendArgs))
- invisible(symbols)
+    if (is.null(ylim)) 
+        ylim <- range(as.vector(x[!is.na(x)]))
+    xx <- as.numeric(dimnames(x)[[1]])
+    matplot(xx, x, type = "b", xlim = range(xx), ylim = ylim, pch = symbols, 
+        col = colors, lty = 1, xlab = xlab, ylab = "BIC", main = "")
+    if (!is.null(legendArgs)) 
+        do.call("legend", c(list(legend = modelNames, col = colors, 
+            pch = symbols), legendArgs))
+    invisible(symbols)
 }
 
 "plot.mclustDA" <-
@@ -9109,7 +9105,7 @@ function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
 	}
 	else {
             if (is.null(xlim)) xlim <- range(data)
-            plot(data, seq(from = 0, to = length(x), length = n), type = "n", 
+            plot(data, seq(from = 0, to = length(x), length = length(data)), type = "n", 
                  xlab = "", ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
             sym <- "|"
             for (l in 1:length(x)) { 

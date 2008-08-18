@@ -7,9 +7,10 @@
   Plots the BIC from mclust modeling via function \code{mclustBIC}.
 }
 \usage{
-plot.mclustBIC(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
-               xlab = NULL, ylim = NULL, legendArgs = list(x="bottomright", ncol=2, cex=1), 
-               CEX = 1, \dots)
+\method{plot}{mclustBIC}(x, G = NULL, modelNames = NULL, symbols = NULL,
+                         colors = NULL, xlab = NULL, ylim = NULL,
+                         legendArgs = list(x="bottomright", ncol=2, cex=1), 
+                         CEX = 1, \dots)
 }
 \arguments{
   \item{x}{

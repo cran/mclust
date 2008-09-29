@@ -7444,7 +7444,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
          z[!noise, 1:k] <- unmap(clss[, g])
        }
        else {
-         z[!noise, 1:k] <- unmap(qclass(data[!noise]))
+         z[!noise, 1:k] <- unmap(qclass(data[!noise], k = k))
        }
        z[noise, k+1] <- 1
        K <- 1:(k+1) 
@@ -9701,7 +9701,7 @@ function (x, y)
     }
     xy
 }
-"hypvol" <-
+`hypvol` <-
 function(data, reciprocal = FALSE)
 {
 	##
@@ -9770,23 +9770,26 @@ function(data, reciprocal = FALSE)
                 PACKAGE = "mclust")[c(4, 11)]
 	if(temp[[2]])
 		stop("problem in computing principal components")
+	pcvol <- sum(log(temp[[1]]))
+	bdvol <- sum(log(apply(data, 2, max) - apply(data, 2, min)))
 	if(reciprocal) {
-		pcvol <- prod(1/temp[[1]])
-		bdvol <- prod(1/(apply(data, 2, max) - apply(data, 2, min)))
-		ans <- max(pcvol, bdvol)
+		minlog <- log(.Machine$double.xmin)
+		if(-min(pcvol,bdvol) < minlog) {
+			warning("hypervolume smaller than smallest machine representable positive number"
+				)
+			ans <- 0
+		}
+		else ans <- exp(-min(pcvol, bdvol))
 	}
 	else {
-		pcvol <- sum(log(temp[[1]]))
-		bdvol <- sum(log(apply(data, 2, max) - apply(data, 2, min)))
+
 		maxlog <- log(.Machine$double.xmax)
-		if(pcvol > maxlog || bdvol > maxlog) {
+		if(min(pcvol,bdvol) > maxlog) {
 			warning("hypervolume greater than largest machine representable number"
 				)
 			ans <- Inf
 		}
-		else {
-			ans <- exp(min(pcvol, bdvol))
-		}
+		else ans <- exp(min(pcvol, bdvol))
 	}
 	ans
 }

@@ -7788,7 +7788,7 @@ function(object, data, G=NULL, modelNames=NULL, ...)
      = control, initialization = initialization, class = "summary.mclustBIC")
 }
 
-"summaryMclustBICn" <-
+`summaryMclustBICn` <-
 function(object, data, G=NULL, modelNames=NULL, ...)
 {
   ##
@@ -7852,7 +7852,7 @@ function(object, data, G=NULL, modelNames=NULL, ...)
     z[!noise, 1:G] <- unmap(hclass(hcPairs, G))
   }
   else {
-    z[!noise, 1:G] <- unmap(qclass(data, G))
+    z[!noise, 1:G] <- unmap(qclass(data[!noise], G))
   }
   z[noise, G1] <- 1
   out <- me(modelName = bestModel, data = data, z = z, prior = prior, 

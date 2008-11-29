@@ -26,7 +26,10 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
    }
  \item{parameters}{
      The parameters of the model:
-     \describe{
+     \describe{ 
+       \item{pro}{
+           The vector of mixing proportions for the components of the mixture. 
+        }
         \item{mean}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th 
@@ -37,7 +40,8 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance} 
               for details.  
-        }
+            }
+ 
      }
   }
   \item{warn}{

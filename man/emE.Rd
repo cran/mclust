@@ -58,7 +58,7 @@ emVVV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
               specification. See the help file for \code{mclustVariance}
               for details.
         }
-       \item{Vinv}{
+        \item{Vinv}{
              An estimate of the reciprocal hypervolume of the data region.
              The default is determined by applying function  \code{hypvol} 
              to the data. Used only when \code{pro} includes an additional

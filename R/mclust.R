@@ -7530,7 +7530,7 @@ function(x, k = 3)
   x
 }
 
-"print.Mclust" <-
+`print.Mclust` <-
 function(x, ndigits = options()$digits, ...)
 {
 	##
@@ -7539,7 +7539,7 @@ function(x, ndigits = options()$digits, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
-	M <- switch(x$model,
+	M <- switch(EXPR = x$model,
 		X = "univariate normal",
 		E = "equal variance",
 		V = "unequal variance",
@@ -7599,7 +7599,7 @@ function(x, fill = FALSE, ...)
 	invisible()
 }
 
-"print.summary.mclustBIC" <-
+`print.summary.mclustBIC` <-
 function(x, ndigits = options()$digits, ...)
 {
 	##
@@ -7624,7 +7624,7 @@ function(x, ndigits = options()$digits, ...)
           cat("\nbest BIC values:\n")
   	  print(round(bic, ndigits))
         }
-	M <- switch(x$model,
+	M <- switch(EXPR = x$model,
 		X = "univariate normal",
 		E = "equal variance",
 		V = "unequal variance",
@@ -9386,7 +9386,7 @@ function(object, data, G, modelNames, ...)
        ans
 }
 
-"surfacePlot" <-
+`surfacePlot` <-
 function( data, parameters, type = c("contour", "image", "persp"), 
           what = c("density", "uncertainty"), 
           transformation = c("none", "log", "sqrt"), 
@@ -9508,7 +9508,7 @@ grid2 <- function (x, y)
     if (length(CI) > 1) CI <- CI[1]
     if (length(DU) > 1) DU <- DU[1]
     if (length(TRANS) > 1) TRANS <- TRANS[1]
-    switch(DU, 
+    switch(EXPR = DU, 
        "density" = {
             zz <- matrix(Z$density, lx, ly)
             title2 <- "Density"
@@ -9519,7 +9519,7 @@ grid2 <- function (x, y)
         },
         stop("what improperly specified")
     )
-    switch(TRANS, 
+    switch(EXPR = TRANS, 
        "none" = {
             title1 <- ""
         },
@@ -9533,7 +9533,7 @@ grid2 <- function (x, y)
          },
         stop("transformation improperly specified")
     )
-    switch(CI,
+    switch(EXPR = CI,
            "contour" = {
             title3 <- "Contour"
             contour(x = x, y = y, z = zz, nlevels = nlevels, xlab = xlab, 

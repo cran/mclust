@@ -1,0 +1,3 @@
+11/29/08 added EXPR = to all switch functions that didn't already have it
+10/31/08 added pro component to parameters in dens help file 
+10/02/08 fixed some problems with the noise option

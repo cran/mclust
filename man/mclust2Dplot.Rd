@@ -28,6 +28,12 @@ mclust2Dplot(data, parameters=NULL, z=NULL,
      used to produce superimposing ellipses on the plot. 
      The relevant components are as follows:
      \describe{
+        \item{pro}{
+              Mixing proportions for the components of the mixture. 
+              There should one more mixing proportion than the number of 
+              Gaussian components if the mixture model includes 
+              a Poisson noise term.
+        }
         \item{mean}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th

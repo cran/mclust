@@ -57,7 +57,13 @@ cdensVVV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
               for details.
-        }
+            }
+        \item{pro}{
+               Mixing proportions for the components of the mixture. 
+               If the model includes a Poisson term for noise, there 
+               should be one more mixing proportion than the number 
+               of Gaussian components.
+          }
      }
   }
  \item{warn}{

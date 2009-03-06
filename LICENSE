@@ -1,4 +1,4 @@
-MCLUST: Copyright 1991-2008 University of Washington.  All rights reserved.
+MCLUST: Copyright 1991-2009 University of Washington.  All rights reserved.
 
 The term MCLUST used here refers to all versions of the software, including
 contributed R language (CRAN) packages named mclust, mclust02, and mclust98, 
@@ -8,8 +8,10 @@ Except for strict academic use, use of MCLUST requires payment of an annual
 license fee and completion of a license agreement found at the following URL:
 http://depts.washington.edu/ventures/UW_Technology/Express_Licenses/mclust.php
 
-Distribution of MCLUST or of modifications thereof is prohibited except by
-special license agreement with the University of Washington.
+CRAN master (WU Wien) and all of its mirrors are permitted to distribute
+MCLUST as an R package. Otherwise distribution of MCLUST or of modifications 
+thereof is prohibited except by special license agreement with the University 
+of Washington.
 
 For academic users for internal research, the University of Washington and 
 the developers of MCLUST, Chris Fraley and Adrian Raftery in the Department of 

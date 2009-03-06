@@ -1,17 +1,5 @@
-C modified to omit priniting for calls from Fortran within R
       subroutine d9gaml (xmin, xmax)
-c june 1977 edition.   w. fullerton, c3, los alamos scientific lab.
-c
-c calculate the minimum and maximum legal bounds for x in gamma(x).
-c xmin and xmax are not the only bounds, but they are the only non-
-c trivial ones to calculate.
-c
-c             output arguments --
-c xmin   dble prec minimum legal value of x in gamma(x).  any smaller
-c        value of x might result in underflow.
-c xmax   dble prec maximum legal value of x in gamma(x).  any larger
-c        value of x might cause overflow.
-c
+
       double precision xmin, xmax, alnbig, alnsml, xln, xold, d1mach
 
       external d1mach
@@ -51,22 +39,12 @@ c
 c
       return
       end
-C modified to omit printing for calls witj Fortran within R
+
       double precision function d9lgmc (x)
-c august 1977 edition.  w. fullerton, c3, los alamos scientific lab.
-c
-c compute the log gamma correction factor for x .ge. 10. so that
-c dlog (dgamma(x)) = dlog(dsqrt(2*pi)) + (x-.5)*dlog(x) - x + d9lgmc(x)
-c
+
       double precision x, algmcs(15), xbig, xmax, dcsevl, d1mach
 
       external d1mach, dcsevl, initds
-c
-c series for algm       on the interval  0.          to  1.00000e-02
-c                                        with weighted error   1.28e-31
-c                                         log weighted error  30.89
-c                               significant figures required  29.81
-c                                    decimal places required  31.48
 c
       data algmcs(  1) / +.1666389480 4518632472 0572965082 2 d+0      /
       data algmcs(  2) / -.1384948176 0675638407 3298605913 5 d-4      /
@@ -106,18 +84,9 @@ C     call seteru (34hd9lgmc  x so big d9lgmc underflows, 34, 2, 0)
       return
 c
       end
-C modified to remove printing for Fortran calls from within R
+
       double precision function dcsevl (x, a, n)
-c
-c evaluate the n-term chebyshev series a at x.  adapted from
-c r. broucke, algorithm 446, c.a.c.m., 16, 254 (1973).
-c
-c             input arguments --
-c x      dble prec value at which the series is to be evaluated.
-c a      dble prec array of n terms of a chebyshev series.  in eval-
-c        uating a, only half the first coef is summed.
-c n      number of terms in array a.
-c
+
       double precision a(n), x, twox, b0, b1, b2
 
       double precision d1mach
@@ -149,20 +118,13 @@ c
 c
       return
       end
-C modified to avoid printing for calls from Fortran within R
+
       double precision function dgamma (x)
-c jan 1984 edition.  w. fullerton, c3, los alamos scientific lab.
-c jan 1994 wpp@ips.id.ethz.ch, ehg@research.att.com   declare xsml
+
       double precision x, gamcs(42), dxrel, pi, sinpiy, sq2pil, xmax,
      1  xmin, y, d9lgmc, dcsevl, d1mach, xsml
       external d1mach, d9lgmc, dcsevl, initds
-c
-c series for gam        on the interval  0.          to  1.00000e+00
-c                                        with weighted error   5.79e-32
-c                                         log weighted error  31.24
-c                               significant figures required  30.00
-c                                    decimal places required  32.05
-c
+
       data gam cs(  1) / +.8571195590 9893314219 2006239994 2 d-2      /
       data gam cs(  2) / +.4415381324 8410067571 9131577165 2 d-2      /
       data gam cs(  3) / +.5685043681 5993633786 3266458878 9 d-1      /
@@ -294,9 +256,9 @@ c
 c
       return
       end
-C modified to avoid printing for calls from Fortran within R
+
       double precision function dlngam (x)
-c august 1980 edition.   w. fullerton, c3, los alamos scientific lab.
+
       double precision x, dxrel, pi, sinpiy, sqpi2l, sq2pil,
      1  y, xmax, dgamma, d9lgmc, d1mach
       external d1mach, d9lgmc, dgamma
@@ -344,19 +306,9 @@ C    2integer, 68, 1, 1)
       return
 c
       end
-C modified to omit priniting for Fortran calls from within R
+
       function initds (dos, nos, eta)
-c june 1977 edition.   w. fullerton, c3, los alamos scientific lab.
-c
-c initialize the double precision orthogonal series dos so that initds
-c is the number of terms needed to insure the error is no larger than
-c eta.  ordinarily eta will be chosen to be one-tenth machine precision.
-c
-c             input arguments --
-c dos    dble prec array of nos coefficients in an orthogonal series.
-c nos    number of coefficients in dos.
-c eta    requested accuracy of series.
-c
+
       double precision dos(nos)
 
       integer          i1mach
@@ -381,14 +333,13 @@ C    1  1, 2)
 c
       return
       end
+
       subroutine absrng( l, v, i, vmin, vmax)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c finds the max and min elements in absolute value of a vector
 
       implicit NONE
 
@@ -424,6 +375,7 @@ c----------------------------------------------------------------------------
 
       return  
       end 
+
       SUBROUTINE D2NORM ( N, X, INCX, VALUE )
 *     .. Scalar Arguments ..
       INTEGER                           INCX, N
@@ -484,14 +436,13 @@ c----------------------------------------------------------------------------
 *     End of D2NORM.
 *
       END
+
       subroutine mclrup( l, n, v, r, lr)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c rank one row update of n by n upper triangular factor r
 
       implicit NONE
 
@@ -545,14 +496,13 @@ c     double precision  v(n), r(lr,n)
 
       return
       end
+
       subroutine mcltrw( x, n, p, u, ss)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c Computes the trace of the sample cross product matrix.
 
       implicit NONE
 
@@ -566,15 +516,6 @@ c     double precision   x(n,p), u(p)
 
       double precision   ddot
       external           ddot
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, x is overwritten.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  u       output  (scratch) (p) 
-c  ss      output
 
       integer                 i, j
 
@@ -601,6 +542,7 @@ c subtract mean and form sum of squares
 
       return
       end
+
       subroutine mclvol( x, n, p, u, v, w,
      *                   work, lwork, iwork, liwork, 
      *                   info)
@@ -609,9 +551,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c Computes quantities whose product is an approximation to the hypervolume for
-c of a data region via principal components.
 
       implicit NONE
 
@@ -622,20 +561,6 @@ c     integer            iwork(liwork)
 
 c     double precision   x(n,p), u(p), v(p,p), w(p,p), work(lwork),
       double precision   x(n,*), u(*), v(p,*), w(p,p), work(*)
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, x is overwritten.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  u       output  (scratch) (p) Positive quantities whose product is an
-c                   approximate volume of the data region.
-c  w       double  (scratch) (p*p)
-c  v       double  (scratch) (p*p)
-c  work    double  (scratch) (lwork)
-c  lwork   integer
-c  iwork   integer  (scratch) (liwork)
-c  liwork  integer
 
       integer                 i, j
 
@@ -745,14 +670,13 @@ c       vol  = vol * (cmax - cmin)
       return
 
       end
+
       subroutine sgnrng( l, v, i, vmin, vmax)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c finds the max and min elements in absolute value of a vector
 
       implicit NONE
 
@@ -788,14 +712,13 @@ c----------------------------------------------------------------------------
 
       return  
       end 
+
       subroutine shapeo( TRANSP, s, O, l, m, w, info)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c O * diag(s) * t(O) or t(O) * diag(s) * O
 
       implicit NONE
 
@@ -805,17 +728,6 @@ c O * diag(s) * t(O) or t(O) * diag(s) * O
 
 c     double precision   s(l), O(l,l,m), w(l,l)
       double precision   s(*), O(l,l,*), w(l,*)
-
-c------------------------------------------------------------------------------
-c
-c  TRANSP character (input) indicates treatment of O.
-c  s      double    (input) (l) a vector. 
-c  O      double    (input/output) (l,l, m) On input, m l by l matrices.
-c                      On output, t(O) * diag(s) *   O  if TRANSP = 'T'.
-c                                   O  * diag(s) * t(O) if TRANSP = 'N'.
-c  l      integer   (input) dimension of s.
-c  m      integer   (input) number of matrices.
-c  info   integer   (output) error indicator.
 
       integer                 j, k
 
@@ -876,14 +788,13 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine unchol ( UPPER, T, l, n, info)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for constant-variance Gaussian mixtures
 
       implicit NONE
 
@@ -893,16 +804,6 @@ c M-step for constant-variance Gaussian mixtures
 
 c     double precision   T(abs(n), abs(n))
       double precision   T(  l   ,   *   )
-
-c------------------------------------------------------------------------------
-c
-c  UPLO  character (input) 'U'/'L' for upper/lower triangular.
-c  T     double    (input/output) (n,n) On input, triangular matrix.
-c                   On output, if upper triangular transpose(T) * T; 
-c                              if lower triangular T * transpose(T).
-c  l     integer (input) leading dimension of T.
-c  n     integer (input) effective dimension of T.
-c  info  integer (output) nonzero indicates UPLO incorrectly specified.
 
        integer            i, j, k
 
@@ -953,16 +854,13 @@ c------------------------------------------------------------------------------
       info = -1
       return
       end
+
       subroutine wardsw( i, n, d)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c Copies row n into row i and puts FLMAX in row n.
-c Note : i > 1, i < n, n > 2 required.
-c Used in spherical, constant volume methods (E, EII)
 
       implicit NONE
 
@@ -1016,15 +914,13 @@ c     d(nn) = FLMAX
 
       return
       end
+
       subroutine es1e ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for one-dimensional Gaussian mixtures 
-c with constant variance
 
       implicit NONE
 
@@ -1034,19 +930,6 @@ c with constant variance
 
 c     double precision   x(n), mu(G), pro(G[+1]), z(n,G[+1])
       double precision   x(*), mu(*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n) vector of observations.
-c  n       integer (input) number of observations.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (G) mean for each group.
-c  sigsq   double  (input) common variance for the groups.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, k, nz
 
@@ -1158,31 +1041,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c Gaussian model-based clustering algorithm in which shape and orientation
-c are fixed in advance, while cluster volumes are also equal but unknown.
-
       implicit NONE
 
       integer             n, ic(n), ng, ns, nd
 
 c     double precision    x(n), d(ng*(ng-1)/2)
       double precision    x(*), d(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, an n vector containing the
-c                   observations. On output, the first ns entries contain a
-c                   merge index.
-c  n       integer (input) number of observations
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively. On output the first ns entries
-c                   contain one of the merge indexes.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns entries are proportional to the change in
-c                   loglikelihood associated with each merge.
 
       integer             lg, ld, ll, lo, ls
       integer             i, j, k, m 
@@ -1497,21 +1361,6 @@ c update d and find max
       return
       end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       subroutine me1e ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps, 
      *                  mu, sigsq, pro)
 
@@ -1519,8 +1368,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
 
       implicit NONE
 
@@ -1532,25 +1379,6 @@ c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
 
 c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
       double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                  loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -1716,6 +1544,7 @@ c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)
 
       return
       end
+
       subroutine me1ep ( EQPRO, x, n, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, 
@@ -1725,8 +1554,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
 
       implicit NONE
 
@@ -1740,25 +1567,6 @@ c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
 
 c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
       double precision    x(*), z(n,  *  ), mu(*), sigsq, pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                  loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -1954,9 +1762,6 @@ c       temp = pro(k)
       return
       end
 
-
-
-
       subroutine ms1e ( x, z, n, G, mu, sigsq, pro)
 
 c This function is part of the MCLUST software described at
@@ -1964,25 +1769,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step for one-dimensional Gaussian mixtures with equal variance
-c with prior
-
       implicit NONE
 
       integer             n, G
 
 c     double precision    x(n), z(n,G), mu(G), sigsq, pro(G)
       double precision    x(*), z(n,*), mu(*), sigsq, pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n) vector of observations.
-c  z       double    (input) (n,G) conditional probabilities.
-c  n       integer   (input) number of observations.
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  mu      double    (output) (G) mean for each group.
-c  sigsq   double    (output) common variance for the groups.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, k
 
@@ -2033,6 +1825,7 @@ c sumz .eq. n when no noise
 
       return
       end
+
       subroutine ms1ep ( x, z, n, G,
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, sigsq, pro)
@@ -2042,9 +1835,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c EM (M-step first) for one-dimensional Gaussian mixtures with equal variance
-c with prior
-
       implicit NONE
 
       integer             n, G
@@ -2053,16 +1843,6 @@ c with prior
 
 c     double precision    x(n), z(n,G), mu(G), sigsq, pro(G)
       double precision    x(*), z(n,*), mu(*), sigsq, pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n) vector of observations.
-c z     double  (input/output) (n,G) conditional probabilities. 
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G) mixing proportions.
 
       integer                 k, i
 
@@ -2125,9 +1905,6 @@ c------------------------------------------------------------------------------
       return
       end
 
-
-
-
       subroutine eseee ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv,
      *                   w, hood, z)
 
@@ -2135,8 +1912,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for constant-variance Gaussian mixtures
 
       implicit NONE
 
@@ -2153,25 +1928,6 @@ c     double precision   x(n,p), w(p), z(n,G[+1])
 
 c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
       double precision   mu(p,*), Sigma(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  CHOL  char    (input) 'N': full Sigma given rather than Cholesky factor.
-c  x     double  (input) (n,p) matrix of observations.
-c  mu    double  (input) (p,G) mean for each group.
-c  Sigma double  (input) (p,p) On input, common covariance matrix or its upper
-c                              triangular Cholesky factor.
-c        On output, the upper triangle is overwritten by the Cholesky factor.
-c  pro   double  (input) (G[+1]) mixing proportions.
-c  n     integer (input) number of observations.
-c  p     integer (input) dimension of the data.
-c  G     integer (input) number of Gaussian clusters in the mixture.
-c  Vinv  double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  w     double  (scratch/output) (p) workspace.  On output, w(1) is the
-c                 the error code for the LAPACK Cholesky decomposition.
-c  hood  double  (output) FLMAX if overflow/Cholesky fails else loglikelihood. 
-c  z     double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 info, i, j, k, nz
 
@@ -2311,6 +2067,7 @@ c     end do
  
       return
       end
+
       subroutine hceee ( x, n, p, ic, ng, ns, io, jo, v, s, u, r)
 
 c This function is part of the MCLUST software described at
@@ -2318,41 +2075,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c Gaussian model-based clustering algorithm in clusters share a common
-c variance (shape, volume, and orientation are the same for all clusters).
-
       implicit NONE
 
       integer            n, p, ic(n), ng, ns, io(*), jo(*)
 
 c     double precision   x(n,p), v(p), s(p,p), u(p,p), r(p,p)
       double precision   x(n,*), v(*), s(*), u(*), r(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, the first two columns
-c                   and ns rows contain the determinant and trace of the
-c                   sum of the sample cross product matrices. Columns 3 and 4
-c                   contain the merge indices if p .ge. 4
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  io,jo   integer (output [p .le. 3]) If p .lt. 3, both io and jo must be of
-c                   length ns and contain the indices of the merged pairs on
-c                   output. If p .eq. 3, jo must be of length ns and contains
-c                   an index of each merged on output pair. Otherwise io and
-c                   jo are not used and can be of length 1.
-c  v       double  (scratch/output) (p) On output, algorithm breakpoints;
-c                   tells where the algorithm switches from using trace
-c                   to trace + det, and from trace + det to det as criterion.
-c  s       double  (scratch/output) (p,p) On output the first column contains
-c                   the initial trace and determinant of the sum of sample
-c                   cross product matrices.
-c  u,r      double  (scratch) (p,p)
 
       integer                 q, i, j, k, l, m, i1, i2, l1, l2
       integer                 ni, nj, nij, lw, ls, lg, ici, icj
@@ -2876,8 +2604,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c safeguarded computation for determinant of triangular matrix u
-
       implicit NONE
 
       integer                          k, n
@@ -2920,8 +2646,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c EM (M-step first) for constant-variance Gaussian mixtures
-
       implicit NONE
 
       logical            EQPRO
@@ -2935,28 +2659,6 @@ c     double precision   x(n,p), z(n,G), w(p)
 
 c     double precision   mu(p,G), U(p,p), pro(G)
       double precision   mu(p,*), U(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on the reciprocal
-c           condition estimate of the Cholesky factor of the covariance.
-c           On output, the loglikelihood.
-c mu    double  (output) (p,G) means for each group.
-c U     double  (output) (p,p) Cholesky factor of the covariance.
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, j1
 
@@ -3163,6 +2865,7 @@ c         z(i,k) = temp * exp(-(const+sum))
 
       return
       end
+
       subroutine meeeep( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps,
@@ -3172,8 +2875,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for constant-variance Gaussian mixtures
 
       implicit NONE
 
@@ -3191,28 +2892,6 @@ c     double precision   x(n,p), z(n,G), w(p)
 
 c     double precision   mu(p,G), U(p,p), pro(G)
       double precision   mu(p,*), U(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on the reciprocal
-c           condition estimate of the Cholesky factor of the covariance.
-c           On output, the loglikelihood.
-c mu    double  (output) (p,G) means for each group.
-c U     double  (output) (p,p) Cholesky factor of the covariance.
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, j1
 
@@ -3473,14 +3152,13 @@ c         call dtrsv('U','T','N', p, U, p, pmu, 1)
 
       return
       end
+
       subroutine mseee ( x, z, n, p, G, w, mu, U, pro)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for constant-variance Gaussian mixtures
 
       implicit NONE
 
@@ -3564,6 +3242,7 @@ c sumz .eq. n when no noise
 
       return
       end
+
       subroutine mseeep( x, z, n, p, G, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   w, mu, U, pro)
@@ -3572,8 +3251,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for constant-variance Gaussian mixtures with prior
 
       implicit NONE
 
@@ -3587,19 +3264,6 @@ c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
 
 c     double precision   mu(p,G), U(p,p), pro(G)
       double precision   mu(p,*), U(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observations.
-c  z       double    (input) (n,G) conditional probabilities. 
-c  n       integer   (input) number of observations.
-c  p       integer   (input) dimension of the data.
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  w       double    (scratch) (p) 
-c  mu      double    (output) (p,G) mean for each group.
-c  U       double    (output) (p,p) upper triangular Cholesky factor of the 
-c         common covariance matrix for the groups: transpose(U) * U = Sigma.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, j, k, j1
 
@@ -3680,6 +3344,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine eseei ( x, mu, scale, shape, pro, n, p, G, 
      *                   Vinv, hood, z)
 
@@ -3687,8 +3352,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for diagonal, constant-variance Gaussian mixtures
 
       implicit NONE
 
@@ -3701,22 +3364,6 @@ c     double precision   x(n,p), z(n,G[+1])
 
 c     double precision   mu(p,G), shape(p), pro(G[+1])
       double precision   mu(p,*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) common scale factor for group covariance.
-c  shape   double  (input) (p) common shape for group covariance,
-c          normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, j, k, nz
 
@@ -3834,6 +3481,7 @@ c     end do
 
       return
       end
+
       subroutine meeei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro)
 
@@ -3841,8 +3489,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for diagonal, constant-volume Gaussian mixtures
 
       implicit NONE
 
@@ -3857,28 +3503,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), shape(p), pro(G[+1])
       double precision    mu(p,*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for group covariance.
-c shape double  (output) (p) common shape for group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -4105,9 +3729,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c EM (M-step first) for diagonal, constant-volume Gaussian mixtures
-c with prior
-
       implicit NONE
 
       logical             EQPRO
@@ -4124,28 +3745,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), shape(p), pro(G[+1])
       double precision    mu(p,*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for group covariance.
-c shape double  (output) (p) common shape for group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -4378,8 +3977,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step for diagonal Gaussian mixtures with equal volume and shape
-
       implicit NONE
 
       integer            n, p, G
@@ -4389,19 +3986,6 @@ c     double precision   x(n,p), z(n,G)
 
 c     double precision   mu(p,G), scale, shape(p), pro(G)
       double precision   mu(p,*), scale, shape(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  z       double  (input) (n,G) conditional probabilities (destroyed).
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (output) (p,G) mean for each group.
-c  scale   double  (output) common scale factor for group covariance.
-c  shape   double  (output) (p) common shape for group covariance,
-c              normalized so that the product of the elements is 1.
-c  pro     double  (output) (G) mixing proportions (ignore result if equal).
 
       integer             i, j, k
 
@@ -4500,6 +4084,7 @@ c------------------------------------------------------------------------------
       
       return
       end
+
       subroutine mseeip( x, z, n, p, G,
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, scale, shape, pro)
@@ -4508,9 +4093,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step with prior for diagonal, constant-volume Gaussian mixtures
-c with prior
 
       implicit NONE
 
@@ -4524,19 +4106,6 @@ c     double precision    x(n,p), z(n,G)
 
 c     double precision    mu(p,G), scale, shape(p), pro(G[+1])
       double precision    mu(p,*), scale, shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for group covariance.
-c shape double  (output) (p) common shape for group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             i, j, k
 
@@ -4640,8 +4209,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c E-step and loglikelihood for Gaussian mixtures with equal shape and volume
-
       implicit NONE
 
 c     integer            n, p, G
@@ -4654,27 +4221,6 @@ c     double precision   x(n,p), v(p), w(p), z(n,G[+1])
 
 c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  mu      double  (input) (p,G) mean for each group.
-c scale    double  (input) common scale factor for the covariances,
-c             defined so that shape is normalized to have unit determinant.
-c shape    double  (input) (p) common shape vector for covariances,
-c   normalized so that the product of the elements equals 1 (destroyed).
-c  O       double  (input) (p,p,G) orientation for each group.
-c                           Sigma = scale * t(O) %*% diag(shape) %*%   O
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  v       double  (scratch) (p) workspace.
-c  w       double  (scratch) (p) workspace.  
-c  hood    double  (output)  FLMAX if overlow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, j, k, nz
 
@@ -4797,6 +4343,7 @@ c     end do
 
       return
       end
+
       subroutine meeev ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps,
      *                   lwork, mu, scale, shape, O, pro, w, s)
 
@@ -4816,34 +4363,6 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
 
       double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                   loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, tolerance to avoid division by 0.
-c                              On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4) workspace 
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (utput) common scale factor for the covariances,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, l, j1, info
 
@@ -5125,6 +4644,7 @@ c     w(1)  = rc
 
       return
       end
+
       subroutine meeevp( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps,
@@ -5134,8 +4654,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for Gaussian mixtures with equal shape and volume
 
       implicit NONE
 
@@ -5153,35 +4671,6 @@ c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
 
 c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision   mu(p,*), shape(*), O(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                   loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, tolerance to avoid division by 0.
-c                              On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4) workspace 
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (utput) common scale factor for the covariances,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, l, j1, info
 
@@ -5483,8 +4972,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step for Gaussian mixtures with equal shape and constant volume
-
       implicit NONE
 
       integer            n, p, G, lwork
@@ -5496,23 +4983,6 @@ c     double precision   x(n,p), z(n,G), w(lwork)
 
 c     double precision   shape(p), O(p,p,G), mu(p,G), pro(G)
       double precision   shape(*), O(p,p,*), mu(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x     double  (input) (n,p) matrix of observations.
-c  z     double  (input) (n,G) conditional probabilities (destroyed).
-c  n     integer (input) number of observations.
-c  p     integer (input) dimension of the data.
-c  G     integer (input) number of Gaussian clusters in the mixture.
-c  w     double  (scratch) (lwork)
-c  lwork integer (input/output) .ge. max(4*p,5*p-4) workspace for LAPACK SVD.
-c                                       On output, error code for LAPACK SVD.
-c  mu    double  (output) (p,G) mean for each group.
-c  scale double  (output) common scale factor for the groups.
-c  shape double  (scratch/output) (p) common shape vector for the groups.
-c  O     double  (output) (p,p,G) transpose of the orthogonal orientation 
-c       matrix for each group: Sigma = scale * t(O) %*% diag(shape) %*% O.
-c  pro   double  (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, j, k, j1, l, info
 
@@ -5638,6 +5108,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mseevp( x, z, n, p, G,
      *                   pshrnk, pmu, pscale, pdof,
      *                   w, lwork, mu, scale, shape, O, pro)
@@ -5646,8 +5117,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step with prior for Gaussian mixtures with equal shape and volume
 
       implicit NONE
 
@@ -5663,26 +5132,6 @@ c     double precision   x(n,p), z(n,G), w(lwork)
 
 c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G)
       double precision   mu(p,*), shape(*), O(p,p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4) workspace 
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (utput) common scale factor for the covariances,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p) 
 
       integer                 nz, p1, iter, i, j, k, l, j1, info
 
@@ -5825,14 +5274,13 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine eseii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for spherical, constant-volume Gaussian mixtures
 
       implicit NONE
 
@@ -5842,20 +5290,6 @@ c E-step and loglikelihood for spherical, constant-volume Gaussian mixtures
 
 c     double precision   x(n,p), mu(p,G), pro(G[+1]), z(n,G[+1])
       double precision   x(n,*), mu(p,*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  sigsq   double  (input) common variance for the groups.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, j, k, nz
 
@@ -5955,6 +5389,7 @@ c     end do
 
       return
       end
+
       subroutine hceii ( x, n, p, ic, ng, ns, v, nd, d)
 
 c This function is part of the MCLUST software described at
@@ -5962,32 +5397,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c Gaussian model-based clustering algorithm in which shape and orientation
-c are fixed in advance, while cluster volumes are also equal but unknown.
-
       implicit NONE
 
       integer             n, p, ic(n), ng, ns, nd
 
 c     double precision    x(n,p), v(p), d(ng*(ng-1)/2)
       double precision    x(n,*), v(*), d(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, the first two columns
-c                   and ns rows contain the merge indices.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  v       double  (scratch) (p)
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in
-c                   loglikelihood associated with each merge.
 
       integer             lg, ld, ll, lo, ls
       integer             i, j, k, m
@@ -6286,6 +5701,7 @@ c update d and find max
 
       return
       end
+
       subroutine meeii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, sigsq, pro)
 
@@ -6293,8 +5709,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for spherical, constant-volume Gaussian mixtures
 
       implicit NONE
 
@@ -6306,26 +5720,6 @@ c EM (M-step first) for spherical, constant-volume Gaussian mixtures
 
 c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       double precision    x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -6500,6 +5894,7 @@ c         z(i,k) = temp*exp(-(const+(z(i,k)/sigsq))/two)
 
       return
       end
+
       subroutine meeiip( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, 
@@ -6509,10 +5904,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-c EM (M-step first) for spherical, constant-volume Gaussian mixtures
 
       implicit NONE
 
@@ -6527,26 +5918,6 @@ c     double precision    pshrnk, pmu(p), pscale, pdof
 
 c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       double precision    x(n,*), z(n,  *  ), mu(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on sigsq.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -6747,6 +6118,7 @@ c     FLMAX  = d1mach(2)
 
       return
       end
+
       subroutine mseii ( x, z, n, p, G, mu, sigsq, pro)
 
 c This function is part of the MCLUST software described at
@@ -6754,25 +6126,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step for spherical, equal-volume Gaussian mixtures
-
       implicit NONE
 
       integer            n, p, G
 
 c     double precision   x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
       double precision   x(n,*), z(n,*), mu(p,*), sigsq, pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observations.
-c  z       double    (input) (n,G) conditional probabilities.
-c  n       integer   (input) number of observations.
-c  p       integer   (input) dimension of the data.
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  mu      double    (output) (p,G) means for each group.
-c  sigsq   double    (output) common variance for the groups.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, j, k
 
@@ -6826,6 +6185,7 @@ c sumz .eq. n when no noise
 
       return
       end
+
       subroutine mseiip( x, z, n, p, G, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, sigsq, pro)
@@ -6834,8 +6194,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for spherical, constant-volume Gaussian mixtures with prior
 
       implicit NONE
 
@@ -6846,18 +6204,6 @@ c     double precision    pshrnk, pmu(p), pscale, pdof
 
 c     double precision    x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
       double precision    x(n,*), z(n,*), mu(p,*), sigsq, pro(*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G) init/final conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) common variance for the groups.
-c pro   double  (output) (G) mixing proportions (used even if equal).
 
       integer             i, j, k
 
@@ -6930,6 +6276,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine esevi ( x, mu, scale, shape, pro, n, p, G, 
      *                   Vinv, hood, z)
 
@@ -6937,9 +6284,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for diagonal Gaussian mixtures
-c with equal volume and varying shape
 
       implicit NONE
 
@@ -6952,23 +6296,6 @@ c     double precision   x(n,p), z(n,G[+1])
 
 c     double precision   mu(p,G), shape(p,G), pro(G[+1])
       double precision   mu(p,*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) common scale factor for group covariances.
-c  shape   double  (output) (p,G) shape vector for each group covariance,
-c        normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (input/output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-
 
       integer                 i, j, k, nz
 
@@ -7097,6 +6424,7 @@ c     end do
 
       return
       end
+
       subroutine meevi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro)
 
@@ -7104,9 +6432,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with equal volume and varying shape
 
       implicit NONE
 
@@ -7121,28 +6446,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), shape(p,G), pro(G[+1])
       double precision    mu(p,*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for the group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -7364,6 +6667,7 @@ c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
 
       return
       end
+
       subroutine meevip( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, 
@@ -7373,9 +6677,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with equal volume and varying shape with prior
 
       implicit NONE
 
@@ -7393,28 +6694,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), shape(p,G), pro(G[+1])
       double precision    mu(p,*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for the group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -7649,15 +6928,13 @@ c         z(i,k) = pro(k)*exp(-(const+(sum/scale))/two)
 
       return
       end
+
       subroutine msevi ( x, z, n, p, G, mu, scale, shape, pro)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for diagonal Gaussian mixtures 
-c with equal volume and varying shape
 
       implicit NONE
 
@@ -7668,19 +6945,6 @@ c     double precision   x(n,p), z(n,G)
 
 c     double precision   mu(p,G), scale, shape(p,G), pro(G)
       double precision   mu(p,*), scale, shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observations.
-c  z       double    (input) (n,G) conditional probabilities.
-c  n       integer   (input) number of observations (assumed .ge. p).
-c  p       integer   (input) dimension of the data (assumed .le. n).
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  mu      double    (output) (p,G) means for each group.
-c  scale   double    (output) common scale factor for the group covariances.
-c  shape   double    (output) (p,G) shape vector for each group covariance,
-c                 normalized so that the product of the elements is 1.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, j, k
 
@@ -7803,9 +7067,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step with prior for diagonal Gaussian mixtures 
-c with equal volume and varying shape with prior
-
       implicit NONE
 
       integer             n, p, G
@@ -7818,19 +7079,6 @@ c     double precision    x(n,p), z(n,G)
 
 c     double precision    mu(p,G), scale, shape(p,G), pro(G)
       double precision    mu(p,*), scale, shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G) init/final conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) common scale factor for the group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G) mixing proportions (used even if equal).
 
       integer             i, j, k
 
@@ -7939,15 +7187,13 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine es1v  ( x, mu, sigsq, pro, n, G, Vinv, hood, z)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood one-dimensional Gaussian mixtures 
-c with unrestricted variances
 
       implicit NONE
 
@@ -7957,19 +7203,6 @@ c with unrestricted variances
 
 c     double precision   x(n), mu(G), sigsq(G), pro(G[+1]), z(n,G[+1])
       double precision   x(*), mu(*), sigsq(*), pro(  *  ), z(n,  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) vector of observations.
-c  n       integer (input) number of observations.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  sigsq   double  (input) (G) variance for each group.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of
-c                          the data region for Poisson noise term.
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, k, nz
 
@@ -8074,7 +7307,6 @@ c     end do
       return
       end
 
-
       subroutine hc1v  ( x, n, ic, ng, ns, ALPHA, nd, d)
 
 c This function is part of the MCLUST software described at
@@ -8082,8 +7314,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c Gaussian model-based clustering algorithms in which shape and orientation 
-c are fixed in advance, while volume may vary among clusters.
       implicit NONE
 
 c     integer             n, ic(n), ng, ns, nd
@@ -8091,23 +7321,6 @@ c     integer             n, ic(n), ng, ns, nd
 
 c     double precision    x(n), ALPHA, d(ng*(ng-1)/2)
       double precision    x(*), ALPHA, d(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, an n vector containing the
-c                   observations. On output, the first ns entries contain
-c                   one of the merge indexes.
-c  n       integer (input) number of observations
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively. On output the first ns entries
-c                   contain one of the merge indexes.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  ALPHA   double  (input) Additive quantity used to resolve degeneracies. 
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(n,((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in 
-c                   loglikelihood associated with each merge.
 
       integer             lg, ld, ll, lo, ls, i, j, k, m
       integer             ni, nj, nij, nopt, niop, njop  
@@ -8641,24 +7854,6 @@ c       trop  = (tracei + tracej) + ddot(p,v,1,v,1)
       return
       end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       subroutine me1v ( EQPRO, x, n, G, Vinv, z, maxi, tol, eps,
      *                  mu, sigsq, pro)
 
@@ -8666,10 +7861,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-c EM (M-step first) for general one-dimensional Gaussian mixtures
 
       implicit NONE
 
@@ -8681,25 +7872,6 @@ c EM (M-step first) for general one-dimensional Gaussian mixtures
 
 c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
       double precision     x(*), z(n,  *  ), mu(*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n) vector of observations.
-c n     integer (input) number of observations.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c            loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double (output) (G) mean for each group.
-c sigsq double (output) (G) variance for each group.
-c pro   double (output) (G[+1]) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -8870,8 +8042,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c       http://www.stat.washington.edu/mclust/license.txt
 
-c EM (M-step first) for general one-dimensional Gaussian mixtures
-
       implicit NONE
 
       logical              EQPRO
@@ -8884,27 +8054,6 @@ c EM (M-step first) for general one-dimensional Gaussian mixtures
 
 c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
       double precision     x(*), z(n,  *  ), mu(*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO  logical (input) .TRUE. for equal mixing proportions.
-c x      double  (input) (n) vector of observations.
-c n      integer (input) number of observations.
-c G      integer (input) number of Gaussian clusters in the mixture.
-c Vinv   double  (input) if positive, estimated reciprocal hypervolume of
-c                        the data region for Poisson noise term.
-c prior0, prior1, prior2 double  (input) prior parameters
-c prior0                         (output) final posterior value
-c z      double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi   integer (input/output) On input, upper limit on iterations.
-c                               On output, number of iterations.
-c tol    double  (input/output) On input, tolerance on convergence of the
-c            loglikelihood. On output, maximum relative error for the ll.
-c eps    double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu     double (output) (G) mean for each group.
-c sigsq  double (output) (G) variance for each group.
-c pro    double (output) (G[+1]) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -9112,25 +8261,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step for spherical Gaussian mixtures with varying volumes with prior
-
       implicit NONE
 
       integer            n, G
 
 c     double precision   x(n), z(n,G), mu(G), sigsq(G), pro(G)
       double precision   x(*), z(n,*), mu(*), sigsq(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n)  vector of observations.
-c  z       double    (input) (n,G) conditional probabilities.
-c  n       integer   (input) number of observations
-c  p       integer   (input) dimension of the data
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  mu      double    (output) (p,G) mean for each group.
-c  sigsq   double    (output) (G) variance for each group.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, k
      
@@ -9173,6 +8309,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine ms1vp ( x, z, n, G, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, sigsq, pro)
@@ -9182,8 +8319,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c       http://www.stat.washington.edu/mclust/license.txt
 
-c EM (M-step first) with prior for general one-dimensional Gaussian mixtures
-
       implicit NONE
 
       integer              n, G
@@ -9192,17 +8327,6 @@ c EM (M-step first) with prior for general one-dimensional Gaussian mixtures
 
 c     double precision     x(n), z(n,G), mu(G), sigsq(G), pro(G)
       double precision     x(*), z(n,*), mu(*), sigsq(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x      double  (input) (n) vector of observations.
-c z      double  (input/output) (n,G) conditional probabilities. 
-c n      integer (input) number of observations.
-c G      integer (input) number of Gaussian clusters in the mixture.
-c prior0, prior1, prior2 double  (input) prior parameters
-c mu     double (output) (G) mean for each group.
-c sigsq  double (output) (G) variance for each group.
-c pro    double (output) (G) mixing proportions (used even if equal).
 
       integer                 nz, iter, k, i
 
@@ -9268,9 +8392,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c E-step and loglikelihood for diagonal Gaussian mixtures
-c with varying volume and equal shape
-
       implicit NONE
 
       integer            n, p, G
@@ -9282,22 +8403,6 @@ c     double precision   x(n,p), z(n,G[+1])
 
 c     double precision   mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision   mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) (G) scale factor for each group covariance.
-c  shape   double  (output) (p) common shape vector for the covariances,
-c        normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
 
       integer                 i, j, k, nz
 
@@ -9433,6 +8538,7 @@ c     end do
 
       return
       end
+
       subroutine mevei ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro, scl, shp, w)
 
@@ -9440,11 +8546,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-c Distribution of MCLUST is prohibited except by agreement with the
-c University of Washington.
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with varying volume and shape
 
       implicit NONE
 
@@ -9459,32 +8560,6 @@ c     double precision    x(n,p), z(n,G[+1]), scl(G), shp(p), w(p,G)
 
 c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision    mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p) common shape for the group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
-c scl   double  (scratch) (G)
-c shp   double  (scratch) (p)
-c w     double  (scratch) (p*G)
 
       integer             nz, i, j, k
       integer             iter, maxi1, maxi2, inner, inmax
@@ -9797,6 +8872,7 @@ c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
 
       return
       end
+
       subroutine meveip( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, 
@@ -9806,9 +8882,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with varying volume and shape
 
       implicit NONE
 
@@ -9826,32 +8899,6 @@ c     double precision    x(n,p), z(n,G[+1]), scl(G), shp(p), w(p,G)
 
 c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision    mu(p,*), scale(*), shape(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p) common shape for the group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
-c scl   double  (scratch) (G)
-c shp   double  (scratch) (p)
-c w     double  (scratch) (p*G)
 
       integer             nz, i, j, k
       integer             iter, maxi1, maxi2, inner, inmax
@@ -10174,6 +9221,7 @@ c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
 
       return
       end
+
       subroutine msvei ( x, z, n, p, G, maxi, tol, 
      *                   mu, scale, shape, pro, scl, shp, w)
 
@@ -10181,8 +9229,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for diagonal Gaussian mixtures with varying volume and equal shape
 
       implicit NONE
 
@@ -10195,25 +9241,6 @@ c     double precision   x(n,p), z(n,G), scl(G), shp(p), w(p,G)
 
 c     double precision   mu(p,G), scale(G), shape(p), pro(G)
       double precision   mu(p,*), scale(*), shape(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observation.
-c  z       double    (input) (n,G) conditional probabilities (destroyed).
-c  n       integer   (input) number of observations (assumed .ge. p).
-c  p       integer   (input) dimension of the data (assumed .le. n).
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  maxi    integer   (input/output) On input, inneration limit.
-c                                   On output, number of innerations.
-c  tol     double    (input/output) On input, maximum relative error in 
-c                  scale and shape. On output, actual error.
-c  mu      double    (output) (p,G) means for each group.
-c  scale   double    (output) (G) scale factor for each group.
-c  shape   double    (output) (p) common shape vector for the groups.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
-c  scl     double    (scratch) (G) 
-c  shp     double    (scratch) (p)
-c  w       double    (scratch) (p*G)
 
       integer                 i, j, k, inner
 
@@ -10380,6 +9407,7 @@ c shape estimate
 
       return
       end
+
       subroutine msveip( x, z, n, p, G, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   maxi, tol,
@@ -10389,9 +9417,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step with prior for diagonal Gaussian mixtures 
-c with varying volume and shape
 
       implicit NONE
 
@@ -10407,27 +9432,6 @@ c     double precision    x(n,p), z(n,G), scl(G), shp(p), w(p,G)
 
 c     double precision    mu(p,G), scale(G), shape(p), pro(G)
       double precision    mu(p,*), scale(*), shape(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c maxi  integer (input/output) On input, upper limit on inner
-c                      iterations. On output, number of inner iterations.
-c tol   double  (input/output) On input, tolerance on convergence for the
-c                   inner iterations for scale and shape. 
-c                   On output, maximum relative error for these.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p) common shape for the group covariance,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
-c scl   double  (scratch) (G)
-c shp   double  (scratch) (p)
-c w     double  (scratch) (p*G)
 
       integer             i, j, k, inner
 
@@ -10612,6 +9616,7 @@ c shape estimate
 
       return
       end
+
       subroutine esvev ( x, mu, scale, shape, O, pro, n, p, G, 
      *                   Vinv, v, w, hood, z)
 
@@ -10619,8 +9624,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for Gaussian mixtures with equal shape.
 
       implicit NONE
 
@@ -10637,27 +9640,6 @@ c     double precision   v(p), w(p)
 
 c     double precision   scale(G), shape(p), O(p,p,G)
       double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  mu      double  (input) (p,G) mean for each group.
-c scale    double  (input) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape    double  (input) (p) common shape vector for covariances,
-c   normalized so that the product of the elements equals 1 (destroyed).
-c  O       double  (input) (p,p,G) orientation for each group.
-c                            Sigma = scale * t(O) %*% diag(shape) %*%   O
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  v       double  (scratch) (p) workspace.
-c  w       double  (scratch) (p) workspace.  
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, j, k, nz
 
@@ -10788,6 +9770,7 @@ c     end do
 
       return
       end
+
       subroutine mevev ( EQPRO, x, n, p, G, Vinv, z, 
      *                   maxi, tol, eps, lwork,
      *                   mu, scale, shape, O, pro, w, s)
@@ -10810,37 +9793,6 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision   mu(p,*), pro(  *  )
 
       double precision   scale(*), shape(*), O(p,p,*)
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                       of the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities.
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, tolerance to avoid division by 0.
-c                              On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4,G) workspace
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (output) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork)
-c s     double  (scratch) (p)
-
-c------------------------------------------------------------------------------
 
       integer                 maxi1, maxi2, p1, inmax, iter
       integer                 nz, i, j, k, l, j1, info, inner
@@ -11362,19 +10314,16 @@ c     w(1)    = rcmin
 
       return
       end
+
       subroutine mevevp( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, lwork,
      *                   mu, scale, shape, O, pro, w, s)
 
-c assumes that n .ge. p
-
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for Gaussian mixtures with equal shape and volume
 
       implicit NONE
 
@@ -11395,36 +10344,6 @@ c     double precision   mu(p,G), pro(G[+1])
 
 c     double precision   scale(G), shape(p), O(p,p,G)
       double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume
-c                       of the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities.
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c eps   double  (input/output) On input, tolerance to avoid division by 0.
-c                              On output, the loglikelihood.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4,G) workspace
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (output) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p)
 
       integer                 maxi1, maxi2, p1, inmax, iter
       integer                 nz, i, j, k, l, j1, info, inner
@@ -11612,9 +10531,6 @@ c     FLMAX  = d1mach(2)
 
       end if
 
-c inner iteration to estimate scale and shape
-c pro now contains n*pro
-
       inner = 0
       errin = zero
 
@@ -11667,7 +10583,6 @@ c pro now contains n*pro
           return
         end if
 
-c normalize the shape matrix
         sum = zero
         do j = 1, p
           sum = sum + log(shape(j))
@@ -11836,14 +10751,6 @@ c     w(1)    = rcmin
       return
       end
 
-
-
-
-
-
-
-
-
       subroutine msvev ( x, z, n, p, G, w, lwork, maxi, tol, 
      *                   mu, scale, shape, O, pro)
 
@@ -11851,8 +10758,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for Gaussian mixtures with prescribed shape and constant volume
 
       implicit NONE
 
@@ -11865,27 +10770,6 @@ c     double precision   x(n,p), z(n,G), w(max(4*p,5*p-4,p+G))
 
 c     double precision   scale(G), shape(p), O(p,p,G), mu(p,G), pro(G)
       double precision   scale(*), shape(*), O(p,p,*), mu(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  z       double  (input) (n,G) conditional probabilities (destroyed).
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  lwork   integer (input/output) .ge. max(4*p,5*p-4,p+G) workspace for LAPACK
-c    SVD and other things. On output error code for the LAPACK SVD.
-c  maxi    integer (input/output) On input, upper limit on number of inner 
-c                     iterations. On output, number of inner iterations. 
-c  tol     double  (input/output) On input tolerance for inner iteration 
-c                    convergence. On output, error for inner iteration.
-c  mu      double  (output) (p,G) mean for each group.
-c  scale    double  (output) (G) scale factor for each group.
-c  shape   double  (output) (p) common shape vector for the groups.
-c  O     double  (output) (p,p,G) transpose of the orthogonal orientation
-c       matrix for each group: Sigma = scale * t(O) %*% diag(shape) %*% O.
-c  pro     double  (output) (G) mixing proportions (ignore result if equal).
-c  w       double  (scratch) (lwork)
 
       integer                 p1, i, j, k, j1, inner, info
 
@@ -12103,6 +10987,7 @@ c normalize the shape matrix
 
       return
       end
+
       subroutine msvevp( x, z, n, p, G,
      *                   pshrnk, pmu, pscale, pdof,
      *                   w, lwork, maxi, tol, 
@@ -12112,8 +10997,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step with prior for Gaussian mixtures with equal shape and volume
 
       implicit NONE
 
@@ -12132,31 +11015,6 @@ c     double precision   mu(p,G), pro(G)
 
 c     double precision   scale(G), shape(p), O(p,p,G)
       double precision   scale(*), shape(*), O(p,p,*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G[+1]) conditional probabilities.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c lwork integer (input/output) On input, .ge. max(4*p,5*p-4,G) workspace
-c              for LAPACK SVD. On output, error code for LAPACK SVD.
-c maxi  integer (input/output) (2) On input, upper limit on outer/inner
-c                      iterations. On output, number of outer/inner iterations.
-c tol   double  (input/output) (2) On input, tolerance on convergence of
-c                   the loglikelihood and on the inner iterations for scale
-c                   and shape. On output, maximum relative error for these.
-c mu    double  (output) (p,G) mean for each group
-c scale double  (output) (G) scale factor for each covariance,
-c         defined so that shape is normalized to have unit determinant.
-c shape double  (output) (p) common shape vector for covariances,
-c              normalized so that the product of the elements equals 1.
-c O     double  (output) (p,p,G) orthogonal orientation matrix for each group.
-c                                 Sigma = scale * t(O) %*% diag(shape) %*% O
-c pro   double  (output) (G) mixing proportions (used even if equal).
-c w     double  (scratch) (lwork) 
-c s     double  (scratch) (p)
 
       integer                 p1, i, j, k, l, j1, inner, info
 
@@ -12292,9 +11150,6 @@ c------------------------------------------------------------------------------
   
       call dscal( p, one/temp, shape, 1)
 
-c inner iteration to estimate scale and shape
-c pro now contains n*pro
-
       if (maxi .le. 0) goto 200
 
 100   continue
@@ -12343,7 +11198,6 @@ c pro now contains n*pro
           goto 200
         end if
 
-c normalize the shape matrix
         sum = zero
         do j = 1, p
           sum = sum + log(shape(j))
@@ -12389,22 +11243,12 @@ c normalize the shape matrix
       return
       end
 
-
-
-
-
-
-
-
-
       subroutine esvii ( x, mu, sigsq, pro, n, p, G, Vinv, hood, z)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for spherical, varying-volume Gaussian mixtures
 
       implicit NONE
 
@@ -12417,20 +11261,6 @@ c     double precision   x(n,p), z(n,G[+1])
 
 c     double precision   mu(p,G), sigsq(G), pro(G[+1])
       double precision   mu(p,*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  sigsq   double  (input) (G) variance for each group.
-c  pro     double  (input) (G[+1]) mixing proportions (used if equal).
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (output)  FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, j, k, nz
 
@@ -12543,6 +11373,7 @@ c     end do
 
       return
       end 
+
       subroutine hcvii ( x, n, p, ic, ng, ns, ALPHA, v, nd, d)
 
 c This function is part of the MCLUST software described at
@@ -12550,34 +11381,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c Gaussian model-based clustering algorithms in which shape and orientation 
-c are fixed in advance, while volume may vary among clusters.
-
       implicit NONE
 
       integer             n, p, ic(n), ng, ns, nd
 
 c     double precision    x(n,p), v(p). d(*), ALPHA
       double precision    x(n,*), v(*), d(*), ALPHA
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations. On output, the first two columns
-c                   and ns rows contain the merge indices.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  ALPHA   double  (input) Additive quantity used to resolve degeneracies. 
-c  v       double  (scratch) (p).
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(n,((ng-1)*(ng-2))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in 
-c                   loglikelihood associated with each merge.
-c------------------------------------------------------------------------------
 
       integer             lg, ld, ll, lo, ls, i, j, k, m
       integer             ni, nj, nij, nopt, niop, njop
@@ -13075,22 +11884,6 @@ c       tmop  = rij*log(trop+ALPHA)
       return
       end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       subroutine mevii ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, sigsq, pro)
 
@@ -13098,8 +11891,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for spherical Gaussian mixtures with varying volumes
 
       implicit NONE
 
@@ -13114,27 +11905,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), sigsq(G), pro(G[+1])
       double precision    mu(p,*), sigsq(*), pro(  *  )
-
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) (G) variance for each group.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -13314,9 +12084,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c EM (M-step first) for spherical Gaussian mixtures with varying volumes
-c with prior
-
       implicit NONE
 
       logical             EQPRO
@@ -13333,26 +12100,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), sigsq(G), pro(G[+1])
       double precision    mu(p,*), sigsq(*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c                loglikelihood. On output, maximum relative error for ll.
-c eps   double  (input/output) On input, lower bound on sigsq. 
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) (G) variance for each group.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -13572,25 +12319,12 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c M-step for spherical Gaussian mixtures with varying volumes
-
       implicit NONE
 
       integer            n, p, G
 
 c     double precision   x(n,p), z(n,G), mu(p,G), sigsq(G), pro(G)
       double precision   x(n,*), z(n,*), mu(p,*), sigsq(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observations.
-c  z       double    (input) (n,G) conditional probabilities.
-c  n       integer   (input) number of observations.
-c  p       integer   (input) dimension of the data.
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  mu      double    (output) (p,G) mean for each group.
-c  sigsq   double    (output) (G) variance for each group.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
       
       integer                 i, j, k
      
@@ -13642,6 +12376,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine msviip( x, z, n, p, G, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, sigsq, pro)
@@ -13650,9 +12385,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for spherical Gaussian mixtures with varying volumes
-c with prior
 
       implicit NONE
 
@@ -13666,17 +12398,6 @@ c     double precision    x(n,p), z(n,G)
 
 c     double precision    mu(p,G), sigsq(G), pro(G)
       double precision    mu(p,*), sigsq(*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G[+1]) conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c mu    double  (output) (G) mean for each group.
-c sigsq double  (output) (G) variance for each group.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             i, j, k
 
@@ -13751,9 +12472,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c E-step and loglikelihood for diagonal Gaussian mixtures
-c with varying volume and shape
-
       implicit NONE
 
       integer            n, p, G
@@ -13765,22 +12483,6 @@ c     double precision   x(n,p), z(n,G[+1])
 
 c     double precision   mu(p,G), scale(G), shape(p,G), pro(G[+1])
       double precision   mu(p,*), scale(*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  mu      double  (input) (p,G) mean for each group.
-c  scale   double  (input) (G) scale factor for each group covariance.
-c  shape   double  (output) (p,G) shape vector for each group covariance,
-c         normalized so that the product of the elements is 1 (destroyed).
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for Poisson noise term.
-c  hood    double  (output) FLMAX if overflow else loglikelihood.
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 i, j, k, nz
 
@@ -13903,6 +12605,7 @@ c     end do
 
       return
       end
+
       subroutine mevvi ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, scale, shape, pro)
 
@@ -13922,28 +12625,6 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision    x(n,*), z(n,  *  )
 
       double precision    mu(p,*), scale(*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -14170,6 +12851,7 @@ c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
 
       return
       end
+
       subroutine mevvip( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, 
@@ -14179,9 +12861,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for diagonal Gaussian mixtures 
-c with varying volume and shape
 
       implicit NONE
 
@@ -14199,28 +12878,6 @@ c     double precision    x(n,p), z(n,G[+1])
 
 c     double precision    mu(p,G), scale(G), shape(p,G), pro(G[+1])
       double precision    mu(p,*), scale(*), shape(p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c EQPRO logical (input) .TRUE. for equal mixing proportions.
-c x     double  (input) (n,p) matrix of observations.
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c Vinv  double  (input) if positive, estimated reciprocal hypervolume of 
-c                       the data region for Poisson noise term.
-c z     double  (input/output) (n,G[+1]) init/final conditional probabilities. 
-c maxi  integer (input/output) On input, upper limit on iterations.
-c                              On output, number of iterations.
-c tol   double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c eps   double  (input/output) On input, condition tolerance.
-c                              On output, the loglikelihood.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G[+1]) mixing proportions (used even if equal).
 
       integer             nz, iter, i, j, k
 
@@ -14460,14 +13117,13 @@ c         z(i,k) = pro(k)*exp(-(const+(sum/scalek))/two)
 
       return
       end
+
       subroutine msvvi ( x, z, n, p, G, mu, scale, shape, pro)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for diagonal Gaussian mixtures with varying scale and shape
 
       implicit NONE
 
@@ -14478,21 +13134,6 @@ c     double precision   x(n,p), z(n,G)
 
 c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
       double precision   mu(p,*), scale(*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observations.
-c  z       double    (input) (n,G) conditional probabilities.
-c  n       integer   (input) number of observations (assumed .ge. p).
-c  p       integer   (input) dimension of the data (assumed .le. n).
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  eps     double    (input/output) On input, tolerance for division by zero.
-c                                   On output, actual divisor.
-c  mu      double    (output) (p,G) means for each group.
-c  scale   double    (output) (G) scale factor for each group covariance.
-c  shape   double    (output) (p,G) shape vector for each group covariance,
-c                 normalized so that the product of the elements is 1.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, j, k
 
@@ -14602,6 +13243,7 @@ c pro(k) now contains n_k
 
       return
       end
+
       subroutine msvvip( x, z, n, p, G, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, scale, shape, pro)
@@ -14610,9 +13252,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step with prior for diagonal Gaussian mixtures 
-c with varying volume and shape
 
       implicit NONE
 
@@ -14626,19 +13265,6 @@ c     double precision   x(n,p), z(n,G)
 
 c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
       double precision   mu(p,*), scale(*), shape(p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c x     double  (input) (n,p) matrix of observations.
-c z     double  (input/output) (n,G) init/final conditional probabilities. 
-c n     integer (input) number of observations.
-c p     integer (input) dimension of the data.
-c G     integer (input) number of Gaussian clusters in the mixture.
-c mu    double  (output) (G) mean for each group.
-c scale double  (output) (G) scale factor for each group covariances.
-c shape double  (output) (p,G) shape for each group covariances,
-c              normalized so that the product of the elements is 1.
-c pro   double  (output) (G) mixing proportions (used even if equal).
 
       integer             i, j, k
 
@@ -14732,6 +13358,7 @@ c pro(k) contains n_k
 
       return
       end
+
       subroutine esvvv ( CHOL, x, mu, Sigma, pro, n, p, G, Vinv, 
      *                   w, hood, z)
 
@@ -14739,8 +13366,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c E-step and loglikelihood for unconstrained Gaussian mixtures
 
       implicit NONE
 
@@ -14757,25 +13382,6 @@ c     double precision   x(n,p), w(p), z(n,G[+1])
 
 c     double precision   mu(p,G), Sigma(p,p,G), pro(G[+1])
       double precision   mu(p,*), Sigma(p,p,*), pro(  *  )
-
-c------------------------------------------------------------------------------
-c
-c  CHOL    char    (input) 'N': full Sigma given rather than Cholesky factor.
-c  x       double  (input) (n,p) matrix of observations.
-c  mu      double  (input) (p,G) mean for each group.
-c  Sigma   double  (input) (p,p,G) On input, covariance matrix or its upper
-c                  triangular Cholesky factor for each group. 
-c                  On output, upper triangle overwritten by Cholesky factor.
-c  pro     double  (input) (G[+1]) mixing proportions.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) If positive, estimated reciprocal hypervolume of 
-c                          the data region for the Poisson noise term.
-c  w       double  (scratch/output) (p) workspace.  On output, w(1) is the
-c   error code for the LAPACK Cholesky decomposition.
-c  hood    double  (output) FLMAX if overflow else loglikelihood. 
-c  z       double  (output) (n,G[+1]) conditional probabilities.
 
       integer                 nz, p1, info, i, j, k
 
@@ -14925,6 +13531,7 @@ c     end do
 
       return
       end
+
        subroutine hcvvv ( x, n, p, ic, ng, ns, ALPHA, BETA, 
      *                    v, u, s, r, nd, d)
 
@@ -14932,9 +13539,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c Gaussian model-based clustering algorithm in which shape, volume, and
-c orientation are allowed to vary between clusters.
 
       implicit NONE
 
@@ -14946,28 +13550,6 @@ c     double precision   x(n,p+1), v(p), u(p,p), s(p,p)
 c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision   x(n,*), v(*), u(p,*), s(p,*)
       double precision   r(p,*), d(*)
-
-c------------------------------------------------------------------------------
-
-c  x       double  (input/output) On input, the (n by p) matrix containing
-c                   the observations with a column appended for scratch use.
-c                   On output, the first two columns and ns rows contain the 
-c                   merge indices.
-c  n       integer (input) number of observations
-c  p       integer (input) dimension of the data
-c  ic      integer (input) (n) Initial partitioning of the data; groups must
-c                   be numbered consecutively.
-c  ALPHA   double  (input) Additive quantity used to resolve degeneracies.
-c  BETA    double  (input) Factor by which to multiply the trace which is used
-c                   additively to help resolve degeneracies.
-c  ng      integer (input) Number of groups in initial partition.
-c  ns      integer (input) Desired number of stages of clustering.
-c  v       double  (scratch) (p) 
-c  u,s,r   double  (scratch) (p*p)
-c  nd      integer (input) The length of d.
-c  d       double  (scratch/output) max(p*p+n,((ng*(ng-1))/2,3*ns). On output
-c                   the first ns elements are proportional to the change in
-c                   loglikelihood associated with each merge.
 
       integer                 psq, pm1, pp1
       integer                 i, j, k, l, m, ij, iold
@@ -15867,8 +14449,6 @@ c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
 
-c safeguarded computation for determinant of triangular matrix r
-
       implicit NONE
 
       integer                          k, n
@@ -15901,6 +14481,7 @@ c safeguarded computation for determinant of triangular matrix r
 
       return
       end
+
       subroutine mevvv ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
      *                   mu, U, pro, w)
 
@@ -15908,8 +14489,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for unconstrained Gaussian mixtures
 
       implicit NONE
 
@@ -15924,28 +14503,6 @@ c     double precision   x(n,p), z(n,G), w(p)
 
 c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  EQPRO   logical (input) .TRUE. if equal mixing proportions.
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c  z       double  (input/output) (n,G[+1]) conditional probabilities. 
-c  maxi    integer (input/output) On input, upper limit on iterations.
-c                                 On output, number of iterations.
-c  tol     double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c  eps     double  (input/output) On input, lower bound for reciprocal
-c          condition estimates of the Cholesky factors of the covariances. 
-c          On output, the loglikelihood.
-c  mu      double  (output) (p,G) mean for each group.
-c  U       double  (output) (p,p,G)
-c  pro     double  (output) (G) mixing proportions (used even if equal).
-c  w       double  (scratch) (p)
 
       integer                 nz, p1, iter, i, j, k, j1
 
@@ -16149,6 +14706,7 @@ c     w(1) = rcmin
 
       return
       end
+
       subroutine mevvvp( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
      *                   z, maxi, tol, eps, mu, U, pro, w)
@@ -16157,8 +14715,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for unconstrained Gaussian mixtures
 
       implicit NONE
 
@@ -16176,28 +14732,6 @@ c     double precision   x(n,p), z(n,G), w(p)
 
 c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  EQPRO   logical (input) .TRUE. if equal mixing proportions.
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  G       integer (input) number of Gaussian clusters in the mixture.
-c  Vinv    double  (input) if positive, estimated reciprocal hypervolume
-c                          of the data region for Poisson noise term.
-c  z       double  (input/output) (n,G[+1]) conditional probabilities. 
-c  maxi    integer (input/output) On input, upper limit on iterations.
-c                                 On output, number of iterations.
-c  tol     double  (input/output) On input, tolerance on convergence of the
-c               loglikelihood. On output, maximum relative error for the ll.
-c  eps     double  (input/output) On input, lower bound for reciprocal
-c          condition estimates of the Cholesky factors of the covariances. 
-c          On output, the loglikelihood.
-c  mu      double  (output) (p,G) mean for each group.
-c  U       double  (output) (p,p,G)
-c  pro     double  (output) (G) mixing proportions (used even if equal).
-c  w       double  (scratch) (max(p,G))
 
       integer                 nz, p1, iter, i, j, k, j1
 
@@ -16452,14 +14986,13 @@ c       call dtrsv('U','T','N', p, U, p, pmu, 1)
 
       return
       end
+
       subroutine msvvv ( x, z, n, p, G, w, mu, U, pro)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c M-step for unconstrained Gaussian mixtures
 
       implicit NONE
 
@@ -16470,19 +15003,6 @@ c     double precision   x(n,p), z(n,G), w(p)
 
 c     double precision   mu(p,G), U(p,p,G), pro(G)
       double precision   mu(p,*), U(p,p,*), pro(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double    (input) (n,p) matrix of observations (destroyed).
-c  z       double    (input) (n,G) conditional probabilities. 
-c  n       integer   (input) number of observations.
-c  p       integer   (input) dimension of the data.
-c  G       integer   (input) number of Gaussian clusters in the mixture.
-c  w       double    (scratch) (p) 
-c  mu      double    (output) (p,G) mean for each group.
-c  U       double    (output) (p,p,G) upper triangular Cholesky factor of
-c            the covariance matrix for each group: transpose(R)*R = Sigma.
-c  pro     double    (output) (G) mixing proportions (ignore result if equal).
 
       integer                 i, j, k, j1
 
@@ -16539,6 +15059,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine msvvvp( x, z, n, p, G,
      *                   pshrnk, pmu, pscale, pdof,
      *                   w, mu, U, pro)
@@ -16547,8 +15068,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c EM (M-step first) for unconstrained Gaussian mixtures
 
       implicit NONE
 
@@ -16639,14 +15158,13 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mvn1d ( x, n, mu, sigsq, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c mean, variancee and loglikelihood for a single 1-D Gaussian 
 
       implicit NONE
 
@@ -16699,6 +15217,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mvn1p ( x, n, pshrnk, pmu, pscale, pdof,
      *                   mu, sigsq, hood)
 
@@ -16706,8 +15225,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c mean, variance and loglikelihood for a single 1-D Gaussian 
 
       implicit NONE
 
@@ -16718,14 +15235,6 @@ c mean, variance and loglikelihood for a single 1-D Gaussian
 
 c     double precision   x(n)
       double precision   x(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n) matrix of observations (destroyed).
-c  n       integer (input) number of observations.
-c  mu      double  (output) mean.
-c  sigsq   double  (output) variance.
-c  hood    double  (output) loglikelihood.
 
       integer                 i
 
@@ -16793,6 +15302,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mnxiip( x, n, p, pshrnk, pmu, pscale, pdof, 
      *                   mu, sigsq, hood)
 
@@ -16800,8 +15310,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c parameters and loglikelihood for a single spherical Gaussian
 
       implicit NONE
 
@@ -16815,15 +15323,6 @@ c     double precision   pshrnk, pmu(p), pscale, pdof
 
 c     double precision   x(n,p), mu(p)
       double precision   x(n,*), mu(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations (destroyed).
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  mu      double  (ouput) (p) mean.
-c  sigsq   double  (output) variance.
-c  hood    double  (output) loglikelihood.
 
       integer                 i, j
 
@@ -16907,14 +15406,13 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mvnxii( x, n, p, mu, sigsq, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c parameters and loglikelihood for a single spherical Gaussian
 
       implicit NONE
 
@@ -16925,15 +15423,6 @@ c     integer            n, p
 
 c     double precision   x(n,p), mu(p)
       double precision   x(n,*), mu(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations (destroyed).
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  mu      double  (ouput) (p) mean.
-c  sigsq   double  (output) variance.
-c  hood    double  (output) loglikelihood.
 
       integer                 j
 
@@ -16977,6 +15466,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mnxxip( x, n, p, pshrnk, pmu, pscale, pdof, 
      *                   mu, scale, shape, hood)
 
@@ -16984,8 +15474,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c parameters and loglikelihood for a single diagonal Gaussian
 
       implicit NONE
 
@@ -16999,16 +15487,6 @@ c     double precision   pshrnk, pmu(p), pscale, pdof
 
 c     double precision   x(n,p), mu(p), shape(p)
       double precision   x(n,*), mu(*), shape(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  mu      double  (ouput) (p) mean.
-c  scale   double  (output) scale factor for the covariance.
-c  shape   double  (output) (p) shape vector for the covariance.
-c  hood    double  (output) loglikelihood.
 
       integer                 i, j
 
@@ -17118,14 +15596,13 @@ c log posterior computation not yet available
 
       return
       end
+
       subroutine mvnxxi( x, n, p, mu, scale, shape, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c parameters and loglikelihood for a single diagonal Gaussian
 
       implicit NONE
 
@@ -17136,16 +15613,6 @@ c     integer            n, p
 
 c     double precision   x(n,p), mu(p), shape(p)
       double precision   x(n,*), mu(*), shape(*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) matrix of observations.
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  mu      double  (ouput) (p) mean.
-c  scale   double  (output) scale factor for the covariance.
-c  shape   double  (output) (p) shape vector for the covariance.
-c  hood    double  (output) loglikelihood.
 
       integer                 i, j
 
@@ -17231,6 +15698,7 @@ c------------------------------------------------------------------------------
 
       return
       end
+
       subroutine mnxxxp( x, n, p, w,
      *                   pshrnk, pmu, pscale, pdof,
      *                   mu, U, hood)
@@ -17239,8 +15707,6 @@ c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c parameters and loglikelihood for a single ellipsoidal Gaussian
 
       implicit NONE
 
@@ -17254,16 +15720,6 @@ c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
 
 c     double precision   x(n,p), w(p), mu(p), U(p,p)
       double precision   x(n,*), w(*), mu(*), U(p,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) Matrix of observations (destroyed).
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  mu      double  (ouput) (p) mean.
-c  U       double  (output) upper triangular Cholesky factor of Sigma.
-c                           Sigma = t(U) %*% U
-c  hood    double  (output) logliklihood.
 
       integer                 i, j, j1
 
@@ -17393,14 +15849,13 @@ c       call dtrsv('U','T','N', p, U, p, pmu, 1)
 
       return
       end
+
       subroutine mvnxxx( x, n, p, mu, U, hood)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
 c Copyright information and conditions for use of MCLUST are given at
 c        http://www.stat.washington.edu/mclust/license.txt
-
-c parameters and loglikelihood for a single ellipsoidal Gaussian
 
       implicit NONE
 
@@ -17411,16 +15866,6 @@ c     integer            n, p
 
 c     double precision   x(n,p), mu(p), U(p,p)
       double precision   x(n,*), mu(*), U(p,*)
-
-c------------------------------------------------------------------------------
-c
-c  x       double  (input) (n,p) Matrix of observations (destroyed).
-c  n       integer (input) number of observations.
-c  p       integer (input) dimension of the data.
-c  mu      double  (ouput) (p) mean.
-c  U       double  (output) upper triangular Cholesky factor of Sigma.
-c                           Sigma = t(U) %*% U
-c  hood    double  (output) logliklihood.
 
       integer                 i, j, j1
 

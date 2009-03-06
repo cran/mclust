@@ -19,7 +19,6 @@ priorControl(functionName = "defaultPrior", \dots)
      Optional named arguments to the function specified in \code{functionName}
      together with their values.
     }
-  }
 }
 \value{
   A list with the function name as the first component. The remaining

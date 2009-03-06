@@ -1,3 +1,6 @@
-11/29/08 added EXPR = to all switch functions that didn't already have it
-10/31/08 added pro component to parameters in dens help file 
-10/02/08 fixed some problems with the noise option
+2009/03/04 added permission for CRAN distribution to LICENSE
+           fixed problems with help files found by new parser
+
+2008/11/29 added EXPR = to all switch functions that didn't already have it
+2008/10/31 added pro component to parameters in dens help file 
+2008/10/02 fixed some problems with the noise option

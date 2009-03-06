@@ -98,10 +98,12 @@ mstepVVV( data, z, prior=NULL, warn=NULL, \dots)
       }
   }
   \item{Attributes:}{
-    \item \code{"info"} For those models with iterative M-steps
-       (\code{"VEI"} and \code{"VEV"}), information  on the iteration.
-    \item \code{"WARNING"} An appropriate warning if problems are
-    encountered in the computations. 
+     \describe{
+    \item{\code{"info"}}{For those models with iterative M-steps
+       (\code{"VEI"} and \code{"VEV"}), information on the iteration.}
+    \item{\code{"WARNING"}}{An appropriate warning if problems are
+    encountered in the computations.}
+     }
   }
 }
 \note{

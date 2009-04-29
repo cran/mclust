@@ -7148,7 +7148,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
             returnCodes = RET, class = "mclustBIC")
 }
 
-"Mclust" <-
+`Mclust` <-
 function(data, G = NULL, modelNames = NULL, prior = NULL, 
          control = emControl(), initialization = NULL, warn = FALSE, ...) 
 {
@@ -7160,6 +7160,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL,
 	##
         mc <- match.call(expand.dots = FALSE)
         mc[[1]] <- as.name("mclustBIC")
+        mc[[2]] <- data
   	Bic <- eval(mc, parent.frame())
         G <- attr(Bic, "G")
         modelNames <- attr(Bic,"modelNames") 

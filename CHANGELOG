@@ -1,3 +1,5 @@
+2009/04/29 changed PKG_LIBS order in src/Makevars
+           fixed Mclust to handle sampling in data expression in call
 2009/03/04 added permission for CRAN distribution to LICENSE
            fixed problems with help files found by new parser
 

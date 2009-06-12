@@ -1,14 +1,15 @@
 Package: mclust
-Version: 3.2
-Date: 2009-04-29
+Version: 3.2.1
+Date: 2009-06-12
 Author: Chris Fraley and Adrian Raftery
 Title: Model-Based Clustering / Normal Mixture Modeling
 Description: Model-based clustering and normal mixture modeling
         including Bayesian regularization
 Depends: R (>= 2.2.0), stats, utils
 License: file LICENSE
+Citation: file CITATION
 Maintainer: Chris Fraley <fraley@stat.washington.edu>
-URL: http://www.stat.washington.edu/fraley/mclust
-Packaged: Wed Apr 29 09:32:09 2009; fraley
+URL: http://www.stat.washington.edu/research/reports/2006/tr504.pdf
+Packaged: Fri Jun 19 08:36:23 2009; fraley
 Repository: CRAN
-Date/Publication: 2009-04-29 17:56:14
+Date/Publication: 2009-06-19 16:38:57

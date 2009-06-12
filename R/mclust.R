@@ -7442,11 +7442,12 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
        z[] <- 0
        k <- as.numeric(g)
        if (d > 1 || !is.null(hcPairs)) {
-         z[!noise, 1:k] <- unmap(clss[, g])
+         cl <- clss[, g]
        }
        else {
-         z[!noise, 1:k] <- unmap(qclass(data[!noise], k = k))
+         cl <- qclass(data[!noise], k = k)
        }
+       z[!noise, sort(as.numeric(names(cl)))] <- unmap(cl)
        z[noise, k+1] <- 1
        K <- 1:(k+1) 
        for (modelName in modelNames[BIC[g,] == EMPTY]) {
@@ -7625,6 +7626,10 @@ function(x, ndigits = options()$digits, ...)
           cat("\nbest BIC values:\n")
   	  print(round(bic, ndigits))
         }
+        if(is.null(x$model)) {
+          M <- "noise"
+        }
+        else {
 	M <- switch(EXPR = x$model,
 		X = "univariate normal",
 		E = "equal variance",
@@ -7647,6 +7652,7 @@ function(x, ndigits = options()$digits, ...)
 		XXX = "ellipsoidal multivariate normal",
 		VVV = "ellipsoidal, unconstrained",
 		stop("invalid model id for EM"))
+        }
 ##	cat("\nbest model:", M, "\n\n")
 	##
 	##	print(x$options)
@@ -7837,7 +7843,7 @@ function(object, data, G=NULL, modelNames=NULL, ...)
   bestModel <- temp[1] 
   G <- as.numeric(temp[2])
   if(G == 0) {
-    ans <- list(bic = bestBICs, classification = rep(1, n), 
+    ans <- list(bic = bestBICs, classification = rep(0, n), 
                 uncertainty = rep(0, n), n = n, d = ncol(data), 
                 G = 0, loglik = n * logb(Vinv), Vinv = Vinv)
     orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
@@ -7865,6 +7871,7 @@ function(object, data, G=NULL, modelNames=NULL, ...)
                 dimnames(data)[[1]]
               }
   classification <- map(out$z)
+  print(G1)
   classification[classification == G1] <- 0
   uncertainty <- 1 - apply(out$z, 1, max)
   names(classification) <- names(uncertainty) <- obsNames
@@ -9292,7 +9299,7 @@ function(data, seeds = 0, parameters = NULL, z = NULL, classification = NULL,
       }
       ,
       errors = {
-        ERRORS <- classError(classification, truth)$misclassifiedPoints
+        ERRORS <- classError(classification, truth)$misclassified
         plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
            = xlim, ylim = ylim, main = "", ...)
         if(identify) {

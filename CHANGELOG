@@ -1,8 +1,9 @@
+2009/06    fixed bug in the "errors" option for randProj
+           fixed boundary cases for the "noise" option
 2009/04/29 changed PKG_LIBS order in src/Makevars
            fixed Mclust to handle sampling in data expression in call
 2009/03/04 added permission for CRAN distribution to LICENSE
            fixed problems with help files found by new parser
-
 2008/11/29 added EXPR = to all switch functions that didn't already have it
 2008/10/31 added pro component to parameters in dens help file 
 2008/10/02 fixed some problems with the noise option

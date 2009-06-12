@@ -136,6 +136,11 @@ emVVV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
   }
 }
 \section{References}{
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3: An R Package for Normal Mixture Modeling
+  and Model-Based Clustering, Technical Report, Department of Statistics,
+  University of Washington.
+
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
@@ -145,10 +150,9 @@ emVVV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
   clustering.
   Technical Report, Department of Statistics, University of Washington.
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report, Department of Statistics,
-  University of Washington.
+  C. Fraley and A. E. Raftery (2007).
+  Bayesian regularization for normal mixture estimation and model-based
+  clustering. \emph{Journal of Classification 24:155-181}.
 }
 \seealso{
   \code{\link{me}},

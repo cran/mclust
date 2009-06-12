@@ -1,3 +1,8 @@
+2009/06    fixed plot.mclustBIC/plot.Mclust to handle modelNames
+           changed "orientation" for VEV, VVV models to be consistent
+              with R eigen() and the literature
+           fixed some problems including doc for the noise option
+           updated the unmap function to optionally include missing groups
 2009/06    fixed bug in the "errors" option for randProj
            fixed boundary cases for the "noise" option
 2009/04/29 changed PKG_LIBS order in src/Makevars
@@ -7,3 +12,21 @@
 2008/11/29 added EXPR = to all switch functions that didn't already have it
 2008/10/31 added pro component to parameters in dens help file 
 2008/10/02 fixed some problems with the noise option
+
+2006 version of MCLUST, by Fraley and Raftery
+(Dept. of Statistics, University of Washington)
+
+Version 3.0: New functionality added, including conjugate priors 
+for Bayesian regularization. 
+Backward compatibility is not guaranteed since the implementation of some 
+functions has changed to make them easier to use or maintain.
+
+Version 3.1: Most plotting functions changed to use color.
+Mclust/mclustBIC fixed to work with G=1
+Otherwise backward compatible with version 3.0.
+
+Version 3.1-1: Default seed changed in sim functions.
+model name check added to various functions. 
+Otherwise backward compatible with version 3.0
+ 
+

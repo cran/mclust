@@ -75,9 +75,10 @@
          \item{orientation}{
               For the constant-shape models "EEV" and "VEV".
               Either a \emph{d} by \emph{d} by \emph{G} array whose
-              \code{[,,k]}th entry is the orthonomal matrix of eigenvectors of
-              the covariance matrix of the \emph{k}th component, or a \emph{d}
-              by \emph{d} orthonormal matrix if the mixture components have a
+              \code{[,,k]}th entry is the orthonomal matrix whose
+	      columns are the eigenvectors of the covariance matrix of
+	      the \emph{k}th component, or a \emph{d} by \emph{d}
+	      orthonormal matrix if the mixture components have a
               common orientation. The \code{orientation} component
               is not needed in spherical and diagonal models, since
               the principal components are parallel to the coordinate axes 

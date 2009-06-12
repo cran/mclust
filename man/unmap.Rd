@@ -7,16 +7,21 @@
   Converts a classification into a matrix of indicator variables.
 }
 \usage{
-  unmap(classification, noise, \dots)
+  unmap(classification, groups=NULL, noise=NULL, \dots)
 }
 \arguments{
   \item{classification}{
     A numeric or character vector. Typically the distinct entries of this
     vector would represent a classification of observations in a data set.
   }
+  \item{groups}{
+    A numeric or character vector indicating the groups from which
+    \code{classification} is drawn. If not supplied, the default
+    is to assumed to be the unique entries of classification.
+  }
   \item{noise}{
     A single numeric or character value used to indicate the value of
-    \code{classification} corresponding to noise.
+    \code{groups} corresponding to noise.
   }
  \item{\dots }{
      Catches unused arguments in indirect or list calls via \code{do.call}.

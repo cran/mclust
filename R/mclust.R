@@ -713,7 +713,7 @@ function(data, partition, minclus = 1, ...)
                   call = match.call())
 }
 
-"meEEE" <-
+`meEEE` <-
 function(data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
@@ -787,7 +787,7 @@ function(data, z, prior = NULL, control = emControl(),
 			as.double(if (is.null(Vinv)) -1 else Vinv),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			z,
@@ -863,7 +863,7 @@ function(data, z, prior = NULL, control = emControl(),
                   info = info, WARNING = WARNING, returnCode = ret)
 }
 
-"mstepEEE" <-
+`mstepEEE` <-
 function(data, z, prior = NULL,  warn = NULL, ...)
 {
 	##
@@ -926,8 +926,7 @@ function(data, z, prior = NULL,  warn = NULL, ...)
 			as.integer(G),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
-					scale) else priorParams$scale),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			double(p),
 			double(p * G),
@@ -1454,7 +1453,7 @@ function(parameters, n, seed = NULL, ...)
 	structure(cbind(group = clabels, x), modelName = "EEI")
 }
 
-"cdensEEV" <-
+`cdensEEV` <-
 function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
 	##
@@ -1489,7 +1488,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 		as.double(mu),
 		as.double(parameters$variance$scale),
 		as.double(parameters$variance$shape),
-		as.double(parameters$variance$orientation),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
 		as.double(-1),
 		as.integer(n),
 		as.integer(p),
@@ -1533,7 +1532,7 @@ function(data, parameters, prior = NULL, control = emControl(),
               Vinv = parameters$Vinv, warn = warn)
 }
 
-"estepEEV" <-
+`estepEEV` <-
 function(data, parameters, warn = NULL, ...)
 {
 	##
@@ -1586,7 +1585,7 @@ function(data, parameters, warn = NULL, ...)
 		as.double(mu),
 		as.double(parameters$variance$scale),
 		as.double(parameters$variance$shape),
-		as.double(parameters$variance$orientation),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
 		as.double(pro),
 		as.integer(n),
 		as.integer(p),
@@ -1613,7 +1612,7 @@ function(data, parameters, warn = NULL, ...)
                    WARNING = WARNING, returnCode = ret)
 }
 
-"meEEV" <-
+`meEEV` <-
 function(data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
@@ -1693,7 +1692,7 @@ function(data, z, prior = NULL, control = emControl(),
 			as.double(if (is.null(Vinv)) -1 else Vinv),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			z,
@@ -1719,7 +1718,7 @@ function(data, z, prior = NULL, control = emControl(),
 	dimnames(mu) <- list(NULL, as.character(1:G))
 	scale <- temp[[7]]
 	shape <- temp[[8]]
-	O <- array(temp[[9]], c(p, p, G))
+	O <- aperm(array(temp[[9]], c(p, p, G)),c(2,1,3))
 	pro <- temp[[10]]
 	WARNING <- NULL
 	if(lapackSVDinfo) {
@@ -1783,7 +1782,7 @@ function(data, z, prior = NULL, control = emControl(),
                   info = info, WARNING = WARNING, returnCode = ret)
 }
 
-"mstepEEV" <-
+`mstepEEV` <-
 function(data, z, prior = NULL, warn = NULL, ...)
 {
 	##
@@ -1850,7 +1849,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
 			as.integer(G),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			double(lwork),
@@ -1867,7 +1866,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
 	dimnames(mu) <- list(NULL, as.character(1:G))
 	scale <- temp[[3]]
 	shape <- temp[[4]]
-	O <- array(temp[[5]], c(p, p, G))
+	O <- aperm( array(temp[[5]], c(p, p, G)), c(2,1,3))
 	pro <- temp[[6]]
 	WARNING <- NULL
 	if(lapackSVDinfo) {
@@ -1908,7 +1907,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
                   WARNING = WARNING, returnCode = ret)
 }
 
-"simEEV" <- 
+`simEEV` <-
 function(parameters, n, seed = NULL, ...)
 {
 	##
@@ -1939,7 +1938,7 @@ function(parameters, n, seed = NULL, ...)
 	sss <- sqrt(parameters$variance$scale * shape)
 	for(k in 1:G) {
 		m <- ctabel[k]
-		cholSigma <- parameters$variance$orientation[,  , k] * sss
+		cholSigma <- t(parameters$variance$orientation[,  , k]) * sss
 		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
 			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
 			FUN = "+")
@@ -3819,7 +3818,7 @@ function(parameters, n, seed = NULL, ...)
   structure(cbind(group = clabels, x), modelName = "VEI")
 }
 
-"cdensVEV" <-
+`cdensVEV` <-
 function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
 	##
@@ -3854,7 +3853,7 @@ function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 		as.double(mu),
 		as.double(parameters$variance$scale),
 		as.double(parameters$variance$shape),
-		as.double(parameters$variance$orientation),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
 		as.double(-1),
 		as.integer(n),
 		as.integer(p),
@@ -3898,7 +3897,7 @@ function(data, parameters, prior = NULL, control = emControl(),
               Vinv = parameters$Vinv, warn = warn)
 }
 
-"estepVEV" <-
+`estepVEV` <-
 function(data, parameters, warn = NULL, ...)
 {
 	##
@@ -3949,7 +3948,7 @@ function(data, parameters, warn = NULL, ...)
 		as.double(mu),
 		as.double(parameters$variance$scale),
 		as.double(parameters$variance$shape),
-		as.double(parameters$variance$orientation),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
 		as.double(pro),
 		as.integer(n),
 		as.integer(p),
@@ -3977,7 +3976,7 @@ function(data, parameters, warn = NULL, ...)
 
 }
 
-"meVEV" <-
+`meVEV` <-
 function(data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
@@ -4055,7 +4054,7 @@ function(data, z, prior = NULL, control = emControl(),
 			as.double(if (is.null(Vinv)) -1 else Vinv),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			z,
@@ -4083,7 +4082,7 @@ function(data, z, prior = NULL, control = emControl(),
 	dimnames(mu) <- list(NULL, as.character(1:G))
 	scale <- temp[[7]]
 	shape <- temp[[8]]
-	O <- array(temp[[9]], c(p, p, G))
+	O <- aperm( array(temp[[9]], c(p, p, G)), c(2,1,3))
 	pro <- temp[[10]]
 	WARNING <- NULL
 	if(lapackSVDinfo) {
@@ -4154,7 +4153,7 @@ function(data, z, prior = NULL, control = emControl(),
                   info = info, WARNING = WARNING, returnCode = ret)
 }
 
-"mstepVEV" <-
+`mstepVEV` <-
 function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
 	##
@@ -4235,7 +4234,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 			as.integer(G),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			double(lwork),
@@ -4256,7 +4255,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 	dimnames(mu) <- list(NULL, as.character(1:G))
 	scale <- temp[[5]]
 	shape <- temp[[6]]
-	O <- array(temp[[7]], c(p, p, G))
+	O <- aperm(array(temp[[7]], c(p, p, G)),c(2,1,3))
         pro <- temp[[8]] 
 	WARNING <- NULL
 	if(lapackSVDinfo) {
@@ -4304,7 +4303,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 
 }
 
-"simVEV" <- 
+`simVEV` <-
 function(parameters, n, seed = NULL, ...)
 {
   ##
@@ -4338,7 +4337,7 @@ function(parameters, n, seed = NULL, ...)
   for(k in 1:G) {
     m <- ctabel[k]
     sss <- rtscale[k] * rtshape
-    cholSigma <- parameters$variance$orientation[,  , k] * sss
+    cholSigma <- t(parameters$variance$orientation[,  , k]) * sss
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
       cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
   }
@@ -5658,7 +5657,7 @@ function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
                   call = match.call())
 }
 
-"meVVV" <-
+`meVVV` <-
 function(data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
@@ -5732,7 +5731,7 @@ function(data, z, prior = NULL, control = emControl(),
 			as.double(if (is.null(Vinv)) -1 else Vinv),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			z,
@@ -5799,7 +5798,7 @@ function(data, z, prior = NULL, control = emControl(),
                   info = info, WARNING = WARNING, returnCode = ret)
 }
 
-"mstepVVV" <-
+`mstepVVV` <-
 function(data, z, prior = NULL, warn = NULL, ...)
 {
 	##
@@ -5861,7 +5860,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
 			as.integer(G),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			double(p),
@@ -6152,7 +6151,7 @@ function(data, prior = NULL, warn = NULL, ...)
 		  WARNING = WARNING, returnCode = ret) 
 }
 
-"mvnXXX" <-
+`mvnXXX` <-
 function(data, prior = NULL, warn = NULL, ...)
 {
 	##
@@ -6193,7 +6192,7 @@ function(data, prior = NULL, warn = NULL, ...)
 			double(p),
 			as.double(priorParams$shrinkage),
 			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale)) chol(priorParams$
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
 					scale) else priorParams$scale),
 			as.double(priorParams$dof),
 			double(p),
@@ -7194,7 +7193,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
   # Copyright information and conditions for use of MCLUST are given at
   #        http://www.stat.washington.edu/mclust/license.txt
   ##
-  if (!is.null(x)) {
+ if (!is.null(x)) {
     if (!missing(prior) || !missing(control) || 
         !missing(initialization) || !missing(Vinv)) 
  stop("only G and modelNames may be specified as arguments when x is supplied")
@@ -7236,6 +7235,26 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
     }
     else {
       G <- sort(as.numeric(G))
+    }
+    if (is.null(initialization$noise)) {
+      if (any(G > n)) G <- G[G <= n]
+    }
+    else {
+      noise <- initialization$noise
+      if (!is.logical(noise)) {
+        if (any(match(noise, 1:n, nomatch = 0) == 0))
+          stop("numeric noise must correspond to row indexes of data")
+        noise <- as.logical(match(1:n, noise, nomatch = 0))
+      }
+      initialization$noise <- noise
+      nnoise <- sum(as.numeric(noise))
+      if (any(G > (n-nnoise))) G <- G[G <= n-nnoise]
+    }
+    if (!is.null(initialization$subset)) {
+      subset <- initialization$subset
+      if (is.logical(subset)) subset <- which(subset)
+      n <- length(subset)
+      if (any(G > n)) G <- G[G <= n]
     }
     Gall <- G
     Mall <- modelNames
@@ -7326,10 +7345,17 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
       if (d > 1 || !is.null(hcPairs))  clss <- hclass(hcPairs, G)
       for (g in Glabels) {
          if (d > 1 || !is.null(hcPairs)) {
-           z <- unmap(clss[, g]) 
+           cl <- clss[,g]
          }
          else {
-           z <- unmap(qclass( data, as.numeric(g)))
+           cl <- qclass( data, as.numeric(g))
+         }
+         z <- unmap(cl, groups = 1:max(cl))
+         if (any(apply( z, 2, max) == 0)) {
+#  missing groups
+           warning("there are missing groups")         
+           z <- max( z, sqrt(.Machine$double.neg.eps))
+           z <- apply( z, 1, function(z) z/sum(z))
          }
          for (modelName in modelNames[BIC[g,] == EMPTY]) {
             out <- me(modelName = modelName, data = data, z = z, 
@@ -7343,38 +7369,44 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
        }
     }
     else {
+      subset <- initialization$subset
+      if (is.logical(subset)) subset <- which(subset)
     ######################################################
     # initial hierarchical clustering phase on a subset
     ######################################################
-      if (is.logical(initialization$subset)) 
-        initialization$subset <- (1:n)[initialization$subset]
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
              hcPairs <- hc(modelName = "VVV", 
-                   data = data[initialization$subset,  ])
+                   data = data[subset,  ])
           }
           else {
              hcPairs <- hc(modelName = "EII", 
-                   data = data[initialization$subset,  ])
+                   data = data[subset,  ])
           }
          }
        else {
           hcPairs <- NULL
      #    hcPairs <- hc(modelName = "E", 
-     #                  data = data[initialization$subset])
+     #                  data = data[subset])
         }
       }
       else hcPairs <- initialization$hcPairs
       if (d > 1 || !is.null(hcPairs)) clss <- hclass(hcPairs, G)
       for (g in Glabels) {
          if (d > 1 || !is.null(hcPairs)) {
-           z <- unmap(clss[, g]) 
+           cl <- clss[, g]
          }
          else {
-           z <- unmap(qclass(data[initialization$subset], as.numeric(g)))
+           cl <- qclass(data[subset], as.numeric(g))
          }
-         dimnames(z) <- list(as.character(initialization$subset), NULL)
+         z <- unmap(cl, groups = 1:max(cl))
+         if (any(apply( z, 2, max) == 0)) {
+#  missing groups
+           warning("there are missing groups")         
+           z <- max( z, sqrt(.Machine$double.neg.eps))
+           z <- apply( z, 1, function(z) z/sum(z))
+         }
          for (modelName in modelNames[!is.na(BIC[g,])]) {
             ms <- mstep(modelName = modelName, z = z, 
                         data = as.matrix(data)[initialization$subset,  ],
@@ -7401,13 +7433,11 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
     ######################################################
     # noise case
     ######################################################
+    noise <- initialization$noise
     if (!is.null(initialization$subset)) 
       stop("subset option not implemented with noise")
     if (is.null(Vinv) || Vinv <= 0)
       Vinv <- hypvol(data, reciprocal = TRUE)
-    noise <- initialization$noise
-    if (!is.logical(noise))
-      noise <- as.logical(match(1:n, noise, nomatch = 0))
     if (!G[1]) {
       hood <- n * logb(Vinv)
       BIC["0",  ] <- 2 * hood - logb(n)
@@ -7447,7 +7477,13 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
        else {
          cl <- qclass(data[!noise], k = k)
        }
-       z[!noise, sort(as.numeric(names(cl)))] <- unmap(cl)
+       z[!noise,1:k] <- unmap(cl, groups = 1:max(cl))
+       if (any(apply( z[!noise,1:k,drop=FALSE], 2, max) == 0)) {
+#           missing groups
+          warning("there are missing groups")         
+          z[!noise,1:k] <- max( z[!noise,1:k], sqrt(.Machine$double.neg.eps))
+          z[!noise,1:k] <- apply( z[!noise,1:k,drop=FALSE], 1, function(z) z/sum(z))
+       }
        z[noise, k+1] <- 1
        K <- 1:(k+1) 
        for (modelName in modelNames[BIC[g,] == EMPTY]) {
@@ -8875,6 +8911,7 @@ function (x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
             colors <- .Mclust$bicPlotColors[modelNames]
         }
     }
+    x <- x[,modelNames,drop=FALSE]
     if (is.null(ylim)) 
         ylim <- range(as.vector(x[!is.na(x)]))
     xx <- as.numeric(dimnames(x)[[1]])
@@ -9124,6 +9161,71 @@ function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
             }
 	}
 	invisible()
+}
+
+`plot.mclustBIC` <-
+function(x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL, 
+         xlab = NULL, ylim = NULL, 
+         legendArgs = list(x = "bottomright", ncol = 2, cex = 1), CEX = 1, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if (is.null(xlab)) xlab <- "number of components"
+  fill <- FALSE
+  subset <- !is.null(attr(x, "initialization")$subset)
+  noise <- !is.null(attr(x, "initialization")$noise)
+  ret <- attr(x, "returnCodes") == -3
+## if(!subset && any(ret) && fill) {
+##    x <- bicFill(x, ret, n, d)
+##}
+  n <- ncol(x)
+  dnx <- dimnames(x)
+  ##
+  x <- matrix(as.vector(x), ncol = n)
+  dimnames(x) <- dnx
+  if(is.null(modelNames))
+    modelNames <- dimnames(x)[[2]]
+  if(is.null(G))
+    G <- as.numeric(dimnames(x)[[1]])
+# BIC <- x[as.character(G), modelNames, drop = FALSE]
+# X <- is.na(BIC)
+# nrowBIC <- nrow(BIC)
+# ncolBIC <- ncol(BIC)
+  if(is.null(symbols)) {
+    colNames <- dimnames(x)[[2]]
+    m <- length(modelNames)
+    if(is.null(colNames)) {
+      symbols <- if(m > 9) LETTERS[1:m] else as.character(1:m)
+      names(symbols) <- modelNames
+    }
+    else {
+      symbols <- .Mclust$bicPlotSymbols[modelNames]
+    }
+  }
+  if(is.null(colors)) {
+    colNames <- dimnames(x)[[2]]
+    if(is.null(colNames)) {
+      colors <- 1:m
+      names(colors) <- modelNames
+    }
+    else {
+      colors <- .Mclust$bicPlotColors[modelNames]
+    }
+  }
+  x <- x[,modelNames, drop = FALSE]
+  if(is.null(ylim))
+    ylim <- range(as.vector(x[!is.na(x)]))
+  matplot(x, type = "b", xlim = range(G), ylim = ylim,
+          pch = symbols, col = colors, lty = 1,
+          xlab = xlab, ylab = "BIC", main = "")
+ if (!is.null(legendArgs)) 
+   do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
+            legendArgs))
+ invisible(symbols)
 }
 
 "print.mclustDA" <-
@@ -9595,7 +9697,7 @@ function (z, truth=NULL, ...)
     invisible()
 }
 
-"decomp2sigma" <- 
+`decomp2sigma` <-
 function(d, G, scale, shape, orientation = NULL, ...)
 {
 	##
@@ -9669,7 +9771,7 @@ function(d, G, scale, shape, orientation = NULL, ...)
 	}
 	sigma <- array(0, c(d, d, G))
 	for(k in 1:G) {
-		sigma[,  , k] <- crossprod(orientation[,  , k] * sqrt(scale[
+		sigma[,  , k] <- crossprod(t(orientation[,  , k]) * sqrt(scale[
 			k] * shape[, k]))
 	}
 	structure(sigma, modelName = paste(c(scaleName, shapeName, orientName),
@@ -9924,7 +10026,7 @@ function(shape, O, transpose = FALSE)
            PACKAGE="mclust")[[3]]
 }
 
-"sigma2decomp" <-
+`sigma2decomp` <-
 function (sigma, G=NULL, tol=NULL, ...) 
 {
     dimSigma <- dim(sigma)
@@ -9959,7 +10061,7 @@ function (sigma, G=NULL, tol=NULL, ...)
         logScale <- sum(temp)/d
         decomp$scale[k] <- exp(logScale)
         decomp$shape[, k] <- exp(temp - logScale)
-        decomp$orientation[, , k] <- t(ev$vectors)
+        decomp$orientation[, , k] <- ev$vectors
     }
     if (is.null(tol)) 
         tol <- sqrt(.Machine$double.eps)
@@ -10049,8 +10151,8 @@ function(x, upper = NULL)
            PACKAGE="mclust")[[2]]
 }
 
-"unmap" <-
-function(classification, noise=NULL, ...)
+`unmap` <-
+function(classification, groups=NULL, noise=NULL, ...)
 {
 	##
 	# This function is part of the MCLUST software described at
@@ -10059,31 +10161,37 @@ function(classification, noise=NULL, ...)
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
 	# converts a classification to conditional probabilities
-	# classes are arranged in sorted order
+	# classes are arranged in sorted order unless groups is specified
 	# if a noise indicator is specified, that column is placed last
 	n <- length(classification)
-	u <- sort(unique(classification))
-	labs <- as.character(u)
-	k <- length(u)
+        u <- sort(unique(classification))
+        if (is.null(groups)) {
+	  groups <- u
+        }
+        else {
+          if (any(match( u, groups, nomatch = 0) == 0)) 
+            stop("groups incompatible with classification")
+           miss <- match( groups, u, nomatch = 0) == 0
+        }
+        cgroups <- as.character(groups)
+        if (!is.null(noise)) {
+          noiz <- match( noise, groups, nomatch = 0)
+          if (any(noiz == 0)) stop("noise incompatible with classification")
+          groups <- c(groups[groups != noise],groups[groups==noise])
+          noise <- as.numeric(factor(as.character(noise), levels = unique(groups)))
+        }
+        groups <- as.numeric(factor(cgroups, levels = unique(cgroups)))
+        classification <- as.numeric(factor(as.character(classification), levels = unique(cgroups)))
+        k <- length(groups) - length(noise)
+        nam <- levels(groups)
 	if(!is.null(noise)) {
-		l <- u == noise
-		if(any(l)) {
-			m <- max(u) + 1
-			u[l] <- m
-			labs <- labs[order(u)]
-			u <- sort(u)
-			classification[classification == noise] <- m
-		}
-	}
-	z <- matrix(0, n, k)
+          k <- k + 1
+          nam <- nam[1:k]
+          nam[k] <- "noise"
+        }
+	z <- matrix(0, n, k, dimnames = c(names(classification),nam))
 	for(j in 1:k)
-		z[classification == u[j], j] <- 1
-	##
-	## z <- matrix(1, n, k)
-	## for(j in 1:k) z[classification == u[j], j] <- k + 1
-	## z <- sweep(z, 1, apply(z, 1, sum), "/")
-	##
-	dimnames(z) <- list(NULL, labs)
+		z[classification == groups[j], j] <- 1
 	z
 }
 

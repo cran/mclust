@@ -66,7 +66,8 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
   \item{noise}{
     A logical or numeric vector indicating an initial guess as to
-    which observations are noise in the data. If supplied, a noise
+    which observations are noise in the data. If numeric the entries
+    should correspond to row indexes of the data. If supplied, a noise
     term will be added to the model in the estimation.
   }
   }
@@ -102,6 +103,11 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   numbers of clusters. Auxiliary information returned as attributes.
 }
 \section{References}{
+  C. Fraley and A. E. Raftery (2006).
+  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
+  Technical Report no. 504, Department of Statistics,
+  University of Washington.
+
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 
@@ -109,12 +115,11 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   C. Fraley and A. E. Raftery (2005).
   Bayesian regularization for normal mixture estimation and model-based
   clustering.
-  Technical Report, Department of Statistics, University of Washington. 
+  Technical Report, Department of Statistics, University of Washington.
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley and A. E. Raftery (2007).
+  Bayesian regularization for normal mixture estimation and model-based
+  clustering. \emph{Journal of Classification 24:155-181}.
 }
 \seealso{
   \code{\link{priorControl}}, 

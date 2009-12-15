@@ -1,4 +1,4 @@
-MCLUST: Copyright 1991-2009 University of Washington.  All rights reserved.
+MCLUST: Copyright 1991-2010 University of Washington.  All rights reserved.
 
 The term MCLUST used here refers to all versions of the software, including
 contributed R language (CRAN) packages named mclust, mclust02, and mclust98, 
@@ -55,10 +55,10 @@ Modeling and Model-based Clustering, Technical Report No. 504,
 Department of Statistics, University of Washington, September 2006.
 
 6. those whose only use of MCLUST is through one of the following packages
-   prabclus, fpc, clustvarsel, spotSegmentation, or latentnet must cite 
-   the primary references associated with those packages but need not cite 
-   the above references as a condition for software use --- 
-   all other provisions of the license apply;
+   prabclus, fpc, clustvarsel, or spotSegmentation must cite the primary
+   references associated with those packages but need not cite the above
+   references as a condition for software use --- all other provisions of 
+   the license apply;
 
 7. any risk associated with using the MCLUST software at your Institution 
    is with you and your Institution. MCLUST is experimental in nature and 

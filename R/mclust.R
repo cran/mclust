@@ -6227,6 +6227,12 @@ function(data, prior = NULL, warn = NULL, ...)
 "adjustedRandIndex" <-
 function(x, y)
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
         x <- as.vector(x)
         y <- as.vector(y)
 	xx <- outer(x, x, "==")
@@ -6248,6 +6254,12 @@ function(x, y)
 "bicEMtrain" <-
 function(data, labels, modelNames=NULL) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     z <- unmap(as.numeric(labels))
     G <- ncol(z)
     dimData <- dim(data)
@@ -6277,12 +6289,12 @@ function(data, labels, modelNames=NULL)
 "classError" <-
 function(classification, truth)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	q <- function(map, len, x)
 	{
 		x <- as.character(x)
@@ -6348,6 +6360,12 @@ function(classification, truth)
 "cv1EMtrain" <-
 function(data, labels, modelNames=NULL) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     z <- unmap(as.numeric(labels))
     G <- ncol(z)
     dimDataset <- dim(data)
@@ -6402,12 +6420,12 @@ function(data, labels, modelNames=NULL)
 "hclass" <-
 function(hcPairs, G)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	initial <- attributes(hcPairs)$init
 	n <- length(initial)
 	k <- length(unique(initial))
@@ -6447,12 +6465,12 @@ function(hcPairs, G)
 "mapClass" <-
 function(a, b)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	l <- length(a)
 	x <- y <- rep(NA, l)
 	if(l != length(b)) {
@@ -6496,12 +6514,12 @@ function(train, test = NULL, pro = NULL,
          control = emControl(), initialization = NULL, warn = FALSE, 
          verbose = FALSE, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         if (is.null(test)) test <- train
 	if(verbose) cat("training ...\n")
         mc <- match.call(expand.dots = TRUE)
@@ -6530,12 +6548,12 @@ function(train, test = NULL, pro = NULL,
 "mclustDAtest" <-
 function(data, models)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	densfun <- function(model, data)
 	{
 		do.call("dens", c(list(data = data), model))
@@ -6545,17 +6563,17 @@ function(data, models)
 	structure(den, class = "mclustDAtest")
 }
 
-"mclustDAtrain" <-
+mclustDAtrain <-
 function(data, labels, G = NULL, modelNames = NULL, prior = NULL, 
     control = emControl(), initialization = NULL, warn = FALSE, 
     verbose = TRUE, ...) 
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         mc <- match.call(expand.dots = TRUE)
         mc[[1]] <- as.name("mclustBIC")
         mc$labels <- mc$verbose <- NULL
@@ -6579,7 +6597,7 @@ function(data, labels, G = NULL, modelNames = NULL, prior = NULL,
 	S <- rep(0, L)
 	M <- rep("XXX", L)
         if(is.null(G)) {
-                G <- 1:9
+                G <- 1:3
         }
         else {
                 G <- sort(G)
@@ -6618,12 +6636,12 @@ function(data, labels, G = NULL, modelNames = NULL, prior = NULL,
 "plot.mclustDA" <-
 function(x, trainData, testData, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	if (missing(trainData) || missing(testData))
           stop("data not supplied")
         par(ask = TRUE)
@@ -6759,6 +6777,12 @@ function(x, trainData, testData, ...)
 "print.mclustDA" <-
 function (x, ndigits = options()$digits, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     cat("\nModeling Summary:\n")
     print(x$summary)
     cat("\nTest Classification Summary:\n")
@@ -6777,12 +6801,12 @@ function (x, ndigits = options()$digits, ...)
 "print.mclustDAtrain" <-
 function(x, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	oldClass(x) <- attr(x, "control") <- NULL
 	NextMethod("print")
 	invisible()
@@ -6791,16 +6815,30 @@ function(x, ...)
 "qclass" <-
 function (x, k) 
 {
- q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
- cl <- rep(0, length(x))
- q[1]  <- q[1] - 1
- for (i in 1:k) cl[x > q[i] & x <= q[i+1]] <- i
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+
+  q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
+  cl <- rep(0, length(x))
+  q[1]  <- q[1] - 1
+  for (i in 1:k) cl[x > q[i] & x <= q[i+1]] <- i
+  
  cl
 }
 
 "[.mclustDAtest" <-
 function (x, i, j, drop = FALSE) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     clx <- oldClass(x)
     oldClass(x) <- NULL
     NextMethod("[")
@@ -6808,12 +6846,12 @@ function (x, i, j, drop = FALSE)
 "summary.mclustDAtest" <-
 function(object, pro=NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	clfun <- function(x)
 	{
 		cl <- names(x)[x == max(x)]
@@ -6840,12 +6878,12 @@ function(object, pro=NULL, ...)
 "summary.mclustDAtrain" <-
 function(object, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	L <- length(object)
 	M <- max(unlist(lapply(object, function(y)
 	y$n)))
@@ -7151,12 +7189,12 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
 function(data, G = NULL, modelNames = NULL, prior = NULL, 
          control = emControl(), initialization = NULL, warn = FALSE, ...) 
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         mc <- match.call(expand.dots = FALSE)
         mc[[1]] <- as.name("mclustBIC")
         mc[[2]] <- data
@@ -7509,12 +7547,12 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
 "mclustModel" <-
 function(data, BICvalues, G=NULL, modelNames=NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         mc <- match.call(expand.dots = FALSE)
         if (is.null(attr(BICvalues,"initialization")$noise)) {
           mc[[1]] <- as.name("summaryMclustBIC")
@@ -7571,12 +7609,12 @@ function(x, k = 3)
 `print.Mclust` <-
 function(x, ndigits = options()$digits, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	M <- switch(EXPR = x$model,
 		X = "univariate normal",
 		E = "equal variance",
@@ -7611,12 +7649,12 @@ function(x, ndigits = options()$digits, ...)
 "print.mclustBIC" <-
 function(x, fill = FALSE, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	subset <- !is.null(attr(x, "subset"))
 	oldClass(x) <- attr(x, "args") <- NULL
 	attr(x, "control") <- attr(x, "initialization") <- NULL
@@ -7640,12 +7678,12 @@ function(x, fill = FALSE, ...)
 `print.summary.mclustBIC` <-
 function(x, ndigits = options()$digits, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	cat("\nclassification table:")
 	print(table(x$classification), ...)
 	#----------------------------------------------------------------------
@@ -7698,12 +7736,12 @@ function(x, ndigits = options()$digits, ...)
 "summary.mclustBIC" <-
 function(object, dataset, G, modelNames, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         mc <- match.call(expand.dots = FALSE)
         if (is.null(attr(object,"initialization")$noise)) {
           mc[[1]] <- as.name("summaryMclustBIC")
@@ -7724,6 +7762,12 @@ function(object, dataset, G, modelNames, ...)
 "summary.mclustModel" <-
 function(object, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
   classification <- map(object$z)
   G <- dim(object$parameters$mean)[2]
   G1 <- dim(object$z)[2]
@@ -7922,12 +7966,12 @@ function(object, data, G=NULL, modelNames=NULL, ...)
 "defaultPrior" <-
 function(data, G, modelName, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	aux <- list(...)
 	if(is.null(aux$shrinkage)) {
 		shrinkage <- 0.01
@@ -8042,13 +8086,13 @@ function(eps = .Machine$double.eps, tol = c(1.0e-05,
 	sqrt(.Machine$double.eps)), itmax = c(.Machine$integer.max, .Machine$
 	integer.max), equalPro = FALSE)
 {
-	##
-	# argList <- list(eps=eps, tol=tol, itmax=itmax, equalPro=equalPro)
-	#	nullArgs <- sapply(argList, is.null)
-	#	argList[nullArgs] <- .Mclust[names(nullArgs[nullArgs])]
-	#	argList$itmax[argList$itmax == Inf] <- .Machine$integer.max
-	#	argList
-	##
+##
+# argList <- list(eps=eps, tol=tol, itmax=itmax, equalPro=equalPro)
+#	nullArgs <- sapply(argList, is.null)
+#	argList[nullArgs] <- .Mclust[names(nullArgs[nullArgs])]
+#	argList$itmax[argList$itmax == Inf] <- .Machine$integer.max
+#	argList
+##
 	if(any(eps < 0)) stop("eps is negative")
 	if(any(eps >= 1))
 		stop("eps is not less than 1")
@@ -8073,12 +8117,12 @@ function(emModelNames = NULL, hcModelNames = NULL, bicPlotSymbols = NULL,
          bicPlotColors = NULL, classPlotSymbols = NULL, classPlotColors = NULL,
          warn = TRUE)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	if(is.null(emModelNames)) emModelNames <- c("EII", "VII", "EEI", "VEI",
 			"EVI", "VVI", "EEE", "EEV", "VEV", "VVV")
 	if(is.null(hcModelNames))
@@ -8105,12 +8149,12 @@ function(emModelNames = NULL, hcModelNames = NULL, bicPlotSymbols = NULL,
 "priorControl" <- 
 function(functionName = "defaultPrior", ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	c(list(functionName = functionName), list(...))
 }
 
@@ -8118,6 +8162,12 @@ function(functionName = "defaultPrior", ...)
 function (data, classification, symbols=NULL, colors=NULL, 
           labels = dimnames(data)[[2]], CEX = 1, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     data <- as.matrix(data)
     m <- nrow(data)
     n <- ncol(data)
@@ -8380,6 +8430,146 @@ function(data, dimens = c(1,2), parameters = NULL, z = NULL, classification =
   invisible()
 }
 
+imputePairs <-
+function (x, impx, symbols = c(16,1), colors = c("black", "red"),
+          labels, panel = points, ...,  
+    lower.panel = panel, 
+    upper.panel = panel, diag.panel = NULL, text.panel = textPanel, 
+    label.pos = 0.5 + has.diag/3, cex.labels = NULL, font.labels = 1, 
+    row1attop = TRUE, gap = 1) 
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+    textPanel <- function(x = 0.5, y = 0.5, txt, cex, font) text(x, 
+        y, txt, cex = cex, font = font)
+    localAxis <- function(side, x, y, xpd, bg, col = NULL, main, 
+        oma, ...) {
+        if (side%%2 == 1) 
+            Axis(x, side = side, xpd = NA, ...)
+        else Axis(y, side = side, xpd = NA, ...)
+    }
+    localPlot <- function(..., main, oma, font.main, cex.main) plot(...)
+    localLowerPanel <- function(..., main, oma, font.main, cex.main) lower.panel(...)
+    localUpperPanel <- function(..., main, oma, font.main, cex.main) upper.panel(...)
+    localDiagPanel <- function(..., main, oma, font.main, cex.main) diag.panel(...)
+    dots <- list(...)
+    nmdots <- names(dots)
+    if (!is.matrix(x)) {
+        x <- as.data.frame(x)
+        for (i in seq_along(names(x))) {
+            if (is.factor(x[[i]]) || is.logical(x[[i]])) 
+                x[[i]] <- as.numeric(x[[i]])
+            if (!is.numeric(unclass(x[[i]]))) 
+                stop("non-numeric argument to 'pairs'")
+        }
+    }
+    else if (!is.numeric(x)) 
+        stop("non-numeric argument to 'pairs'")
+    panel <- match.fun(panel)
+    if ((has.lower <- !is.null(lower.panel)) && !missing(lower.panel)) 
+        lower.panel <- match.fun(lower.panel)
+    if ((has.upper <- !is.null(upper.panel)) && !missing(upper.panel)) 
+        upper.panel <- match.fun(upper.panel)
+    if ((has.diag <- !is.null(diag.panel)) && !missing(diag.panel)) 
+        diag.panel <- match.fun(diag.panel)
+    if (row1attop) {
+        tmp <- lower.panel
+        lower.panel <- upper.panel
+        upper.panel <- tmp
+        tmp <- has.lower
+        has.lower <- has.upper
+        has.upper <- tmp
+    }
+    nc <- ncol(x)
+    if (nc < 2) 
+        stop("only one column in the argument to 'pairs'")
+    has.labs <- TRUE
+    if (missing(labels)) {
+        labels <- colnames(x)
+        if (is.null(labels)) 
+            labels <- paste("var", 1:nc)
+    }
+    else if (is.null(labels)) 
+        has.labs <- FALSE
+    oma <- if ("oma" %in% nmdots) 
+        dots$oma
+    else NULL
+    main <- if ("main" %in% nmdots) 
+        dots$main
+    else NULL
+    if (is.null(oma)) {
+        oma <- c(4, 4, 4, 4)
+        if (!is.null(main)) 
+            oma[3] <- 6
+    }
+    opar <- par(mfrow = c(nc, nc), mar = rep.int(gap/2, 4), oma = oma)
+    on.exit(par(opar))
+    for (i in if (row1attop) 
+        1:nc
+    else nc:1) for (j in 1:nc) {
+        localPlot(impx[, j], impx[, i], xlab = "", ylab = "", axes = FALSE, 
+            type = "n", ...)
+        if (i == j || (i < j && has.lower) || (i > j && has.upper)) {
+            box()
+            if (i == 1 && (!(j%%2) || !has.upper || !has.lower)) 
+                localAxis(1 + 2 * row1attop, impx[, j], impx[, i], 
+                  ...)
+            if (i == nc && (j%%2 || !has.upper || !has.lower)) 
+                localAxis(3 - 2 * row1attop, impx[, j], impx[, i], 
+                  ...)
+            if (j == 1 && (!(i%%2) || !has.upper || !has.lower)) 
+                localAxis(2, impx[, j], impx[, i], ...)
+            if (j == nc && (i%%2 || !has.upper || !has.lower)) 
+                localAxis(4, impx[, j], impx[, i], ...)
+            mfg <- par("mfg")
+            if (i == j) {
+                if (has.diag) 
+                  localDiagPanel(as.vector(impx[, i]), ...)
+                if (has.labs) {
+                  par(usr = c(0, 1, 0, 1))
+                  if (is.null(cex.labels)) {
+                    l.wid <- strwidth(labels, "user")
+                    cex.labels <- max(0.8, min(2, 0.9/max(l.wid)))
+                  }
+                  text.panel(0.5, label.pos, labels[i], cex = cex.labels, 
+                    font = font.labels)
+                }
+            }
+            else if (i < j) { 
+                classification <- as.numeric(apply(x[,c(i,j)], 1, 
+                                             function(x) any(is.na(x)))) + 1
+               localLowerPanel(as.vector(impx[, j]), as.vector(impx[, 
+                  i]), pch = symbols[classification], 
+                       col = colors[classification], ...)
+              }
+            else {
+                classification <- as.numeric(apply(x[,c(i,j)], 1, 
+                                             function(x) any(is.na(x)))) + 1
+               localUpperPanel(as.vector(impx[, j]), as.vector(impx[, 
+                i]), pch = symbols[classification], 
+                     col = colors[classification], ...)
+            }
+            if (any(par("mfg") != mfg)) 
+                stop("the 'panel' function made a new plot")
+        }
+        else par(new = FALSE)
+    }
+    if (!is.null(main)) {
+        font.main <- if ("font.main" %in% nmdots) 
+            dots$font.main
+        else par("font.main")
+        cex.main <- if ("cex.main" %in% nmdots) 
+            dots$cex.main
+        else par("cex.main")
+        mtext(main, 3, 3, TRUE, 0.5, cex = cex.main, font = font.main)
+    }
+    invisible(NULL)
+}
+
 "mclust1Dplot" <-
 function(data, parameters=NULL, z=NULL,
          classification=NULL, truth=NULL, uncertainty=NULL, 
@@ -8387,8 +8577,21 @@ function(data, parameters=NULL, z=NULL,
          symbols=NULL, ngrid = length(data),  xlab=NULL,  xlim=NULL, CEX =1, 
          identify= FALSE, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+
 grid1 <- function (n, range = c(0, 1), edge = TRUE) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     if (any(n < 0 | round(n) != n)) 
         stop("n must be nonpositive and integer")
     G <- rep(0, n)
@@ -8405,6 +8608,12 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
     G
 }
     densNuncer <- function(data, parameters) {
+      ##
+      # This function is part of the MCLUST software described at
+      #       http://www.stat.washington.edu/mclust
+      # Copyright information and conditions for use of MCLUST are given at
+      #        http://www.stat.washington.edu/mclust/license.txt
+      ##
         cden <- cdensV(data = data, parameters = parameters)
         if (parameters$variance$G != 1) {
           z <- sweep(cden, MARGIN = 2, FUN = "*", STATS = parameters$pro)
@@ -8572,6 +8781,12 @@ function (data, parameters=NULL, z=NULL, classification=NULL, truth=NULL,
           scale = FALSE, xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", 
           identify = FALSE, swapAxes = FALSE, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
         if(dim(data)[2] != 2)
                 stop("data must be two dimensional")
         if(is.null(classification) && !is.null(z))
@@ -8869,6 +9084,12 @@ function (x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
     xlab = NULL, ylim = NULL, legendArgs = list(x = "bottomright", 
         ncol = 2, cex = 1), CEX = 1, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     if (is.null(xlab)) 
         xlab <- "number of components"
     fill <- FALSE
@@ -8926,12 +9147,12 @@ function (x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL,
 "plot.mclustDA" <-
 function(x, trainData, testData, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	if (missing(trainData) || missing(testData))
           stop("data not supplied")
         par(ask = TRUE)
@@ -9070,12 +9291,12 @@ function(x, trainData, testData, ...)
 function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
          scale = FALSE, xlim = NULL, ylim = NULL,  CEX = 1, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	if (missing(data))
           stop("data not supplied")
 	p <- ncol(as.matrix(data))
@@ -9473,12 +9694,12 @@ function(data, seeds = 0, parameters = NULL, z = NULL, classification = NULL,
 "summary.mclustBIC" <-
 function(object, data, G, modelNames, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         mc <- match.call(expand.dots = FALSE)
         if (is.null(attr(object,"initialization")$noise)) {
           mc[[1]] <- as.name("summaryMclustBIC")
@@ -9504,8 +9725,20 @@ function( data, parameters, type = c("contour", "image", "persp"),
           xlim=NULL, ylim=NULL, identify = FALSE, verbose = FALSE, 
           swapAxes = FALSE, ...)
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
 grid1 <- function (n, range = c(0, 1), edge = TRUE) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     if (any(n < 0 | round(n) != n)) 
         stop("n must be nonpositive and integer")
     G <- rep(0, n)
@@ -9523,6 +9756,12 @@ grid1 <- function (n, range = c(0, 1), edge = TRUE)
 }
 grid2 <- function (x, y) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     lx <- length(x)
     ly <- length(y)
     xy <- matrix(0, nrow = lx * ly, ncol = 2)
@@ -9670,6 +9909,12 @@ grid2 <- function (x, y)
 "uncerPlot" <-
 function (z, truth=NULL, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     parSave <- par(no.readonly = TRUE)
     par(pty = "m")
     uncer <- 1 - apply(z, 1, max)
@@ -9700,12 +9945,12 @@ function (z, truth=NULL, ...)
 `decomp2sigma` <-
 function(d, G, scale, shape, orientation = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	nod <- missing(d)
 	noG <- missing(G)
 	lenScale <- length(scale)
@@ -9781,6 +10026,12 @@ function(d, G, scale, shape, orientation = NULL, ...)
 "grid1" <-
 function (n, range = c(0, 1), edge = TRUE) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     if (any(n < 0 | round(n) != n)) 
         stop("n must be nonpositive and integer")
     G <- rep(0, n)
@@ -9799,6 +10050,12 @@ function (n, range = c(0, 1), edge = TRUE)
 "grid2" <-
 function (x, y) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     lx <- length(x)
     ly <- length(y)
     xy <- matrix(0, nrow = lx * ly, ncol = 2)
@@ -9814,12 +10071,13 @@ function (x, y)
 `hypvol` <-
 function(data, reciprocal = FALSE)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
+        ##
 	## finds the minimum hypervolume between principal components and 
 	## variable bounds
 	##
@@ -9904,15 +10162,61 @@ function(data, reciprocal = FALSE)
 	ans
 }
 
+imputeData <-
+function(x, categorical=NULL, seed=NULL) 
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+ if (!exists("prelim.mix") || ! exists("em.mix") || !exists("da.mix") ||
+    !exists("imp.mix") || !exists("rngseed") ) library(mix)
+
+ fac <- apply( x, 2, is.factor)
+ if (is.null(categorical)) {
+   categorical <- fac
+ }
+ else {
+   if (any(!categorical & fac)) {
+     stop("x has a factor that is not designated as categorical")
+   }
+   if (any(categorical | !fac)) {
+     warning("a categorical is not designated as a factor")
+     for(i in which(categorical | !fac)) x[[i]] <- as.factor(x[[i]])
+   }
+ }
+
+# remove categorical variables and add dummy variable
+if (nocat <- !any(categorical)) {
+  x <- cbind(as.factor(1),x)
+  categorical <- c(TRUE, categorical)
+}
+
+ord <- c(which(categorical),which(!categorical))
+
+# do the imputations
+s <- prelim.mix(x[,ord],p=sum(categorical))
+if (is.null(seed)) seed <- runif(1,min=.Machine$integer.max/1024,max=
+                                 .Machine$integer.max)
+rngseed(seed)   # set random number generator seed
+thetahat <- em.mix(s) # find ML estimate
+newtheta <- da.mix(s, thetahat, steps=100, showits=TRUE)
+ximp <- imp.mix(s, newtheta) # impute under newtheta
+
+if (nocat)  ximp[,-1] else ximp[,order(ord)]
+}
+
 "map" <- 
 function(z, warn = TRUE, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	nrowz <- nrow(z)
 	cl <- numeric(nrowz)
 	I <- 1:nrowz
@@ -9932,6 +10236,12 @@ function(z, warn = TRUE, ...)
 "orth2" <-
 function (n) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     u <- rnorm(n)
     u <- u/vecnorm(u)
     v <- rnorm(n)
@@ -9943,12 +10253,12 @@ function (n)
 "partconv" <- 
 function(x, consec = TRUE)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	n <- length(x)
 	y <- numeric(n)
 	u <- unique(x)
@@ -9971,15 +10281,21 @@ function(x, consec = TRUE)
 "partuniq" <-
 function(x)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	# finds the classification that removes duplicates from x
 "charconv" <- function(x, sep = "001")
 {
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         if(!is.data.frame(x)) x <- data.frame(x)
         do.call("paste", c(as.list(x), sep = sep))
 }
@@ -10029,6 +10345,12 @@ function(shape, O, transpose = FALSE)
 `sigma2decomp` <-
 function (sigma, G=NULL, tol=NULL, ...) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     dimSigma <- dim(sigma)
     if (is.null(dimSigma)) 
         stop("sigma improperly specified")
@@ -10103,12 +10425,12 @@ function (sigma, G=NULL, tol=NULL, ...)
 
 "traceW" <- function(x)
 {
-        ##
-        # This function is part of the MCLUST software described at
-        #       http://www.stat.washington.edu/mclust
-        # Copyright information and conditions for use of MCLUST are given at
-        #        http://www.stat.washington.edu/mclust/license.txt
-        ##
+ ##
+ # This function is part of the MCLUST software described at
+ #       http://www.stat.washington.edu/mclust
+ # Copyright information and conditions for use of MCLUST are given at
+ #        http://www.stat.washington.edu/mclust/license.txt
+ ##
         # sum(as.vector(sweep(x, 2, apply(x, 2, mean)))^2)
         dimx <- dim(x)
         n <- dimx[1]
@@ -10154,12 +10476,12 @@ function(x, upper = NULL)
 `unmap` <-
 function(classification, groups=NULL, noise=NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	# converts a classification to conditional probabilities
 	# classes are arranged in sorted order unless groups is specified
 	# if a noise indicator is specified, that column is placed last
@@ -10198,6 +10520,12 @@ function(classification, groups=NULL, noise=NULL, ...)
 "vecnorm" <-
 function (x, p = 2) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     if (is.character(p)) {
         if (charmatch(p, "maximum", nomatch = 0) == 1) 
             p <- Inf
@@ -10232,6 +10560,12 @@ function (x, p = 2)
 "[.mclustBIC" <-
 function (x, i, j, drop = FALSE) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     ATTR <- attributes(x)[c("G", "modelNames", "prior", "control", 
                             "initialization", "Vinv", "warn", "n", "d", 
                             "oneD", "returnCodes", "class")]
@@ -10248,6 +10582,12 @@ function (x, i, j, drop = FALSE)
 "[.mclustDAtest" <-
 function (x, i, j, drop = FALSE) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
     clx <- oldClass(x)
     oldClass(x) <- NULL
     NextMethod("[")
@@ -10255,12 +10595,12 @@ function (x, i, j, drop = FALSE)
 "bic" <-
 function(modelName, loglik, n, d, G, noise = FALSE, equalPro = FALSE, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	modelName <- switch(EXPR = modelName,
 		X = "E",
 		XII = "EII",
@@ -10286,12 +10626,12 @@ function(modelName, loglik, n, d, G, noise = FALSE, equalPro = FALSE, ...)
 "cdens" <-
 function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
          modelName <- switch(EXPR = modelName,
                 X = "E",
                 XII = "EII",
@@ -10309,12 +10649,12 @@ function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 "checkModelName" <-
 function(modelName)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##	
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##	
         switch(EXPR = modelName,
 		E = ,
 		V = ,
@@ -10337,12 +10677,12 @@ function(modelName)
 "dens" <-
 function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
 	aux <- list(...)
 	cden <- cdens(modelName = modelName, data = data,
                   logarithm = TRUE, parameters = parameters, warn = NULL)
@@ -10377,12 +10717,12 @@ function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 function(modelName, data, parameters, prior = NULL, control = emControl(), 
          warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         checkModelName(modelName)
 	funcName <- paste("em", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
@@ -10394,12 +10734,12 @@ function(modelName, data, parameters, prior = NULL, control = emControl(),
 "estep" <-
 function(modelName, data, parameters, warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         checkModelName(modelName)
 	funcName <- paste("estep", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
@@ -10411,12 +10751,12 @@ function(modelName, data, parameters, warn = NULL, ...)
 "hc" <-
 function(modelName, data, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##        
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##        
         switch(EXPR = modelName,
                 E = ,
                 V = ,
@@ -10442,6 +10782,12 @@ structure(list(univariateMixture = c("E", "V"), multivariateMixture = structure(
 "mclustVariance" <-
 function(modelName, d=NULL, G=2) 
 {
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
  x <- -1
  if (nchar(modelName) == 1) {
    if (!is.null(d) && d != 1)  stop("modelName and d are incompatible")
@@ -10484,12 +10830,12 @@ function(modelName, d=NULL, G=2)
 function(modelName, data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         checkModelName(modelName)
 	funcName <- paste("me", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
@@ -10501,12 +10847,12 @@ function(modelName, data, z, prior = NULL, control = emControl(),
 "mstep" <-
 function(modelName, data, z, prior = NULL, warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         checkModelName(modelName)
 	funcName <- paste("mstep", modelName, sep = "")
         mc <- match.call(expand.dots = TRUE)
@@ -10518,12 +10864,12 @@ function(modelName, data, z, prior = NULL, warn = NULL, ...)
 "mvn" <-
 function(modelName, data, prior = NULL, warn = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##	
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##	
         modelName <- switch(EXPR = modelName,
 		E = "X",
 		V = "X",
@@ -10558,12 +10904,12 @@ function(modelName, data, prior = NULL, warn = NULL, ...)
 "nVarParams" <-
 function(modelName, d, G)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         r <- (d*(d-1))/2
         s <- (d*(d+1))/2 # s = r + d
 	switch(EXPR = modelName,
@@ -10588,12 +10934,12 @@ function(modelName, d, G)
 "sim" <-
 function(modelName, parameters, n, seed = NULL, ...)
 {
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
         modelName <- switch(EXPR = modelName,
                 X = "E",
                 XII = "EII",

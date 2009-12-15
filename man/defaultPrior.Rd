@@ -11,9 +11,9 @@ defaultPrior(data, G, modelName, \dots)
 }
 \arguments{
   \item{data}{
-    The name of the function specifying the conjgate prior.
-    The default function is \code{defaultPrior}, which can be
-    used a template for  
+    A numeric vector, matrix, or data frame of observations. Categorical
+    variables are not allowed. If a matrix or data frame, rows
+    correspond to observations and columns correspond to variables. 
   }
   \item{G}{
     The number of mixture components.
@@ -62,13 +62,10 @@ defaultPrior(data, G, modelName, \dots)
   A list giving the prior degrees of freedom, scale, shrinkage, and mean.
 }
 \details{
-  \code{defaultPrior} is as a default prior specification  
-  for EM within \emph{MCLUST}. It is usually not necessary
-  to invoke \code{defaultPrior} explicitly (it does not appear in the examples
-  below because it is the default function name in \code{priorControl}).
-  This function allows considerable flexibility in the prior specification,
-  and can be used as a template for further users that want to specify
-  their own conjugate prior beyond what the arguments will allow. 
+  \code{defaultPrior} is a function whose default is to output the
+  default prior specification for EM within \emph{MCLUST}.
+  \code{defaultPrior} can be used to specify alternative prior
+  parameters for a conjugate prior.
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2005).
@@ -113,6 +110,8 @@ summary(irisBIC, iris[,-5])
 irisBIC <- mclustBIC(iris[,-5], prior =
                      priorControl(functionName="defaultPrior", shrinkage=0))
 summary(irisBIC, iris[,-5])
+
+defaultPrior( iris[-5], G = 3, modelName = "VVV")
 }
 \keyword{cluster}
 % docclass is function

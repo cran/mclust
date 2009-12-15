@@ -1,3 +1,8 @@
+2009/12    updated defaultPrior help file
+           added utility functions for imputing missing data with the
+           mix package
+           changed default max # of mixture components in each class 
+           from 9 to 3
 2009/10    fixed problems with \cr in mclustOptions help file
 2009/06    fixed plot.mclustBIC/plot.Mclust to handle modelNames
            changed "orientation" for VEV, VVV models to be consistent

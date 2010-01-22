@@ -1,3 +1,5 @@
+2010/01    corrected output description in mclustModel help file
+           updated mclust manual reference to show revision
 2009/12    updated defaultPrior help file
            added utility functions for imputing missing data with the
            mix package

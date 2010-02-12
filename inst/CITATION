@@ -1,0 +1,37 @@
+citHeader("To cite package 'mclust' in publications use:")
+     
+     desc <- packageDescription("mclust")
+     year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", desc$Date)
+     vers <- paste("R package version", desc$Version)
+     
+     citEntry(entry="Manual",
+              title = "MCLUST Version 3 for R: Normal Mixture Modeling
+                       and Model-based Clustering",
+              author = personList(as.person("Chris Fraley"),
+                                  as.person("Adrian E. Raftery")),
+              year = "2006",
+              note = "(revised in 2009)",
+              type = "Technical Report",
+              number  = "504",
+              institution = "Department of Statistics, 
+                             University of Washington",
+              textVersion =
+              paste("Chris Fraley and Adrian E. Raftery (2006)",
+"MCLUST Version 3 for R: Normal Mixture Modeling and Model-based Clustering.",
+"Technical Report No. 504, Department of Statistics, University of Washington",
+"(revised 2009)", sep=""))
+
+     citEntry(entry="Article",
+              title = "Model-based Clustering, Discriminant Analysis and
+                       Density Estimation",
+              author = personList(as.person("Chris Fraley"),
+                                  as.person("Adrian E. Raftery")),
+              year = "2002",
+              journal = "Journal of the American Statistical Association",     
+              volume = 97,
+              pages = "611-631",
+              textVersion =
+              paste("Chris Fraley and Adrian E. Raftery (2002)",
+    "Model-based Clustering, Discriminant Analysis and Density Estimation",
+            "Journal of the American Statistical Association", 
+             "97:611-631",  sep=""))

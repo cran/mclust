@@ -89,4 +89,5 @@ PARTICULAR PURPOSE.
             number = "504",
             address = "Department of Statistics",
             institution = "University of Washington",
-	        year = {2006, revised 2009}}
+	        year = 2006,
+	        note = {(revised 2009)}}

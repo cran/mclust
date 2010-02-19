@@ -1,6 +1,7 @@
 2010/02    moved CITATION to inst and used standard format
            BibTex entries are in inst/cite
            fixed bug in handling missing classes in mclustBIC
+           clarified license wording
 2010/01    corrected output description in mclustModel help file
            updated mclust manual reference to show revision
 2009/12    updated defaultPrior help file

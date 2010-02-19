@@ -2,16 +2,18 @@ MCLUST: Copyright 1991-2010 University of Washington.  All rights reserved.
 
 The term MCLUST used here refers to all versions of the software, including
 contributed R language (CRAN) packages named mclust, mclust02, and mclust98, 
-and the mclust package available in the S archive of StatLib. 
-
-Except for strict academic use, use of MCLUST requires payment of an annual 
-license fee and completion of a license agreement found at the following URL:
-http://depts.washington.edu/ventures/UW_Technology/Express_Licenses/mclust.php
+and the (obsolete) mclust package available in the S archive of StatLib. 
 
 CRAN master (WU Wien) and all of its mirrors are permitted to distribute
 MCLUST as an R package. Otherwise distribution of MCLUST or of modifications 
 thereof is prohibited except by special license agreement with the University 
-of Washington.
+of Washington. All users of MCLUST, including users that invoke MCLUST through
+other packages, are subject to the license terms given below.
+
+Except for strict academic use, use of MCLUST (by itself or through other 
+packages) requires payment of an annual license fee and completion of a 
+license agreement found at the following URL: 
+http://depts.washington.edu/ventures/UW_Technology/Express_Licenses/mclust.php
 
 For academic users for internal research, the University of Washington and 
 the developers of MCLUST, Chris Fraley and Adrian Raftery in the Department of 
@@ -52,13 +54,14 @@ Vol. 97, pages 611-631 (2002).
 
 C. Fraley and A. E. Raftery, MCLUST Version 3 for R: Normal Mixture
 Modeling and Model-based Clustering, Technical Report No. 504,
-Department of Statistics, University of Washington, September 2006.
+Department of Statistics, University of Washington, September 2006
+(revised December 2009).
 
 6. those whose only use of MCLUST is through one of the following packages
-   prabclus, fpc, clustvarsel, or spotSegmentation must cite the primary
-   references associated with those packages but need not cite the above
-   references as a condition for software use --- all other provisions of 
-   the license apply;
+   prabclus, fpc, clustvarsel, clustTool, spotSegmentation, flowClust or 
+   flowMerge must cite the primary references associated with those packages 
+   but need not cite the above references as a condition for software use ---
+   all other provisions of the license apply;
 
 7. any risk associated with using the MCLUST software at your Institution 
    is with you and your Institution. MCLUST is experimental in nature and 
@@ -89,5 +92,5 @@ PARTICULAR PURPOSE.
             number = "504",
             address = "Department of Statistics",
             institution = "University of Washington",
-	        year = 2006,
-	        note = {(revised 2009)}}
+	        note = {(revised 2009)},
+	        year = (2006)}

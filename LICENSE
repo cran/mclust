@@ -30,10 +30,9 @@ display and modify the MCLUST software under the following conditions:
    trademark, or other notices pertaining to MCLUST as provided by the 
    University of Washington;
 
-3. you provide the MCLUST developers with feedback on the use of the MCLUST 
-   software in your research, and you permit the MCLUST developers and 
-   University of Washington to use any information you provide in making 
-   changes to the MCLUST software; 
+3. you permit the MCLUST developers and the University of Washington 
+   to use any information you provide in making changes to the MCLUST 
+   software; 
 
 4. you acknowledge the right of the University of Washington to prepare and 
    publish modifications to MCLUST that may be substantially similar or 
@@ -57,10 +56,9 @@ Modeling and Model-based Clustering, Technical Report No. 504,
 Department of Statistics, University of Washington, September 2006
 (revised December 2009).
 
-6. those whose only use of MCLUST is through one of the following packages
-   prabclus, fpc, clustvarsel, clustTool, spotSegmentation, flowClust or 
-   flowMerge must cite the primary references associated with those packages 
-   but need not cite the above references as a condition for software use ---
+6. those whose only use of MCLUST is through another package must cite
+   the primary references associated with those packages but need not cite 
+   the above references as a condition for software use ---
    all other provisions of the license apply;
 
 7. any risk associated with using the MCLUST software at your Institution 
@@ -92,5 +90,4 @@ PARTICULAR PURPOSE.
             number = "504",
             address = "Department of Statistics",
             institution = "University of Washington",
-	        note = {(revised 2009)},
-	        year = (2006)}
+	        year = {(2006, revised in 2009))}

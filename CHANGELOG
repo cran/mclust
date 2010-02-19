@@ -1,3 +1,4 @@
+2010/04    fixed bug in covariance matrix output for EEV and VEV models
 2010/02    moved CITATION to inst and used standard format
            BibTex entries are in inst/cite
            fixed bug in handling missing classes in mclustBIC

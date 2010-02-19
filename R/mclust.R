@@ -1612,7 +1612,7 @@ function(data, parameters, warn = NULL, ...)
                    WARNING = WARNING, returnCode = ret)
 }
 
-`meEEV` <-
+meEEV <-
 function(data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
@@ -1758,7 +1758,7 @@ function(data, z, prior = NULL, control = emControl(),
 		ret <- if(control$equalPro) -2 else -3
 	}
 	else {
-		sigma <- scale * shapeO(shape, O, transpose = TRUE)
+		sigma <- scale * shapeO(shape, O, transpose = FALSE)
 		if(its >= control$itmax[1]) {
 			WARNING <- "iteration limit reached"
 			warning(WARNING)
@@ -1772,7 +1772,7 @@ function(data, z, prior = NULL, control = emControl(),
         dimnames(mu) <- list(dimnames(data)[[2]], NULL)
         dimnames(O) <- list(dimnames(data)[[2]], dimnames(data)[[2]], 
                             NULL)
-## Sigma = scale * t(O) %*% diag(shape) %*% O
+## Sigma = scale * O %*% diag(shape) %*% t(O)
 	variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
                          scale = scale, shape = shape, orientation = O) 
         parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
@@ -1782,7 +1782,7 @@ function(data, z, prior = NULL, control = emControl(),
                   info = info, WARNING = WARNING, returnCode = ret)
 }
 
-`mstepEEV` <-
+mstepEEV <-
 function(data, z, prior = NULL, warn = NULL, ...)
 {
 	##
@@ -1892,7 +1892,7 @@ function(data, z, prior = NULL, warn = NULL, ...)
                 ret <- -1
 	}
 	else {
-		sigma <- scale * shapeO(shape, O, transpose = TRUE)
+		sigma <- scale * shapeO(shape, O, transpose = FALSE)
                 ret <- 0
 	}
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
@@ -3976,7 +3976,7 @@ function(data, parameters, warn = NULL, ...)
 
 }
 
-`meVEV` <-
+meVEV <-
 function(data, z, prior = NULL, control = emControl(), 
          Vinv = NULL, warn = NULL, ...)
 {
@@ -4121,7 +4121,7 @@ function(data, z, prior = NULL, control = emControl(),
 		ret <- if(control$equalPro) -2 else -3
 	}
 	else {
-		sigma <- shapeO(shape, O, transpose = TRUE)
+		sigma <- shapeO(shape, O, transpose = FALSE)
 		sigma <- sweep(sigma, MARGIN = 3, STATS = scale, FUN = "*")
 		if(inner >= control$itmax[2]) {
 			WARNING <- "inner iteration limit reached"
@@ -4143,7 +4143,7 @@ function(data, z, prior = NULL, control = emControl(),
         dimnames(mu) <- list(dimnames(data)[[2]], NULL)
         dimnames(sigma) <- dimnames(O) <- 
            list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
-##  Sigma = scale * t(O) %*% diag(shape) %*% O
+##  Sigma = scale * O %*% diag(shape) %*% t(O)
 	variance <- list(modelName = "VEV", d = p, G = G, sigma = sigma, 
                         scale = scale, shape = shape, orientation = O)
         parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
@@ -4153,7 +4153,7 @@ function(data, z, prior = NULL, control = emControl(),
                   info = info, WARNING = WARNING, returnCode = ret)
 }
 
-`mstepVEV` <-
+mstepVEV <-
 function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
 	##
@@ -4280,7 +4280,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                 ret <- -1
 	}
 	else {
-		sigma <- sweep(shapeO(shape, O, transpose = TRUE), MARGIN = 3,
+		sigma <- sweep(shapeO(shape, O, transpose = FALSE), MARGIN = 3,
 			STATS = scale, FUN = "*")
 		if(inner >= itmax) {
 			WARNING <- "inner iteration limit reached"
@@ -7220,7 +7220,7 @@ function(data, G = NULL, modelNames = NULL, prior = NULL,
 	structure(ans[orderedNames], class = "Mclust")
 }
 
-`mclustBIC` <-
+mclustBIC <-
 function(data, G = NULL, modelNames = NULL, prior = NULL, control = 
   emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),
   Vinv = NULL, warn = FALSE, x = NULL, ...)
@@ -7391,9 +7391,10 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
          z <- unmap(cl, groups = 1:max(cl))
          if (any(apply( z, 2, max) == 0)) {
 #  missing groups
-           warning("there are missing groups")         
-           z <- max( z, sqrt(.Machine$double.neg.eps))
-           z <- apply( z, 1, function(z) z/sum(z))
+           warning("there are missing groups")    
+           small <- sqrt(.Machine$double.neg.eps)
+           z[z < small] <- small
+           z <-  t(apply( z, 1, function(x) x/sum(x)))
          }
          for (modelName in modelNames[BIC[g,] == EMPTY]) {
             out <- me(modelName = modelName, data = data, z = z, 
@@ -7442,8 +7443,9 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
          if (any(apply( z, 2, max) == 0)) {
 #  missing groups
            warning("there are missing groups")         
-           z <- max( z, sqrt(.Machine$double.neg.eps))
-           z <- apply( z, 1, function(z) z/sum(z))
+           small <- sqrt(.Machine$double.neg.eps)
+           z[z < small] <- small
+           z <-  t(apply( z, 1, function(x) x/sum(x)))
          }
          for (modelName in modelNames[!is.na(BIC[g,])]) {
             ms <- mstep(modelName = modelName, z = z, 

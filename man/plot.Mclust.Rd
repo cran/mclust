@@ -5,7 +5,7 @@
 }
 \description{
   Plot model-based clustering results: BIC, classification, uncertainty and 
-  (for one- and two-dimensional data) density.
+  (for univariate and bivariate data) density.
 }
 \usage{
 \method{plot}{Mclust}(x, data = NULL, what = c("BIC", "classification", 
@@ -52,8 +52,8 @@
   Model-based clustering plots: BIC values used for choosing the number of 
   clusters. For data in more than two dimensions, a pairs plot of the showing 
   the classification, a coordinate projections of the data showing location of 
-  the mixture components, classification, and uncertainty. For one- and two- 
-  dimensional  data, plots showing location of the mixture components,
+  the mixture components, classification, and uncertainty. For univariate
+  and bivariate data, plots showing location of the mixture components,
   classification, uncertainty, and density.  
 }
 \details{
@@ -66,7 +66,7 @@
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
   Technical Report no. 504, Department of Statistics,
   University of Washington.

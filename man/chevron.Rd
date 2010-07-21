@@ -2,7 +2,7 @@
 \alias{chevron}
 \title{Simulated minefield data}
 \usage{data(chevron)}
-\description{A two-dimensional data set of simulated minefield data
+\description{A set of simulated bivariate minefield data
   (1104 observations).}
 \references{
 A. Dasgupta and A. E. Raftery (1998).
@@ -15,7 +15,6 @@ C. Fraley and A.E. Raftery (1998).
 
 G. J. McLachlan and D. Peel (2000).
    \emph{Finite Mixture Models}, Wiley, pages 110-112.
-
 }
 
 \keyword{datasets}

@@ -110,7 +110,7 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling
   and Model-Based Clustering, Technical Report no. 504, 
   Department of Statistics,  University of Washington.
@@ -119,7 +119,7 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 
 
-  C. Fraley and A. E. Raftery (2005).
+  C. Fraley and A. E. Raftery (2005, revised 2009).
   Bayesian regularization for normal mixture estimation and model-based
   clustering.
   Technical Report, Department of Statistics, University of Washington. 

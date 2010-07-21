@@ -64,7 +64,7 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling
   and Model-Based Clustering, Technical Report no. 504, 
   Department of Statistics, University of Washington.

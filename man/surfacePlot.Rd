@@ -1,12 +1,11 @@
 \name{surfacePlot}
 \alias{surfacePlot}
 \title{
-  Density or uncertainty surface for two dimensional mixtures.
+  Density or uncertainty surface for bivariate mixtures.
 }
 \description{
   Plots a density or uncertainty surface 
-  given data in more than two dimensions
-  and parameters of an MVN mixture model for the data.
+  given bivariate data and parameters of an MVN mixture model for the data.
 }
 \usage{
 surfacePlot(data, parameters, 
@@ -19,7 +18,7 @@ surfacePlot(data, parameters,
 }
 \arguments{
   \item{data}{
-    A numeric vector, matrix, or data frame of observations.
+    A matrix, or data frame of bivariate observations.
     Categorical variables are not allowed.
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
@@ -110,7 +109,7 @@ surfacePlot(data, parameters,
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
   Technical Report no. 504, Department of Statistics,
   University of Washington.

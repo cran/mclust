@@ -20,8 +20,8 @@ defaultPrior(data, G, modelName, \dots)
   }
   \item{modelName}{
     A character string indicating the model: \cr
-    "E": equal variance  (one-dimensional) \cr
-    "V": variable variance (one-dimensional)\cr 
+    "E": equal variance  (univariate) \cr
+    "V": variable variance (univariate)\cr 
     "EII": spherical, equal volume \cr
     "VII": spherical, unequal volume \cr
     "EEI": diagonal, equal volume and shape\cr 
@@ -68,7 +68,7 @@ defaultPrior(data, G, modelName, \dots)
   parameters for a conjugate prior.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2005).
+  C. Fraley and A. E. Raftery (2005, revised 2009).
   Bayesian regularization for normal mixture estimation and model-based
   clustering.
   Technical Report, Department of Statistics, University of Washington.
@@ -77,7 +77,7 @@ defaultPrior(data, G, modelName, \dots)
   Bayesian regularization for normal mixture estimation and model-based
   clustering. \emph{Journal of Classification 24:155-181}.
 
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
   Technical Report no. 504, Department of Statistics,
   University of Washington.

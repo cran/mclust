@@ -8160,6 +8160,37 @@ function(functionName = "defaultPrior", ...)
 	c(list(functionName = functionName), list(...))
 }
 
+densityMclust <-
+function(x, ...) {
+  xMclust <- Mclust(x, ...)
+  d <- dens( modelName = xMclust$modelName, data = x,
+             parameters = xMclust$parameters)
+  structure( d, modelName = xMclust$modelName, parameters = xMclust$parameters,
+             range = range(x), class = "densityMclust")
+ }
+
+plot.densityMclust <-
+function(x, data = NULL, ...) {
+  if (nchar(attr(x,"modelName")) > 1) {
+    warning("no default plot function for multivariate densities")
+  }
+  else {
+    xlim <- list(...)$xlim
+    xrange <- attr( x, "range")
+    if (!is.null(data)) xrange <- range(c(xrange, data))
+    if (!is.null(xlim)) xrange <- range(xlim)
+    points <- seq(from = xrange[1], to = xrange[2], length = 1000)
+    d <- dens( modelName = attr(x, "modelName"), data = points,
+               parameters = attr(x, "parameters"))
+#    plot( points, d, type = "l", xlab = "", ylab = "density", xaxt = "n", ...)
+    plot( points, d, type = "l", xlab = "", ylab = "density", ...)
+    x <- data[data >= xrange[1] & data <= xrange[2]]
+    abline( h = min(d), col = "gray")
+    points( data, rep(min(d), length(data)), pch = "|")
+  }
+  invisible()
+ }
+
 `clPairs` <-
 function (data, classification, symbols=NULL, colors=NULL, 
           labels = dimnames(data)[[2]], CEX = 1, ...) 

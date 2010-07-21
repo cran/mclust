@@ -38,7 +38,7 @@ classError(classification, truth)
   only one possible set of misclassified observations is returned.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
   Technical Report no. 504, Department of Statistics,
   University of Washington.

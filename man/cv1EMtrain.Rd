@@ -18,7 +18,7 @@ cv1EMtrain(data, labels, modelNames=NULL)
   for the dataset and labels corresponding to each model.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006).
+  C. Fraley and A. E. Raftery (2006, revised 2010).
   MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
   Technical Report no. 504, Department of Statistics,
   University of Washington.

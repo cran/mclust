@@ -95,6 +95,27 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \item{loglik}{
     The loglikelihood corresponding to the optimal BIC.
   }
+  \item{parameters}{
+     A list with the following components:
+     \describe{
+        \item{pro}{
+              A vector whose \emph{k}th component is the mixing proportion for
+              the \emph{k}th component of the mixture model.
+              If missing, equal proportions are assumed.
+        }
+        \item{mean}{
+              The mean for each component. If there is more than one component,
+              this is a matrix whose kth column is the mean of the \emph{k}th
+              component of the mixture model.
+        }
+        \item{variance}{
+              A list of variance parameters for the model.
+              The components of this list depend on the model
+              specification. See the help file for \code{mclustVariance}
+              for details.
+        }
+      }
+  }
   \item{z}{
     A  matrix whose \emph{[i,k]}th entry is the probability that observation
     \emph{i} in the test data belongs to the \emph{k}th class.

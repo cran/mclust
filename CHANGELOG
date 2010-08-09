@@ -1,3 +1,5 @@
+2010/08    added description of parameters output component to Mclust and
+           summary.mclustBIC help files
 2010/07    added densityMclust function
 2010/04    fixed bug in covariance matrix output for EEV and VEV models
 2010/02    moved CITATION to inst and used standard format

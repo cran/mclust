@@ -1,6229 +1,6 @@
 ".First.lib" <- function(lib, pkg) {
   library.dynam("mclust", pkg, lib)
 }
-"cdensE" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- drop(data)
-	n <- length(data)
-        mu <- drop(parameters$mean)
-	G <- length(mu)
-        if(any(is.na(unlist(parameters[c("mean", "variance")]))) ||
-            any(is.null(parameters[c("mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(names(data), NULL)
-                return(structure(z, logarithm = logarithm, modelName = "E",
-                       WARNING = WARNING, returnCode = 9))
-        }
-        sigmasq <- parameters$variance$sigmasq
-        if(is.null(sigmasq))
-                stop("variance parameters are missing")
-        if(length(sigmasq) > 1)
-                warning("more than one sigma-squared given")
-        if(sigmasq < 0)
-                stop("sigma-squared is negative")
-        if(!sigmasq) {
-                WARNING <- "sigma-squared vanishes"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(names(data), NULL)
-                return(structure(z, logarithm = logarithm, modelName = "E",
-                                 WARNING = WARNING, returnCode = 9))
-        }
-	temp <- .Fortran("es1e",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(-1),
-		as.integer(n),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[8:9]
-        loglik <- temp[[1]]
-        z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-        if(loglik > signif(.Machine$double.xmax, 6)) {
-                WARNING <- "sigma-squared falls below threshold"
-                if (warn) warning(WARNING)
-                z[] <- NA
-                ret <- -1
-        }
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        } 
-        dimnames(z) <- list(names(data),NULL)
-	structure(z, logarithm = logarithm, modelName = "E", 
-                     WARNING = WARNING, returnCode = ret) 
-}
-
-"emE" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepE(data, parameters = parameters, warn = warn)$z
-	meE(data, z = z, prior = prior, control = control, 
-            Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepE" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- drop(data)
-	n <- length(data)
-        pro <- parameters$pro
-        pro <- pro/sum(pro)
-	l <- length(pro)
-
-        mu <- drop(parameters$mean)
-	G <- length(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-	if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-		WARNING <- "parameters are missing"
-		if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(names(data), NULL)
-		return(structure(list(modelName = "E", n=n, d=1, G=G, z=z,
- 		       parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-	}
-        sigmasq <- parameters$variance$sigmasq
-	if(is.null(sigmasq))
-		stop("variance parameters are missing")
-	if(length(sigmasq) > 1)
-		warning("more than one sigma-squared specified")
-	if(sigmasq < 0)
-		stop("sigma-squared is negative")
-	if(!sigmasq) {
-		WARNING <- "sigma-squared vanishes"
-		if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(names(data), NULL)
-		return(structure(list(modelName = "E", n=n, d=1, G=G, z=z,
- 		       parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = -1))
-	}
-	temp <- .Fortran("es1e",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(pro),
-		as.integer(n),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[8:9]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(names(data),NULL) 
-	structure(list(modelName = "E", n = n, d = 1, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"hcE" <-
-function(data, partition, minclus = 1, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(minclus < 1) stop("minclus must be positive")
-	if(any(is.na(data)))
-		stop("missing values not allowed in data")
-	#====================================================================
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	if(missing(partition))
-		partition <- 1:n
-	else if(length(partition) != n)
-		stop("partition must assign a class to each observation")
-	partition <- partconv(partition, consec = TRUE)
-	l <- length(unique(partition))
-	attr(partition, "unique") <- l
-	m <- l - minclus
-	if(m <= 0)
-		stop("initial number of clusters is not greater than minclus")
-	storage.mode(data) <- "double"
-	ld <- max(c((l * (l - 1))/2, 3 * m))
-	temp <- .Fortran("hc1e",
-		data,
-		as.integer(n),
-		as.integer(partition),
-		as.integer(l),
-		as.integer(m),
-		as.integer(ld),
-		double(ld),
-                PACKAGE = "mclust")[c(1, 3, 7)]
-	temp[[1]] <- temp[[1]][1:m]
-	temp[[2]] <- temp[[2]][1:m]
-	temp[[3]] <- temp[[3]][1:m]
-        change <- temp[[3]]
-	structure(rbind(temp[[1]], temp[[2]]), 	initialPartition = partition, 
-                  dimensions = n, modelName = "E",
-		  call = match.call())
-}
-
-"meE" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be 1 dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal length of data")
-	K <- dimz[2]
-        if (!is.null(Vinv)) {
-		G <- K - 1
- 		if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-	       WARNING <- "z is missing"
-	       if (warn) warning(WARNING)
-               variance <- list(modelName = "E", d = 1, G = G, sigmasq = NA)
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), mean=rep(NA,G), 
-                                  variance=variance)
-               return(structure(list(modelName="E", prior=prior, n=n, d=1, G=G,
-                      z=z, parameters=parameters, control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("me1e",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(G),
-			double(1),
-			double(K),
-                        PACKAGE = "mclust")[6:12]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "E"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("me1ep",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(G),
-			double(1),
-			double(K),
-                        PACKAGE = "mclust")[c(10:16, 9)]
-	}
-	mu <- temp[[5]]
-	names(mu) <- as.character(1:G)
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	sigmasq <- temp[[6]]
-	pro <- temp[[7]]
-	## log post <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6) || 
-                            sigmasq <= max(control$eps,0)) {
-		WARNING <- "sigma-squared falls below threshold"
-		if(warn) warning(WARNING)
-		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- logprior <- NA
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else if(its >= control$itmax[1]) {
-		WARNING <- "iteration limit reached"
-		warning(WARNING)
-		its <-  - its
-		ret <- 1
-	}
-	else ret <- 0
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(names(data), NULL) 
-        variance <- list(modelName = "E", d = 1, G = G, sigmasq = sigmasq)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "E", prior = prior, n = n, d = 1, G = G, 
-                       z = z, parameters = parameters, control = control, 
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-
-}
-
-"mstepE" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	##
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-# number of groups 
-        G <- dimz[2]
-	##
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-	       if (warn) warning(WARNING)
-               variance <- list(modelName="E", d=1, G=G, sigmasq=NA)
-               parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
-                                  variance=variance)
-               return(structure(list(modelName="E", prior=prior, n=n, d=1, G=G,
-                                     z = z, parameters=parameters), 
-                                WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("ms1e",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(G),
-			double(G),
-			double(1),
-			double(G),
-                        PACKAGE = "mclust")[5:7]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "E"), prior[names(prior) !=
-			"functionName"]))
-		storage.mode(z) <- "double"
-		temp <- .Fortran("ms1ep",
-			as.double(data),
-			z,
-			as.integer(n),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(G),
-			double(1),
-			double(G),
-                        PACKAGE = "mclust")[9:11]
-	}
-	mu <- temp[[1]]
-	names(mu) <- as.character(1:G)
-	sigmasq <- temp[[2]]
-	pro <- temp[[3]]
-	WARNING <- NULL
-	if(sigmasq > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-                pro[] <- mu[] <- sigmasq <- NA
-                ret <- -1
- 
-	}
-        else ret <- 0
-        dimnames(z) <- list(names(data), NULL) 
-        variance <- list(modelName = "E", d = 1, G = G, sigmasq = sigmasq)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "E", prior = prior, n = n, d = 1, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simE" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, 2), modelName = "E"))
-  }
-  if(!is.null(seed))
-    set.seed(seed)
-  mu <- parameters$mean
-  G <- length(mu)
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- rep(0, n)
-  sd <- sqrt(parameters$variance$sigmasq)
-  for(k in 1:G) {
-    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd)
-  }
-  structure(cbind(group = clabels, "1" = x), modelName = "E")
-}
-
-"cdensEEE" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) > 2)
-		stop("data must be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EEE", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$cholSigma))
-           stop("variance parameters are missing")
-	temp <- .Fortran("eseee",
-		as.logical(1),
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$cholSigma),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(p),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[10:12]
-	lapackCholInfo <- temp[[1]][1]
-	loglik <- temp[[2]]
-	z <- matrix(temp[[3]], n, G)
-        WARNING <- NULL
-	if(lapackCholInfo) {
-		if(lapackCholInfo > 0) {
-			WARNING <- "sigma is not positive definite"
-			if (warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "input error for LAPACK DPOTRF"
-			if (warn) warning(WARNING)
-		}
-		z[] <- NA
-                ret <- -9 
-	}
-	else if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-	structure(z, logarithm = logarithm, modelName = "EEE",
-                  WARNING = WARNING, retrunCode = ret)
-}
-
-"emEEE" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepEEE(data, parameters = parameters, warn = warn)$z  
-	meEEE(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepEEE" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) > 2)
-		stop("data must be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "EEE", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$cholSigma))
-           stop("variance parameters are missing")
-	temp <- .Fortran("eseee",
-		as.logical(1),
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$cholSigma),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(p),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[10:12]
-	lapackCholInfo <- temp[[1]][1]
-	loglik <- temp[[2]]
-	z <- matrix(temp[[3]], n, K)
-	WARNING <- NULL
-	if(lapackCholInfo) {
-		if(lapackCholInfo > 0) {
-			WARNING <- "sigma is not positive definite"
-			warning(WARNING)
-                        ret <- -4 
-		}
-		else {
-			WARNING <- "input error for LAPACK DPOTRF"
-			warning(WARNING)
-                        ret <- -5
-		}
-		z[] <- loglik <- NA
-	}
-	else if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "EEE", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"hcEEE" <-
-function(data, partition, minclus = 1, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(minclus < 1) stop("minclus must be positive")
-	if(any(is.na(data)))
-		stop("missing values not allowed in data")
-	#=====================================================================
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	dimnames(data) <- NULL
-	n <- nrow(data)
-	p <- ncol(data)
-	if(n <= p)
-		warning("# of observations <= data dimension")
-	if(missing(partition))
-		partition <- 1:n
-	else if(length(partition) != n)
-		stop("partition must assign a class to each observation")
-	partition <- partconv(partition, consec = TRUE)
-	l <- length(unique(partition))
-	attr(partition, "unique") <- l
-	m <- l - minclus
-	if(m <= 0)
-		stop("initial number of clusters is not greater than minclus")
-	storage.mode(data) <- "double"
-	temp <- .Fortran("hceee",
-		data,
-		as.integer(n),
-		as.integer(p),
-		as.integer(partition),
-		as.integer(l),
-		as.integer(m),
-		if(p < 3) integer(m) else integer(1),
-		if(p < 4) integer(m) else integer(1),
-		double(p),
-		double(p * p),
-		double(p * p),
-		double(p * p),
-                PACKAGE ="mclust")[c(1, 7:10)]
-	#
-	# currently temp[[5]] is not output
-	temp[[4]] <- temp[[4]][1:2]
-	temp[[5]] <- temp[[5]][1:2]
-	names(temp[[5]]) <- c("determinant", "trace")
-	temp[[1]] <- temp[[1]][1:(m + 1),  ]
-	if(p < 3)
-		tree <- rbind(temp[[2]], temp[[3]])
-	else if(p < 4)
-		tree <- rbind(temp[[1]][-1, 3], temp[[3]])
-	else tree <- t(temp[[1]][-1, 3:4, drop = FALSE])
-	determinant <- temp[[1]][, 1]
-	attr(determinant, "breakpoints") <- temp[[4]]
-        trace <- temp[[1]][, 2]
-	structure(tree,	initialPartition = partition, 
-                  dimensions = dimdat, modelName = "EEE", 
-                  call = match.call())
-}
-
-`meEEE` <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-        if (!is.null(Vinv)) {
-                G <- K - 1
-                if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-        }
-        else G <- K
-	if(all(is.na(z))) {
-              WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EEE", d = p, G = G, 
-                     Sigma = matrix(NA, p, p), cholSigma = matrix(NA, p, p)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="EEE", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("meeee",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(p * p),
-			double(K),
-			double(p),
-                        PACKAGE = "mclust")[7:13]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EEE"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("meeeep",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(p * p),
-			double(K),
-			double(p),
-                        PACKAGE = "mclust")[c(11:17, 10)]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-   	cholSigma <- matrix(temp[[6]], p, p)
-	pro <- temp[[7]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-                Sigma <- matrix( NA, p, p)
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn)
-				warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn)
-				warning(WARNING)
-		}
-		mu[] <- pro[] <- z[] <- loglik <- logprior <- NA
-		sigma <- array(NA, c(p, p, G))
-                Sigma <- matrix(NA, p, p)
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-   	        Sigma <- unchol(cholSigma, upper = TRUE)
-		sigma <- array(0, c(p, p, G))
-		for(k in 1:G)
-			sigma[,  , k] <- Sigma
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(Sigma) <- dimnames(cholSigma) <- 
-                       list(dimnames(data)[[2]], dimnames(data)[[2]])
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "EEE", d = p, G = G,
-                         sigma = sigma, Sigma = Sigma, cholSigma = cholSigma) 
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "EEE", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-`mstepEEE` <-
-function(data, z, prior = NULL,  warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	##
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EEE", d = p, G = G, 
-                      sigma <- array(NA, c(p,p, G)), 
-                      Sigma = matrix(NA, p, p), cholSigma = matrix(NA, p, p)) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="EEE", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("mseee",
-                        as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p),
-			double(p * G),
-			double(p * p),
-			double(G),
-                        PACKAGE = "mclust")[7:9]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EEE"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("mseeep",
-                        as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			double(p),
-			double(p * G),
-			double(p * p),
-			double(G),
-                        PACKAGE = "mclust")[11:13]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	cholSigma <- matrix(temp[[2]], p, p)
-	pro <- temp[[3]]
-	sigma <- array(0, c(p, p, G))
-	Sigma <- unchol(cholSigma, upper = TRUE)
-	for(k in 1:G)
-		sigma[,  , k] <- Sigma
-	WARNING <- NULL
-	if(any(mu > signif(.Machine$double.xmax, 6))) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-		mu[] <- sigma[] <- Sigma[] <- cholSigma[] <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(Sigma) <- dimnames(cholSigma) <- 
-               list(dimnames(data)[[2]], dimnames(data)[[2]])
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "EEE", d = p, G = G, 
-                         sigma = sigma, Sigma = Sigma, cholSigma= cholSigma)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "EEE", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simEEE" <- 
-function(parameters, n, seed = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(!is.null(seed)) set.seed(seed)
-	mu <- as.matrix(parameters$mean)
-	d <- nrow(mu)
-	G <- ncol(mu)
-	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-		parameters[c("mean", "variance")]))) {
-		warn <- "parameters are missing"
-		warning("parameters are missing")
-		return(structure(matrix(NA, n, d + 1), modelName = "EEE"))
-	}
-	pro <- parameters$pro
-	if(is.null(pro))
-		pro <- rep(1/G, G)
-	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-	ctabel <- table(clabels)
-	x <- matrix(0, n, d)
-	if(is.null(cholSigma <- parameters$variance$cholSigma)) {
-		if(is.null(Sigma <- parameters$variance$Sigma)) {
-			stop("variance parameters must inlcude either Sigma or cholSigma"
-				)
-		}
-		cholSigma <- chol(Sigma)
-	}
-	for(k in 1:G) {
-		m <- ctabel[k]
-		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-			FUN = "+")
-	}
-	dimnames(x) <- list(NULL, 1:d)
-	structure(cbind(group = clabels, x), modelName = "EEE")
-}
-
-"cdensEEI" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EEI", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                   is.null(parameters$variance$shape)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("eseei",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[10:11]
-        loglik <- temp[[1]]
-        z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-        if(loglik > signif(.Machine$double.xmax, 6)) {
-                WARNING <- "sigma-squared falls below threshold"
-                if (warn) warning(WARNING)
-                z[] <- NA
-                ret <- -1 
-        }
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(z, logarithm = logarithm, modelName = "EEI",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emEEI" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepEEI(data, parameters = parameters, warn = warn)$z  
-	meEEI(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepEEI" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-                Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	} 
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "EEI", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-		   is.null(parameters$variance$shape)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("eseei",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "EEI", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"meEEI" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data  should be in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EEI", d = p, G = G, 
-                                 scale = NA, shape = rep(NA,p)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="EEI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("meeei",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(1),
-			double(p),
-			double(K),
-                        PACKAGE = "mclust")[7:14]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EEI"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("meeeip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(1),
-			double(p),
-			double(K),
-                        PACKAGE = "mclust")[11:18]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	scale <- temp[[6]]
-	shape <- temp[[7]]
-	pro <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		sigma <- array(NA, c(p, p, G))
-		Sigma <- matrix(NA, p, p)
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn)
-				warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn)
-				warning(WARNING)
-		}
-		sigma <- array(NA, c(p, p, G))
-		Sigma <- matrix(NA, p, p)
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(0, c(p, p, G))
-		Sigma <- diag(scale * shape)
-		for(k in 1:G)
-			sigma[,  , k] <- Sigma
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-	variance <- list(modelName = "EEI", d = p, G = G, 
-                         sigma = sigma, Sigma = Sigma, 
-                         scale = scale, shape = shape)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-      	structure(list(modelName = "EEI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-		  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepEEI" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EEI", d = p, G = G, 
-                                 scale = NA, shape = rep(NA,p)) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="EEI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                          WARNING = WARNING, returnCode = 9))
-
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("mseei",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p * G),
-			double(1),
-			double(p),
-			double(G),
-                        PACKAGE = "mclust")[6:9]
-	}
-	else {
-		storage.mode(z) <- "double"
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EEI"), prior[names(
-			prior) != "functionName"]))
-		temp <- .Fortran("mseeip",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p * G),
-			double(1),
-			double(p),
-			double(G),
-                        PACKAGE = "mclust")[10:13]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	scale <- temp[[2]]
-	shape <- temp[[3]]
-	pro <- temp[[4]]
-	WARNING <- NULL
-	if(any(c(shape, scale) > signif(.Machine$double.xmax, 6)) || any(!c(
-		scale, shape))) {
-		WARNING <- "cannot compute M-step"
-		if(warn)
-			warning(WARNING)
-		mu[] <- pro[] <- scale <- shape[] <- NA
-		sigma <- Sigma <- array(NA, c(p, p, G))
-                ret <- -1
-	}
-	else {
-		sigma <- array(0, c(p, p, G))
-		Sigma <- diag(scale * shape)
-		for(k in 1:G)
-			sigma[,  , k] <- Sigma
-                ret <- 0
-	}
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "EEI", d = p, G = G, 
-                         sigma = sigma, Sigma = Sigma, 
-                         scale = scale, shape = shape)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "EEI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simEEI" <- 
-function(parameters, n, seed = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(!is.null(seed)) set.seed(seed)
-	mu <- as.matrix(parameters$mean)
-	d <- nrow(mu)
-	G <- ncol(mu)
-	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-		parameters[c("mean", "variance")]))) {
-		warn <- "parameters are missing"
-		warning("parameters are missing")
-		return(structure(matrix(NA, n, d + 1), modelName = "EEI"))
-	}
-	pro <- parameters$pro
-	if(is.null(pro))
-		pro <- rep(1/G, G)
-	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-	ctabel <- table(clabels)
-	x <- matrix(0, n, d)
-	shape <- parameters$variance$shape
-	if(length(shape) != d)
-		stop("shape incompatible with mean")
-	cholSigma <- diag(sqrt(parameters$variance$scale * shape))
-	for(k in 1:G) {
-		m <- ctabel[k]
-		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-			FUN = "+")
-	}
-	dimnames(x) <- list(NULL, 1:d)
-	structure(cbind(group = clabels, x), modelName = "EEI")
-}
-
-`cdensEEV` <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EEV", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                   is.null(parameters$variance$shape) ||
-                   is.null(parameters$variance$orientation)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("eseev",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(p),
-		double(p),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[13:14]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-	structure(z, logarithm = logarithm, modelName = "EEV",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emEEV" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepEEV(data, parameters = parameters, warn = warn)$z  
-	meEEV(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-`estepEEV` <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "EEV", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                   is.null(parameters$variance$shape) ||
-                   is.null(parameters$variance$orientation)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("eseev",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(p),
-		double(p),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[13:14]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1 
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "EEV", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-meEEV <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-              WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EEV", d = p, G = G, 
-              scale = NA, shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
-               parameters <- list(Vinv= Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="EEV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p))
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("meeev",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			as.integer(lwork),
-			double(p * G),
-			double(1),
-			double(p),
-			double(p * p * G),
-			double(K),
-			double(lwork),
-			double(p),
-                        PACKAGE = "mclust")[7:16]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EEV"), 
-                        prior[names(prior) !="functionName"]))
-		temp <- .Fortran("meeevp",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			as.integer(lwork),
-			double(p * G),
-			double(1),
-			double(p),
-			double(p * p * G),
-			double(K),
-			double(lwork),
-			double(p),
-                        PACKAGE = "mclust")[11:20]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	lapackSVDinfo <- temp[[5]]
-	mu <- matrix(temp[[6]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	scale <- temp[[7]]
-	shape <- temp[[8]]
-	O <- aperm(array(temp[[9]], c(p, p, G)),c(2,1,3))
-	pro <- temp[[10]]
-	WARNING <- NULL
-	if(lapackSVDinfo) {
-		if(lapackSVDinfo > 0) {
-			WARNING <- "LAPACK DGESVD fails to converge"
-		}
-		else {
-			WARNING <- "input error for LAPACK DGESVD"
-		}
-		z[] <- O[] <- shape[] <- NA
-		scale <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -9
-	}
-	else if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		shape[] <- NA
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "a z column sum fell below threshold"
-			if(warn)
-				warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn)
-				warning(WARNING)
-		}
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- scale * shapeO(shape, O, transpose = FALSE)
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(O) <- list(dimnames(data)[[2]], dimnames(data)[[2]], 
-                            NULL)
-## Sigma = scale * O %*% diag(shape) %*% t(O)
-	variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
-                         scale = scale, shape = shape, orientation = O) 
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
-	structure(list(modelName = "EEV", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik),
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-mstepEEV <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	##
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EEV", d = p, G = G, 
-                scale = NA, shape = rep(NA,p), orientation=array(NA,c(p,p,G))) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="EEV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                          WARNING = WARNING, returnCode = 9))
-
-	}
-	#	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
-	if(any(is.na(z)) || any(z < 0) || any(z > 1)) stop(
-			"improper specification of z")
-	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), G)
-	if(is.null(prior)) {
-		temp <- .Fortran("mseev",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(lwork),
-			as.integer(lwork),
-			double(p * G),
-			double(1),
-			double(p),
-			double(p * p * G),
-			double(G),
-                        PACKAGE = "mclust")[7:12]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EEV"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("mseevp",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			double(lwork),
-			as.integer(lwork),
-			double(p * G),
-			double(1),
-			double(p),
-			double(p * p * G),
-			double(G),
-                        PACKAGE = "mclust")[11:16]
-	}
-	lapackSVDinfo <- temp[[1]]
-	mu <- matrix(temp[[2]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	scale <- temp[[3]]
-	shape <- temp[[4]]
-	O <- aperm( array(temp[[5]], c(p, p, G)), c(2,1,3))
-	pro <- temp[[6]]
-	WARNING <- NULL
-	if(lapackSVDinfo) {
-		if(lapackSVDinfo > 0) {
-			WARNING <- "LAPACK DGESVD fails to converge"
-			warning(WARNING)
-                        ret <- -4
-		}
-		else {
-			WARNING <- "input error for LAPACK DGESVD"
-			warning(WARNING)
-                        ret <- -5
-		}
-		O[] <- shape[] <- scale <- NA
-		sigma <- array(NA, c(p, p, G))
-	}
-	else if(any(c(abs(scale), shape) > signif(.Machine$double.xmax, 6))) {
-		WARNING <- "cannot compute M-step"
-		if(warn)
-			warning(WARNING)
-		mu[] <- pro[] <- scale <- O[] <- shape[] <- NA
-		sigma <- array(NA, c(p, p, G))
-                ret <- -1
-	}
-	else {
-		sigma <- scale * shapeO(shape, O, transpose = FALSE)
-                ret <- 0
-	}
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- dimnames(O) <- 
-              list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
-        variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
-                       scale = scale, shape = shape, orientation = O)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "EEV", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-}
-
-`simEEV` <-
-function(parameters, n, seed = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(!is.null(seed)) set.seed(seed)
-	mu <- as.matrix(parameters$mean)
-	d <- nrow(mu)
-	G <- ncol(mu)
-	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-		parameters[c("mean", "variance")]))) {
-		warn <- "parameters are missing"
-		warning("parameters are missing")
-		return(structure(matrix(NA, n, d + 1), modelName = "EEV"))
-	}
-	pro <- parameters$pro
-	if(is.null(pro))
-		pro <- rep(1/G, G)
-	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-	ctabel <- table(clabels)
-	x <- matrix(0, n, d)
-	shape <- parameters$variance$shape
-	if(length(shape) != d)
-		stop("shape incompatible with mean")
-	sss <- sqrt(parameters$variance$scale * shape)
-	for(k in 1:G) {
-		m <- ctabel[k]
-		cholSigma <- t(parameters$variance$orientation[,  , k]) * sss
-		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
-			FUN = "+")
-	}
-	dimnames(x) <- list(NULL, 1:d)
-	structure(cbind(group = clabels, x), modelName = "EEV")
-}
-
-"cdensEII" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EII", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        sigmasq <- parameters$variance$sigmasq
-	if(sigmasq < 0)
-		stop("sigma-squared is negative")
-	if(!sigmasq) {
-		WARNING <- "sigma-squared vanishes"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EII", 
-                                 WARNING = WARNING, returnCode = 9))
-	}
-	temp <- .Fortran("eseii",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[9:10]
-        loglik <- temp[[1]]
-        z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-        if(loglik > signif(.Machine$double.xmax, 6)) {
-                WARNING <- "sigma-squared falls below threshold"
-                if (warn) warning(WARNING)
-                z[] <- NA
-                ret <- -1
-        }
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-	structure(z, logarithm = logarithm, modelName = "EII",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emEII" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepEII(data, parameters = parameters, warn = warn)$z
-	meEII(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepEII" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	p <- ncol(data)
-	n <- nrow(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-        mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-                Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-	if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-		WARNING <- "parameters are missing"
-		if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-		return(structure(list(modelName = "EII", n=n, d=p, G=G, z=z,
-  		                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-	}
-        sigmasq <- parameters$variance$sigmasq
-	if(is.null(sigmasq))
-		warning("variance parameters are missing")
-	if(sigmasq < 0)
-		stop("sigma-squared is negative")
-	if(!sigmasq) {
-		WARNING <- "sigma-squared vanishes"
-		if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-		return(structure(list(modelName = "EII", n=n, d=p, G=G, z=z,
- 		                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = -1))
-	}
-	temp <- .Fortran("eseii",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[9:10]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "sigma-squared falls below threshold"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "EII", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"hcEII" <-
-function(data, partition, minclus = 1, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(minclus < 1) stop("minclus must be positive")
-	if(any(is.na(data)))
-		stop("missing values not allowed in data")
-	#====================================================================
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	dimnames(data) <- NULL
-	n <- nrow(data)
-	p <- ncol(data)
-	if(missing(partition))
-		partition <- 1:n
-	else if(length(partition) != n)
-		stop("partition must assign a class to each observation")
-	partition <- partconv(partition, consec = TRUE)
-	l <- length(unique(partition))
-	attr(partition, "unique") <- l
-	m <- l - minclus
-	if(m <= 0)
-		stop("initial number of clusters is not greater than minclus")
-	if(n <= p)
-		warning("# of observations <= data dimension")
-	#=============================================================
-	storage.mode(data) <- "double"
-	ld <- max(c((l * (l - 1))/2, 3 * m))
-	temp <- .Fortran("hceii",
-		data,
-		as.integer(n),
-		as.integer(p),
-		as.integer(partition),
-		as.integer(l),
-		as.integer(m),
-		double(p),
-		as.integer(ld),
-		double(ld),
-                PACKAGE = "mclust")[c(1, 9)]
-	temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
-	temp[[2]] <- temp[[2]][1:m]
-        change <- temp[[2]]
-	structure(t(temp[[1]]), initialPartition = partition, 
-                  dimensions = dimdat, modelName = "EII", 
-                  call =  match.call())
-}
-
-"meEII" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	# number of groups
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-	       WARNING <- "z is missing"
-	       if (warn) warning(WARNING)
-               variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="EII", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("meeii",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(1),
-			double(K),
-                        PACKAGE = "mclust")[7:13]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-		data, G = G, modelName = "EII"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("meeiip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(1),
-			double(K),
-                        PACKAGE = "mclust")[c(11:17, 10)]
-	}
-	mu <- matrix(temp[[5]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	sigmasq <- temp[[6]]
-	Sigma <- diag(rep(sigmasq, p))
-	pro <- temp[[7]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6) || 
-           sigmasq <= max(control$eps,0)) {
-		WARNING <- "sigma-squared falls below threshold"
-		if (warn) warning(WARNING)
-		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if (warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if (warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(0, c(p, p, G))
-		for(k in 1:G)
-			sigma[,  , k] <- Sigma
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL) 
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL) 
-        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL) 
-        variance <- list(modelName = "EII", d = p, G = G, sigma = sigma, 
-                         Sigma = Sigma, sigmasq = sigmasq, scale = sigmasq)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance = variance)
-	structure(list(modelName = "EII", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control, 
-                       loglik = loglik),
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepEII" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="EII", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mseii",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p * G),
-			double(1),
-			double(G),
-                        PACKAGE = "mclust")[6:8]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EII"), 
-                        prior[names(prior) !="functionName"]))
-		temp <- .Fortran("mseiip",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p * G),
-			double(1),
-			double(G),
-                        PACKAGE = "mclust")[10:12]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	sigmasq <- temp[[2]]
-	pro <- temp[[3]]
-	sigma <- array(0, c(p, p, G))
-	Sigma <- diag(rep(sigmasq, p))
-	for(k in 1:G)
-		sigma[,  , k] <- Sigma
-	WARNING <- NULL
-	if(sigmasq > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]], NULL) 
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL) 
-        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL) 
-        variance <- list(modelName = "EII", d = p, G = G, sigma = sigma, 
-                         Sigma = Sigma, sigmasq = sigmasq, scale = sigmasq)
-        parameters <- list(pro=pro, mean=mu, variance = variance)
-        structure(list(modelName = "EII", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-
-}
-
-"simEII" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(!is.null(seed)) set.seed(seed)
-  mu <- as.matrix(parameters$mean)
-  d <- nrow(mu)
-  G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, d), modelName = "EII"))
-  }
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- matrix(0, n, d)
-  sigmasq <- parameters$variance$sigmasq
-  cholSigma <- diag(rep(sqrt(sigmasq), d))
-  for(k in 1:G) {
-    m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
-      cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
-  }
-  dimnames(x) <- list(NULL, 1:d)
-  structure(cbind(group = clabels, x), modelName = "EII")
-}
-
-"cdensEVI" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        mu <- parameters$mean
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EVI", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                    is.null(parameters$variance$shape)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("esevi",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-         }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-	structure(z, logarithm = logarithm, modelName = "EVI",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emEVI" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepEVI(data, parameters = parameters, warn = warn)$z  
-	meEVI(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepEVI" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-                Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	} 
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "EVI", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-     		    is.null(parameters$variance$shape)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("esevi",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "EVI", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"meEVI" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EVI", d = p, G = G, 
-                                 scale = NA, shape = matrix(NA,p,G)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="EVI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("meevi",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(1),
-			double(p * G),
-			double(K),
-                        PACKAGE = "mclust")[7:14]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EVI"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("meevip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(1),
-			double(p * G),
-			double(K),
-                        PACKAGE = "mclust")[11:18]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	scale <- temp[[6]]
-	shape <- matrix(temp[[7]], p, G)
-	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
-	pro <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn) warning(WARNING)
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			if(warn) warning("z column sum fell below threshold")
-			WARNING <- "z column sum fell below threshold"
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "EVI", d = p, G = G, 
-                         sigma = sigma, scale = scale, shape = shape)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "EVI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control, 
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepEVI" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "EVI", d = p, G = G, 
-                                 scale = NA, shape = matrix(NA,p,G)) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="EVI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("msevi",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p * G),
-			double(1),
-			double(p * G),
-			double(G),
-                        PACKAGE = "mclust")[6:9]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "EVI"), prior[names(
-			prior) != "functionName"]))
-		temp <- .Fortran("msevip",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p * G),
-			double(1),
-			double(p * G),
-			double(G),
-                        PACKAGE = "mclust")[10:13]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	scale <- temp[[2]]
-	shape <- matrix(temp[[3]], p, G)
-	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
-	pro <- temp[[4]]
-	WARNING <- NULL
-	if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!c(
-		scale, shape))) {
-		WARNING <- "cannot compute M-step"
-		if(warn)
-			warning(WARNING)
-		mu[] <- pro[] <- scale <- shape[] <- NA
-		sigma <- array(NA, c(p, p, G))
-                ret <- -1 
-	}
-	else {
-		sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
-                ret <- 0
-	}
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "EVI", d = p, G = G, 
-                         sigma = sigma, scale = scale, shape = shape)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "EVI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simEVI" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(!is.null(seed)) set.seed(seed)
-  mu <- as.matrix(parameters$mean)
-  d <- nrow(mu)
-  G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, d + 1), modelName = "EVI"))
-  }
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- matrix(0, n, d)
-  shape <- as.matrix(parameters$variance$shape)
-  if(!all(dim(shape) == dim(mean)))
-    stop("shape incompatible with mean")
-  sss <- sqrt(parameters$variance$scale * shape)
-  for(k in 1:G) {
-    m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
-      diag(sss[, k]), MARGIN = 2, STAT = mu[, k], FUN = "+")
-  }
-  dimnames(x) <- list(NULL, 1:d)
-  structure(cbind(group = clabels, x), modelName = "EVI")
-}
-
-"cdensV" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- drop(data)
-	n <- length(data)
-        mu <- drop(parameters$mean)
-	G <- length(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")])))
-            || any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(names(data), NULL)
-                return(structure(z, logarithm = logarithm, modelName = "V", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        sigmasq <- parameters$variance$sigmasq
-        if(is.null(sigmasq))
-                stop("variance parameters are missing")
-        if(any(sigmasq < 0))
-                stop("sigma-squared is negative")
-	if(any(!sigmasq)) {
-                WARNING <- "sigma-squared vanishes"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(names(data), NULL)
-                return(structure(z, logarithm = logarithm, modelName = "V", 
-                                 WARNING = WARNING, returnCode = 9))
-	}
-        if (length(sigmasq) == 1) sigmasq <- rep(sigmasq,G)
-	temp <- .Fortran("es1v",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(-1),
-		as.integer(n),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[8:9]
-        loglik <- temp[[1]]
-        z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-        if(loglik > signif(.Machine$double.xmax, 6)) {
-                WARNING <- "sigma-squared falls below threshold"
-                if (warn) warning(WARNING)
-                z[] <- NA
-                ret <- -1
-        }
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(names(data),NULL)
-	structure(z, logarithm = logarithm, modelName = "V",
-                     WARNING = WARNING, returnCode = ret)
-}
-
-"emV" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepV(data, parameters = parameters, warn = warn)$z  
-	meV(data, z = z, prior = prior, control = control, 
-            Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepV" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- drop(data)
-	n <- length(data)
-        pro <- parameters$pro 
-        pro <- pro/sum(pro)
-	l <- length(pro)
-        mu <- drop(parameters$mean)
-	G <- length(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv 
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")])))
-            || any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(names(data), NULL)
-                return(structure(list(modelName = "V", n=n, d=1, G=G, z=z,
-                       parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        sigmasq <- parameters$variance$sigmasq
-	if(is.null(sigmasq))
-		stop("variance parameters are missing")
-	if(any(sigmasq < 0))
-		stop("sigma-squared is negative")
-	if(any(!sigmasq)) {
-		WARNING <- "sigma-squared vanishes"
-		if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(names(data), NULL)
-                return(structure(list(modelName = "V", n=n, d=1, G=G, z=z,
-                       parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = -1))
-	}
-	temp <- .Fortran("es1v",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(pro),
-		as.integer(n),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[8:9]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(names(data),NULL)
-        structure(list(modelName = "V", n = n, d = 1, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"hcV" <-
-function(data, partition, minclus = 1, alpha = 1, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(minclus < 1) stop("minclus must be positive")
-	if(any(is.na(data)))
-		stop("missing values not allowed in data")
-	#=====================================================================
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	if(missing(partition))
-		partition <- 1:n
-	else if(length(partition) != n)
-		stop("partition must assign a class to each observation")
-	partition <- partconv(partition, consec = TRUE)
-	l <- length(unique(partition))
-	attr(partition, "unique") <- l
-	m <- l - minclus
-	if(m <= 0)
-		stop("initial number of clusters is not greater than minclus")
-	storage.mode(data) <- "double"
-	alpha <- alpha * (vecnorm(data - mean(data))^2/n)
-	alpha <- min(alpha, .Machine$double.eps)
-	ld <- max(c((l * (l - 1))/2, 3 * m))
-	temp <- .Fortran("hc1v",
-		data,
-		as.integer(n),
-		as.integer(partition),
-		as.integer(l),
-		as.integer(m),
-		as.double(alpha),
-		as.integer(ld),
-		double(ld),
-                PACKAGE = "mclust")[c(1, 3, 8)]
-	temp[[1]] <- temp[[1]][1:m]
-	temp[[2]] <- temp[[2]][1:m]
-	temp[[3]] <- temp[[3]][1:m]
-        change <- temp[[3]]
-	structure(rbind(temp[[1]], temp[[2]]), 	initialPartition = partition, 
-                  dimensions = n, modelName = "V",
-		  call = match.call())
-}
-
-"meV" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal length of data")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-	       WARNING <- "z is missing"
-	       if (warn) warning(WARNING)
-               variance <- list(modelName = "V", d=1, G=G, sigmasq = rep(NA,G))
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), mean=rep(NA,G), 
-                                  variance=variance)
-               return(structure(list(modelName="V", prior=prior, n=n, d=1, G=G,
-                  z=z, parameters=parameters, control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("me1v",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(G),
-			as.double(if(is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(G),
-			double(G),
-			double(K),
-                        PACKAGE = "mclust")[6:12]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "V"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("me1vp",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(G),
-			double(G),
-			double(K),
-                        PACKAGE = "mclust")[c(10:16, 9)]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- temp[[5]]
-	names(mu) <- as.character(1:G)
-	sigmasq <- temp[[6]]
-	pro <- temp[[7]]
-	## logpost <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6) || any(sigmasq <= max(
-		control$eps, 0))) {
-		WARNING <- "sigma-squared falls below threshold"
-		if(warn) warning(WARNING)
-		mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else if(its >= control$itmax[1]) {
-		WARNING <- "iteration limit reached"
-		if (warn) warning(WARNING)
-		its <-  - its
-		ret <- 1
-	}
-	else ret <- 0
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(names(data),NULL)
-        variance = list(modelName = "V", d = 1, G = G, 
-                        sigmasq = sigmasq, scale = sigmasq)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "V", prior = prior, n = n, d = 1, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik),
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepV" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one-dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	##
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-# number of groups 
-	G <- dimz[2]
-	##
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "V", d=1, G=G, sigmasq=rep(NA,G))
-               parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
-                                  variance=variance)
-               return(structure(list(modelName="V", prior=prior, n=n, d=1, G=G,
-                                     z=z, parameters=parameters), 
-                                WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("ms1v",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(G),
-			double(G),
-			double(G),
-			double(G),
-                        PACKAGE = "mclust")[5:7]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "V"), prior[names(prior) !=
-			"functionName"]))
-		storage.mode(z) <- "double"
-		temp <- .Fortran("ms1vp",
-			as.double(data),
-			z,
-			as.integer(n),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(G),
-			double(G),
-			double(G),
-                        PACKAGE = "mclust")[9:11]
-	}
-	mu <- temp[[1]]
-	names(mu) <- as.character(1:G)
-	sigmasq <- temp[[2]]
-	pro <- temp[[3]]
-	WARNING <- NULL
-	if(any(sigmasq > signif(.Machine$double.xmax, 6))) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-                mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
-                print(G)
-                print(sigmasq)
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(names(data),NULL)
-        variance = list(modelName = "V", d = 1, G = G, 
-                        sigmasq = sigmasq, scale = sigmasq)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "V", prior = prior, n = n, d = 1, G = G, 
-                       z = z, parameters = parameters),
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simV" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, 2), modelName = "V"))
-  }
-  if(!is.null(seed))
-    set.seed(seed)
-  mu <- parameters$mean
-  G <- length(mu)
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- rep(0, n)
-  sd <- sqrt(parameters$variance$sigmasq)
-  for(k in 1:G) {
-    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd[k])
-  }
-  structure(cbind(group = clabels, "1" = x), modelName = "V")
-}
-
-"cdensVEI" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "VEI", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                    is.null(parameters$variance$shape)) 
-           stop("variance parameters are missing")
-	temp <- .Fortran("esvei",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],dimnames(mu)[[2]])
-	structure(z, logarithm = logarithm, modelName = "VEI",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emVEI" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepVEI(data, parameters = parameters, warn = warn)$z  
-	meVEI(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepVEI" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-                Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	} 
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VEI", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-		    is.null(parameters$variance$shape)) 
-           stop("variance parameters are missing")
-	temp <- .Fortran("esvei",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "VEI", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"meVEI" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VEI", d = p, G = G, 
-                                 scale = rep(NA,G), shape = rep(NA,p)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="VEI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mevei",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax),
-			as.double(control$tol),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(p),
-			double(K),
-			double(G),
-			double(p),
-			double(p * G),
-                        PACKAGE = "mclust")[7:14]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VEI"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("meveip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax),
-			as.double(control$tol),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(p),
-			double(K),
-			double(G),
-			double(p),
-			double(p * G),
-                        PACKAGE = "mclust")[11:18]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]][1]
-	inner <- temp[[2]][2]
-	err <- temp[[3]][1]
-	inerr <- temp[[3]][2]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	scale <- temp[[6]]
-	shape <- temp[[7]]
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	pro <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		sigma <- array(NA, c(p, p, G))
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		sigma <- array(NA, c(p, p, G))
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(0, c(p, p, G))
-		for(k in 1:G)
-			sigma[,  , k] <- diag(scale[k] * shape)
-		if(inner >= control$itmax[2]) {
-			WARNING <- "inner iteration limit reached"
-			warning(WARNING)
-			inner <-  - inner
-			ret <- 2
-		}
-		else if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-	attr(info, "inner") <- c(iterations = inner, error = inerr)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-	variance <- list(modelName = "VEI", d = p, G = G, 
-                         sigma = sigma, scale = scale, shape = shape)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "VEI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepVEI" <-
-function(data, z, prior = NULL, warn = NULL, control = NULL,...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-              WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VEI", d = p, G = G, 
-                                 scale = rep(NA,G), shape = rep(NA,p)) 
-               parameters <- list(pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="VEI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-        if (is.null(control)) control <- emControl()
-	itmax <- if(length(control$itmax) == 1) control$itmax else control$
-			itmax[2]
-	tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
-	if(is.null(prior)) {
-		temp <- .Fortran("msvei",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.integer(itmax),
-			as.double(tol),
-			double(p * G),
-			double(G),
-			double(p),
-			double(G),
-			double(G),
-			double(p),
-			double(p * G),
-                        PACKAGE = "mclust")[6:11]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VEI"), prior[names(
-			prior) != "functionName"]))
-		temp <- .Fortran("msveip",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			as.integer(itmax),
-			as.double(tol),
-			double(p * G),
-			double(G),
-			double(p),
-			double(G),
-			double(G),
-			double(p),
-			double(p * G),
-                        PACKAGE = "mclust")[10:15]
-	}
-	inner <- temp[[1]]
-	inerr <- temp[[2]]
-	mu <- matrix(temp[[3]], p, G)
-	scale <- temp[[4]]
-	shape <- temp[[5]]
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	pro <- temp[[6]]
-	WARNING <- NULL
-	if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!
-		c(scale, shape))) {
-		WARNING <- "cannot compute M-step"
-		if(warn)
-			warning(WARNING)
-		mu[] <- pro[] <- shape <- scale[] <- NA
-		sigma <- array(NA, c(p, p, G))
-                ret <- -1
-	}
-	else {
-                ret <- 0
-		sigma <- array(0, c(p, p, G))
-		for(k in 1:G)
-			sigma[,  , k] <- diag(scale[k] * shape)
-		if(inner >= itmax) {
-			WARNING <- "inner iteration limit reached"
-			warning(WARNING)
-			inner <-  - inner
-		}
-	}
-   	info <- c(iterations = inner, error = inerr)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "VEI", d = p, G = G, 
-                         sigma = sigma, scale = scale, shape = shape)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "VEI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control),
-                  info = info, WARNING = WARNING, returnCode = ret)
-
-}
-
-"simVEI" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(!is.null(seed)) set.seed(seed)
-  mu <- as.matrix(parameters$mean)
-  d <- nrow(mu)
-  G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, d + 1), modelName = "VEI"))
-  }
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- matrix(0, n, d)
-  rtshape <- sqrt(parameters$variance$shape)
-  if(length(rtshape) != d)
-    stop("shape incompatible with mean")
-  rtscale <- sqrt(parameters$variance$scale)
-  if(length(rtscale) != G)
-    stop("scale incompatible with mean")
-  for(k in 1:G) {
-    m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
-      diag(rtscale[k] * rtshape), MARGIN = 2, STAT = mu[, k], FUN = "+")
-  }
-  dimnames(x) <- list(NULL, 1:d)
-  structure(cbind(group = clabels, x), modelName = "VEI")
-}
-
-`cdensVEV` <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "VEV", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                   is.null(parameters$variance$shape) ||
-                   is.null(parameters$variance$orientation)) 
-          stop("variance parameters are missing")
-	temp <- .Fortran("esvev",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(p),
-		double(p),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[13:14]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL) 
-	structure(z, logarithm = logarithm, modelName = "VEV",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emVEV" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepVEV(data, parameters = parameters, warn = warn)$z  
-	meVEV(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-`estepVEV` <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-       if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VEV", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                    is.null(parameters$variance$shape) ||
-                    is.null(parameters$variance$orientation)) 
-           stop("variance parameters are missing")
-	temp <- .Fortran("esvev",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(p),
-		double(p),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[13:14]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1  
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL) 
-        structure(list(modelName = "VEV", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-
-}
-
-meVEV <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VEV", d = p, G = G, 
-           scale=rep(NA,G), shape=rep(NA,p), orientation=array(NA,c(p,p,G))) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="VEV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mevev",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax),
-			as.double(control$tol),
-			as.double(control$eps),
-			as.integer(lwork),
-			double(p * G),
-			double(G),
-			double(p),
-			double(p * p * G),
-			double(K),
-			double(lwork),
-			double(p),
-                        PACKAGE = "mclust")[7:16]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VEV"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("mevevp",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax),
-			as.double(control$tol),
-			as.double(control$eps),
-			as.integer(lwork),
-			double(p * G),
-			double(G),
-			double(p),
-			double(p * p * G),
-			double(K),
-			double(lwork),
-			double(p),
-                        PACKAGE = "mclust")[11:20]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]][1]
-	inner <- temp[[2]][2]
-	err <- temp[[3]][1]
-	inerr <- temp[[3]][2]
-	loglik <- temp[[4]]
-	lapackSVDinfo <- temp[[5]]
-	mu <- matrix(temp[[6]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	scale <- temp[[7]]
-	shape <- temp[[8]]
-	O <- aperm( array(temp[[9]], c(p, p, G)), c(2,1,3))
-	pro <- temp[[10]]
-	WARNING <- NULL
-	if(lapackSVDinfo) {
-		if(lapackSVDinfo > 0) {
-			WARNING <- "LAPACK DGESVD fails to converge"
-		}
-		else {
-			WARNING <- "input error for LAPACK DGESVD"
-		}
-		warning(WARNING)
-		O[] <- shape[] <- scale[] <- NA
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -9
-	}
-	else if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		O[] <- shape[] <- scale[] <- NA
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- shapeO(shape, O, transpose = FALSE)
-		sigma <- sweep(sigma, MARGIN = 3, STATS = scale, FUN = "*")
-		if(inner >= control$itmax[2]) {
-			WARNING <- "inner iteration limit reached"
-			warning(WARNING)
-			inner <-  - inner
-			ret <- 2
-		}
-		else if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- structure(c(iterations = its, error = err), inner = c(
-		iterations = inner, error = inerr))
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- dimnames(O) <- 
-           list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
-##  Sigma = scale * O %*% diag(shape) %*% t(O)
-	variance <- list(modelName = "VEV", d = p, G = G, sigma = sigma, 
-                        scale = scale, shape = shape, orientation = O)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
-	structure(list(modelName = "VEV", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-mstepVEV <-
-function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	##
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VEV", d = p, G = G, 
-      scale = rep(NA,G), shape = rep(NA,p), orientation = array(NA,c(p,p,G))) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="VEV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-
-		WARNING <- "z is missing"
-		warning(WARNING)
-		return(structure(list(n = n, d = p, G = G, mu = matrix(NA,
-			p, G), sigma = array(NA, c(p, p, G)), decomp = list(
-			d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
-			orientation = array(NA, c(p, p, G))), pro = rep(NA,
-			G), modelName = "VEV", prior = prior), WARNING = 
-			WARNING))
-	}
-	#	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
-	if(any(is.na(z)) || any(z < 0) || any(z > 1)) stop(
-			"improper specification of z")
-        if (is.null(control)) control <- emControl()
-	itmax <- if(length(control$itmax) == 1) control$itmax else control$
-			itmax[2]
-	tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
-	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
-	if(is.null(prior)) {
-		temp <- .Fortran("msvev",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(lwork),
-			as.integer(lwork),
-			as.integer(itmax),
-			as.double(tol),
-			double(p * G),
-			double(G),
-			double(p),
-			double(p * p * G),
-			double(G),
-                        PACKAGE = "mclust")[7:14]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VEV"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("msvevp",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			double(lwork),
-			as.integer(lwork),
-			as.integer(itmax),
-			as.double(tol),
-			double(p * G),
-			double(G),
-			double(p),
-			double(p * p * G),
-			double(G),
-                        PACKAGE = "mclust")[11:18]
-	}
-	lapackSVDinfo <- temp[[1]]
-	inner <- temp[[2]]
-	inerr <- temp[[3]]
-	mu <- matrix(temp[[4]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	scale <- temp[[5]]
-	shape <- temp[[6]]
-	O <- aperm(array(temp[[7]], c(p, p, G)),c(2,1,3))
-        pro <- temp[[8]] 
-	WARNING <- NULL
-	if(lapackSVDinfo) {
-		if(lapackSVDinfo > 0) {
-			WARNING <- "LAPACK DGESVD fails to converge"
-			warning(WARNING)
-		}
-		else {
-			WARNING <- "input error for LAPACK DGESVD"
-			warning(WARNING)
-		}
-		O[] <- shape[] <- scale[] <- NA
-		sigma <- array(NA, c(p, p, G))
-                ret <- -9
-	}
-	else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(
-		!c(scale, shape))) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-		mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
-		sigma <- array(NA, c(p, p, G))
-                ret <- -1
-	}
-	else {
-		sigma <- sweep(shapeO(shape, O, transpose = FALSE), MARGIN = 3,
-			STATS = scale, FUN = "*")
-		if(inner >= itmax) {
-			WARNING <- "inner iteration limit reached"
-			warning(WARNING)
-			inner <-  - inner
-		}
-                ret <- 2
-	}
-	info <- c(iteration = inner, error = inerr)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- dimnames(O) <-
-           list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
-        variance <- list(modelName = "VEV", d = p, G = G, sigma = sigma, 
-                         scale = scale, shape = shape, orientation = O)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "VEV", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control),
-                  info = info, WARNING = WARNING, returnCode = ret)
-
-}
-
-`simVEV` <-
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(!is.null(seed)) set.seed(seed)
-  mu <- as.matrix(parameters$mean)
-  d <- nrow(mu)
-  G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, d + 1), modelName = "VEV"))
-  }
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- matrix(0, n, d)
-  rtshape <- sqrt(parameters$variance$shape)
-  if(length(rtshape) != d)
-    stop("shape incompatible with mean")
-  rtscale <- sqrt(parameters$variance$scale)
-  if(length(rtscale) != G)
-    stop("scale incompatible with mean")
-  for(k in 1:G) {
-    m <- ctabel[k]
-    sss <- rtscale[k] * rtshape
-    cholSigma <- t(parameters$variance$orientation[,  , k]) * sss
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
-      cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
-  }
-  dimnames(x) <- list(NULL, 1:d)
-  structure(cbind(group = clabels, x), modelName = "VEV")
-}
-
-"cdensVII" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "VII", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        sigmasq <- parameters$variance$sigmasq 
-	if(any(sigmasq < 0))
-		stop("sigma-squared is negative")
-	if(any(!sigmasq)) {
-		WARNING <- "sigma-squared vanishes"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "VII", 
-                                 WARNING = WARNING, returnCode = 9))
-	}
-	temp <- .Fortran("esvii",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[9:10]
-        loglik <- temp[[1]]
-        z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-        if(loglik > signif(.Machine$double.xmax, 6)) {
-                WARNING <- "sigma-squared falls below threshold"
-                if (warn) warning(WARNING)
-                z[] <- NA
-                ret <- -1
-        }
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0 
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-	structure(z, logarithm = logarithm, modelName = "VII",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emVII" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepVII(data, parameters = parameters, warn = warn)$z  
-	meVII(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepVII" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-      	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VII", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        sigmasq <- parameters$variance$sigmasq 
-	if(is.null(sigmasq))
-		stop("variance parameters are missing")
-	if(any(sigmasq < 0))
-		stop("sigma-squared is negative")
-	if(any(!sigmasq)) {
-		WARNING <- "sigma-squared vanishes"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VII", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = -1))
-	}
-	temp <- .Fortran("esvii",
-		as.double(data),
-		as.double(mu),
-		as.double(sigmasq),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[9:10]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "VII", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"hcVII" <-
-function(data, partition, minclus = 1, alpha = 1, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(minclus < 1) stop("minclus must be positive")
-	if(any(is.na(data)))
-		stop("missing values not allowed in data")
-	#=====================================================================
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	dimnames(data) <- NULL
-	n <- nrow(data)
-	p <- ncol(data)
-	if(n <= p)
-		warning("# of observations <= data dimension")
-	if(missing(partition))
-		partition <- 1:n
-	else if(length(partition) != n)
-		stop("partition must assign a class to each observation")
-	partition <- partconv(partition, consec = TRUE)
-	l <- length(unique(partition))
-	attr(partition, "unique") <- l
-	m <- l - minclus
-	if(m <= 0)
-		stop("initial number of clusters is not greater than minclus")
-	storage.mode(data) <- "double"
-	ll <- (l * (l - 1))/2
-	ld <- max(n, ll, 3 * m)
-	alpha <- alpha * traceW(data/sqrt(n * p))
-	alpha <- max(alpha, .Machine$double.eps)
-	temp <- .Fortran("hcvii",
-		data,
-		as.integer(n),
-		as.integer(p),
-		as.integer(partition),
-		as.integer(l),
-		as.integer(m),
-		as.double(alpha),
-		double(p),
-		as.integer(ld),
-		double(ld),
-                PACKAGE = "mclust")[c(1, 10)]
-	temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
-	temp[[2]] <- temp[[2]][1:m]
-        change <- temp[[2]]
-	structure(t(temp[[1]]), initialPartition = partition, 
-                  dimensions = dimdat, modelName = "VII", 
-                  call = match.call())
-}
-
-"meVII" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data must be in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mevii",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(K),
-                        PACKAGE = "mclust")[7:13]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VII"), prior[names(prior) !=
-			"functionName"]))
-		storage.mode(z) <- "double"
-		temp <- .Fortran("meviip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(K),
-                        PACKAGE = "mclust")[c(11:17, 10)]
-	}
-	mu <- matrix(temp[[5]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	sigmasq <- temp[[6]]
-	pro <- temp[[7]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6) || 
-           any(sigmasq <= max(control$eps, 0))) {
-		WARNING <- "sigma-squared falls below threshold"
-		if (warn) warning(WARNING)
-		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if (warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if (warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(0, c(p, p, G))
-		for(k in 1:G)
-			sigma[,  , k] <- diag(rep(sigmasq[k], p))
-		if(its >= control$itmax[1]) {
-			warning("iteration limit reached")
-			WARNING <- "iteration limit reached"
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-	variance <- list(modelName = "VII", d = p, G = G, 
-                         sigma = sigma, sigmasq = sigmasq, scale = sigmasq)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "VII", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control, 
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"meVVI" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-	       WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VVI", d = p, G = G, 
-                                 scale = rep(NA,G), shape = matrix(NA,p,G)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="VVI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-        }
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mevvi",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(p * G),
-			double(K),
-                        PACKAGE = "mclust")[7:14]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VVI"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("mevvip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(p * G),
-			double(K),
-                        PACKAGE = "mclust")[11:18]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	scale <- temp[[6]]
-	shape <- matrix(temp[[7]], p, G)
-	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
-	pro <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn) warning(WARNING)
-		sigma <- array(NA, c(p, p, G))
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if (warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		sigma <- array(NA, c(p, p, G))
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
-			FUN = "*"), 2, diag), c(p, p, G))
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-	variance <- list(modelName = "VVI", d = p, G = G, 
-                         sigma = sigma, scale = scale, shape = shape)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepVII" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal number of observations")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                                WARNING = WARNING, returnCode = 9))
-        }
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("msvii",
-			as.double(data),
-			z,
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p * G),
-			double(G),
-			double(G),
-                        PACKAGE = "mclust")[6:8]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VII"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("msviip",
-			as.double(data),
-			z,
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p * G),
-			double(G),
-			double(G),
-                        PACKAGE = "mclust")[10:12]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	sigmasq <- temp[[2]]
-	pro <- temp[[3]]
-	sigma <- array(0, c(p, p, G))
-	for(k in 1:G)
-		sigma[,  , k] <- diag(rep(sigmasq[k], p))
-	WARNING <- NULL
-	if(any(sigmasq > signif(.Machine$double.xmax, 6))) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "VII", d = p, G = G, 
-                         sigma = sigma, sigmasq = sigmasq, scale = sigmasq)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "VII", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters),
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simVII" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(!is.null(seed)) set.seed(seed)
-  mu <- as.matrix(parameters$mean)
-  d <- nrow(mu)
-  G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, d), modelName = "VII"))
-  }
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- matrix(0, n, d)
-  sigmasq <- parameters$variance$sigmasq
-  for(k in 1:G) {
-    m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
-      diag(rep(sqrt(sigmasq[k]), d)), MARGIN = 2, STAT = mu[, k], FUN = "+")
-  }
-  dimnames(x) <- list(NULL, 1:d)
-  structure(cbind(group = clabels, x), modelName = "VII")
-}
-
-"cdensVVI" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mu", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mu", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "VVI", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-                    is.null(parameters$variance$shape)) 
-           stop("variance parameters are missing")
-	temp <- .Fortran("esvvi",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, G)
-        WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)  
-	structure(z, logarithm = logarithm, modelName = "VVI",
-                  WARNING = WARNING, retrinCode = ret)
-}
-
-"emVVI" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepVVI(data, parameters = parameters, warn = warn)$z  
-	meVVI(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepVVI" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if (is.null(Vinv) || Vinv <= 0) 
-                  Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        if(any(is.na(unlist(parameters[c("pro", "mu", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mu", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VVI", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$scale) ||
-		    is.null(parameters$variance$shape)) 
-           stop("variance parameters are missing")
-	temp <- .Fortran("esvvi",
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$scale),
-		as.double(parameters$variance$shape),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[10:11]
-	loglik <- temp[[1]]
-	z <- matrix(temp[[2]], n, K)
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL) 
-        structure(list(modelName = "VVI", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"meVVI" <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-	if (!is.null(Vinv)) {
-		G <- K - 1
-		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-	       WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VVI", d = p, G = G, 
-                                 scale = rep(NA,G), shape = matrix(NA,p,G)) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="VVI", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-        }
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mevvi",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(p * G),
-			double(K),
-                        PACKAGE = "mclust")[7:14]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VVI"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("mevvip",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(G),
-			double(p * G),
-			double(K),
-                        PACKAGE = "mclust")[11:18]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	scale <- temp[[6]]
-	shape <- matrix(temp[[7]], p, G)
-	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
-	pro <- temp[[8]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn) warning(WARNING)
-		sigma <- array(NA, c(p, p, G))
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if (warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		sigma <- array(NA, c(p, p, G))
-		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
-			FUN = "*"), 2, diag), c(p, p, G))
-		if(its >= control$itmax[1]) {
-			WARNING <- "iteration limit reached"
-			warning(WARNING)
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = err)
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-	variance <- list(modelName = "VVI", d = p, G = G, 
-                         sigma = sigma, scale = scale, shape = shape)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
-	structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-"mstepVVI" <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
-                          WARNING = WARNING, returnCode = 9))
-
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("msvvi",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p * G),
-			double(G),
-			double(p * G),
-			double(G),
-                        PACKAGE = "mclust")[6:9]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VVI"), prior[names(
-			prior) != "functionName"]))
-		temp <- .Fortran("msvvip",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p * G),
-			double(G),
-			double(p * G),
-			double(G),
-                        PACKAGE = "mclust")[10:13]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	scale <- temp[[2]]
-	shape <- matrix(temp[[3]], p, G)
-	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
-	pro <- temp[[4]]
-	WARNING <- NULL
-	if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!
-		c(scale, shape))) {
-		WARNING <- "cannot compute M-step"
-		if(warn)
-			warning(WARNING)
-		mu[] <- pro[] <- shape <- scale[] <- NA
-		sigma <- array(NA, c(p, p, G))
-                ret <- -1
-	}
-	else {
-		sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
-			FUN = "*"), 2, diag), c(p, p, G))
-                ret <- 0
-	}
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        variance <- list(modelName = "VVI", d = p, G = G, 
-                         sigma = sigma, sigmasq = scale, 
-                         scale = scale, shape = shape)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters),
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"simVVI" <- 
-function(parameters, n, seed = NULL, ...)
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  if(!is.null(seed)) set.seed(seed)
-  mu <- as.matrix(parameters$mean)
-  d <- nrow(mu)
-  G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(NA, n, d + 1), modelName = "VVI"))
-  }
-  pro <- parameters$pro
-  if(is.null(pro))
-    pro <- rep(1/G, G)
-  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-  ctabel <- table(clabels)
-  x <- matrix(0, n, d)
-  rtshape <- sqrt(parameters$variance$shape)
-  if(!all(dim(rtshape) == dim(mu)))
-    stop("shape incompatible with mean")
-  rtscale <- sqrt(parameters$variance$scale)
-  if(length(rtscale) != G)
-    stop("scale incompatible with mean")
-  for(k in 1:G) {
-    m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
-      diag(rtscale[k] * rtshape[, k]), MARGIN = 2, STAT = mu[, k], FUN = "+")
-  }
-  dimnames(x) <- list(NULL, 1:d)
-  structure(cbind(group = clabels, x), modelName = "VVI")
-}
-
-"cdensVVV" <-
-function(data, logarithm = FALSE, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$cholsigma))
-          stop("variance parameters are missing")
-	temp <- .Fortran("esvvv",
-		as.logical(1),
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$cholsigma),
-		as.double(-1),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(-1),
-		double(p),
-		double(1),
-		double(n * G),
-                PACKAGE = "mclust")[10:12]
-	lapackCholInfo <- temp[[1]][1]
-	loglik <- temp[[2]]
-	z <- matrix(temp[[3]], n, G)
-        WARNING <- NULL
-	if(lapackCholInfo) {
-		if(lapackCholInfo > 0) {
-			WARNING <- "sigma is not positive definite"
-			if (warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "input error for LAPACK DPOTRF"
-			if (warn) warning(WARNING)
-		}
-		z[] <- NA
-                ret <- -9
-	}
-	else if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- NA
-                ret <- -1
-	}
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-	structure(z, logarithm = logarithm, modelName = "VVV",
-                  WARNING = WARNING, returnCode = ret)
-}
-
-"emVVV" <-
-function(data, parameters, prior = NULL, control = emControl(), 
-         warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        z <- estepVVV(data, parameters = parameters, warn = warn)$z  
-	meVVV(data, z = z, prior = prior, control = control, 
-              Vinv = parameters$Vinv, warn = warn)
-}
-
-"estepVVV" <-
-function(data, parameters, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	if(is.null(dimdat) || length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-        pro <- parameters$pro
-	pro <- pro/sum(pro)
-	l <- length(pro)
-	mu <- as.matrix(parameters$mean)
-	G <- ncol(mu)
-	noise <- l == G + 1
-	if(!noise) {
-		if(l != G)
-			stop("pro improperly specified")
-		K <- G
-		Vinv <- NULL
-	}
-	else {
-		K <- G + 1
-                Vinv <- parameters$Vinv
-		if(is.null(Vinv) || Vinv <= 0)
-			Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,K)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
-                                      parameters=parameters, loglik=NA), 
-                       WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$cholsigma))
-          stop("variance parameters are missing")
-	temp <- .Fortran("esvvv",
-        	as.logical(1),
-		as.double(data),
-		as.double(mu),
-		as.double(parameters$variance$cholsigma),
-		as.double(pro),
-		as.integer(n),
-		as.integer(p),
-		as.integer(G),
-		as.double(if (is.null(Vinv)) -1 else Vinv),
-		double(p),
-		double(1),
-		double(n * K),
-                PACKAGE = "mclust")[10:12]
-	lapackCholInfo <- temp[[1]][1]
-	loglik <- temp[[2]]
-	z <- matrix(temp[[3]], n, K)
-	WARNING <- NULL
-	if(lapackCholInfo) {
-		if(lapackCholInfo > 0) {
-			WARNING <- "sigma is not positive definite"
-			warning(WARNING)
-		}
-		else {
-			WARNING <- "input error for LAPACK DPOTRF"
-			warning(WARNING)
-		}
-		z[] <- loglik <- NA
-                ret <- -9
-	}
-	else if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "cannot compute E-step"
-		if (warn) warning(WARNING)
-		z[] <- loglik <- NA
-                ret <- -1
-	}
-        else ret <- 0
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
-        structure(list(modelName = "VVV", n = n, d = p, G = G, 
-                       z = z, parameters = parameters, loglik = loglik),
-                   WARNING = WARNING, returnCode = ret)
-}
-
-"hcVVV" <-
-function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(minclus < 1) stop("minclus must be positive")
-	if(any(is.na(data)))
-		stop("missing values not allowed in data")
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) > 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	dimnames(data) <- NULL
-	n <- nrow(data)
-	p <- ncol(data)
-	if(n <= p)
-		warning("# of observations <= data dimension")
-	if(missing(partition))
-		partition <- 1:n
-	else if(length(partition) != n)
-		stop("partition must assign a class to each observation")
-	partition <- partconv(partition, consec = TRUE)
-	l <- length(unique(partition))
-	attr(partition, "unique") <- l
-	m <- l - minclus
-	if(m <= 0)
-		stop("initial number of clusters is not greater than minclus")
-	storage.mode(data) <- "double"
-	ll <- (l * (l - 1))/2
-	#	dp <- duplicated(partition)
-	#x[c((1:n)[!dp],(1:n)[dp]), ], 
-	#as.integer(c(partition[!dp], partition[dp])), 
-	ld <- max(n, ll + 1, 3 * m)
-	alpha <- alpha * traceW(data/sqrt(n * p))
-	alpha <- max(alpha, .Machine$double.eps)
-	temp <- .Fortran("hcvvv",
-		cbind(data, 0.),
-		as.integer(n),
-		as.integer(p),
-		as.integer(partition),
-		as.integer(l),
-		as.integer(m),
-		as.double(alpha),
-		as.double(beta),
-		double(p),
-		double(p * p),
-		double(p * p),
-		double(p * p),
-		as.integer(ld),
-		double(ld),
-                PACKAGE = "mclust")[c(1, 14)]
-	temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
-	temp[[2]] <- temp[[2]][1:m]
-        change <- temp[[2]] 
-	structure(t(temp[[1]]), initialPartition = partition, 
-                  dimensions = dimdat, modelName = "VVV", 
-                  call = match.call())
-}
-
-`meVVV` <-
-function(data, z, prior = NULL, control = emControl(), 
-         Vinv = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should in the form of a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("data and z should have the same row dimension")
-	K <- dimz[2]
-        if (!is.null(Vinv))  {
-		G <- K - 1
-		if(Vinv <= 0)Vinv <- hypvol(data, reciprocal = TRUE)
-	}
-        else G <- K
-	if(all(is.na(z))) {
-            WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VVV", d = p, G = G, 
-                sigma = array(NA, c(p,p,G)), cholsigma = array(NA, c(p,p,G))) 
-               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                                  mean=matrix(NA,p,G), variance=variance)
-               return(structure(list(modelName="VVV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     control=control, loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	storage.mode(z) <- "double"
-	if(is.null(prior)) {
-		temp <- .Fortran("mevvv",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(p * p * G),
-			double(K),
-			double(p),
-                        PACKAGE = "mclust")[7:13]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VVV"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("mevvvp",
-			as.logical(control$equalPro),
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(if (is.null(Vinv)) -1 else Vinv),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			z,
-			as.integer(control$itmax[1]),
-			as.double(control$tol[1]),
-			as.double(control$eps),
-			double(p * G),
-			double(p * p * G),
-			double(K),
-			double(p),
-                        PACKAGE = "mclust")[c(11:17, 10)]
-	}
-	z <- temp[[1]]
-	its <- temp[[2]]
-	err <- temp[[3]]
-	loglik <- temp[[4]]
-	mu <- matrix(temp[[5]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	cholsigma <- array(temp[[6]], c(p, p, G))
-	pro <- temp[[7]]
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn) warning(WARNING)
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- -1
-	}
-	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
-		if(control$equalPro) {
-			WARNING <- "z column sum fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		else {
-			WARNING <- "mixing proportion fell below threshold"
-			if(warn) warning(WARNING)
-		}
-		mu[] <- pro[] <- z[] <- loglik <- NA
-		sigma <- array(NA, c(p, p, G))
-		ret <- if(control$equalPro) -2 else -3
-	}
-	else {
-		sigma <- array(apply(cholsigma, 3, unchol, upper = TRUE), 
-                               c(p,p,G))
-		if(its >= control$itmax[1]) {
-			warning("iteration limit reached")
-			WARNING <- "iteration limit reached"
-			its <-  - its
-			ret <- 1
-		}
-		else ret <- 0
-	}
-	info <- c(iterations = its, error = abs(err))
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- dimnames(cholsigma) <-
-              list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
-        variance <- list(modelName = "VVV", d = p, G = G,
-                          sigma = sigma, cholsigma = cholsigma)
-        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
-	structure(list(modelName = "VVV", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters, control = control,
-                       loglik = loglik), 
-                  info = info, WARNING = WARNING, returnCode = ret)
-}
-
-`mstepVVV` <-
-function(data, z, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-        if (is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD || length(dimdat) != 2)
-		stop("data should be a matrix or a vector")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	z <- as.matrix(z)
-	dimz <- dim(z)
-	if(dimz[1] != n)
-		stop("row dimension of z should equal data length")
-	G <- dimz[2]
-	if(all(is.na(z))) {
-               WARNING <- "z is missing"
-               if (warn) warning(WARNING)
-               variance <- list(modelName = "VVV", d = p, G = G, 
-                      sigma <- array(NA, c(p,p, G)), 
-                      cholsigma = array(NA, c(p,p,G))) 
-               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
-                                  variance=variance)
-               return(structure(list(modelName="VVV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters, 
-                                     loglik=NA), 
-                          WARNING = WARNING, returnCode = 9))
-	}
-	if(any(is.na(z)) || any(z < 0) || any(z > 1))
-		stop("improper specification of z")
-	if(is.null(prior)) {
-		temp <- .Fortran("msvvv",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			double(p),
-			double(p * G),
-			double(p * p * G),
-			double(G),
-                        PACKAGE = "mclust")[7:9]
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = G, modelName = "VVV"), 
-                        prior[names(prior) != "functionName"]))
-		temp <- .Fortran("msvvvp",
-			as.double(data),
-			as.double(z),
-			as.integer(n),
-			as.integer(p),
-			as.integer(G),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			double(p),
-			double(p * G),
-			double(p * p * G),
-			double(G),
-                        PACKAGE = "mclust")[11:13]
-	}
-	mu <- matrix(temp[[1]], p, G)
-	dimnames(mu) <- list(NULL, as.character(1:G))
-	cholsigma <- array(temp[[2]], c(p, p, G))
-        pro <- temp[[3]]
-	WARNING <- NULL
-	if(any(c(mu, cholsigma) > signif(.Machine$double.xmax, 6))) {
-		WARNING <- "cannot compute M-step"
-		if(warn) warning(WARNING)
-		mu[] <- sigma[] <- cholsigma[] <- NA
-                ret <- -1
-	}
-	else {
-		sigma <- array(apply(cholsigma, 3, unchol, upper = TRUE), 
-                                     c(p,p,G))
-                ret <- 0
-	}
-        dimnames(z) <- list(dimnames(data)[[1]], NULL)
-        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                                NULL)
-        dimnames(cholsigma) <- list(dimnames(data)[[2]], 
-                                    dimnames(data)[[2]], NULL)
-        variance <- list(modelName = "VVV", d = p, G = G, 
-                         sigma = sigma, cholsigma= cholsigma)
-        parameters <- list(pro=pro, mean=mu, variance=variance)
-        structure(list(modelName = "VVV", prior = prior, n = n, d = p, G = G, 
-                       z = z, parameters = parameters), 
-                  WARNING = WARNING, returnCode = ret)
-
-}
-
-"simVVV" <- 
-function(parameters, n, seed = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(!is.null(seed)) set.seed(seed)
-	mu <- as.matrix(parameters$mean)
-	d <- nrow(mu)
-	G <- ncol(mu)
-	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-		parameters[c("mean", "variance")]))) {
-		warn <- "parameters are missing"
-		warning("parameters are missing")
-		return(structure(matrix(NA, n, d + 1), modelName = "VVV"))
-	}
-	pro <- parameters$pro
-	if(is.null(pro))
-		pro <- rep(1/G, G)
-	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
-	ctabel <- table(clabels)
-	x <- matrix(0, n, d)
-	if(is.null(cholsigma <- parameters$variance$cholsigma)) {
-		if(is.null(sigma <- parameters$variance$sigma)) {
-			stop("variance parameters must inlcude either sigma or cholsigma"
-				)
-		}
-		cholsigma <- apply(sigma, 3, chol)
-		for(k in 1:ncol(cholsigma))
-			sigma[,  , k] <- cholsigma[, k]
-		cholsigma <- sigma
-	}
-	if(dim(cholsigma)[3] != G)
-		stop("variance incompatible with mean")
-	for(k in 1:G) {
-		m <- ctabel[k]
-		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-			ncol = d) %*% cholsigma[,  , k], MARGIN = 2, STAT = mu[
-			, k], FUN = "+")
-	}
-	dimnames(x) <- list(NULL, 1:d)
-	structure(cbind(group = clabels, x), modelName = "VVV")
-}
-
-"mvnX" <-
-function(data, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(!oneD)
-		stop("data must be one dimensional")
-	data <- as.vector(data)
-	n <- length(data)
-	if(is.null(prior)) {
-		temp <- .Fortran("mvn1d",
-			as.double(data),
-			as.integer(n),
-			double(1),
-			double(1),
-			double(1),
-                        PACKAGE = "mclust")[3:5]
-		logpost <- NULL
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = 1, modelName = "X"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("mvn1p",
-			as.double(data),
-			as.integer(n),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(1),
-			double(1),
-			double(1),
-                        PACKAGE = "mclust")[c(7:9, 6)]
-		logpost <- temp[[4]]
-	}
-	mu <- temp[[1]]
-	sigmasq <- temp[[2]]
-	loglik <- temp[[3]]
-	ret <- 0
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "sigma-squared vanishes"
-		if(warn) warning(WARNING)
-		loglik <- NA
-		ret <- -1
-	}
-        variance = list(modelName= "X", d = 1, G = 1, sigmasq = sigmasq)
-        parameters <- list(mean = mu, variance = variance)
-	structure(list(modelName = "X", prior = prior, n = n, d = 1, G = 1, 
-                       parameters = parameters, loglik = loglik),
-                  WARNING = WARNING, returnCode = ret) 
-}
-
-"mvnXII" <-
-function(data, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD)
-		stop("for multidimensional data only")
-	if(length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	if(is.null(prior)) {
-		temp <- .Fortran("mvnxii",
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			double(p),
-			double(1),
-			double(1),
-                        PACKAGE = "mclust")[4:6]
-		logpost <- NULL
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = 1, modelName = "XII"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("mnxiip",
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p),
-			double(1),
-			double(1),
-                        PACKAGE = "mclust")[c(8:10, 7)]
-		logpost <- temp[[4]]
-	}
-	mu <- temp[[1]]
-	sigmasq <- temp[[2]]
-	loglik <- temp[[3]]
-	Sigma <- sigmasq * diag(p)
-	ret <- 0
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		loglik <- NA
-		ret <- -1
-	}
-        variance <- list(modelName = "XII", d = p, G = 1,	
-                         sigmasq	 = sigmasq, Sigma = Sigma, 
-                         sigma = array(Sigma, c(p, p, 1)), scale = sigmasq)
-        parameters <- list(mean = matrix(mu, ncol = 1), variance = variance) 
-        structure(list(modelName = "XII", prior = prior, n = n, d = p, G = 1, 
-                       parameters = parameters, loglik = loglik), 
-                  WARNING = WARNING, returnCode = ret) 
-}
-
-"mvnXXI" <-
-function(data, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD)
-		stop("for multidimensional data only")
-	if(length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	if(is.null(prior)) {
-		temp <- .Fortran("mvnxxi",
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			double(p),
-			double(1),
-			double(p),
-			double(1),
-                        PACKAGE = "mclust")[4:7]
-		logpost <- NULL
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = 1, modelName = "XXI"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("mnxxip",
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(priorParams$scale),
-			as.double(priorParams$dof),
-			double(p),
-			double(1),
-			double(p),
-			double(1),
-                        PACKAGE = "mclust")[c(8:11, 7)]
-		logpost <- temp[[5]]
-	}
-	mu <- temp[[1]]
-	scale <- temp[[2]]
-	shape <- temp[[3]]
-	loglik <- temp[[4]]
-	Sigma <- diag(scale * shape)
-	ret <- 0
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		loglik <- NA
-		ret <- -1
-	}
-	variance <- list(modelName = "XXI", d = p, G = 1, 
-                         Sigma = Sigma, sigma = array(Sigma, c(p, p, 1)),
-                         scale = scale, shape = shape)
-        parameters <- list(mean = matrix(mu, ncol = 1), variance = variance)
-	structure(list(modelName = "XXI", prior = prior, n = n, d = p, G = 1, 
-                       parameters = parameters, loglik = loglik),
-		  WARNING = WARNING, returnCode = ret) 
-}
-
-`mvnXXX` <-
-function(data, prior = NULL, warn = NULL, ...)
-{
-	##
-	# This function is part of the MCLUST software described at
-	#       http://www.stat.washington.edu/mclust
-	# Copyright information and conditions for use of MCLUST are given at
-	#        http://www.stat.washington.edu/mclust/license.txt
-	##
-	if(is.null(warn)) warn <- .Mclust$warn
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD)
-		stop("for multidimensional data only")
-	if(length(dimdat) != 2)
-		stop("data must be a matrix")
-	data <- as.matrix(data)
-	n <- nrow(data)
-	p <- ncol(data)
-	if(is.null(prior)) {
-		temp <- .Fortran("mvnxxx",
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			double(p),
-			double(p * p),
-			double(1),
-                        PACKAGE = "mclust")[c(4:6)]
-		logpost <- NULL
-	}
-	else {
-		priorParams <- do.call(prior$functionName, c(list(data = 
-			data, G = 1, modelName = "XXX"), prior[names(prior) !=
-			"functionName"]))
-		temp <- .Fortran("mnxxxp",
-			as.double(data),
-			as.integer(n),
-			as.integer(p),
-			double(p),
-			as.double(priorParams$shrinkage),
-			as.double(priorParams$mean),
-			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-					scale) else priorParams$scale),
-			as.double(priorParams$dof),
-			double(p),
-			double(p * p),
-			double(1),
-                        PACKAGE = "mclust")[c(9:11, 8)]
-		logpost <- temp[[4]]
-	}
-	mu <- temp[[1]]
-	cholSigma <- matrix(temp[[2]], p, p)
-	Sigma <- unchol(cholSigma, upper = TRUE)
-	loglik <- temp[[3]]
-## Sigma = t(cholSigma) %*% cholSigma
-	ret <- 0
-	WARNING <- NULL
-	if(loglik > signif(.Machine$double.xmax, 6)) {
-		WARNING <- "singular covariance"
-		if(warn)
-			warning(WARNING)
-		loglik <- NA
-		ret <- -1
-	}
-        variance <- list(modelName = "XXX", d = 1, G = 1,
-                         Sigma = Sigma, cholSigma = cholSigma, 
-                         sigma = array(Sigma, c(p, p, 1))) 
-        parameters <- list(mean = matrix(mu, ncol = 1), variance = variance)
-	structure(list(modelName = "XXX", prior = prior, n = n, d = p, G = 1,
-                       parameters = parameters, loglik = loglik), 
-                  WARNING = WARNING, returnCode = ret)
-}
-
 "adjustedRandIndex" <-
 function(x, y)
 {
@@ -7185,41 +962,6 @@ function(data, G = NULL, modelNames = NULL, prior = NULL, control =
             returnCodes = RET, class = "mclustBIC")
 }
 
-`Mclust` <-
-function(data, G = NULL, modelNames = NULL, prior = NULL, 
-         control = emControl(), initialization = NULL, warn = FALSE, ...) 
-{
-##
-# This function is part of the MCLUST software described at
-#       http://www.stat.washington.edu/mclust
-# Copyright information and conditions for use of MCLUST are given at
-#        http://www.stat.washington.edu/mclust/license.txt
-##
-        mc <- match.call(expand.dots = FALSE)
-        mc[[1]] <- as.name("mclustBIC")
-        mc[[2]] <- data
-  	Bic <- eval(mc, parent.frame())
-        G <- attr(Bic, "G")
-        modelNames <- attr(Bic,"modelNames") 
-  	Sumry <- summary(Bic, data, G=G, modelNames = modelNames) 
-	if(!(length(G) == 1)) {
-		bestG <- length(unique(Sumry$cl))
-		if (bestG == max(G))
-   		  warning("optimal number of clusters occurs at max choice")
-		else if (bestG == min(G))
-  	          warning("optimal number of clusters occurs at min choice")
-	}
-        attr(Bic,"n") <- attr(Bic, "warn") <- NULL
-        attr(Bic,"initialization") <- attr(Bic,"control") <- NULL
-        attr(Bic,"d") <- attr(Bic,"returnCodes") <- attr(Bic,"class") <- NULL
-	oldClass(Sumry) <- NULL
-	Sumry$bic <- Sumry$bic[1]
- 	ans <- c(list(BIC=Bic),Sumry)
-        orderedNames <- c("modelName", "n", "d", "G", "BIC", "bic", "loglik",
-                          "parameters", "z", "classification", "uncertainty") 
-	structure(ans[orderedNames], class = "Mclust")
-}
-
 mclustBIC <-
 function(data, G = NULL, modelNames = NULL, prior = NULL, control = 
   emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),
@@ -7577,6 +1319,41 @@ function(data, BICvalues, G=NULL, modelNames=NULL, ...)
         ans
 }
 
+`Mclust` <-
+function(data, G = NULL, modelNames = NULL, prior = NULL, 
+         control = emControl(), initialization = NULL, warn = FALSE, ...) 
+{
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
+        mc <- match.call(expand.dots = FALSE)
+        mc[[1]] <- as.name("mclustBIC")
+        mc[[2]] <- data
+  	Bic <- eval(mc, parent.frame())
+        G <- attr(Bic, "G")
+        modelNames <- attr(Bic,"modelNames") 
+  	Sumry <- summary(Bic, data, G=G, modelNames = modelNames) 
+	if(!(length(G) == 1)) {
+		bestG <- length(unique(Sumry$cl))
+		if (bestG == max(G))
+   		  warning("optimal number of clusters occurs at max choice")
+		else if (bestG == min(G))
+  	          warning("optimal number of clusters occurs at min choice")
+	}
+        attr(Bic,"n") <- attr(Bic, "warn") <- NULL
+        attr(Bic,"initialization") <- attr(Bic,"control") <- NULL
+        attr(Bic,"d") <- attr(Bic,"returnCodes") <- attr(Bic,"class") <- NULL
+	oldClass(Sumry) <- NULL
+	Sumry$bic <- Sumry$bic[1]
+ 	ans <- c(list(BIC=Bic),Sumry)
+        orderedNames <- c("modelName", "n", "d", "G", "BIC", "bic", "loglik",
+                          "parameters", "z", "classification", "uncertainty") 
+	structure(ans[orderedNames], class = "Mclust")
+}
+
 "pickBIC" <-
 function(x, k = 3)
 {
@@ -7606,6 +1383,35 @@ function(x, k = 3)
   namesx[is.na(x)] <- " "
   names(x) <- namesx
   x
+}
+
+"print.mclustBIC" <-
+function(x, fill = FALSE, ...)
+{
+##
+# This function is part of the MCLUST software described at
+#       http://www.stat.washington.edu/mclust
+# Copyright information and conditions for use of MCLUST are given at
+#        http://www.stat.washington.edu/mclust/license.txt
+##
+	subset <- !is.null(attr(x, "subset"))
+	oldClass(x) <- attr(x, "args") <- NULL
+	attr(x, "control") <- attr(x, "initialization") <- NULL
+	attr(x, "oneD") <- attr(x, "warn") <- attr(x, "Vinv") <- NULL
+	attr(x, "prior") <- attr(x, "G") <- attr(x, "modelNames") <- NULL
+	ret <- attr(x, "returnCodes") == -3
+	n <- attr(x, "n")
+	d <- attr(x, "d")
+	attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
+        ##
+	## if(!subset && any(ret) && fill) {
+	##	x <- bicFill(x, ret, n, d)
+	## }
+        ##
+	cat("\n BIC:\n")
+	NextMethod("print")
+	cat("\n")
+	invisible()
 }
 
 `print.Mclust` <-
@@ -7645,35 +1451,6 @@ function(x, ndigits = options()$digits, ...)
 #	medUncer <- signif(median(x$uncertainty), 3)
 #	cat("\n average/median classification uncertainty:", aveUncer, "/",
 #		medUncer, "\n\n")
-	invisible()
-}
-
-"print.mclustBIC" <-
-function(x, fill = FALSE, ...)
-{
-##
-# This function is part of the MCLUST software described at
-#       http://www.stat.washington.edu/mclust
-# Copyright information and conditions for use of MCLUST are given at
-#        http://www.stat.washington.edu/mclust/license.txt
-##
-	subset <- !is.null(attr(x, "subset"))
-	oldClass(x) <- attr(x, "args") <- NULL
-	attr(x, "control") <- attr(x, "initialization") <- NULL
-	attr(x, "oneD") <- attr(x, "warn") <- attr(x, "Vinv") <- NULL
-	attr(x, "prior") <- attr(x, "G") <- attr(x, "modelNames") <- NULL
-	ret <- attr(x, "returnCodes") == -3
-	n <- attr(x, "n")
-	d <- attr(x, "d")
-	attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
-        ##
-	## if(!subset && any(ret) && fill) {
-	##	x <- bicFill(x, ret, n, d)
-	## }
-        ##
-	cat("\n BIC:\n")
-	NextMethod("print")
-	cat("\n")
 	invisible()
 }
 
@@ -7735,6 +1512,94 @@ function(x, ndigits = options()$digits, ...)
 	invisible()
 }
 
+`summaryMclustBICn` <-
+function(object, data, G=NULL, modelNames=NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD && length(dimData) != 2)
+    stop("data must be a vector or a matrix")
+  if(oneD) {
+    data <- drop(as.matrix(data))
+    n <- length(data)
+    d <- 1
+  }
+  else {
+    data <- as.matrix(data)
+    n <- nrow(data)
+    d <- ncol(data)
+  }
+  initialization <- attr(object, "initialization")
+  hcPairs <- initialization$hcPairs
+  noise <- initialization$noise
+  if(!is.logical(noise))
+    noise <- as.logical(match(1:n, noise, nomatch = 0))
+  prior <- attr(object, "prior")
+  control <- attr(object, "control")
+  warn <- attr(object, "warn")
+  Vinv <- attr(object, "Vinv")
+  oldClass(object) <- NULL
+  attr(object, "control") <- attr(object, "initialization") <- NULL
+  attr(object, "prior") <- attr(object, "Vinv") <- NULL
+  attr(object, "warn") <- NULL
+  ##
+  if (is.null(G)) G <- dimnames(object)[[1]]
+  if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
+  bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
+  if (all(is.na(bestBICs))) {
+    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, control
+      = control, initialization = initialization, class = "summary.mclustBIC"))
+  }
+  temp <- unlist(strsplit(names(bestBICs)[1], ","))
+  bestModel <- temp[1] 
+  G <- as.numeric(temp[2])
+  if(G == 0) {
+    ans <- list(bic = bestBICs, classification = rep(0, n), 
+                uncertainty = rep(0, n), n = n, d = ncol(data), 
+                G = 0, loglik = n * logb(Vinv), Vinv = Vinv)
+    orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
+                      "classification", "uncertainty")
+    return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
+                     prior = prior, control = control, 
+                     initialization = initialization, 
+                     class = "summary.mclustBIC"))
+  }
+  G1 <- G + 1
+  z <- matrix(0, n, G1)
+  if(d > 1 || !is.null(hcPairs)) {
+    z[!noise, 1:G] <- unmap(hclass(hcPairs, G))
+  }
+  else {
+    z[!noise, 1:G] <- unmap(qclass(data[!noise], G))
+  }
+  z[noise, G1] <- 1
+  out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
+    control = control, warn = warn, Vinv = Vinv)
+  obsNames <- if (is.null(dim(data))) {
+                names(data)
+              }  
+              else {
+                dimnames(data)[[1]]
+              }
+  classification <- map(out$z)
+  print(G1)
+  classification[classification == G1] <- 0
+  uncertainty <- 1 - apply(out$z, 1, max)
+  names(classification) <- names(uncertainty) <- obsNames
+  ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
+    uncertainty = uncertainty, Vinv = Vinv), out)
+  orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "parameters", 
+    "z", "Vinv", "classification", "uncertainty")
+  structure(ans[orderedNames], bestBICvalues = bestBICs, prior = prior, control
+     = control, initialization = initialization, class = "summary.mclustBIC")
+}
+
 "summary.mclustBIC" <-
 function(object, dataset, G, modelNames, ...)
 {
@@ -7759,24 +1624,6 @@ function(object, dataset, G, modelNames, ...)
   warning("best model occurs at the min or max # of components considered")
        }
        ans
-}
-
-"summary.mclustModel" <-
-function(object, ...) 
-{
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  classification <- map(object$z)
-  G <- dim(object$parameters$mean)[2]
-  G1 <- dim(object$z)[2]
-  if (G1 == (G + 1)) classification[classification == G1] <- 0
-  uncertainty <- 1 - apply(object$z, 1, max)
-  names(classification) <- names(uncertainty) <- dimnames(object$z)[[1]]
-  data.frame(classification = classification, uncertainty = uncertainty)
 }
 
 "summaryMclustBIC" <-
@@ -7877,8 +1724,8 @@ function(object, data, G=NULL, modelNames=NULL, ...)
      = control, initialization = initialization, class = "summary.mclustBIC")
 }
 
-`summaryMclustBICn` <-
-function(object, data, G=NULL, modelNames=NULL, ...)
+"summary.mclustModel" <-
+function(object, ...) 
 {
   ##
   # This function is part of the MCLUST software described at
@@ -7886,83 +1733,13 @@ function(object, data, G=NULL, modelNames=NULL, ...)
   # Copyright information and conditions for use of MCLUST are given at
   #        http://www.stat.washington.edu/mclust/license.txt
   ##
-  dimData <- dim(data)
-  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
-  if(!oneD && length(dimData) != 2)
-    stop("data must be a vector or a matrix")
-  if(oneD) {
-    data <- drop(as.matrix(data))
-    n <- length(data)
-    d <- 1
-  }
-  else {
-    data <- as.matrix(data)
-    n <- nrow(data)
-    d <- ncol(data)
-  }
-  initialization <- attr(object, "initialization")
-  hcPairs <- initialization$hcPairs
-  noise <- initialization$noise
-  if(!is.logical(noise))
-    noise <- as.logical(match(1:n, noise, nomatch = 0))
-  prior <- attr(object, "prior")
-  control <- attr(object, "control")
-  warn <- attr(object, "warn")
-  Vinv <- attr(object, "Vinv")
-  oldClass(object) <- NULL
-  attr(object, "control") <- attr(object, "initialization") <- NULL
-  attr(object, "prior") <- attr(object, "Vinv") <- NULL
-  attr(object, "warn") <- NULL
-  ##
-  if (is.null(G)) G <- dimnames(object)[[1]]
-  if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
-  bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
-  if (all(is.na(bestBICs))) {
-    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, control
-      = control, initialization = initialization, class = "summary.mclustBIC"))
-  }
-  temp <- unlist(strsplit(names(bestBICs)[1], ","))
-  bestModel <- temp[1] 
-  G <- as.numeric(temp[2])
-  if(G == 0) {
-    ans <- list(bic = bestBICs, classification = rep(0, n), 
-                uncertainty = rep(0, n), n = n, d = ncol(data), 
-                G = 0, loglik = n * logb(Vinv), Vinv = Vinv)
-    orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
-                      "classification", "uncertainty")
-    return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
-                     prior = prior, control = control, 
-                     initialization = initialization, 
-                     class = "summary.mclustBIC"))
-  }
-  G1 <- G + 1
-  z <- matrix(0, n, G1)
-  if(d > 1 || !is.null(hcPairs)) {
-    z[!noise, 1:G] <- unmap(hclass(hcPairs, G))
-  }
-  else {
-    z[!noise, 1:G] <- unmap(qclass(data[!noise], G))
-  }
-  z[noise, G1] <- 1
-  out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
-    control = control, warn = warn, Vinv = Vinv)
-  obsNames <- if (is.null(dim(data))) {
-                names(data)
-              }  
-              else {
-                dimnames(data)[[1]]
-              }
-  classification <- map(out$z)
-  print(G1)
-  classification[classification == G1] <- 0
-  uncertainty <- 1 - apply(out$z, 1, max)
-  names(classification) <- names(uncertainty) <- obsNames
-  ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
-    uncertainty = uncertainty, Vinv = Vinv), out)
-  orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "parameters", 
-    "z", "Vinv", "classification", "uncertainty")
-  structure(ans[orderedNames], bestBICvalues = bestBICs, prior = prior, control
-     = control, initialization = initialization, class = "summary.mclustBIC")
+  classification <- map(object$z)
+  G <- dim(object$parameters$mean)[2]
+  G1 <- dim(object$z)[2]
+  if (G1 == (G + 1)) classification[classification == G1] <- 0
+  uncertainty <- 1 - apply(object$z, 1, max)
+  names(classification) <- names(uncertainty) <- dimnames(object$z)[[1]]
+  data.frame(classification = classification, uncertainty = uncertainty)
 }
 
 "defaultPrior" <-
@@ -8185,11 +1962,2889 @@ function(x, data = NULL, ...) {
 #    plot( points, d, type = "l", xlab = "", ylab = "density", xaxt = "n", ...)
     plot( points, d, type = "l", xlab = "", ylab = "density", ...)
     x <- data[data >= xrange[1] & data <= xrange[2]]
-    abline( h = min(d), col = "gray")
-    points( data, rep(min(d), length(data)), pch = "|")
+    if (!is.null(data)) {
+      abline( h = min(d), col = "gray")
+      points( data, rep(min(d), length(data)), pch = "|")
+    }
   }
   invisible()
  }
+
+"cdensE" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- drop(data)
+	n <- length(data)
+        mu <- drop(parameters$mean)
+	G <- length(mu)
+        if(any(is.na(unlist(parameters[c("mean", "variance")]))) ||
+            any(is.null(parameters[c("mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(names(data), NULL)
+                return(structure(z, logarithm = logarithm, modelName = "E",
+                       WARNING = WARNING, returnCode = 9))
+        }
+        sigmasq <- parameters$variance$sigmasq
+        if(is.null(sigmasq))
+                stop("variance parameters are missing")
+        if(length(sigmasq) > 1)
+                warning("more than one sigma-squared given")
+        if(sigmasq < 0)
+                stop("sigma-squared is negative")
+        if(!sigmasq) {
+                WARNING <- "sigma-squared vanishes"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(names(data), NULL)
+                return(structure(z, logarithm = logarithm, modelName = "E",
+                                 WARNING = WARNING, returnCode = 9))
+        }
+	temp <- .Fortran("es1e",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(-1),
+		as.integer(n),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[8:9]
+        loglik <- temp[[1]]
+        z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+        if(loglik > signif(.Machine$double.xmax, 6)) {
+                WARNING <- "sigma-squared falls below threshold"
+                if (warn) warning(WARNING)
+                z[] <- NA
+                ret <- -1
+        }
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        } 
+        dimnames(z) <- list(names(data),NULL)
+	structure(z, logarithm = logarithm, modelName = "E", 
+                     WARNING = WARNING, returnCode = ret) 
+}
+
+"cdensEEE" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) > 2)
+		stop("data must be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "EEE", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$cholSigma))
+           stop("variance parameters are missing")
+	temp <- .Fortran("eseee",
+		as.logical(1),
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$cholSigma),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(p),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[10:12]
+	lapackCholInfo <- temp[[1]][1]
+	loglik <- temp[[2]]
+	z <- matrix(temp[[3]], n, G)
+        WARNING <- NULL
+	if(lapackCholInfo) {
+		if(lapackCholInfo > 0) {
+			WARNING <- "sigma is not positive definite"
+			if (warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "input error for LAPACK DPOTRF"
+			if (warn) warning(WARNING)
+		}
+		z[] <- NA
+                ret <- -9 
+	}
+	else if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+	structure(z, logarithm = logarithm, modelName = "EEE",
+                  WARNING = WARNING, retrunCode = ret)
+}
+
+"emEEE" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepEEE(data, parameters = parameters, warn = warn)$z  
+	meEEE(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepEEE" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) > 2)
+		stop("data must be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "EEE", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$cholSigma))
+           stop("variance parameters are missing")
+	temp <- .Fortran("eseee",
+		as.logical(1),
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$cholSigma),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(p),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[10:12]
+	lapackCholInfo <- temp[[1]][1]
+	loglik <- temp[[2]]
+	z <- matrix(temp[[3]], n, K)
+	WARNING <- NULL
+	if(lapackCholInfo) {
+		if(lapackCholInfo > 0) {
+			WARNING <- "sigma is not positive definite"
+			warning(WARNING)
+                        ret <- -4 
+		}
+		else {
+			WARNING <- "input error for LAPACK DPOTRF"
+			warning(WARNING)
+                        ret <- -5
+		}
+		z[] <- loglik <- NA
+	}
+	else if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "EEE", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"hcEEE" <-
+function(data, partition, minclus = 1, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(minclus < 1) stop("minclus must be positive")
+	if(any(is.na(data)))
+		stop("missing values not allowed in data")
+	#=====================================================================
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	dimnames(data) <- NULL
+	n <- nrow(data)
+	p <- ncol(data)
+	if(n <= p)
+		warning("# of observations <= data dimension")
+	if(missing(partition))
+		partition <- 1:n
+	else if(length(partition) != n)
+		stop("partition must assign a class to each observation")
+	partition <- partconv(partition, consec = TRUE)
+	l <- length(unique(partition))
+	attr(partition, "unique") <- l
+	m <- l - minclus
+	if(m <= 0)
+		stop("initial number of clusters is not greater than minclus")
+	storage.mode(data) <- "double"
+## R 2.12.0: 32 bit Windows build fails due to compiler bug
+## workaround: removal (hopefully temporary) of hc functionality for EEE
+        stop("hc for EEE model is not currently supported")
+#        
+#	temp <- .Fortran("hceee",
+#		data,
+#		as.integer(n),
+#		as.integer(p),
+#		as.integer(partition),
+#		as.integer(l),
+#		as.integer(m),
+#		if(p < 3) integer(m) else integer(1),
+#		if(p < 4) integer(m) else integer(1),
+#		double(p),
+#		double(p * p),
+#		double(p * p),
+#		double(p * p),
+#                PACKAGE ="mclust")[c(1, 7:10)]
+	#
+	# currently temp[[5]] is not output
+	temp[[4]] <- temp[[4]][1:2]
+	temp[[5]] <- temp[[5]][1:2]
+	names(temp[[5]]) <- c("determinant", "trace")
+	temp[[1]] <- temp[[1]][1:(m + 1),  ]
+	if(p < 3)
+		tree <- rbind(temp[[2]], temp[[3]])
+	else if(p < 4)
+		tree <- rbind(temp[[1]][-1, 3], temp[[3]])
+	else tree <- t(temp[[1]][-1, 3:4, drop = FALSE])
+	determinant <- temp[[1]][, 1]
+	attr(determinant, "breakpoints") <- temp[[4]]
+        trace <- temp[[1]][, 2]
+	structure(tree,	initialPartition = partition, 
+                  dimensions = dimdat, modelName = "EEE", 
+                  call = match.call())
+}
+
+`meEEE` <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+        if (!is.null(Vinv)) {
+                G <- K - 1
+                if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+        }
+        else G <- K
+	if(all(is.na(z))) {
+              WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EEE", d = p, G = G, 
+                     Sigma = matrix(NA, p, p), cholSigma = matrix(NA, p, p)) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="EEE", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("meeee",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(p * p),
+			double(K),
+			double(p),
+                        PACKAGE = "mclust")[7:13]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EEE"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("meeeep",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(p * p),
+			double(K),
+			double(p),
+                        PACKAGE = "mclust")[c(11:17, 10)]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+   	cholSigma <- matrix(temp[[6]], p, p)
+	pro <- temp[[7]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+                Sigma <- matrix( NA, p, p)
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn)
+				warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn)
+				warning(WARNING)
+		}
+		mu[] <- pro[] <- z[] <- loglik <- logprior <- NA
+		sigma <- array(NA, c(p, p, G))
+                Sigma <- matrix(NA, p, p)
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+   	        Sigma <- unchol(cholSigma, upper = TRUE)
+		sigma <- array(0, c(p, p, G))
+		for(k in 1:G)
+			sigma[,  , k] <- Sigma
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(Sigma) <- dimnames(cholSigma) <- 
+                       list(dimnames(data)[[2]], dimnames(data)[[2]])
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "EEE", d = p, G = G,
+                         sigma = sigma, Sigma = Sigma, cholSigma = cholSigma) 
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "EEE", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+`mstepEEE` <-
+function(data, z, prior = NULL,  warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	##
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EEE", d = p, G = G, 
+                      sigma <- array(NA, c(p,p, G)), 
+                      Sigma = matrix(NA, p, p), cholSigma = matrix(NA, p, p)) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="EEE", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("mseee",
+                        as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p),
+			double(p * G),
+			double(p * p),
+			double(G),
+                        PACKAGE = "mclust")[7:9]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EEE"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("mseeep",
+                        as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			double(p),
+			double(p * G),
+			double(p * p),
+			double(G),
+                        PACKAGE = "mclust")[11:13]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	cholSigma <- matrix(temp[[2]], p, p)
+	pro <- temp[[3]]
+	sigma <- array(0, c(p, p, G))
+	Sigma <- unchol(cholSigma, upper = TRUE)
+	for(k in 1:G)
+		sigma[,  , k] <- Sigma
+	WARNING <- NULL
+	if(any(mu > signif(.Machine$double.xmax, 6))) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+		mu[] <- sigma[] <- Sigma[] <- cholSigma[] <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(Sigma) <- dimnames(cholSigma) <- 
+               list(dimnames(data)[[2]], dimnames(data)[[2]])
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "EEE", d = p, G = G, 
+                         sigma = sigma, Sigma = Sigma, cholSigma= cholSigma)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "EEE", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simEEE" <- 
+function(parameters, n, seed = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "EEE"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	if(is.null(cholSigma <- parameters$variance$cholSigma)) {
+		if(is.null(Sigma <- parameters$variance$Sigma)) {
+			stop("variance parameters must inlcude either Sigma or cholSigma"
+				)
+		}
+		cholSigma <- chol(Sigma)
+	}
+	for(k in 1:G) {
+		m <- ctabel[k]
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+			FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "EEE")
+}
+
+"cdensEEI" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "EEI", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                   is.null(parameters$variance$shape)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("eseei",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[10:11]
+        loglik <- temp[[1]]
+        z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+        if(loglik > signif(.Machine$double.xmax, 6)) {
+                WARNING <- "sigma-squared falls below threshold"
+                if (warn) warning(WARNING)
+                z[] <- NA
+                ret <- -1 
+        }
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(z, logarithm = logarithm, modelName = "EEI",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emEEI" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepEEI(data, parameters = parameters, warn = warn)$z  
+	meEEI(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepEEI" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+                Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	} 
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "EEI", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+		   is.null(parameters$variance$shape)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("eseei",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "EEI", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"meEEI" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data  should be in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EEI", d = p, G = G, 
+                                 scale = NA, shape = rep(NA,p)) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="EEI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("meeei",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(1),
+			double(p),
+			double(K),
+                        PACKAGE = "mclust")[7:14]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EEI"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("meeeip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(1),
+			double(p),
+			double(K),
+                        PACKAGE = "mclust")[11:18]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	scale <- temp[[6]]
+	shape <- temp[[7]]
+	pro <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		sigma <- array(NA, c(p, p, G))
+		Sigma <- matrix(NA, p, p)
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn)
+				warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn)
+				warning(WARNING)
+		}
+		sigma <- array(NA, c(p, p, G))
+		Sigma <- matrix(NA, p, p)
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(0, c(p, p, G))
+		Sigma <- diag(scale * shape)
+		for(k in 1:G)
+			sigma[,  , k] <- Sigma
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+	variance <- list(modelName = "EEI", d = p, G = G, 
+                         sigma = sigma, Sigma = Sigma, 
+                         scale = scale, shape = shape)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+      	structure(list(modelName = "EEI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+		  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepEEI" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EEI", d = p, G = G, 
+                                 scale = NA, shape = rep(NA,p)) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="EEI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                          WARNING = WARNING, returnCode = 9))
+
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("mseei",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p * G),
+			double(1),
+			double(p),
+			double(G),
+                        PACKAGE = "mclust")[6:9]
+	}
+	else {
+		storage.mode(z) <- "double"
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EEI"), prior[names(
+			prior) != "functionName"]))
+		temp <- .Fortran("mseeip",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p * G),
+			double(1),
+			double(p),
+			double(G),
+                        PACKAGE = "mclust")[10:13]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	scale <- temp[[2]]
+	shape <- temp[[3]]
+	pro <- temp[[4]]
+	WARNING <- NULL
+	if(any(c(shape, scale) > signif(.Machine$double.xmax, 6)) || any(!c(
+		scale, shape))) {
+		WARNING <- "cannot compute M-step"
+		if(warn)
+			warning(WARNING)
+		mu[] <- pro[] <- scale <- shape[] <- NA
+		sigma <- Sigma <- array(NA, c(p, p, G))
+                ret <- -1
+	}
+	else {
+		sigma <- array(0, c(p, p, G))
+		Sigma <- diag(scale * shape)
+		for(k in 1:G)
+			sigma[,  , k] <- Sigma
+                ret <- 0
+	}
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "EEI", d = p, G = G, 
+                         sigma = sigma, Sigma = Sigma, 
+                         scale = scale, shape = shape)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "EEI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simEEI" <- 
+function(parameters, n, seed = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "EEI"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	shape <- parameters$variance$shape
+	if(length(shape) != d)
+		stop("shape incompatible with mean")
+	cholSigma <- diag(sqrt(parameters$variance$scale * shape))
+	for(k in 1:G) {
+		m <- ctabel[k]
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+			FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "EEI")
+}
+
+"emE" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepE(data, parameters = parameters, warn = warn)$z
+	meE(data, z = z, prior = prior, control = control, 
+            Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepE" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- drop(data)
+	n <- length(data)
+        pro <- parameters$pro
+        pro <- pro/sum(pro)
+	l <- length(pro)
+
+        mu <- drop(parameters$mean)
+	G <- length(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+	if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+		WARNING <- "parameters are missing"
+		if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(names(data), NULL)
+		return(structure(list(modelName = "E", n=n, d=1, G=G, z=z,
+ 		       parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+	}
+        sigmasq <- parameters$variance$sigmasq
+	if(is.null(sigmasq))
+		stop("variance parameters are missing")
+	if(length(sigmasq) > 1)
+		warning("more than one sigma-squared specified")
+	if(sigmasq < 0)
+		stop("sigma-squared is negative")
+	if(!sigmasq) {
+		WARNING <- "sigma-squared vanishes"
+		if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(names(data), NULL)
+		return(structure(list(modelName = "E", n=n, d=1, G=G, z=z,
+ 		       parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = -1))
+	}
+	temp <- .Fortran("es1e",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(pro),
+		as.integer(n),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[8:9]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(names(data),NULL) 
+	structure(list(modelName = "E", n = n, d = 1, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+`cdensEEV` <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "EEV", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                   is.null(parameters$variance$shape) ||
+                   is.null(parameters$variance$orientation)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("eseev",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(p),
+		double(p),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[13:14]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+	structure(z, logarithm = logarithm, modelName = "EEV",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emEEV" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepEEV(data, parameters = parameters, warn = warn)$z  
+	meEEV(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+`estepEEV` <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "EEV", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                   is.null(parameters$variance$shape) ||
+                   is.null(parameters$variance$orientation)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("eseev",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(p),
+		double(p),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[13:14]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1 
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "EEV", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+meEEV <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+              WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EEV", d = p, G = G, 
+              scale = NA, shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
+               parameters <- list(Vinv= Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="EEV", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p))
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("meeev",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			as.integer(lwork),
+			double(p * G),
+			double(1),
+			double(p),
+			double(p * p * G),
+			double(K),
+			double(lwork),
+			double(p),
+                        PACKAGE = "mclust")[7:16]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EEV"), 
+                        prior[names(prior) !="functionName"]))
+		temp <- .Fortran("meeevp",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			as.integer(lwork),
+			double(p * G),
+			double(1),
+			double(p),
+			double(p * p * G),
+			double(K),
+			double(lwork),
+			double(p),
+                        PACKAGE = "mclust")[11:20]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	lapackSVDinfo <- temp[[5]]
+	mu <- matrix(temp[[6]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	scale <- temp[[7]]
+	shape <- temp[[8]]
+	O <- aperm(array(temp[[9]], c(p, p, G)),c(2,1,3))
+	pro <- temp[[10]]
+	WARNING <- NULL
+	if(lapackSVDinfo) {
+		if(lapackSVDinfo > 0) {
+			WARNING <- "LAPACK DGESVD fails to converge"
+		}
+		else {
+			WARNING <- "input error for LAPACK DGESVD"
+		}
+		z[] <- O[] <- shape[] <- NA
+		scale <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -9
+	}
+	else if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		shape[] <- NA
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "a z column sum fell below threshold"
+			if(warn)
+				warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn)
+				warning(WARNING)
+		}
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- scale * shapeO(shape, O, transpose = FALSE)
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(O) <- list(dimnames(data)[[2]], dimnames(data)[[2]], 
+                            NULL)
+## Sigma = scale * O %*% diag(shape) %*% t(O)
+	variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
+                         scale = scale, shape = shape, orientation = O) 
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
+	structure(list(modelName = "EEV", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik),
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+mstepEEV <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	##
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EEV", d = p, G = G, 
+                scale = NA, shape = rep(NA,p), orientation=array(NA,c(p,p,G))) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="EEV", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                          WARNING = WARNING, returnCode = 9))
+
+	}
+	#	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
+	if(any(is.na(z)) || any(z < 0) || any(z > 1)) stop(
+			"improper specification of z")
+	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), G)
+	if(is.null(prior)) {
+		temp <- .Fortran("mseev",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(lwork),
+			as.integer(lwork),
+			double(p * G),
+			double(1),
+			double(p),
+			double(p * p * G),
+			double(G),
+                        PACKAGE = "mclust")[7:12]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EEV"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("mseevp",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			double(lwork),
+			as.integer(lwork),
+			double(p * G),
+			double(1),
+			double(p),
+			double(p * p * G),
+			double(G),
+                        PACKAGE = "mclust")[11:16]
+	}
+	lapackSVDinfo <- temp[[1]]
+	mu <- matrix(temp[[2]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	scale <- temp[[3]]
+	shape <- temp[[4]]
+	O <- aperm( array(temp[[5]], c(p, p, G)), c(2,1,3))
+	pro <- temp[[6]]
+	WARNING <- NULL
+	if(lapackSVDinfo) {
+		if(lapackSVDinfo > 0) {
+			WARNING <- "LAPACK DGESVD fails to converge"
+			warning(WARNING)
+                        ret <- -4
+		}
+		else {
+			WARNING <- "input error for LAPACK DGESVD"
+			warning(WARNING)
+                        ret <- -5
+		}
+		O[] <- shape[] <- scale <- NA
+		sigma <- array(NA, c(p, p, G))
+	}
+	else if(any(c(abs(scale), shape) > signif(.Machine$double.xmax, 6))) {
+		WARNING <- "cannot compute M-step"
+		if(warn)
+			warning(WARNING)
+		mu[] <- pro[] <- scale <- O[] <- shape[] <- NA
+		sigma <- array(NA, c(p, p, G))
+                ret <- -1
+	}
+	else {
+		sigma <- scale * shapeO(shape, O, transpose = FALSE)
+                ret <- 0
+	}
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- dimnames(O) <- 
+              list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
+        variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
+                       scale = scale, shape = shape, orientation = O)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "EEV", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+}
+
+`simEEV` <-
+function(parameters, n, seed = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "EEV"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	shape <- parameters$variance$shape
+	if(length(shape) != d)
+		stop("shape incompatible with mean")
+	sss <- sqrt(parameters$variance$scale * shape)
+	for(k in 1:G) {
+		m <- ctabel[k]
+		cholSigma <- t(parameters$variance$orientation[,  , k]) * sss
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholSigma, MARGIN = 2, STAT = mu[, k],
+			FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "EEV")
+}
+
+"hcE" <-
+function(data, partition, minclus = 1, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(minclus < 1) stop("minclus must be positive")
+	if(any(is.na(data)))
+		stop("missing values not allowed in data")
+	#====================================================================
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	if(missing(partition))
+		partition <- 1:n
+	else if(length(partition) != n)
+		stop("partition must assign a class to each observation")
+	partition <- partconv(partition, consec = TRUE)
+	l <- length(unique(partition))
+	attr(partition, "unique") <- l
+	m <- l - minclus
+	if(m <= 0)
+		stop("initial number of clusters is not greater than minclus")
+	storage.mode(data) <- "double"
+	ld <- max(c((l * (l - 1))/2, 3 * m))
+	temp <- .Fortran("hc1e",
+		data,
+		as.integer(n),
+		as.integer(partition),
+		as.integer(l),
+		as.integer(m),
+		as.integer(ld),
+		double(ld),
+                PACKAGE = "mclust")[c(1, 3, 7)]
+	temp[[1]] <- temp[[1]][1:m]
+	temp[[2]] <- temp[[2]][1:m]
+	temp[[3]] <- temp[[3]][1:m]
+        change <- temp[[3]]
+	structure(rbind(temp[[1]], temp[[2]]), 	initialPartition = partition, 
+                  dimensions = n, modelName = "E",
+		  call = match.call())
+}
+
+"cdensEII" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "EII", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        sigmasq <- parameters$variance$sigmasq
+	if(sigmasq < 0)
+		stop("sigma-squared is negative")
+	if(!sigmasq) {
+		WARNING <- "sigma-squared vanishes"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "EII", 
+                                 WARNING = WARNING, returnCode = 9))
+	}
+	temp <- .Fortran("eseii",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[9:10]
+        loglik <- temp[[1]]
+        z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+        if(loglik > signif(.Machine$double.xmax, 6)) {
+                WARNING <- "sigma-squared falls below threshold"
+                if (warn) warning(WARNING)
+                z[] <- NA
+                ret <- -1
+        }
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+	structure(z, logarithm = logarithm, modelName = "EII",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emEII" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepEII(data, parameters = parameters, warn = warn)$z
+	meEII(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepEII" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	p <- ncol(data)
+	n <- nrow(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+        mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+                Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+	if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+		WARNING <- "parameters are missing"
+		if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+		return(structure(list(modelName = "EII", n=n, d=p, G=G, z=z,
+  		                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+	}
+        sigmasq <- parameters$variance$sigmasq
+	if(is.null(sigmasq))
+		warning("variance parameters are missing")
+	if(sigmasq < 0)
+		stop("sigma-squared is negative")
+	if(!sigmasq) {
+		WARNING <- "sigma-squared vanishes"
+		if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+		return(structure(list(modelName = "EII", n=n, d=p, G=G, z=z,
+ 		                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = -1))
+	}
+	temp <- .Fortran("eseii",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[9:10]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "sigma-squared falls below threshold"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "EII", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"hcEII" <-
+function(data, partition, minclus = 1, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(minclus < 1) stop("minclus must be positive")
+	if(any(is.na(data)))
+		stop("missing values not allowed in data")
+	#====================================================================
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	dimnames(data) <- NULL
+	n <- nrow(data)
+	p <- ncol(data)
+	if(missing(partition))
+		partition <- 1:n
+	else if(length(partition) != n)
+		stop("partition must assign a class to each observation")
+	partition <- partconv(partition, consec = TRUE)
+	l <- length(unique(partition))
+	attr(partition, "unique") <- l
+	m <- l - minclus
+	if(m <= 0)
+		stop("initial number of clusters is not greater than minclus")
+	if(n <= p)
+		warning("# of observations <= data dimension")
+	#=============================================================
+	storage.mode(data) <- "double"
+	ld <- max(c((l * (l - 1))/2, 3 * m))
+	temp <- .Fortran("hceii",
+		data,
+		as.integer(n),
+		as.integer(p),
+		as.integer(partition),
+		as.integer(l),
+		as.integer(m),
+		double(p),
+		as.integer(ld),
+		double(ld),
+                PACKAGE = "mclust")[c(1, 9)]
+	temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
+	temp[[2]] <- temp[[2]][1:m]
+        change <- temp[[2]]
+	structure(t(temp[[1]]), initialPartition = partition, 
+                  dimensions = dimdat, modelName = "EII", 
+                  call =  match.call())
+}
+
+"meEII" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	# number of groups
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+	       WARNING <- "z is missing"
+	       if (warn) warning(WARNING)
+               variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="EII", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("meeii",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(1),
+			double(K),
+                        PACKAGE = "mclust")[7:13]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+		data, G = G, modelName = "EII"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("meeiip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(1),
+			double(K),
+                        PACKAGE = "mclust")[c(11:17, 10)]
+	}
+	mu <- matrix(temp[[5]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	sigmasq <- temp[[6]]
+	Sigma <- diag(rep(sigmasq, p))
+	pro <- temp[[7]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6) || 
+           sigmasq <= max(control$eps,0)) {
+		WARNING <- "sigma-squared falls below threshold"
+		if (warn) warning(WARNING)
+		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if (warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if (warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(0, c(p, p, G))
+		for(k in 1:G)
+			sigma[,  , k] <- Sigma
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL) 
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL) 
+        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL) 
+        variance <- list(modelName = "EII", d = p, G = G, sigma = sigma, 
+                         Sigma = Sigma, sigmasq = sigmasq, scale = sigmasq)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance = variance)
+	structure(list(modelName = "EII", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control, 
+                       loglik = loglik),
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepEII" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="EII", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mseii",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p * G),
+			double(1),
+			double(G),
+                        PACKAGE = "mclust")[6:8]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EII"), 
+                        prior[names(prior) !="functionName"]))
+		temp <- .Fortran("mseiip",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p * G),
+			double(1),
+			double(G),
+                        PACKAGE = "mclust")[10:12]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	sigmasq <- temp[[2]]
+	pro <- temp[[3]]
+	sigma <- array(0, c(p, p, G))
+	Sigma <- diag(rep(sigmasq, p))
+	for(k in 1:G)
+		sigma[,  , k] <- Sigma
+	WARNING <- NULL
+	if(sigmasq > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]], NULL) 
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL) 
+        dimnames(Sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]])
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL) 
+        variance <- list(modelName = "EII", d = p, G = G, sigma = sigma, 
+                         Sigma = Sigma, sigmasq = sigmasq, scale = sigmasq)
+        parameters <- list(pro=pro, mean=mu, variance = variance)
+        structure(list(modelName = "EII", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+
+}
+
+"simEII" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "EII"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  sigmasq <- parameters$variance$sigmasq
+  cholSigma <- diag(rep(sqrt(sigmasq), d))
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "EII")
+}
+
+"meE" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be 1 dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal length of data")
+	K <- dimz[2]
+        if (!is.null(Vinv)) {
+		G <- K - 1
+ 		if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+	       WARNING <- "z is missing"
+	       if (warn) warning(WARNING)
+               variance <- list(modelName = "E", d = 1, G = G, sigmasq = NA)
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), mean=rep(NA,G), 
+                                  variance=variance)
+               return(structure(list(modelName="E", prior=prior, n=n, d=1, G=G,
+                      z=z, parameters=parameters, control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("me1e",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(G),
+			double(1),
+			double(K),
+                        PACKAGE = "mclust")[6:12]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "E"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("me1ep",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(G),
+			double(1),
+			double(K),
+                        PACKAGE = "mclust")[c(10:16, 9)]
+	}
+	mu <- temp[[5]]
+	names(mu) <- as.character(1:G)
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	sigmasq <- temp[[6]]
+	pro <- temp[[7]]
+	## log post <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6) || 
+                            sigmasq <= max(control$eps,0)) {
+		WARNING <- "sigma-squared falls below threshold"
+		if(warn) warning(WARNING)
+		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- logprior <- NA
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else if(its >= control$itmax[1]) {
+		WARNING <- "iteration limit reached"
+		warning(WARNING)
+		its <-  - its
+		ret <- 1
+	}
+	else ret <- 0
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(names(data), NULL) 
+        variance <- list(modelName = "E", d = 1, G = G, sigmasq = sigmasq)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "E", prior = prior, n = n, d = 1, G = G, 
+                       z = z, parameters = parameters, control = control, 
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+
+}
+
+"mstepE" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	##
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+# number of groups 
+        G <- dimz[2]
+	##
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+	       if (warn) warning(WARNING)
+               variance <- list(modelName="E", d=1, G=G, sigmasq=NA)
+               parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
+                                  variance=variance)
+               return(structure(list(modelName="E", prior=prior, n=n, d=1, G=G,
+                                     z = z, parameters=parameters), 
+                                WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("ms1e",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(G),
+			double(G),
+			double(1),
+			double(G),
+                        PACKAGE = "mclust")[5:7]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "E"), prior[names(prior) !=
+			"functionName"]))
+		storage.mode(z) <- "double"
+		temp <- .Fortran("ms1ep",
+			as.double(data),
+			z,
+			as.integer(n),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(G),
+			double(1),
+			double(G),
+                        PACKAGE = "mclust")[9:11]
+	}
+	mu <- temp[[1]]
+	names(mu) <- as.character(1:G)
+	sigmasq <- temp[[2]]
+	pro <- temp[[3]]
+	WARNING <- NULL
+	if(sigmasq > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+                pro[] <- mu[] <- sigmasq <- NA
+                ret <- -1
+ 
+	}
+        else ret <- 0
+        dimnames(z) <- list(names(data), NULL) 
+        variance <- list(modelName = "E", d = 1, G = G, sigmasq = sigmasq)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "E", prior = prior, n = n, d = 1, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simE" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, 2), modelName = "E"))
+  }
+  if(!is.null(seed))
+    set.seed(seed)
+  mu <- parameters$mean
+  G <- length(mu)
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- rep(0, n)
+  sd <- sqrt(parameters$variance$sigmasq)
+  for(k in 1:G) {
+    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd)
+  }
+  structure(cbind(group = clabels, "1" = x), modelName = "E")
+}
+
+"cdensEVI" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        mu <- parameters$mean
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "EVI", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                    is.null(parameters$variance$shape)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("esevi",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+         }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+	structure(z, logarithm = logarithm, modelName = "EVI",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emEVI" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepEVI(data, parameters = parameters, warn = warn)$z  
+	meEVI(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepEVI" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+                Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	} 
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "EVI", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+     		    is.null(parameters$variance$shape)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("esevi",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "EVI", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"meEVI" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EVI", d = p, G = G, 
+                                 scale = NA, shape = matrix(NA,p,G)) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="EVI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("meevi",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(1),
+			double(p * G),
+			double(K),
+                        PACKAGE = "mclust")[7:14]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EVI"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("meevip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(1),
+			double(p * G),
+			double(K),
+                        PACKAGE = "mclust")[11:18]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	scale <- temp[[6]]
+	shape <- matrix(temp[[7]], p, G)
+	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+	pro <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn) warning(WARNING)
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			if(warn) warning("z column sum fell below threshold")
+			WARNING <- "z column sum fell below threshold"
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "EVI", d = p, G = G, 
+                         sigma = sigma, scale = scale, shape = shape)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "EVI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control, 
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepEVI" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "EVI", d = p, G = G, 
+                                 scale = NA, shape = matrix(NA,p,G)) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="EVI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("msevi",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p * G),
+			double(1),
+			double(p * G),
+			double(G),
+                        PACKAGE = "mclust")[6:9]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "EVI"), prior[names(
+			prior) != "functionName"]))
+		temp <- .Fortran("msevip",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p * G),
+			double(1),
+			double(p * G),
+			double(G),
+                        PACKAGE = "mclust")[10:13]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	scale <- temp[[2]]
+	shape <- matrix(temp[[3]], p, G)
+	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+	pro <- temp[[4]]
+	WARNING <- NULL
+	if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!c(
+		scale, shape))) {
+		WARNING <- "cannot compute M-step"
+		if(warn)
+			warning(WARNING)
+		mu[] <- pro[] <- scale <- shape[] <- NA
+		sigma <- array(NA, c(p, p, G))
+                ret <- -1 
+	}
+	else {
+		sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
+                ret <- 0
+	}
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "EVI", d = p, G = G, 
+                         sigma = sigma, scale = scale, shape = shape)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "EVI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simEVI" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "EVI"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  shape <- as.matrix(parameters$variance$shape)
+  if(!all(dim(shape) == dim(mean)))
+    stop("shape incompatible with mean")
+  sss <- sqrt(parameters$variance$scale * shape)
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(sss[, k]), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "EVI")
+}
 
 `clPairs` <-
 function (data, classification, symbols=NULL, colors=NULL, 
@@ -9057,61 +5712,6 @@ function (mu, sigma, k = 15, alone = FALSE, col = 1)
     invisible()
 }
 
-"plot.Mclust" <-
-function (x, data = NULL, 
-          what = c("BIC","classification","uncertainty","density"), 
-          dimens = c(1,2), xlab = NULL, ylim = NULL,  
-          legendArgs = list(x="bottomright", ncol=2, cex=1),
-          identify = TRUE, ...) 
-{
-    parSave <- par(no.readonly = TRUE)
-    on.exit(par(parSave))
-    par(ask = TRUE)
-    if (any(match("BIC", what, nomatch = 0)))
-      plot.mclustBIC(x$BIC, xlab=xlab, ylim=ylim, legendArgs=legendArgs,...)
-    # title("BIC")
-    if (is.null(data)) {
-        warning("data not supplied")
-        return(invisible())
-    }
-    p <- ncol(as.matrix(data))
-    if (p > 2) {
-        if (any(match("classification", what, nomatch = 0)))
-          clPairs(data[,1:min(5,p)], classification = x$classification, ...)
-        if (any(match("classification", what, nomatch = 0)))
-          coordProj(data = data, parameters=x$parameters, z = x$z,
-                    what = "classification", dimens = dimens, identify = identify, 
-                    ...)
-        if (any(match("uncertainty", what, nomatch = 0)))
-          coordProj(data = data, parameters=x$parameters, z = x$z,
-                    what = "uncertainty", dimens = dimens, identify = identify, 
-                    ...)
-    }
-    else if (p == 2) {
-        if (any(match("classification", what, nomatch = 0)))
-          mclust2Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "classification", identify = identify, ...)
-        if (any(match("uncertainty", what, nomatch = 0)))
-          mclust2Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "uncertainty", identify = identify, ...)
-        if (any(match("density", what, nomatch = 0)))
-           surfacePlot(data = data, parameters=x$parameters,
-                     what = "density", identify = identify, ...)
-    }
-    else {
-        if (any(match("classification", what, nomatch = 0)))
-           mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "classification", identify = identify, ...)
-        if (any(match("uncertainty", what, nomatch = 0)))
-          mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "uncertainty", identify = identify, ...)
-        if (any(match("density", what, nomatch = 0)))
-          mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
-                       what = "density", identify = identify, ...)
-    }
-    invisible()
-}
-
 `plot.mclustBIC` <-
 function (x, G = NULL, modelNames = NULL, symbols = NULL, colors = NULL, 
     xlab = NULL, ylim = NULL, legendArgs = list(x = "bottomright", 
@@ -9415,6 +6015,61 @@ function(x, data, dimens = c(1,2), symbols = NULL, colors = NULL,
             }
 	}
 	invisible()
+}
+
+"plot.Mclust" <-
+function (x, data = NULL, 
+          what = c("BIC","classification","uncertainty","density"), 
+          dimens = c(1,2), xlab = NULL, ylim = NULL,  
+          legendArgs = list(x="bottomright", ncol=2, cex=1),
+          identify = TRUE, ...) 
+{
+    parSave <- par(no.readonly = TRUE)
+    on.exit(par(parSave))
+    par(ask = TRUE)
+    if (any(match("BIC", what, nomatch = 0)))
+      plot.mclustBIC(x$BIC, xlab=xlab, ylim=ylim, legendArgs=legendArgs,...)
+    # title("BIC")
+    if (is.null(data)) {
+        warning("data not supplied")
+        return(invisible())
+    }
+    p <- ncol(as.matrix(data))
+    if (p > 2) {
+        if (any(match("classification", what, nomatch = 0)))
+          clPairs(data[,1:min(5,p)], classification = x$classification, ...)
+        if (any(match("classification", what, nomatch = 0)))
+          coordProj(data = data, parameters=x$parameters, z = x$z,
+                    what = "classification", dimens = dimens, identify = identify, 
+                    ...)
+        if (any(match("uncertainty", what, nomatch = 0)))
+          coordProj(data = data, parameters=x$parameters, z = x$z,
+                    what = "uncertainty", dimens = dimens, identify = identify, 
+                    ...)
+    }
+    else if (p == 2) {
+        if (any(match("classification", what, nomatch = 0)))
+          mclust2Dplot(data = data, parameters=x$parameters, z=x$z,
+                       what = "classification", identify = identify, ...)
+        if (any(match("uncertainty", what, nomatch = 0)))
+          mclust2Dplot(data = data, parameters=x$parameters, z=x$z,
+                       what = "uncertainty", identify = identify, ...)
+        if (any(match("density", what, nomatch = 0)))
+           surfacePlot(data = data, parameters=x$parameters,
+                     what = "density", identify = identify, ...)
+    }
+    else {
+        if (any(match("classification", what, nomatch = 0)))
+           mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
+                       what = "classification", identify = identify, ...)
+        if (any(match("uncertainty", what, nomatch = 0)))
+          mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
+                       what = "uncertainty", identify = identify, ...)
+        if (any(match("density", what, nomatch = 0)))
+          mclust1Dplot(data = data, parameters=x$parameters, z=x$z,
+                       what = "density", identify = identify, ...)
+    }
+    invisible()
 }
 
 `plot.mclustBIC` <-
@@ -10985,6 +7640,3357 @@ function(modelName, parameters, n, seed = NULL, ...)
         mc[[1]] <- as.name(funcName)
         mc$modelName <- NULL
         eval(mc, parent.frame())
+}
+
+"cdensV" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- drop(data)
+	n <- length(data)
+        mu <- drop(parameters$mean)
+	G <- length(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")])))
+            || any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(names(data), NULL)
+                return(structure(z, logarithm = logarithm, modelName = "V", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        sigmasq <- parameters$variance$sigmasq
+        if(is.null(sigmasq))
+                stop("variance parameters are missing")
+        if(any(sigmasq < 0))
+                stop("sigma-squared is negative")
+	if(any(!sigmasq)) {
+                WARNING <- "sigma-squared vanishes"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(names(data), NULL)
+                return(structure(z, logarithm = logarithm, modelName = "V", 
+                                 WARNING = WARNING, returnCode = 9))
+	}
+        if (length(sigmasq) == 1) sigmasq <- rep(sigmasq,G)
+	temp <- .Fortran("es1v",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(-1),
+		as.integer(n),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[8:9]
+        loglik <- temp[[1]]
+        z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+        if(loglik > signif(.Machine$double.xmax, 6)) {
+                WARNING <- "sigma-squared falls below threshold"
+                if (warn) warning(WARNING)
+                z[] <- NA
+                ret <- -1
+        }
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(names(data),NULL)
+	structure(z, logarithm = logarithm, modelName = "V",
+                     WARNING = WARNING, returnCode = ret)
+}
+
+"cdensVEI" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "VEI", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                    is.null(parameters$variance$shape)) 
+           stop("variance parameters are missing")
+	temp <- .Fortran("esvei",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],dimnames(mu)[[2]])
+	structure(z, logarithm = logarithm, modelName = "VEI",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emVEI" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepVEI(data, parameters = parameters, warn = warn)$z  
+	meVEI(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepVEI" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+                Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	} 
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VEI", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+		    is.null(parameters$variance$shape)) 
+           stop("variance parameters are missing")
+	temp <- .Fortran("esvei",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "VEI", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"meVEI" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VEI", d = p, G = G, 
+                                 scale = rep(NA,G), shape = rep(NA,p)) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="VEI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mevei",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax),
+			as.double(control$tol),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(p),
+			double(K),
+			double(G),
+			double(p),
+			double(p * G),
+                        PACKAGE = "mclust")[7:14]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VEI"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("meveip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax),
+			as.double(control$tol),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(p),
+			double(K),
+			double(G),
+			double(p),
+			double(p * G),
+                        PACKAGE = "mclust")[11:18]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]][1]
+	inner <- temp[[2]][2]
+	err <- temp[[3]][1]
+	inerr <- temp[[3]][2]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	scale <- temp[[6]]
+	shape <- temp[[7]]
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	pro <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		sigma <- array(NA, c(p, p, G))
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		sigma <- array(NA, c(p, p, G))
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(0, c(p, p, G))
+		for(k in 1:G)
+			sigma[,  , k] <- diag(scale[k] * shape)
+		if(inner >= control$itmax[2]) {
+			WARNING <- "inner iteration limit reached"
+			warning(WARNING)
+			inner <-  - inner
+			ret <- 2
+		}
+		else if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+	attr(info, "inner") <- c(iterations = inner, error = inerr)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+	variance <- list(modelName = "VEI", d = p, G = G, 
+                         sigma = sigma, scale = scale, shape = shape)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "VEI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepVEI" <-
+function(data, z, prior = NULL, warn = NULL, control = NULL,...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+              WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VEI", d = p, G = G, 
+                                 scale = rep(NA,G), shape = rep(NA,p)) 
+               parameters <- list(pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="VEI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+        if (is.null(control)) control <- emControl()
+	itmax <- if(length(control$itmax) == 1) control$itmax else control$
+			itmax[2]
+	tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
+	if(is.null(prior)) {
+		temp <- .Fortran("msvei",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.integer(itmax),
+			as.double(tol),
+			double(p * G),
+			double(G),
+			double(p),
+			double(G),
+			double(G),
+			double(p),
+			double(p * G),
+                        PACKAGE = "mclust")[6:11]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VEI"), prior[names(
+			prior) != "functionName"]))
+		temp <- .Fortran("msveip",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			as.integer(itmax),
+			as.double(tol),
+			double(p * G),
+			double(G),
+			double(p),
+			double(G),
+			double(G),
+			double(p),
+			double(p * G),
+                        PACKAGE = "mclust")[10:15]
+	}
+	inner <- temp[[1]]
+	inerr <- temp[[2]]
+	mu <- matrix(temp[[3]], p, G)
+	scale <- temp[[4]]
+	shape <- temp[[5]]
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	pro <- temp[[6]]
+	WARNING <- NULL
+	if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!
+		c(scale, shape))) {
+		WARNING <- "cannot compute M-step"
+		if(warn)
+			warning(WARNING)
+		mu[] <- pro[] <- shape <- scale[] <- NA
+		sigma <- array(NA, c(p, p, G))
+                ret <- -1
+	}
+	else {
+                ret <- 0
+		sigma <- array(0, c(p, p, G))
+		for(k in 1:G)
+			sigma[,  , k] <- diag(scale[k] * shape)
+		if(inner >= itmax) {
+			WARNING <- "inner iteration limit reached"
+			warning(WARNING)
+			inner <-  - inner
+		}
+	}
+   	info <- c(iterations = inner, error = inerr)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "VEI", d = p, G = G, 
+                         sigma = sigma, scale = scale, shape = shape)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "VEI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control),
+                  info = info, WARNING = WARNING, returnCode = ret)
+
+}
+
+"simVEI" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "VEI"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtshape <- sqrt(parameters$variance$shape)
+  if(length(rtshape) != d)
+    stop("shape incompatible with mean")
+  rtscale <- sqrt(parameters$variance$scale)
+  if(length(rtscale) != G)
+    stop("scale incompatible with mean")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(rtscale[k] * rtshape), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VEI")
+}
+
+"emV" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepV(data, parameters = parameters, warn = warn)$z  
+	meV(data, z = z, prior = prior, control = control, 
+            Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepV" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- drop(data)
+	n <- length(data)
+        pro <- parameters$pro 
+        pro <- pro/sum(pro)
+	l <- length(pro)
+        mu <- drop(parameters$mean)
+	G <- length(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv 
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")])))
+            || any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(names(data), NULL)
+                return(structure(list(modelName = "V", n=n, d=1, G=G, z=z,
+                       parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        sigmasq <- parameters$variance$sigmasq
+	if(is.null(sigmasq))
+		stop("variance parameters are missing")
+	if(any(sigmasq < 0))
+		stop("sigma-squared is negative")
+	if(any(!sigmasq)) {
+		WARNING <- "sigma-squared vanishes"
+		if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(names(data), NULL)
+                return(structure(list(modelName = "V", n=n, d=1, G=G, z=z,
+                       parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = -1))
+	}
+	temp <- .Fortran("es1v",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(pro),
+		as.integer(n),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[8:9]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(names(data),NULL)
+        structure(list(modelName = "V", n = n, d = 1, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+`cdensVEV` <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "VEV", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                   is.null(parameters$variance$shape) ||
+                   is.null(parameters$variance$orientation)) 
+          stop("variance parameters are missing")
+	temp <- .Fortran("esvev",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(p),
+		double(p),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[13:14]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL) 
+	structure(z, logarithm = logarithm, modelName = "VEV",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emVEV" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepVEV(data, parameters = parameters, warn = warn)$z  
+	meVEV(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+`estepVEV` <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+       if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VEV", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                    is.null(parameters$variance$shape) ||
+                    is.null(parameters$variance$orientation)) 
+           stop("variance parameters are missing")
+	temp <- .Fortran("esvev",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(aperm(parameters$variance$orientation,c(2,1,3))),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(p),
+		double(p),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[13:14]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1  
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL) 
+        structure(list(modelName = "VEV", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+
+}
+
+meVEV <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VEV", d = p, G = G, 
+           scale=rep(NA,G), shape=rep(NA,p), orientation=array(NA,c(p,p,G))) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="VEV", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mevev",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax),
+			as.double(control$tol),
+			as.double(control$eps),
+			as.integer(lwork),
+			double(p * G),
+			double(G),
+			double(p),
+			double(p * p * G),
+			double(K),
+			double(lwork),
+			double(p),
+                        PACKAGE = "mclust")[7:16]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VEV"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("mevevp",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax),
+			as.double(control$tol),
+			as.double(control$eps),
+			as.integer(lwork),
+			double(p * G),
+			double(G),
+			double(p),
+			double(p * p * G),
+			double(K),
+			double(lwork),
+			double(p),
+                        PACKAGE = "mclust")[11:20]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]][1]
+	inner <- temp[[2]][2]
+	err <- temp[[3]][1]
+	inerr <- temp[[3]][2]
+	loglik <- temp[[4]]
+	lapackSVDinfo <- temp[[5]]
+	mu <- matrix(temp[[6]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	scale <- temp[[7]]
+	shape <- temp[[8]]
+	O <- aperm( array(temp[[9]], c(p, p, G)), c(2,1,3))
+	pro <- temp[[10]]
+	WARNING <- NULL
+	if(lapackSVDinfo) {
+		if(lapackSVDinfo > 0) {
+			WARNING <- "LAPACK DGESVD fails to converge"
+		}
+		else {
+			WARNING <- "input error for LAPACK DGESVD"
+		}
+		warning(WARNING)
+		O[] <- shape[] <- scale[] <- NA
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -9
+	}
+	else if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		O[] <- shape[] <- scale[] <- NA
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- shapeO(shape, O, transpose = FALSE)
+		sigma <- sweep(sigma, MARGIN = 3, STATS = scale, FUN = "*")
+		if(inner >= control$itmax[2]) {
+			WARNING <- "inner iteration limit reached"
+			warning(WARNING)
+			inner <-  - inner
+			ret <- 2
+		}
+		else if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- structure(c(iterations = its, error = err), inner = c(
+		iterations = inner, error = inerr))
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- dimnames(O) <- 
+           list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
+##  Sigma = scale * O %*% diag(shape) %*% t(O)
+	variance <- list(modelName = "VEV", d = p, G = G, sigma = sigma, 
+                        scale = scale, shape = shape, orientation = O)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
+	structure(list(modelName = "VEV", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+mstepVEV <-
+function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	##
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VEV", d = p, G = G, 
+      scale = rep(NA,G), shape = rep(NA,p), orientation = array(NA,c(p,p,G))) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="VEV", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+
+		WARNING <- "z is missing"
+		warning(WARNING)
+		return(structure(list(n = n, d = p, G = G, mu = matrix(NA,
+			p, G), sigma = array(NA, c(p, p, G)), decomp = list(
+			d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
+			orientation = array(NA, c(p, p, G))), pro = rep(NA,
+			G), modelName = "VEV", prior = prior), WARNING = 
+			WARNING))
+	}
+	#	shape <- sqrt(rev(sort(shape/exp(sum(log(shape))/p))))
+	if(any(is.na(z)) || any(z < 0) || any(z > 1)) stop(
+			"improper specification of z")
+        if (is.null(control)) control <- emControl()
+	itmax <- if(length(control$itmax) == 1) control$itmax else control$
+			itmax[2]
+	tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
+	lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
+	if(is.null(prior)) {
+		temp <- .Fortran("msvev",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(lwork),
+			as.integer(lwork),
+			as.integer(itmax),
+			as.double(tol),
+			double(p * G),
+			double(G),
+			double(p),
+			double(p * p * G),
+			double(G),
+                        PACKAGE = "mclust")[7:14]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VEV"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("msvevp",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			double(lwork),
+			as.integer(lwork),
+			as.integer(itmax),
+			as.double(tol),
+			double(p * G),
+			double(G),
+			double(p),
+			double(p * p * G),
+			double(G),
+                        PACKAGE = "mclust")[11:18]
+	}
+	lapackSVDinfo <- temp[[1]]
+	inner <- temp[[2]]
+	inerr <- temp[[3]]
+	mu <- matrix(temp[[4]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	scale <- temp[[5]]
+	shape <- temp[[6]]
+	O <- aperm(array(temp[[7]], c(p, p, G)),c(2,1,3))
+        pro <- temp[[8]] 
+	WARNING <- NULL
+	if(lapackSVDinfo) {
+		if(lapackSVDinfo > 0) {
+			WARNING <- "LAPACK DGESVD fails to converge"
+			warning(WARNING)
+		}
+		else {
+			WARNING <- "input error for LAPACK DGESVD"
+			warning(WARNING)
+		}
+		O[] <- shape[] <- scale[] <- NA
+		sigma <- array(NA, c(p, p, G))
+                ret <- -9
+	}
+	else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(
+		!c(scale, shape))) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+		mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
+		sigma <- array(NA, c(p, p, G))
+                ret <- -1
+	}
+	else {
+		sigma <- sweep(shapeO(shape, O, transpose = FALSE), MARGIN = 3,
+			STATS = scale, FUN = "*")
+		if(inner >= itmax) {
+			WARNING <- "inner iteration limit reached"
+			warning(WARNING)
+			inner <-  - inner
+		}
+                ret <- 2
+	}
+	info <- c(iteration = inner, error = inerr)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- dimnames(O) <-
+           list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
+        variance <- list(modelName = "VEV", d = p, G = G, sigma = sigma, 
+                         scale = scale, shape = shape, orientation = O)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "VEV", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control),
+                  info = info, WARNING = WARNING, returnCode = ret)
+
+}
+
+`simVEV` <-
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "VEV"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtshape <- sqrt(parameters$variance$shape)
+  if(length(rtshape) != d)
+    stop("shape incompatible with mean")
+  rtscale <- sqrt(parameters$variance$scale)
+  if(length(rtscale) != G)
+    stop("scale incompatible with mean")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    sss <- rtscale[k] * rtshape
+    cholSigma <- t(parameters$variance$orientation[,  , k]) * sss
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      cholSigma, MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VEV")
+}
+
+"hcV" <-
+function(data, partition, minclus = 1, alpha = 1, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(minclus < 1) stop("minclus must be positive")
+	if(any(is.na(data)))
+		stop("missing values not allowed in data")
+	#=====================================================================
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	if(missing(partition))
+		partition <- 1:n
+	else if(length(partition) != n)
+		stop("partition must assign a class to each observation")
+	partition <- partconv(partition, consec = TRUE)
+	l <- length(unique(partition))
+	attr(partition, "unique") <- l
+	m <- l - minclus
+	if(m <= 0)
+		stop("initial number of clusters is not greater than minclus")
+	storage.mode(data) <- "double"
+	alpha <- alpha * (vecnorm(data - mean(data))^2/n)
+	alpha <- min(alpha, .Machine$double.eps)
+	ld <- max(c((l * (l - 1))/2, 3 * m))
+	temp <- .Fortran("hc1v",
+		data,
+		as.integer(n),
+		as.integer(partition),
+		as.integer(l),
+		as.integer(m),
+		as.double(alpha),
+		as.integer(ld),
+		double(ld),
+                PACKAGE = "mclust")[c(1, 3, 8)]
+	temp[[1]] <- temp[[1]][1:m]
+	temp[[2]] <- temp[[2]][1:m]
+	temp[[3]] <- temp[[3]][1:m]
+        change <- temp[[3]]
+	structure(rbind(temp[[1]], temp[[2]]), 	initialPartition = partition, 
+                  dimensions = n, modelName = "V",
+		  call = match.call())
+}
+
+"cdensVII" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "VII", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        sigmasq <- parameters$variance$sigmasq 
+	if(any(sigmasq < 0))
+		stop("sigma-squared is negative")
+	if(any(!sigmasq)) {
+		WARNING <- "sigma-squared vanishes"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "VII", 
+                                 WARNING = WARNING, returnCode = 9))
+	}
+	temp <- .Fortran("esvii",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[9:10]
+        loglik <- temp[[1]]
+        z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+        if(loglik > signif(.Machine$double.xmax, 6)) {
+                WARNING <- "sigma-squared falls below threshold"
+                if (warn) warning(WARNING)
+                z[] <- NA
+                ret <- -1
+        }
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0 
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+	structure(z, logarithm = logarithm, modelName = "VII",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emVII" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepVII(data, parameters = parameters, warn = warn)$z  
+	meVII(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepVII" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+      	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VII", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        sigmasq <- parameters$variance$sigmasq 
+	if(is.null(sigmasq))
+		stop("variance parameters are missing")
+	if(any(sigmasq < 0))
+		stop("sigma-squared is negative")
+	if(any(!sigmasq)) {
+		WARNING <- "sigma-squared vanishes"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VII", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = -1))
+	}
+	temp <- .Fortran("esvii",
+		as.double(data),
+		as.double(mu),
+		as.double(sigmasq),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[9:10]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "VII", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"hcVII" <-
+function(data, partition, minclus = 1, alpha = 1, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(minclus < 1) stop("minclus must be positive")
+	if(any(is.na(data)))
+		stop("missing values not allowed in data")
+	#=====================================================================
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	dimnames(data) <- NULL
+	n <- nrow(data)
+	p <- ncol(data)
+	if(n <= p)
+		warning("# of observations <= data dimension")
+	if(missing(partition))
+		partition <- 1:n
+	else if(length(partition) != n)
+		stop("partition must assign a class to each observation")
+	partition <- partconv(partition, consec = TRUE)
+	l <- length(unique(partition))
+	attr(partition, "unique") <- l
+	m <- l - minclus
+	if(m <= 0)
+		stop("initial number of clusters is not greater than minclus")
+	storage.mode(data) <- "double"
+	ll <- (l * (l - 1))/2
+	ld <- max(n, ll, 3 * m)
+	alpha <- alpha * traceW(data/sqrt(n * p))
+	alpha <- max(alpha, .Machine$double.eps)
+	temp <- .Fortran("hcvii",
+		data,
+		as.integer(n),
+		as.integer(p),
+		as.integer(partition),
+		as.integer(l),
+		as.integer(m),
+		as.double(alpha),
+		double(p),
+		as.integer(ld),
+		double(ld),
+                PACKAGE = "mclust")[c(1, 10)]
+	temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
+	temp[[2]] <- temp[[2]][1:m]
+        change <- temp[[2]]
+	structure(t(temp[[1]]), initialPartition = partition, 
+                  dimensions = dimdat, modelName = "VII", 
+                  call = match.call())
+}
+
+"meVII" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data must be in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mevii",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(K),
+                        PACKAGE = "mclust")[7:13]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VII"), prior[names(prior) !=
+			"functionName"]))
+		storage.mode(z) <- "double"
+		temp <- .Fortran("meviip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(K),
+                        PACKAGE = "mclust")[c(11:17, 10)]
+	}
+	mu <- matrix(temp[[5]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	sigmasq <- temp[[6]]
+	pro <- temp[[7]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6) || 
+           any(sigmasq <= max(control$eps, 0))) {
+		WARNING <- "sigma-squared falls below threshold"
+		if (warn) warning(WARNING)
+		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if (warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if (warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(0, c(p, p, G))
+		for(k in 1:G)
+			sigma[,  , k] <- diag(rep(sigmasq[k], p))
+		if(its >= control$itmax[1]) {
+			warning("iteration limit reached")
+			WARNING <- "iteration limit reached"
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+	variance <- list(modelName = "VII", d = p, G = G, 
+                         sigma = sigma, sigmasq = sigmasq, scale = sigmasq)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "VII", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control, 
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"meVVI" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+	       WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VVI", d = p, G = G, 
+                                 scale = rep(NA,G), shape = matrix(NA,p,G)) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="VVI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+        }
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mevvi",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(p * G),
+			double(K),
+                        PACKAGE = "mclust")[7:14]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VVI"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("mevvip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(p * G),
+			double(K),
+                        PACKAGE = "mclust")[11:18]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	scale <- temp[[6]]
+	shape <- matrix(temp[[7]], p, G)
+	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+	pro <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn) warning(WARNING)
+		sigma <- array(NA, c(p, p, G))
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if (warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		sigma <- array(NA, c(p, p, G))
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
+			FUN = "*"), 2, diag), c(p, p, G))
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+	variance <- list(modelName = "VVI", d = p, G = G, 
+                         sigma = sigma, scale = scale, shape = shape)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepVII" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal number of observations")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                                WARNING = WARNING, returnCode = 9))
+        }
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("msvii",
+			as.double(data),
+			z,
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p * G),
+			double(G),
+			double(G),
+                        PACKAGE = "mclust")[6:8]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VII"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("msviip",
+			as.double(data),
+			z,
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p * G),
+			double(G),
+			double(G),
+                        PACKAGE = "mclust")[10:12]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	sigmasq <- temp[[2]]
+	pro <- temp[[3]]
+	sigma <- array(0, c(p, p, G))
+	for(k in 1:G)
+		sigma[,  , k] <- diag(rep(sigmasq[k], p))
+	WARNING <- NULL
+	if(any(sigmasq > signif(.Machine$double.xmax, 6))) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "VII", d = p, G = G, 
+                         sigma = sigma, sigmasq = sigmasq, scale = sigmasq)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "VII", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters),
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simVII" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d), modelName = "VII"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  sigmasq <- parameters$variance$sigmasq
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(rep(sqrt(sigmasq[k]), d)), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VII")
+}
+
+"meV" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal length of data")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+	       WARNING <- "z is missing"
+	       if (warn) warning(WARNING)
+               variance <- list(modelName = "V", d=1, G=G, sigmasq = rep(NA,G))
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), mean=rep(NA,G), 
+                                  variance=variance)
+               return(structure(list(modelName="V", prior=prior, n=n, d=1, G=G,
+                  z=z, parameters=parameters, control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("me1v",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(G),
+			as.double(if(is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(G),
+			double(G),
+			double(K),
+                        PACKAGE = "mclust")[6:12]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "V"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("me1vp",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(G),
+			double(G),
+			double(K),
+                        PACKAGE = "mclust")[c(10:16, 9)]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- temp[[5]]
+	names(mu) <- as.character(1:G)
+	sigmasq <- temp[[6]]
+	pro <- temp[[7]]
+	## logpost <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6) || any(sigmasq <= max(
+		control$eps, 0))) {
+		WARNING <- "sigma-squared falls below threshold"
+		if(warn) warning(WARNING)
+		mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else if(its >= control$itmax[1]) {
+		WARNING <- "iteration limit reached"
+		if (warn) warning(WARNING)
+		its <-  - its
+		ret <- 1
+	}
+	else ret <- 0
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(names(data),NULL)
+        variance = list(modelName = "V", d = 1, G = G, 
+                        sigmasq = sigmasq, scale = sigmasq)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "V", prior = prior, n = n, d = 1, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik),
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepV" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one-dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	##
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+# number of groups 
+	G <- dimz[2]
+	##
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "V", d=1, G=G, sigmasq=rep(NA,G))
+               parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
+                                  variance=variance)
+               return(structure(list(modelName="V", prior=prior, n=n, d=1, G=G,
+                                     z=z, parameters=parameters), 
+                                WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("ms1v",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(G),
+			double(G),
+			double(G),
+			double(G),
+                        PACKAGE = "mclust")[5:7]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "V"), prior[names(prior) !=
+			"functionName"]))
+		storage.mode(z) <- "double"
+		temp <- .Fortran("ms1vp",
+			as.double(data),
+			z,
+			as.integer(n),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(G),
+			double(G),
+			double(G),
+                        PACKAGE = "mclust")[9:11]
+	}
+	mu <- temp[[1]]
+	names(mu) <- as.character(1:G)
+	sigmasq <- temp[[2]]
+	pro <- temp[[3]]
+	WARNING <- NULL
+	if(any(sigmasq > signif(.Machine$double.xmax, 6))) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+                mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
+                print(G)
+                print(sigmasq)
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(names(data),NULL)
+        variance = list(modelName = "V", d = 1, G = G, 
+                        sigmasq = sigmasq, scale = sigmasq)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "V", prior = prior, n = n, d = 1, G = G, 
+                       z = z, parameters = parameters),
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simV" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, 2), modelName = "V"))
+  }
+  if(!is.null(seed))
+    set.seed(seed)
+  mu <- parameters$mean
+  G <- length(mu)
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- rep(0, n)
+  sd <- sqrt(parameters$variance$sigmasq)
+  for(k in 1:G) {
+    x[clabels == k] <- mu[k] + rnorm(ctabel[k], sd = sd[k])
+  }
+  structure(cbind(group = clabels, "1" = x), modelName = "V")
+}
+
+"cdensVVI" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mu", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mu", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(z, logarithm = logarithm, modelName = "VVI", 
+                                 WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+                    is.null(parameters$variance$shape)) 
+           stop("variance parameters are missing")
+	temp <- .Fortran("esvvi",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, G)
+        WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)  
+	structure(z, logarithm = logarithm, modelName = "VVI",
+                  WARNING = WARNING, retrinCode = ret)
+}
+
+"emVVI" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepVVI(data, parameters = parameters, warn = warn)$z  
+	meVVI(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepVVI" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if (is.null(Vinv) || Vinv <= 0) 
+                  Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        if(any(is.na(unlist(parameters[c("pro", "mu", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mu", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VVI", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$scale) ||
+		    is.null(parameters$variance$shape)) 
+           stop("variance parameters are missing")
+	temp <- .Fortran("esvvi",
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$scale),
+		as.double(parameters$variance$shape),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[10:11]
+	loglik <- temp[[1]]
+	z <- matrix(temp[[2]], n, K)
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL) 
+        structure(list(modelName = "VVI", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"meVVI" <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+	if (!is.null(Vinv)) {
+		G <- K - 1
+		if(Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+	       WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VVI", d = p, G = G, 
+                                 scale = rep(NA,G), shape = matrix(NA,p,G)) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="VVI", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+        }
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mevvi",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(p * G),
+			double(K),
+                        PACKAGE = "mclust")[7:14]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VVI"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("mevvip",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(G),
+			double(p * G),
+			double(K),
+                        PACKAGE = "mclust")[11:18]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	scale <- temp[[6]]
+	shape <- matrix(temp[[7]], p, G)
+	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+	pro <- temp[[8]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn) warning(WARNING)
+		sigma <- array(NA, c(p, p, G))
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if (warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		sigma <- array(NA, c(p, p, G))
+		mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
+			FUN = "*"), 2, diag), c(p, p, G))
+		if(its >= control$itmax[1]) {
+			WARNING <- "iteration limit reached"
+			warning(WARNING)
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = err)
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+	variance <- list(modelName = "VVI", d = p, G = G, 
+                         sigma = sigma, scale = scale, shape = shape)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+	structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+"mstepVVI" <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters), 
+                          WARNING = WARNING, returnCode = 9))
+
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("msvvi",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p * G),
+			double(G),
+			double(p * G),
+			double(G),
+                        PACKAGE = "mclust")[6:9]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VVI"), prior[names(
+			prior) != "functionName"]))
+		temp <- .Fortran("msvvip",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p * G),
+			double(G),
+			double(p * G),
+			double(G),
+                        PACKAGE = "mclust")[10:13]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	scale <- temp[[2]]
+	shape <- matrix(temp[[3]], p, G)
+	dimnames(mu) <- dimnames(shape) <- list(NULL, as.character(1:G))
+	pro <- temp[[4]]
+	WARNING <- NULL
+	if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!
+		c(scale, shape))) {
+		WARNING <- "cannot compute M-step"
+		if(warn)
+			warning(WARNING)
+		mu[] <- pro[] <- shape <- scale[] <- NA
+		sigma <- array(NA, c(p, p, G))
+                ret <- -1
+	}
+	else {
+		sigma <- array(apply(sweep(shape, MARGIN = 2, STATS = scale,
+			FUN = "*"), 2, diag), c(p, p, G))
+                ret <- 0
+	}
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        variance <- list(modelName = "VVI", d = p, G = G, 
+                         sigma = sigma, sigmasq = scale, 
+                         scale = scale, shape = shape)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters),
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"simVVI" <- 
+function(parameters, n, seed = NULL, ...)
+{
+  ##
+  # This function is part of the MCLUST software described at
+  #       http://www.stat.washington.edu/mclust
+  # Copyright information and conditions for use of MCLUST are given at
+  #        http://www.stat.washington.edu/mclust/license.txt
+  ##
+  if(!is.null(seed)) set.seed(seed)
+  mu <- as.matrix(parameters$mean)
+  d <- nrow(mu)
+  G <- ncol(mu)
+  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
+    "mean", "variance")]))) {
+    warn <- "parameters are missing"
+    warning("parameters are missing")
+    return(structure(matrix(NA, n, d + 1), modelName = "VVI"))
+  }
+  pro <- parameters$pro
+  if(is.null(pro))
+    pro <- rep(1/G, G)
+  clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+  ctabel <- table(clabels)
+  x <- matrix(0, n, d)
+  rtshape <- sqrt(parameters$variance$shape)
+  if(!all(dim(rtshape) == dim(mu)))
+    stop("shape incompatible with mean")
+  rtscale <- sqrt(parameters$variance$scale)
+  if(length(rtscale) != G)
+    stop("scale incompatible with mean")
+  for(k in 1:G) {
+    m <- ctabel[k]
+    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+      diag(rtscale[k] * rtshape[, k]), MARGIN = 2, STAT = mu[, k], FUN = "+")
+  }
+  dimnames(x) <- list(NULL, 1:d)
+  structure(cbind(group = clabels, x), modelName = "VVI")
+}
+
+"cdensVVV" <-
+function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,G)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$cholsigma))
+          stop("variance parameters are missing")
+	temp <- .Fortran("esvvv",
+		as.logical(1),
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$cholsigma),
+		as.double(-1),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(-1),
+		double(p),
+		double(1),
+		double(n * G),
+                PACKAGE = "mclust")[10:12]
+	lapackCholInfo <- temp[[1]][1]
+	loglik <- temp[[2]]
+	z <- matrix(temp[[3]], n, G)
+        WARNING <- NULL
+	if(lapackCholInfo) {
+		if(lapackCholInfo > 0) {
+			WARNING <- "sigma is not positive definite"
+			if (warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "input error for LAPACK DPOTRF"
+			if (warn) warning(WARNING)
+		}
+		z[] <- NA
+                ret <- -9
+	}
+	else if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- NA
+                ret <- -1
+	}
+        else {
+          if (!logarithm) z <- exp(z)
+          ret <- 0
+        }
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+	structure(z, logarithm = logarithm, modelName = "VVV",
+                  WARNING = WARNING, returnCode = ret)
+}
+
+"emVVV" <-
+function(data, parameters, prior = NULL, control = emControl(), 
+         warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        z <- estepVVV(data, parameters = parameters, warn = warn)$z  
+	meVVV(data, z = z, prior = prior, control = control, 
+              Vinv = parameters$Vinv, warn = warn)
+}
+
+"estepVVV" <-
+function(data, parameters, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	if(is.null(dimdat) || length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+        pro <- parameters$pro
+	pro <- pro/sum(pro)
+	l <- length(pro)
+	mu <- as.matrix(parameters$mean)
+	G <- ncol(mu)
+	noise <- l == G + 1
+	if(!noise) {
+		if(l != G)
+			stop("pro improperly specified")
+		K <- G
+		Vinv <- NULL
+	}
+	else {
+		K <- G + 1
+                Vinv <- parameters$Vinv
+		if(is.null(Vinv) || Vinv <= 0)
+			Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+            any(is.null(parameters[c("pro", "mean", "variance")]))) {
+                WARNING <- "parameters are missing"
+                if (warn) warning(WARNING)
+                z <- matrix(NA,n,K)
+                dimnames(z) <- list(dimnames(data)[[1]], NULL)
+                return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
+                                      parameters=parameters, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
+        }
+        if (is.null(parameters$variance$cholsigma))
+          stop("variance parameters are missing")
+	temp <- .Fortran("esvvv",
+        	as.logical(1),
+		as.double(data),
+		as.double(mu),
+		as.double(parameters$variance$cholsigma),
+		as.double(pro),
+		as.integer(n),
+		as.integer(p),
+		as.integer(G),
+		as.double(if (is.null(Vinv)) -1 else Vinv),
+		double(p),
+		double(1),
+		double(n * K),
+                PACKAGE = "mclust")[10:12]
+	lapackCholInfo <- temp[[1]][1]
+	loglik <- temp[[2]]
+	z <- matrix(temp[[3]], n, K)
+	WARNING <- NULL
+	if(lapackCholInfo) {
+		if(lapackCholInfo > 0) {
+			WARNING <- "sigma is not positive definite"
+			warning(WARNING)
+		}
+		else {
+			WARNING <- "input error for LAPACK DPOTRF"
+			warning(WARNING)
+		}
+		z[] <- loglik <- NA
+                ret <- -9
+	}
+	else if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "cannot compute E-step"
+		if (warn) warning(WARNING)
+		z[] <- loglik <- NA
+                ret <- -1
+	}
+        else ret <- 0
+        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+        structure(list(modelName = "VVV", n = n, d = p, G = G, 
+                       z = z, parameters = parameters, loglik = loglik),
+                   WARNING = WARNING, returnCode = ret)
+}
+
+"hcVVV" <-
+function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(minclus < 1) stop("minclus must be positive")
+	if(any(is.na(data)))
+		stop("missing values not allowed in data")
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) > 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	dimnames(data) <- NULL
+	n <- nrow(data)
+	p <- ncol(data)
+	if(n <= p)
+		warning("# of observations <= data dimension")
+	if(missing(partition))
+		partition <- 1:n
+	else if(length(partition) != n)
+		stop("partition must assign a class to each observation")
+	partition <- partconv(partition, consec = TRUE)
+	l <- length(unique(partition))
+	attr(partition, "unique") <- l
+	m <- l - minclus
+	if(m <= 0)
+		stop("initial number of clusters is not greater than minclus")
+	storage.mode(data) <- "double"
+	ll <- (l * (l - 1))/2
+	#	dp <- duplicated(partition)
+	#x[c((1:n)[!dp],(1:n)[dp]), ], 
+	#as.integer(c(partition[!dp], partition[dp])), 
+	ld <- max(n, ll + 1, 3 * m)
+	alpha <- alpha * traceW(data/sqrt(n * p))
+	alpha <- max(alpha, .Machine$double.eps)
+	temp <- .Fortran("hcvvv",
+		cbind(data, 0.),
+		as.integer(n),
+		as.integer(p),
+		as.integer(partition),
+		as.integer(l),
+		as.integer(m),
+		as.double(alpha),
+		as.double(beta),
+		double(p),
+		double(p * p),
+		double(p * p),
+		double(p * p),
+		as.integer(ld),
+		double(ld),
+                PACKAGE = "mclust")[c(1, 14)]
+	temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
+	temp[[2]] <- temp[[2]][1:m]
+        change <- temp[[2]] 
+	structure(t(temp[[1]]), initialPartition = partition, 
+                  dimensions = dimdat, modelName = "VVV", 
+                  call = match.call())
+}
+
+`meVVV` <-
+function(data, z, prior = NULL, control = emControl(), 
+         Vinv = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should in the form of a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("data and z should have the same row dimension")
+	K <- dimz[2]
+        if (!is.null(Vinv))  {
+		G <- K - 1
+		if(Vinv <= 0)Vinv <- hypvol(data, reciprocal = TRUE)
+	}
+        else G <- K
+	if(all(is.na(z))) {
+            WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VVV", d = p, G = G, 
+                sigma = array(NA, c(p,p,G)), cholsigma = array(NA, c(p,p,G))) 
+               parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
+                                  mean=matrix(NA,p,G), variance=variance)
+               return(structure(list(modelName="VVV", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     control=control, loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	storage.mode(z) <- "double"
+	if(is.null(prior)) {
+		temp <- .Fortran("mevvv",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(p * p * G),
+			double(K),
+			double(p),
+                        PACKAGE = "mclust")[7:13]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VVV"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("mevvvp",
+			as.logical(control$equalPro),
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(if (is.null(Vinv)) -1 else Vinv),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			z,
+			as.integer(control$itmax[1]),
+			as.double(control$tol[1]),
+			as.double(control$eps),
+			double(p * G),
+			double(p * p * G),
+			double(K),
+			double(p),
+                        PACKAGE = "mclust")[c(11:17, 10)]
+	}
+	z <- temp[[1]]
+	its <- temp[[2]]
+	err <- temp[[3]]
+	loglik <- temp[[4]]
+	mu <- matrix(temp[[5]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	cholsigma <- array(temp[[6]], c(p, p, G))
+	pro <- temp[[7]]
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn) warning(WARNING)
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- -1
+	}
+	else if(loglik <  - signif(.Machine$double.xmax, 6)) {
+		if(control$equalPro) {
+			WARNING <- "z column sum fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		else {
+			WARNING <- "mixing proportion fell below threshold"
+			if(warn) warning(WARNING)
+		}
+		mu[] <- pro[] <- z[] <- loglik <- NA
+		sigma <- array(NA, c(p, p, G))
+		ret <- if(control$equalPro) -2 else -3
+	}
+	else {
+		sigma <- array(apply(cholsigma, 3, unchol, upper = TRUE), 
+                               c(p,p,G))
+		if(its >= control$itmax[1]) {
+			warning("iteration limit reached")
+			WARNING <- "iteration limit reached"
+			its <-  - its
+			ret <- 1
+		}
+		else ret <- 0
+	}
+	info <- c(iterations = its, error = abs(err))
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- dimnames(cholsigma) <-
+              list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
+        variance <- list(modelName = "VVV", d = p, G = G,
+                          sigma = sigma, cholsigma = cholsigma)
+        parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
+	structure(list(modelName = "VVV", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters, control = control,
+                       loglik = loglik), 
+                  info = info, WARNING = WARNING, returnCode = ret)
+}
+
+`mstepVVV` <-
+function(data, z, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+        if (is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD || length(dimdat) != 2)
+		stop("data should be a matrix or a vector")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	z <- as.matrix(z)
+	dimz <- dim(z)
+	if(dimz[1] != n)
+		stop("row dimension of z should equal data length")
+	G <- dimz[2]
+	if(all(is.na(z))) {
+               WARNING <- "z is missing"
+               if (warn) warning(WARNING)
+               variance <- list(modelName = "VVV", d = p, G = G, 
+                      sigma <- array(NA, c(p,p, G)), 
+                      cholsigma = array(NA, c(p,p,G))) 
+               parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
+                                  variance=variance)
+               return(structure(list(modelName="VVV", prior=prior, n=n, d=p, 
+                                     G=G, z=z, parameters=parameters, 
+                                     loglik=NA), 
+                          WARNING = WARNING, returnCode = 9))
+	}
+	if(any(is.na(z)) || any(z < 0) || any(z > 1))
+		stop("improper specification of z")
+	if(is.null(prior)) {
+		temp <- .Fortran("msvvv",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			double(p),
+			double(p * G),
+			double(p * p * G),
+			double(G),
+                        PACKAGE = "mclust")[7:9]
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = G, modelName = "VVV"), 
+                        prior[names(prior) != "functionName"]))
+		temp <- .Fortran("msvvvp",
+			as.double(data),
+			as.double(z),
+			as.integer(n),
+			as.integer(p),
+			as.integer(G),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			double(p),
+			double(p * G),
+			double(p * p * G),
+			double(G),
+                        PACKAGE = "mclust")[11:13]
+	}
+	mu <- matrix(temp[[1]], p, G)
+	dimnames(mu) <- list(NULL, as.character(1:G))
+	cholsigma <- array(temp[[2]], c(p, p, G))
+        pro <- temp[[3]]
+	WARNING <- NULL
+	if(any(c(mu, cholsigma) > signif(.Machine$double.xmax, 6))) {
+		WARNING <- "cannot compute M-step"
+		if(warn) warning(WARNING)
+		mu[] <- sigma[] <- cholsigma[] <- NA
+                ret <- -1
+	}
+	else {
+		sigma <- array(apply(cholsigma, 3, unchol, upper = TRUE), 
+                                     c(p,p,G))
+                ret <- 0
+	}
+        dimnames(z) <- list(dimnames(data)[[1]], NULL)
+        dimnames(mu) <- list(dimnames(data)[[2]], NULL)
+        dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
+                                NULL)
+        dimnames(cholsigma) <- list(dimnames(data)[[2]], 
+                                    dimnames(data)[[2]], NULL)
+        variance <- list(modelName = "VVV", d = p, G = G, 
+                         sigma = sigma, cholsigma= cholsigma)
+        parameters <- list(pro=pro, mean=mu, variance=variance)
+        structure(list(modelName = "VVV", prior = prior, n = n, d = p, G = G, 
+                       z = z, parameters = parameters), 
+                  WARNING = WARNING, returnCode = ret)
+
+}
+
+"simVVV" <- 
+function(parameters, n, seed = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(!is.null(seed)) set.seed(seed)
+	mu <- as.matrix(parameters$mean)
+	d <- nrow(mu)
+	G <- ncol(mu)
+	if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
+		parameters[c("mean", "variance")]))) {
+		warn <- "parameters are missing"
+		warning("parameters are missing")
+		return(structure(matrix(NA, n, d + 1), modelName = "VVV"))
+	}
+	pro <- parameters$pro
+	if(is.null(pro))
+		pro <- rep(1/G, G)
+	clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
+	ctabel <- table(clabels)
+	x <- matrix(0, n, d)
+	if(is.null(cholsigma <- parameters$variance$cholsigma)) {
+		if(is.null(sigma <- parameters$variance$sigma)) {
+			stop("variance parameters must inlcude either sigma or cholsigma"
+				)
+		}
+		cholsigma <- apply(sigma, 3, chol)
+		for(k in 1:ncol(cholsigma))
+			sigma[,  , k] <- cholsigma[, k]
+		cholsigma <- sigma
+	}
+	if(dim(cholsigma)[3] != G)
+		stop("variance incompatible with mean")
+	for(k in 1:G) {
+		m <- ctabel[k]
+		x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
+			ncol = d) %*% cholsigma[,  , k], MARGIN = 2, STAT = mu[
+			, k], FUN = "+")
+	}
+	dimnames(x) <- list(NULL, 1:d)
+	structure(cbind(group = clabels, x), modelName = "VVV")
+}
+
+"mvnXII" <-
+function(data, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD)
+		stop("for multidimensional data only")
+	if(length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	if(is.null(prior)) {
+		temp <- .Fortran("mvnxii",
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			double(p),
+			double(1),
+			double(1),
+                        PACKAGE = "mclust")[4:6]
+		logpost <- NULL
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = 1, modelName = "XII"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("mnxiip",
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p),
+			double(1),
+			double(1),
+                        PACKAGE = "mclust")[c(8:10, 7)]
+		logpost <- temp[[4]]
+	}
+	mu <- temp[[1]]
+	sigmasq <- temp[[2]]
+	loglik <- temp[[3]]
+	Sigma <- sigmasq * diag(p)
+	ret <- 0
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		loglik <- NA
+		ret <- -1
+	}
+        variance <- list(modelName = "XII", d = p, G = 1,	
+                         sigmasq	 = sigmasq, Sigma = Sigma, 
+                         sigma = array(Sigma, c(p, p, 1)), scale = sigmasq)
+        parameters <- list(mean = matrix(mu, ncol = 1), variance = variance) 
+        structure(list(modelName = "XII", prior = prior, n = n, d = p, G = 1, 
+                       parameters = parameters, loglik = loglik), 
+                  WARNING = WARNING, returnCode = ret) 
+}
+
+"mvnX" <-
+function(data, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(!oneD)
+		stop("data must be one dimensional")
+	data <- as.vector(data)
+	n <- length(data)
+	if(is.null(prior)) {
+		temp <- .Fortran("mvn1d",
+			as.double(data),
+			as.integer(n),
+			double(1),
+			double(1),
+			double(1),
+                        PACKAGE = "mclust")[3:5]
+		logpost <- NULL
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = 1, modelName = "X"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("mvn1p",
+			as.double(data),
+			as.integer(n),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(1),
+			double(1),
+			double(1),
+                        PACKAGE = "mclust")[c(7:9, 6)]
+		logpost <- temp[[4]]
+	}
+	mu <- temp[[1]]
+	sigmasq <- temp[[2]]
+	loglik <- temp[[3]]
+	ret <- 0
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "sigma-squared vanishes"
+		if(warn) warning(WARNING)
+		loglik <- NA
+		ret <- -1
+	}
+        variance = list(modelName= "X", d = 1, G = 1, sigmasq = sigmasq)
+        parameters <- list(mean = mu, variance = variance)
+	structure(list(modelName = "X", prior = prior, n = n, d = 1, G = 1, 
+                       parameters = parameters, loglik = loglik),
+                  WARNING = WARNING, returnCode = ret) 
+}
+
+"mvnXXI" <-
+function(data, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD)
+		stop("for multidimensional data only")
+	if(length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	if(is.null(prior)) {
+		temp <- .Fortran("mvnxxi",
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			double(p),
+			double(1),
+			double(p),
+			double(1),
+                        PACKAGE = "mclust")[4:7]
+		logpost <- NULL
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = 1, modelName = "XXI"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("mnxxip",
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(priorParams$scale),
+			as.double(priorParams$dof),
+			double(p),
+			double(1),
+			double(p),
+			double(1),
+                        PACKAGE = "mclust")[c(8:11, 7)]
+		logpost <- temp[[5]]
+	}
+	mu <- temp[[1]]
+	scale <- temp[[2]]
+	shape <- temp[[3]]
+	loglik <- temp[[4]]
+	Sigma <- diag(scale * shape)
+	ret <- 0
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		loglik <- NA
+		ret <- -1
+	}
+	variance <- list(modelName = "XXI", d = p, G = 1, 
+                         Sigma = Sigma, sigma = array(Sigma, c(p, p, 1)),
+                         scale = scale, shape = shape)
+        parameters <- list(mean = matrix(mu, ncol = 1), variance = variance)
+	structure(list(modelName = "XXI", prior = prior, n = n, d = p, G = 1, 
+                       parameters = parameters, loglik = loglik),
+		  WARNING = WARNING, returnCode = ret) 
+}
+
+`mvnXXX` <-
+function(data, prior = NULL, warn = NULL, ...)
+{
+	##
+	# This function is part of the MCLUST software described at
+	#       http://www.stat.washington.edu/mclust
+	# Copyright information and conditions for use of MCLUST are given at
+	#        http://www.stat.washington.edu/mclust/license.txt
+	##
+	if(is.null(warn)) warn <- .Mclust$warn
+	dimdat <- dim(data)
+	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+	if(oneD)
+		stop("for multidimensional data only")
+	if(length(dimdat) != 2)
+		stop("data must be a matrix")
+	data <- as.matrix(data)
+	n <- nrow(data)
+	p <- ncol(data)
+	if(is.null(prior)) {
+		temp <- .Fortran("mvnxxx",
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			double(p),
+			double(p * p),
+			double(1),
+                        PACKAGE = "mclust")[c(4:6)]
+		logpost <- NULL
+	}
+	else {
+		priorParams <- do.call(prior$functionName, c(list(data = 
+			data, G = 1, modelName = "XXX"), prior[names(prior) !=
+			"functionName"]))
+		temp <- .Fortran("mnxxxp",
+			as.double(data),
+			as.integer(n),
+			as.integer(p),
+			double(p),
+			as.double(priorParams$shrinkage),
+			as.double(priorParams$mean),
+			as.double(if(any(priorParams$scale != 0)) chol(priorParams$
+					scale) else priorParams$scale),
+			as.double(priorParams$dof),
+			double(p),
+			double(p * p),
+			double(1),
+                        PACKAGE = "mclust")[c(9:11, 8)]
+		logpost <- temp[[4]]
+	}
+	mu <- temp[[1]]
+	cholSigma <- matrix(temp[[2]], p, p)
+	Sigma <- unchol(cholSigma, upper = TRUE)
+	loglik <- temp[[3]]
+## Sigma = t(cholSigma) %*% cholSigma
+	ret <- 0
+	WARNING <- NULL
+	if(loglik > signif(.Machine$double.xmax, 6)) {
+		WARNING <- "singular covariance"
+		if(warn)
+			warning(WARNING)
+		loglik <- NA
+		ret <- -1
+	}
+        variance <- list(modelName = "XXX", d = 1, G = 1,
+                         Sigma = Sigma, cholSigma = cholSigma, 
+                         sigma = array(Sigma, c(p, p, 1))) 
+        parameters <- list(mean = matrix(mu, ncol = 1), variance = variance)
+	structure(list(modelName = "XXX", prior = prior, n = n, d = p, G = 1,
+                       parameters = parameters, loglik = loglik), 
+                  WARNING = WARNING, returnCode = ret)
 }
 
 "chevron" <- 

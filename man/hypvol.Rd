@@ -23,10 +23,11 @@ hypvol(data, reciprocal=FALSE)
   }
 }
 \value{
-  Computes the hypervolume by two methods: simple variable bounds
-  and principal components, and returns the minimum value.
-  Used to compute the default hypervolume parameter for the noise 
-  component in 
+  Returns the minimum of the hypervolume computed from simple variable bounds
+  and that computed from variable bounds of the principal component scores.
+  Used for the default hypervolume parameter for the noise 
+  component when observations are designated as noise in  \code{Mclust}
+  and \code{mclustBIC}.
 }
 \section{References}{
   A. Dasgupta and A. E. Raftery (1998).

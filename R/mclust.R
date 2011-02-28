@@ -1319,39 +1319,34 @@ function(data, BICvalues, G=NULL, modelNames=NULL, ...)
         ans
 }
 
-`Mclust` <-
-function(data, G = NULL, modelNames = NULL, prior = NULL, 
-         control = emControl(), initialization = NULL, warn = FALSE, ...) 
+Mclust <-
+function (data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), 
+    initialization = NULL, warn = FALSE, ...) 
 {
-##
-# This function is part of the MCLUST software described at
-#       http://www.stat.washington.edu/mclust
-# Copyright information and conditions for use of MCLUST are given at
-#        http://www.stat.washington.edu/mclust/license.txt
-##
-        mc <- match.call(expand.dots = FALSE)
-        mc[[1]] <- as.name("mclustBIC")
-        mc[[2]] <- data
-  	Bic <- eval(mc, parent.frame())
-        G <- attr(Bic, "G")
-        modelNames <- attr(Bic,"modelNames") 
-  	Sumry <- summary(Bic, data, G=G, modelNames = modelNames) 
-	if(!(length(G) == 1)) {
-		bestG <- length(unique(Sumry$cl))
-		if (bestG == max(G))
-   		  warning("optimal number of clusters occurs at max choice")
-		else if (bestG == min(G))
-  	          warning("optimal number of clusters occurs at min choice")
-	}
-        attr(Bic,"n") <- attr(Bic, "warn") <- NULL
-        attr(Bic,"initialization") <- attr(Bic,"control") <- NULL
-        attr(Bic,"d") <- attr(Bic,"returnCodes") <- attr(Bic,"class") <- NULL
-	oldClass(Sumry) <- NULL
-	Sumry$bic <- Sumry$bic[1]
- 	ans <- c(list(BIC=Bic),Sumry)
-        orderedNames <- c("modelName", "n", "d", "G", "BIC", "bic", "loglik",
-                          "parameters", "z", "classification", "uncertainty") 
-	structure(ans[orderedNames], class = "Mclust")
+    mc <- match.call(expand.dots = FALSE)
+    mc[[1]] <- as.name("mclustBIC")
+    mc[[2]] <- data
+    Bic <- eval(mc, parent.frame())
+    G <- attr(Bic, "G")
+    modelNames <- attr(Bic, "modelNames")
+    Sumry <- summary(Bic, data, G = G, modelNames = modelNames)
+    if (!(length(G) == 1)) {
+        bestG <- length(unique(Sumry$cl))
+        if (bestG == max(G)) 
+            warning("optimal number of clusters occurs at max choice")
+        else if (bestG == min(G)) 
+            warning("optimal number of clusters occurs at min choice")
+    }
+    attr(Bic, "n") <- attr(Bic, "warn") <- NULL
+    attr(Bic, "initialization") <- attr(Bic, "control") <- NULL
+    attr(Bic, "d") <- attr(Bic, "returnCodes") <- attr(Bic, "class") <- NULL
+    oldClass(Sumry) <- NULL
+    Sumry$bic <- Sumry$bic[1]
+    ans <- c(list(BIC = Bic), Sumry)
+    orderedNames <- c("modelName", "n", "d", "G", "BIC", "bic", 
+        "loglik", "parameters", "classification", "uncertainty")
+    structure(if (Sumry$G > 1) ans[c(orderedNames,"z")] else ans[orderedNames],
+               class = "Mclust")
 }
 
 "pickBIC" <-
@@ -1626,102 +1621,100 @@ function(object, dataset, G, modelNames, ...)
        ans
 }
 
-"summaryMclustBIC" <-
-function(object, data, G=NULL, modelNames=NULL, ...)
+summaryMclustBIC <-
+function (object, data, G = NULL, modelNames = NULL, ...) 
 {
-  ##
-  # This function is part of the MCLUST software described at
-  #       http://www.stat.washington.edu/mclust
-  # Copyright information and conditions for use of MCLUST are given at
-  #        http://www.stat.washington.edu/mclust/license.txt
-  ##
-  dimData <- dim(data)
-  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
-  if(!oneD && length(dimData) != 2)
-    stop("data must be a vector or a matrix")
-  if(oneD) {
-    data <- drop(as.matrix(data))
-    n <- length(data)
-    d <- 1
-  }
-  else {
-    data <- as.matrix(data)
-    n <- nrow(data)
-    d <- ncol(data)
-  }
-  initialization <- attr(object, "initialization")
-  hcPairs <- initialization$hcPairs
-  subset <- initialization$subset
-  prior <- attr(object, "prior")
-  control <- attr(object, "control")
-  warn <- attr(object, "warn")
-  oldClass(object) <- NULL
-  attr(object, "prior") <- attr(object, "warn") <- NULL
-  attr(object, "modelNames") <- attr(object, "oneD") <- NULL
-  attr(object, "initialization") <- attr(object, "control") <- NULL
-  d <- if(is.null(dim(data))) 1 else ncol(data)
-  ##
-  if (is.null(G))
-    G <- dimnames(object)[[1]]
-  if (is.null(modelNames))
-    modelNames <- dimnames(object)[[2]]
-  bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
-  if (all(is.na(bestBICs))) {
-    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, control
-      = control, initialization = initialization, class = "summary.mclustBIC"))
-  }
-  temp <- unlist(strsplit(names(bestBICs)[1], ","))
-  bestModel <- temp[1]
-  G <- as.numeric(temp[2])
-  if(G == 1) {
-    out <- mvn(modelName = bestModel, data = data, prior = prior)
-    ans <- c(list(bic = bestBICs, classification = rep(1, n), 
-                  uncertainty = rep(0, n)), out)
+    dimData <- dim(data)
+    oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 
+        1
+    if (!oneD && length(dimData) != 2) 
+        stop("data must be a vector or a matrix")
+    if (oneD) {
+        data <- drop(as.matrix(data))
+        n <- length(data)
+        d <- 1
+    }
+    else {
+        data <- as.matrix(data)
+        n <- nrow(data)
+        d <- ncol(data)
+    }
+    initialization <- attr(object, "initialization")
+    hcPairs <- initialization$hcPairs
+    subset <- initialization$subset
+    prior <- attr(object, "prior")
+    control <- attr(object, "control")
+    warn <- attr(object, "warn")
+    oldClass(object) <- NULL
+    attr(object, "prior") <- attr(object, "warn") <- NULL
+    attr(object, "modelNames") <- attr(object, "oneD") <- NULL
+    attr(object, "initialization") <- attr(object, "control") <- NULL
+    d <- if (is.null(dim(data))) 
+        1
+    else ncol(data)
+    if (is.null(G)) 
+        G <- dimnames(object)[[1]]
+    if (is.null(modelNames)) 
+        modelNames <- dimnames(object)[[2]]
+    bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], 
+        k = 3)
+    if (all(is.na(bestBICs))) {
+        return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
+            control = control, initialization = initialization, 
+            class = "summary.mclustBIC"))
+    }
+    temp <- unlist(strsplit(names(bestBICs)[1], ","))
+    bestModel <- temp[1]
+    G <- as.numeric(temp[2])
+    if (G == 1) {
+        out <- mvn(modelName = bestModel, data = data, prior = prior)
+        ans <- c(list(bic = bestBICs, classification = rep(1, 
+            n), uncertainty = rep(0, n)), out)
+        orderedNames <- c("modelName", "n", "d", "G", "bic", 
+            "loglik", "parameters", "classification", "uncertainty")
+        return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
+            prior = prior, control = control, initialization = initialization, 
+            class = "summary.mclustBIC"))
+    }
+    if (is.null(subset)) {
+        if (d > 1 || !is.null(hcPairs)) {
+            z <- unmap(hclass(hcPairs, G))
+        }
+        else {
+            z <- unmap(qclass(data, G))
+        }
+        out <- me(modelName = bestModel, data = data, z = z, 
+            prior = prior, control = control, warn = warn)
+    }
+    else {
+        if (d > 1 || !is.null(hcPairs)) {
+            z <- unmap(hclass(hcPairs, G))
+        }
+        else {
+            z <- unmap(qclass(data[subset], G))
+        }
+        ms <- mstep(modelName = bestModel, prior = prior, z = z, 
+            data = as.matrix(data)[subset, ], control = control, 
+            warn = warn)
+        es <- do.call("estep", c(list(data = data), ms))
+        out <- me(modelName = bestModel, data = data, z = es$z, 
+            prior = prior, control = control, warn = warn)
+    }
+    obsNames <- if (is.null(dim(data))) {
+        names(data)
+    }
+    else {
+        dimnames(data)[[1]]
+    }
+    classification <- map(out$z)
+    uncertainty <- 1 - apply(out$z, 1, max)
+    names(classification) <- names(uncertainty) <- obsNames
+    ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
+        uncertainty = uncertainty), out)
     orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", 
-                      "parameters", "z", "classification", "uncertainty")
-    return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
-                     prior = prior,  control = control, 
-                     initialization = initialization, 
-                     class = "summary.mclustBIC"))
-  }
-  if(is.null(subset)) {
-    if(d > 1 || !is.null(hcPairs)) {
-      z <- unmap(hclass(hcPairs, G))
-    }
-    else {
-      z <- unmap(qclass(data, G))
-    }
-    out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
-      control = control, warn = warn)
-  }
-  else {
-    if(d > 1 || !is.null(hcPairs)) {
-      z <- unmap(hclass(hcPairs, G))
-    }
-    else {
-      z <- unmap(qclass(data[subset], G))
-    }
-    ms <- mstep(modelName = bestModel, prior = prior, z = z, data = 
-      as.matrix(data)[subset,  ], control = control, warn = warn)
-    es <- do.call("estep", c(list(data = data), ms))
-    out <- me(modelName = bestModel, data = data, z = es$z, 
-              prior = prior, control = control, warn = warn)
-  }
-  obsNames <- if (is.null(dim(data))) {
-                names(data) 
-              }
-              else {
-                dimnames(data)[[1]]
-              }
-  classification <- map(out$z)
-  uncertainty <- 1 - apply(out$z, 1, max)
-  names(classification) <- names(uncertainty) <- obsNames
-  ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
-    uncertainty = uncertainty), out)
-  orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "parameters", 
-    "z", "classification", "uncertainty")
-  structure(ans[orderedNames], bestBICvalues = bestBICs, prior = prior, control
-     = control, initialization = initialization, class = "summary.mclustBIC")
+        "parameters", "z", "classification", "uncertainty")
+    structure(ans[orderedNames], bestBICvalues = bestBICs, prior = prior, 
+        control = control, initialization = initialization, class = "summary.mclustBIC")
 }
 
 "summary.mclustModel" <-
@@ -2138,6 +2131,7 @@ function(data, parameters, warn = NULL, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        if (is.null(warn)) warn <- .Mclust$warn
 	dimdat <- dim(data)
 	if(is.null(dimdat) || length(dimdat) > 2)
 		stop("data must be a matrix or a vector")
@@ -6756,98 +6750,52 @@ function (x, y)
     }
     xy
 }
-`hypvol` <-
-function(data, reciprocal = FALSE)
+hypvol <-
+function (data, reciprocal = FALSE) 
 {
-##
-# This function is part of the MCLUST software described at
-#       http://www.stat.washington.edu/mclust
-# Copyright information and conditions for use of MCLUST are given at
-#        http://www.stat.washington.edu/mclust/license.txt
-##
-        ##
-	## finds the minimum hypervolume between principal components and 
-	## variable bounds
-	##
-	dimdat <- dim(data)
-	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-	if(oneD) {
-		## 1D case
-		n <- length(as.vector(data))
-		if(reciprocal) {
-			ans <- 1/(max(data) - min(data))
-		}
-		else {
-			ans <- max(data) - min(data)
-		}
-		return(ans)
-	}
-	if(length(dimdat) != 2)
-		stop("data must be a vector or a matrix")
-	data <- as.matrix(data)
-	dimd <- dim(data)
-	n <- dimd[1]
-	p <- dimd[2]
-##
-#		vol1 <- prod(apply(data, 2, function(z)
-#		diff(range(z))))
-#		V <- matrix(temp[[1]], p, p)
-#		xbar <- apply(data, 2, mean)
-#		X <- sweep(data, 2, xbar)
-#		library(Matrix)
-#		print(V)
-#		print(eigen.Hermitian(crossprod(X))$vectors)
-#		X <- X %*% V
-#		vol <- prod(apply(X, 2, function(z)
-#		diff(range(z))))
-##
-	lwgesvd <- max(3 * min(n, p) + max(n, p), 5 * min(n, p) - 4)
-	# min
-	lwsyevd <- p * (3 * p + 2 * ceiling(logb(p, base = 2)) + 5) + 1
-	# minimum
-	lisyevd <- 5 * p + 3
-	# minimum
-	lwsyevx <- 8 * p
-	lisyevx <- 5 * p + p
-	lwork <- max(lwsyevd, lwsyevx, n)
-	liwork <- max(lisyevd, lisyevx)
-	temp <- .Fortran("mclvol",
-		as.double(data),
-		as.integer(n),
-		as.integer(p),
-		double(p),
-		double(p * p),
-		double(p * p),
-		double(lwork),
-		as.integer(lwork),
-		integer(liwork),
-		as.integer(liwork),
-		integer(1),
-                PACKAGE = "mclust")[c(4, 11)]
-	if(temp[[2]])
-		stop("problem in computing principal components")
-	pcvol <- sum(log(temp[[1]]))
-	bdvol <- sum(log(apply(data, 2, max) - apply(data, 2, min)))
-	if(reciprocal) {
-		minlog <- log(.Machine$double.xmin)
-		if(-min(pcvol,bdvol) < minlog) {
-			warning("hypervolume smaller than smallest machine representable positive number"
-				)
-			ans <- 0
-		}
-		else ans <- exp(-min(pcvol, bdvol))
-	}
-	else {
+    dimdat <- dim(data)
+    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 
+        1
+    if (oneD) {
+        n <- length(as.vector(data))
+        if (reciprocal) {
+            ans <- 1/diff(range(data))
+        }
+        else {
+            ans <- diff(range(data))
+        }
+        return(ans)
+    }
+    if (length(dimdat) != 2) 
+        stop("data must be a vector or a matrix")
+    data <- as.matrix(data)
 
-		maxlog <- log(.Machine$double.xmax)
-		if(min(pcvol,bdvol) > maxlog) {
-			warning("hypervolume greater than largest machine representable number"
-				)
-			ans <- Inf
-		}
-		else ans <- exp(min(pcvol, bdvol))
-	}
-	ans
+    sumlogdifcol <- function(x) 
+            sum(log(apply(x, 2, function(colm) diff(range(colm)))))
+
+    bdvolog <- sumlogdifcol(data)
+    pcvolog <- sumlogdifcol(princomp(data)$scores)
+
+    volog <- min(bdvolog,pcvolog)
+
+    if (reciprocal) {
+       minlog <- log(.Machine$double.xmin)
+        if (-volog < minlog) {
+            warning("hypervolume smaller than smallest machine representable positive number")
+            ans <- 0
+        }
+        else ans <- exp(-volog)
+    }
+    else {
+        maxlog <- log(.Machine$double.xmax)
+        if (volog > maxlog) {
+            warning("hypervolume greater than largest machine representable number")
+            ans <- Inf
+        }
+        else ans <- exp(volog)
+    }
+
+    ans
 }
 
 imputeData <-
@@ -8376,6 +8324,7 @@ function(data, parameters, warn = NULL, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        if (is.null(warn)) warn <- .Mclust$warn
 	dimdat <- dim(data)
 	if(is.null(dimdat) || length(dimdat) != 2)
 		stop("data must be a matrix")
@@ -8482,7 +8431,8 @@ function(data, z, prior = NULL, control = emControl(),
                parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
                                   variance=variance)
                return(structure(list(modelName="VEV", prior=prior, n=n, d=p, 
-                                     G=G, z=z, parameters=parameters), 
+                                     G=G, z=z, parameters=parameters,
+                                     control=control, loglik=NA), 
                           WARNING = WARNING, returnCode = 9))
 	}
 	if(any(is.na(z)) || any(z < 0) || any(z > 1))
@@ -8632,6 +8582,7 @@ function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 	# Copyright information and conditions for use of MCLUST are given at
 	#        http://www.stat.washington.edu/mclust/license.txt
 	##
+        if (is.null(warn)) warn <- .Mclust$warn
 	dimdat <- dim(data)
 	oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
 	if(oneD || length(dimdat) != 2)

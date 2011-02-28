@@ -1,41 +1,36 @@
-      subroutine d9gaml (xmin, xmax)
+      double precision function dcsevl (x, a, n)
 
-      double precision xmin, xmax, alnbig, alnsml, xln, xold, d1mach
+      double precision a(n), x, twox, b0, b1, b2
 
-      external d1mach
+      double precision d1mach
+      external         d1mach
 c
-      alnsml = log(d1mach(1))
-      xmin = -alnsml
-      do 10 i=1,10
-        xold = xmin
-        xln = log(xmin)
-        xmin = xmin - xmin*((xmin+0.5d0)*xln - xmin - 0.2258d0 + alnsml)
-     1    / (xmin*xln+0.5d0)
-        if (dabs(xmin-xold).lt.0.005d0) go to 20
+C     if (n.lt.1) call seteru (28hdcsevl  number of terms le 0, 28, 2,2)
+      if (n.lt.1) dcsevl = -d1mach(2)
+      if (n.lt.1) return
+C     if (n.gt.1000) call seteru (31hdcsevl  number of terms gt 1000,
+C    1  31, 3, 2)
+      if (n.gt.1000) dcsevl = d1mach(2)
+      if (n.gt.1000) return
+C     if (x.lt.(-1.1d0) .or. x.gt.1.1d0) call seteru (
+C    1  25hdcsevl  x outside (-1,+1), 25, 1, 1)
+      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) dcsevl = d1mach(2)
+      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) return
+
+C added by CF to avoid uninitialized warnings
+      b2 = 0
+c
+      twox = 2.0d0*x
+      b1 = 0.d0
+      b0 = 0.d0
+      do 10 i=1,n
+        b2 = b1
+        b1 = b0
+        ni = n - i + 1
+        b0 = twox*b1 - b2 + a(ni)
  10   continue
-C     call seteru (27hd9gaml  unable to find xmin, 27, 1, 2)
-      xmin =  d1mach(2)
-      xmax = -d1mach(2)
-      return
 c
- 20   xmin = -xmin + 0.01d0
-c
-      alnbig = log (d1mach(2))
-      xmax = alnbig
-      do 30 i=1,10
-        xold = xmax
-        xln = log(xmax)
-        xmax = xmax - xmax*((xmax-0.5d0)*xln - xmax + 0.9189d0 - alnbig)
-     1    / (xmax*xln-0.5d0)
-        if (dabs(xmax-xold).lt.0.005d0) go to 40
- 30   continue
-C     call seteru (27hd9gaml  unable to find xmax, 27, 2, 2)
-      xmin =  d1mach(2)
-      xmax = -d1mach(2)
-      return
-c
- 40   xmax = xmax - 0.01d0
-      xmin = dmax1 (xmin, -xmax+1.d0)
+      dcsevl = 0.5d0 * (b0-b2)
 c
       return
       end
@@ -85,191 +80,25 @@ C     call seteru (34hd9lgmc  x so big d9lgmc underflows, 34, 2, 0)
 c
       end
 
-      double precision function dcsevl (x, a, n)
-
-      double precision a(n), x, twox, b0, b1, b2
-
-      double precision d1mach
-      external         d1mach
-c
-C     if (n.lt.1) call seteru (28hdcsevl  number of terms le 0, 28, 2,2)
-      if (n.lt.1) dcsevl = -d1mach(2)
-      if (n.lt.1) return
-C     if (n.gt.1000) call seteru (31hdcsevl  number of terms gt 1000,
-C    1  31, 3, 2)
-      if (n.gt.1000) dcsevl = d1mach(2)
-      if (n.gt.1000) return
-C     if (x.lt.(-1.1d0) .or. x.gt.1.1d0) call seteru (
-C    1  25hdcsevl  x outside (-1,+1), 25, 1, 1)
-      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) dcsevl = d1mach(2)
-      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) return
-c
-      twox = 2.0d0*x
-      b1 = 0.d0
-      b0 = 0.d0
-      do 10 i=1,n
-        b2 = b1
-        b1 = b0
-        ni = n - i + 1
-        b0 = twox*b1 - b2 + a(ni)
- 10   continue
-c
-      dcsevl = 0.5d0 * (b0-b2)
-c
-      return
-      end
-
-      double precision function dgamma (x)
-
-      double precision x, gamcs(42), dxrel, pi, sinpiy, sq2pil, xmax,
-     1  xmin, y, d9lgmc, dcsevl, d1mach, xsml
-      external d1mach, d9lgmc, dcsevl, initds
-
-      data gam cs(  1) / +.8571195590 9893314219 2006239994 2 d-2      /
-      data gam cs(  2) / +.4415381324 8410067571 9131577165 2 d-2      /
-      data gam cs(  3) / +.5685043681 5993633786 3266458878 9 d-1      /
-      data gam cs(  4) / -.4219835396 4185605010 1250018662 4 d-2      /
-      data gam cs(  5) / +.1326808181 2124602205 8400679635 2 d-2      /
-      data gam cs(  6) / -.1893024529 7988804325 2394702388 6 d-3      /
-      data gam cs(  7) / +.3606925327 4412452565 7808221722 5 d-4      /
-      data gam cs(  8) / -.6056761904 4608642184 8554829036 5 d-5      /
-      data gam cs(  9) / +.1055829546 3022833447 3182350909 3 d-5      /
-      data gam cs( 10) / -.1811967365 5423840482 9185589116 6 d-6      /
-      data gam cs( 11) / +.3117724964 7153222777 9025459316 9 d-7      /
-      data gam cs( 12) / -.5354219639 0196871408 7408102434 7 d-8      /
-      data gam cs( 13) / +.9193275519 8595889468 8778682594 0 d-9      /
-      data gam cs( 14) / -.1577941280 2883397617 6742327395 3 d-9      /
-      data gam cs( 15) / +.2707980622 9349545432 6654043308 9 d-10     /
-      data gam cs( 16) / -.4646818653 8257301440 8166105893 3 d-11     /
-      data gam cs( 17) / +.7973350192 0074196564 6076717535 9 d-12     /
-      data gam cs( 18) / -.1368078209 8309160257 9949917230 9 d-12     /
-      data gam cs( 19) / +.2347319486 5638006572 3347177168 8 d-13     /
-      data gam cs( 20) / -.4027432614 9490669327 6657053469 9 d-14     /
-      data gam cs( 21) / +.6910051747 3721009121 3833697525 7 d-15     /
-      data gam cs( 22) / -.1185584500 2219929070 5238712619 2 d-15     /
-      data gam cs( 23) / +.2034148542 4963739552 0102605193 2 d-16     /
-      data gam cs( 24) / -.3490054341 7174058492 7401294910 8 d-17     /
-      data gam cs( 25) / +.5987993856 4853055671 3505106602 6 d-18     /
-      data gam cs( 26) / -.1027378057 8722280744 9006977843 1 d-18     /
-      data gam cs( 27) / +.1762702816 0605298249 4275966074 8 d-19     /
-      data gam cs( 28) / -.3024320653 7353062609 5877211204 2 d-20     /
-      data gam cs( 29) / +.5188914660 2183978397 1783355050 6 d-21     /
-      data gam cs( 30) / -.8902770842 4565766924 4925160106 6 d-22     /
-      data gam cs( 31) / +.1527474068 4933426022 7459689130 6 d-22     /
-      data gam cs( 32) / -.2620731256 1873629002 5732833279 9 d-23     /
-      data gam cs( 33) / +.4496464047 8305386703 3104657066 6 d-24     /
-      data gam cs( 34) / -.7714712731 3368779117 0390152533 3 d-25     /
-      data gam cs( 35) / +.1323635453 1260440364 8657271466 6 d-25     /
-      data gam cs( 36) / -.2270999412 9429288167 0231381333 3 d-26     /
-      data gam cs( 37) / +.3896418998 0039914493 2081663999 9 d-27     /
-      data gam cs( 38) / -.6685198115 1259533277 9212799999 9 d-28     /
-      data gam cs( 39) / +.1146998663 1400243843 4761386666 6 d-28     /
-      data gam cs( 40) / -.1967938586 3451346772 9510399999 9 d-29     /
-      data gam cs( 41) / +.3376448816 5853380903 3489066666 6 d-30     /
-      data gam cs( 42) / -.5793070335 7821357846 2549333333 3 d-31     /
-c
-      data pi / 3.1415926535 8979323846 2643383279 50 d0 /
-c sq2pil is 0.5*alog(2*pi) = alog(sqrt(2*pi))
-      data sq2pil / 0.9189385332 0467274178 0329736405 62 d0 /
-      data ngam, xmin, xmax, xsml, dxrel / 0, 4*0.d0 /
-c
-      if (ngam.ne.0) go to 10
-      ngam = initds (gamcs, 42, 0.1*sngl(d1mach(3)) )
-c
-      call d9gaml (xmin, xmax)
-      xsml = exp (dmax1 (log(d1mach(1)), -log(d1mach(2)))+0.01d0)
-      dxrel = sqrt (d1mach(4))
-c
- 10   y = dabs(x)
-      if (y.gt.10.d0) go to 50
-c
-c compute gamma(x) for -xbnd .le. x .le. xbnd.  reduce interval and find
-c gamma(1+y) for 0.0 .le. y .lt. 1.0 first of all.
-c
-      n = x
-      if (x.lt.0.d0) n = n - 1
-      y = x - dble(float(n))
-      n = n - 1
-      dgamma = 0.9375d0 + dcsevl (2.d0*y-1.d0, gamcs, ngam)
-      if (n.eq.0) return
-c
-      if (n.gt.0) go to 30
-c
-c compute gamma(x) for x .lt. 1.0
-c
-      n = -n
-C     if (x.eq.0.d0) call seteru (14hdgamma  x is 0, 14, 4, 2)
-      if (x.eq.0.d0) dgamma = d1mach(2)
-      if (x.eq.0.d0) return
-C     if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) call seteru (
-C    1  31hdgamma  x is a negative integer, 31, 4, 2)
-      if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) 
-     1  dgamma = -d1mach(2)
-      if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) return
-C     if (x.lt.(-0.5d0) .and. dabs((x-int(x-0.5d0))/x).lt.dxrel) call
-C    1  seteru (68hdgamma  answer lt half precision because x too near n
-C    2egative integer, 68, 1, 1)
-C     if (y.lt.xsml) call seteru (
-C    1  54hdgamma  x is so close to 0.0 that the result overflows,
-C    2  54, 5, 2)
-      if (y.lt.xsml) dgamma = d1mach(2)
-      if (y.lt.xsml) return
-c
-      do 20 i=1,n
-        dgamma = dgamma/(x+dble(float(i-1)) )
- 20   continue
-      return
-c
-c gamma(x) for x .ge. 2.0 and x .le. 10.0
-c
- 30   do 40 i=1,n
-        dgamma = (y+dble(float(i))) * dgamma
- 40   continue
-      return
-c
-c gamma(x) for dabs(x) .gt. 10.0.  recall y = dabs(x).
-c
-C50   if (x.gt.xmax) call seteru (32hdgamma  x so big gamma overflows,
-C    1  32, 3, 2)
- 50   if (x.gt.xmax) dgamma = d1mach(2)
-      if (x.gt.xmax) return
-c
-      dgamma = 0.d0
-C     if (x.lt.xmin) call seteru (35hdgamma  x so small gamma underflows
-C    1  , 35, 2, 0)
-      if (x.lt.xmin) return
-c
-      dgamma = exp ((y-0.5d0)*dlog(y) - y + sq2pil + d9lgmc(y) )
-      if (x.gt.0.d0) return
-c
-C     if (dabs((x-dint(x-0.5d0))/x).lt.dxrel) call seteru (
-C    1  61hdgamma  answer lt half precision, x too near negative integer
-C    2  , 61, 1, 1)
-c
-      sinpiy = sin (pi*y)
-C     if (sinpiy.eq.0.d0) call seteru (
-C    1  31hdgamma  x is a negative integer, 31, 4, 2)
-      if (sinpiy.eq.0.d0) dgamma = -d1mach(2)
-      if (sinpiy.eq.0.d0) return
-c
-      dgamma = -pi/(y*sinpiy*dgamma)
-c
-      return
-      end
-
       double precision function dlngam (x)
 
       double precision x, dxrel, pi, sinpiy, sqpi2l, sq2pil,
-     1  y, xmax, dgamma, d9lgmc, d1mach
-      external d1mach, d9lgmc, dgamma
+     1  y, xmax, d9lgmc, d1mach
+C    1  y, xmax, dgamma, d9lgmc, d1mach
+      external d1mach, d9lgmc
+      intrinsic dgamma
 c
       data sq2pil / 0.9189385332 0467274178 0329736405 62 d0 /
 c sq2pil = alog (sqrt(2*pi)),  sqpi2l = alog(sqrt(pi/2))
       data sqpi2l / +.2257913526 4472743236 3097614947 441 d+0    /
+
       data pi / 3.1415926535 8979323846 2643383279 50 d0 /
 c
       data xmax, dxrel / 2*0.d0 /
 c
+C  added by CF to avoid uninitialized warnings
+      dlngam = 0.d0
+
       if (xmax.ne.0.d0) go to 10
       xmax = d1mach(2)/dlog(d1mach(2))
       dxrel = dsqrt (d1mach(4))
@@ -318,6 +147,10 @@ C     if (nos.lt.1) call seteru (
 C    1  35hinitds  number of coefficients lt 1, 35, 2, 2)
       if (nos.lt.1) initds = i1mach(9) 
 c
+
+C  added by CF to avoid uninitialized warnings
+      i = 0
+
       err = 0.
       do 10 ii=1,nos
         i = nos + 1 - ii
@@ -1066,6 +899,9 @@ c     double precision    x(n), d(ng*(ng-1)/2)
 
 c------------------------------------------------------------------------------
 
+      iopt   = 0
+      jopt   = 0
+
       lg     =  ng
       ld     = (ng*(ng-1))/2
       ll     =  nd-ng
@@ -1628,7 +1464,7 @@ c     FLMAX  = d1mach(2)
         smu  = zero
         do i = 1, n
           temp = z(i,k)
-	  sumz = sumz + temp
+          sumz = sumz + temp
           smu  = smu + temp*x(i)
         end do
         if (.not. EQPRO) pro(k)   = sumz / dble(n)
@@ -1806,8 +1642,8 @@ c------------------------------------------------------------------------------
         sumz   = sumz + sum
         pro(k) = sum / dble(n)
         if (sigsq .gt. one .or. smu .le. sum*FLMAX) then
-  	  smu    = smu  / sum
-	  mu(k)  = smu 
+          smu    = smu  / sum
+           mu(k)  = smu 
           if (sigsq .ne. FLMAX) then 
             do i = 1, n
               temp = abs(x(i) - smu)
@@ -1871,7 +1707,7 @@ c------------------------------------------------------------------------------
         smu  = zero
         do i = 1, n
           temp = z(i,k)
-	  sumz = sumz + temp
+          sumz = sumz + temp
           smu  = smu + temp*x(i)
         end do
         pro(k)   = sumz / dble(n)
@@ -1931,8 +1767,8 @@ c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
 
       integer                 info, i, j, k, nz
 
-      double precision        eps, rteps, detlog, prok, tmin, tmax
-      double precision        umin, umax, const, temp, rc, sum
+      double precision        rteps, detlog, prok, tmin, tmax
+      double precision        umin, umax, const, temp, sum
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -2839,7 +2675,7 @@ c     double precision   mu(p,G), shape(p), pro(G[+1])
       integer                 i, j, k, nz
 
       double precision        sum, temp, const, tmin, tmax
-      double precision        eps, rteps, smin, smax, prok
+      double precision        smin, smax, prok
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -3695,7 +3531,7 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
 
       integer                 i, j, k, nz
 
-      double precision        const, temp, rteps, tmin, tmax
+      double precision        const, temp, tmin, tmax
       double precision        smin, smax, prok, eps, sum
 
       double precision        zero, one, two
@@ -4135,7 +3971,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
 c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
       double precision   pshrnk, pmu(*), pscale(p,*), pdof
 
-      double precision	 Vinv, eps, tol, scale
+      double precision   Vinv, eps, tol, scale
 
 c     double precision   x(n,p), z(n,G[+1]), w(lwork), s(p)
       double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
@@ -4596,7 +4432,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
 c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
       double precision   pshrnk, pmu(*), pscale(p,*), pdof
 
-      double precision	 scale
+      double precision   scale
 
 c     double precision   x(n,p), z(n,G), w(lwork)
       double precision   x(n,*), z(n,*), w(  *  )
@@ -4604,25 +4440,25 @@ c     double precision   x(n,p), z(n,G), w(lwork)
 c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G)
       double precision   mu(p,*), shape(*), O(p,p,*), pro(*)
 
-      integer                 nz, p1, iter, i, j, k, l, j1, info
+      integer            p1, i, j, k, l, j1, info
 
-      double precision        dummy, temp, term, const
-      double precision        sumz, sum, smin, smax, cs, sn
+      double precision   dummy, temp, term, const
+      double precision   sumz, sum, smin, smax, cs, sn
 
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+      double precision   zero, one, two
+      parameter         (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
+      double precision   FLMAX
+      parameter         (FLMAX = 1.7976931348623157d308)
 
-      double precision        BIGLOG
-      parameter              (BIGLOG =  709.d0)
+      double precision   BIGLOG
+      parameter         (BIGLOG =  709.d0)
 
-      double precision        SMALOG
-      parameter              (SMALOG = -708.d0)
+      double precision   SMALOG
+      parameter         (SMALOG = -708.d0)
 
-      external                ddot
-      double precision        ddot
+      external           ddot
+      double precision   ddot
 
 c------------------------------------------------------------------------------
 
@@ -4895,6 +4731,8 @@ c     double precision    x(n,p), v(p), d(ng*(ng-1)/2)
       external            ddot
 
 c------------------------------------------------------------------------------
+
+      iopt   = 0
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -5679,7 +5517,7 @@ c     double precision    x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
       integer             i, j, k
 
       double precision    sum, sumz, zsum, pmupmu
-      double precision    const, temp, term, dnp
+      double precision    const, temp, dnp
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -6553,8 +6391,8 @@ c     double precision    mu(p,G), scale, shape(p,G), pro(G)
 
       integer             i, j, k
 
-      double precision    sum, sumz, temp, term, epsmin, zsum
-      double precision    smin, smax, const
+      double precision    sum, sumz, temp, term
+            double precision    smin, smax, const
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -6824,6 +6662,16 @@ c     call intpr( 'ng', -1, ng, 1)
 c     call intpr( 'ns', -1, ns, 1) 
 c     call dblepr( 'alpha', -1, alpha, 1) 
 c     call intpr( 'nd', -1, nd, 1) 
+
+      iopt = 0
+      jopt = 0
+      niop = 0
+      njop = 0
+      nopt = 0
+      siop = 0
+      sjop = 0
+      tmop = 0.d0
+      trop = 0.d0
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -7592,7 +7440,7 @@ c     FLMAX  = d1mach(2)
         smu  = zero
         do i = 1, n
           temp = z(i,k)
-	  sumz = sumz + temp
+          sumz = sumz + temp
           smu  = smu + temp*x(i)
         end do
         if (.not. EQPRO) pro(k)   = sumz / dble(n)
@@ -7799,20 +7647,20 @@ c       http://www.stat.washington.edu/mclust/license.txt
 c     double precision     x(n), z(n,G), mu(G), sigsq(G), pro(G)
       double precision     x(*), z(n,*), mu(*), sigsq(*), pro(*)
 
-      integer                 nz, iter, k, i
+      integer              k, i
 
-      double precision        pmupmu
-      double precision        sumz, sum, smu
-      double precision        temp, term, sigsqk
+      double precision     pmupmu
+      double precision     sumz, sum, smu
+      double precision     temp, term
 
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+      double precision     zero, one, two
+      parameter           (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
+      double precision     FLMAX
+      parameter           (FLMAX = 1.7976931348623157d308)
 
-      double precision        RTMIN
-      parameter              (RTMIN = 1.49166814624d-154)
+      double precision     RTMIN
+      parameter           (RTMIN = 1.49166814624d-154)
 
 c------------------------------------------------------------------------------
 
@@ -7825,7 +7673,7 @@ c------------------------------------------------------------------------------
         smu  = zero
         do i = 1, n
           temp = z(i,k)
-	  sumz = sumz + temp
+          sumz = sumz + temp
           smu  = smu + temp*x(i)
         end do
         pro(k) = sumz / dble(n)
@@ -9114,7 +8962,7 @@ c     double precision   scale(G), shape(p), O(p,p,G)
 
       integer                 i, j, k, nz
 
-      double precision        const, temp, eps, tmin, tmax
+      double precision        const, temp, tmin, tmax
       double precision        smin, smax, scalek, prok, sum
 
       double precision        zero, one, two
@@ -9375,7 +9223,7 @@ c     FLMAX  = d1mach(2)
 
       if (l .ne. 0 .or. zsum .lt. rteps) then
 
-	if (Vinv .ge. zero) then
+        if (Vinv .ge. zero) then
           term = zero
           do i = 1, n
             term = term + z(i,nz)
@@ -9434,7 +9282,7 @@ c       w(1)    = FLMAX
               temp = (one - pro(nz))/dble(G)
               call dcopy( G, temp, 0, pro, 1)
             end if
-	  else if (EQPRO) then
+          else if (EQPRO) then
             call dcopy( G, one/dble(G), 0, pro, 1)
           end if
           lwork   = 0
@@ -10487,19 +10335,19 @@ c     double precision   mu(p,G), pro(G)
 c     double precision   scale(G), shape(p), O(p,p,G)
       double precision   scale(*), shape(*), O(p,p,*)
 
-      integer                 p1, i, j, k, l, j1, inner, info
+      integer            p1, i, j, k, l, j1, inner, info
 
-      double precision        sum, term, temp, err, smin, smax, zsum
-      double precision        sumz, tmin, tmax, cs, sn, dummy, const
+      double precision   sum, term, temp, err, smin, smax
+      double precision   sumz, cs, sn, dummy, const
 
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+      double precision   zero, one, two
+      parameter         (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
+      double precision   FLMAX
+      parameter         (FLMAX = 1.7976931348623157d308)
 
-      double precision        SMALOG, BIGLOG
-      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+      double precision   SMALOG, BIGLOG
+      parameter         (SMALOG = -708.d0, BIGLOG = 709.d0)
 
 c------------------------------------------------------------------------------
 
@@ -10885,6 +10733,13 @@ c     double precision    x(n,p), v(p). d(*), ALPHA
       external            ddot
 
 c------------------------------------------------------------------------------
+
+      iopt = 0
+      niop = 0
+      njop = 0
+      nopt = 0
+      tmop = 0.d0
+      trop = 0.d0
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -11577,7 +11432,7 @@ c     double precision    mu(p,G), sigsq(G), pro(G[+1])
       double precision    sumz, sum, temp, const, term, zsum
       double precision    sigmin, sigsqk, hold, hood, err
       double precision    prok, tmin, tmax, ViLog, rteps
-      double precision    pmupmu, dmudmu, cmu, cgam, rmu, rgam
+      double precision    pmupmu, cmu, cgam, rmu, rgam
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -11872,7 +11727,7 @@ c     double precision    mu(p,G), sigsq(G), pro(G)
 
       integer             i, j, k
 
-      double precision    sumz, sum, temp, term
+      double precision    sumz, sum, temp
       double precision    sigsqk, const, pmupmu
 
       double precision    zero, one, two
@@ -11957,8 +11812,8 @@ c     double precision   mu(p,G), scale(G), shape(p,G), pro(G[+1])
 
       integer                 i, j, k, nz
 
-      double precision        sum, temp, const, eps, tmin, tmax
-      double precision        smin, smax, prok, scalek, rteps
+      double precision        sum, temp, const, tmin, tmax
+      double precision        smin, smax, prok, scalek
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -12110,7 +11965,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
       parameter          (pi2log = 1.837877066409345d0)
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)                  
+      parameter          (FLMAX = 1.7976931348623157d308)
 
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
@@ -12363,7 +12218,7 @@ c     double precision    mu(p,G), scale(G), shape(p,G), pro(G[+1])
       parameter          (pi2log = 1.837877066409345d0)
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)                  
+      parameter          (FLMAX = 1.7976931348623157d308)
 
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
@@ -12740,13 +12595,13 @@ c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
       integer             i, j, k
 
       double precision    sumz, sum, temp, term
-      double precision    err, smin, smax, const
+      double precision    smin, smax, const
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
 
       double precision    FLMAX
-      parameter          (FLMAX = 1.7976931348623157d308)                  
+      parameter          (FLMAX = 1.7976931348623157d308)
 
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
@@ -13022,28 +12877,28 @@ c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision   x(n,*), v(*), u(p,*), s(p,*)
       double precision   r(p,*), d(*)
 
-      integer                 psq, pm1, pp1
-      integer                 i, j, k, l, m, ij, iold
-      integer                 lg, ld, ll, lo, ls
-      integer                 ici, icj, ni, nj, nij
-      integer                 nopt, niop, njop, iopt, jopt
+      integer            psq, pm1, pp1
+      integer            i, j, k, l, m, ij, iold
+      integer            lg, ld, ll, lo, ls
+      integer            ici, icj, ni, nj, nij
+      integer            nopt, niop, njop, iopt, jopt
 
-      double precision        trcij, trmij, trop, tmop
-      double precision        traci, tracj, termi, termj
-      double precision        qi, qj, qij, si, sj, sij, ri, rj, rij
-      double precision        dij, dopt, siop, sjop
+      double precision   trcij, trmij, trop, tmop
+      double precision   traci, tracj, termi, termj
+      double precision   qi, qj, qij, si, sj, sij, ri, rj, rij
+      double precision   dij, dopt, siop, sjop
 
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+      double precision   zero, one, two
+      parameter         (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision        rthalf
-      parameter              (rthalf = .7071067811865476d0)
+      double precision   rthalf
+      parameter         (rthalf = .7071067811865476d0)
 
-      external                ddot, vvvtij
-      double precision        ddot, vvvtij
+      external           ddot, vvvtij
+      double precision   ddot, vvvtij
 
-      double precision        BETA0, ALPHA0, ABLOG
-      common /VVVMCL/         BETA0, ALPHA0, ABLOG
+      double precision   BETA0, ALPHA0, ABLOG
+      common /VVVMCL/    BETA0, ALPHA0, ABLOG
       save   /VVVMCL/            
 
       double precision    FLMAX
@@ -13053,6 +12908,12 @@ c     double precision   r(p,p), d(ng*(ng-1)/2)
       parameter          (EPSMAX = 2.2204460492503131d-16)
 
 c------------------------------------------------------------------------------
+
+      iopt = 0
+      niop = 0
+      nopt = 0
+      tmop = 0.d0
+      trop = 0.d0
 
       lg     =  ng
       ld     = (ng*(ng-1))/2
@@ -14709,17 +14570,17 @@ c     double precision   x(n)
 
       integer                 i
 
-      double precision        dn, scl, const, term, temp, xbar
-      double precision        cmu, cgam, rmu, rgam
+      double precision   dn, scl, const, term, temp, xbar
+      double precision   cmu, cgam, rmu, rgam
 
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+      double precision   zero, one, two
+      parameter         (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
+      double precision   pi2log
+      parameter         (pi2log = 1.837877066409345d0)
 
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
+      double precision   FLMAX
+      parameter         (FLMAX = 1.7976931348623157d308)
 
       double precision        ddot, dlngam
       external                ddot, dlngam
@@ -14797,7 +14658,7 @@ c     double precision   x(n,p), mu(p)
 
       integer                 i, j
 
-      double precision        dnp, scl, temp, term, sum, const
+      double precision        dnp, scl, temp, term, sum
       double precision        dmudmu, pmupmu, cmu, cgam, rmu, rgam
 
       double precision        zero, one, two
@@ -14959,25 +14820,25 @@ c     double precision   pshrnk, pmu(p), pscale, pdof
 c     double precision   x(n,p), mu(p), shape(p)
       double precision   x(n,*), mu(*), shape(*)
 
-      integer                 i, j
+      integer            i, j
 
-      double precision        sum, temp, smin, smax
-      double precision        term, const, scl, detlog
+      double precision   sum, temp, smin, smax
+      double precision   term, const, scl
 
-      double precision        zero, one, two
-      parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
+      double precision   zero, one, two
+      parameter         (zero = 0.d0, one = 1.d0, two = 2.d0)
 
-      double precision        pi2log
-      parameter              (pi2log = 1.837877066409345d0)
+      double precision   pi2log
+      parameter         (pi2log = 1.837877066409345d0)
 
-      double precision        FLMAX
-      parameter              (FLMAX = 1.7976931348623157d308)
+      double precision   FLMAX
+      parameter         (FLMAX = 1.7976931348623157d308)
 
-      double precision        SMALOG, BIGLOG
-      parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
+      double precision   SMALOG, BIGLOG
+      parameter         (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-      double precision        ddot
-      external                ddot
+      double precision   ddot
+      external           ddot
 
 c------------------------------------------------------------------------------
 

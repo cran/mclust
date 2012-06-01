@@ -1,0 +1,56 @@
+useDynLib(mclust)
+
+# Export all names
+exportPattern(".")
+
+# Import all packages listed as Imports or Depends
+import(
+         stats,
+         utils
+       )
+
+export(".Mclust", mclustOptions)
+export(hc,hcE,hcEEE,hcEII,
+          hcV,hcVII,hcVVV)
+export(hclass)
+export(em,emE,emEEE,emEEI,emEEV,emEII,emEVI,
+          emV,emVEI,emVEV,emVII,emVVI,emVVV)
+export(me,meE,meEEE,meEEI,meEEV,meEII,meEVI,
+          meV,meVEI,meVEV,meVII,meVVI,meVVV)
+export(sim,simE,simEEE,simEEI,simEEV,simEII,simEVI,
+           simV,simVEI,simVEV,simVII,simVVI,simVVV)
+export(estep,estepE,estepEEE,estepEEI,estepEEV,estepEII,estepEVI,
+             estepV,estepVEI,estepVEV,estepVII,estepVVI,estepVVV)
+export(mstep,mstepE,mstepEEE,mstepEEI,mstepEEV,mstepEII,mstepEVI,
+             mstepV,mstepVEI,mstepVEV,mstepVII,mstepVVI,mstepVVV)
+export(mvn,mvnX,mvnXII,mvnXXI,mvnXXX)
+export(dens, densityMclust)
+export(cdens,cdensE,cdensEEE,cdensEEI,cdensEEV,cdensEII,cdensEVI,
+             cdensV,cdensVEI,cdensVEV,cdensVII,cdensVVI,cdensVVV)
+
+export(bic,nVarParams)
+
+export(map,unmap)
+
+export(Mclust,mclustBIC)
+export(mclustModelNames,mclustModel,mclustVariance)
+
+export(decomp2sigma,sigma2decomp)
+
+export(imputeData,imputePairs)
+
+export(mapClass,classError,adjustedRandIndex)
+
+export(mclustDA,mclustDAtrain,mclustDAtest)
+export(cv1EMtrain,bicEMtrain)
+
+export(clPairs,mclust1Dplot,mclust2Dplot,mvn2plot,surfacePlot,uncerPlot)
+export(coordProj,randProj)
+
+export(priorControl,defaultPrior)
+
+S3method( "plot", "densityMclust")
+S3method( "plot", "Mclust")
+S3method( "plot", "mclustBIC")
+S3method( "plot", "mclustDA")
+S3method( "plot", "mclustDAtrain")

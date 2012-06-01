@@ -10,7 +10,7 @@ citHeader("To cite package 'mclust' in publications use:")
               author = personList(as.person("Chris Fraley"),
                                   as.person("Adrian E. Raftery")),
               year = "2006",
-              note = "(revised in 2009)",
+              note = "(revised in 2012)",
               type = "Technical Report",
               number  = "504",
               institution = "Department of Statistics, 

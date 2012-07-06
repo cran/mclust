@@ -1,12 +1,11 @@
-984a0e724bde3ba967b4b47a27a6e89f *CHANGELOG
-621564b4f1210d6a1bb1fcd19a16e14b *DESCRIPTION
-ffc4407d0ff29dee0bec790539e9436c *LICENSE
+f33ec05102f802cc99f7cbdb56b079c8 *CHANGELOG
+c6c205d0cacc895be0b03347b1a86baa *DESCRIPTION
 c125526363eed6b1b3cf8c032ef84c9f *NAMESPACE
-1d765e8000c59d580e158545eec08460 *R/mclust.R
-75b10919366c91d5b29bb396c446869d *R/zzz.R
-084e100dda6df42390b4db1154c1f577 *data/chevron.rda
+226677b40037e35df9ffbf0b98007318 *R/mclust.R
+73f1b553fb2b46dc8bc63ac8941a557d *R/zzz.R
+057d06cbed90e03235f3fc0f19a42513 *data/chevron.rda
 cab74b07bbff6f6dba6913925b744ccb *data/cross.rda
-68ba39558a9004a47893ee7a55c09dac *data/diabetes.rda
+d53109288a2f09298a0863306ad76839 *data/diabetes.rda
 20f449203bfcd2c4ed03a40c5347958f *data/wreath.rda
 0abd3032f74b13b1d057bb4e30464588 *inst/CITATION
 3d0eab788b6968e136888b6e0fd1f1c8 *inst/cite
@@ -80,4 +79,4 @@ bc7203373f8b436f6e157d822678fa6d *man/summary.mclustModel.Rd
 b860ef7c167eea0598c3beb6d285fd62 *man/unmap.Rd
 19157681a06e90c3b3067a3022f71886 *man/wreath.Rd
 7ab4aae0ebff42ce151372d97076416b *src/Makevars
-ea4519ca3e01e4e50d62865af717cf55 *src/mclust.f
+ea4519ca3e01e4e50d62865af717cf55 *src/mclust3.f

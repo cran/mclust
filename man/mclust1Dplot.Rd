@@ -8,11 +8,12 @@
   for the data.
 }
 \usage{
-mclust1Dplot(data, parameters=NULL, z=NULL, 
-             classification=NULL, truth=NULL, uncertainty=NULL, 
+mclust1Dplot(data, parameters = NULL, z = NULL, 
+             classification = NULL, truth = NULL, uncertainty = NULL, 
              what = c("classification", "density", "errors", "uncertainty"),
-             symbols=NULL, ngrid=length(data), xlab = NULL, xlim=NULL, CEX=1, 
-             identify=FALSE, \dots)
+             symbols = NULL, colors = NULL, ngrid = length(data), 
+             xlab = NULL, xlim = NULL, CEX = 1, 
+             identify = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -24,18 +25,18 @@ mclust1Dplot(data, parameters=NULL, z=NULL,
      used to produce superimposing ellipses on the plot.
      The relevant components are as follows:
      \describe{
-        \item{pro}{
+        \item{\code{pro}}{
               Mixing proportions for the components of the mixture. 
               There should one more mixing proportion than the number of 
               Gaussian components if the mixture model includes 
               a Poisson noise term.
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
@@ -79,6 +80,13 @@ mclust1Dplot(data, parameters=NULL, z=NULL,
     symbol \emph{|}. Classes are delineated by showing them in separate
     lines above the whole of the data.
   }
+  \item{colors}{
+    Either an integer or character vector assigning a color to each
+    unique class \code{classification}. Elements in \code{colors}
+    correspond to classes in order of appearance in the observations 
+    (the order used by the function \code{unique}).
+    The default is given is \code{mclust.options("classPlotColors")}.
+  }
   \item{ngrid}{
     Number of grid points to use for density computation over the interval
     spanned by the data. The default is the length of the data set.
@@ -113,10 +121,10 @@ mclust1Dplot(data, parameters=NULL, z=NULL,
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{mclust2Dplot}},

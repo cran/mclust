@@ -27,15 +27,15 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
  \item{parameters}{
      The parameters of the model:
      \describe{ 
-       \item{pro}{
+       \item{\code{pro}}{
            The vector of mixing proportions for the components of the mixture. 
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th 
               component of the mixture model. 
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance} 
@@ -62,14 +62,14 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{cdens}},
-  \code{\link{mclustOptions}},
+  \code{\link{mclust.options}},
   \code{\link{do.call}}
 }
 \examples{

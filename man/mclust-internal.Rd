@@ -1,5 +1,7 @@
 \name{mclust-internal}
+
 \title{Internal MCLUST functions}
+
 \alias{pickBIC}
 \alias{bicFill}
 \alias{grid1}
@@ -13,8 +15,17 @@
 \alias{orth2}
 \alias{charconv}
 \alias{[.mclustBIC}
-\alias{[.mclustDAtest}
 \alias{checkModelName}
+\alias{balanced.folds}
+\alias{permute.rows}
+\alias{projpar.MclustDR}
+\alias{projdir.MclustDR}
+\alias{mvdnorm}
+\alias{ellipse}
+\alias{eigen.decomp}
+\alias{dmvnorm}
+\alias{getParameters.MclustDA}
+
 \description{
   Internal functions not intended to be called directly by users.
 }

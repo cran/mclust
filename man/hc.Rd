@@ -13,12 +13,12 @@ hc(modelName, data, \dots)
 \arguments{
   \item{modelName}{
     A character string indicating the model. Possible models: \cr\cr 
-    "E" : equal variance  (one-dimensional) \cr
-    "V" : spherical, variable variance (one-dimensional) \cr
-    "EII": spherical, equal volume \cr
-    "VII": spherical, unequal volume \cr
-    "EEE": ellipsoidal, equal volume, shape, and orientation \cr
-    "VVV": ellipsoidal, varying volume, shape, and orientation
+    \code{"E"}: equal variance  (one-dimensional) \cr
+    \code{"V"} : spherical, variable variance (one-dimensional) \cr
+    \code{"EII"}: spherical, equal volume \cr
+    \code{"VII"}: spherical, unequal volume \cr
+    \code{"EEE"}: ellipsoidal, equal volume, shape, and orientation \cr
+    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation
   }
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
@@ -63,10 +63,10 @@ hc(modelName, data, \dots)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{hcE}},...,

@@ -29,14 +29,14 @@
     unique class in \code{classification}. Elements in \code{colors}
     correspond to classes in order of appearance in the sequence of
     observations (the order used by the function \code{unique}). 
-    The default is given is \code{.Mclust\$classPlotSymbols}.
+    The default is given by \code{mclust.options("classPlotSymbols")}.
   }
 \item{colors}{
     Either an integer or character vector assigning a color to each
     unique class in \code{classification}. Elements in \code{colors}
     correspond to classes in order of appearance in the sequence of
     observations (the order used by the function \code{unique}). 
-    The default is given is \code{.Mclust\$classPlotColors}.
+    The default is given by \code{mclust.options("classPlotColors")}.
   }
  \item{xlab}{
     Optional label for the horizontal axis of the BIC plot.
@@ -64,10 +64,10 @@
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
 \seealso{

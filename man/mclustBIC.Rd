@@ -31,13 +31,14 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
     A vector of character strings indicating the models to be fitted 
     in the EM phase of clustering. The help file for
     \code{mclustModelNames} describes the available models.
-    The default is \code{c("E", "V")} for univariate data and
-    \code{mclustOptions()\$emModelNames} for multivariate data (n > d),
-    the spherical and diagonal models 
-   \code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")} 
-    for multivariate data (n <= d),
+    The default is:
+    \describe{
+        \item{\code{c("E", "V")}}{for univariate data}
+        \item{\code{mclust.options("emModelNames")}}{for multivariate data (n > d)}
+        \item{\code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")}}{the spherical and diagonal models for multivariate data (n <= d)}
+     }
     unless the argument \code{x} is specified, in which case
-    the default is taken from the values asscoiated with \code{x}. 
+    the default is taken from the values associated with \code{x}. 
    }
   \item{prior}{
     The default assumes no prior, but this argument allows specification of a 
@@ -50,8 +51,8 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
   \item{initialization}{
    A list containing zero or more of the following components:
-  \itemize{
-  \item{hcPairs}{
+  \describe{
+  \item{\code{hcPairs}}{
     A matrix of merge pairs for hierarchical clustering such as produced
     by function \code{hc}. For multivariate data, the default is to compute 
     a hierarchical clustering tree by applying function \code{hc} with
@@ -60,11 +61,11 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
     The hierarchical clustering results are to start EM.  
     For univariate data, the default is to use quantiles to start EM.  
   }
-  \item{subset}{
+  \item{\code{subset}}{
     A logical or numeric vector specifying a subset of the data
     to be used in the initial hierarchical clustering phase.
   }
-  \item{noise}{
+  \item{\code{noise}}{
     A logical or numeric vector indicating an initial guess as to
     which observations are noise in the data. If numeric the entries
     should correspond to row indexes of the data. If supplied, a noise
@@ -103,11 +104,6 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   numbers of clusters. Auxiliary information returned as attributes.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
-
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 
@@ -120,6 +116,11 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   C. Fraley and A. E. Raftery (2007).
   Bayesian regularization for normal mixture estimation and model-based
   clustering. \emph{Journal of Classification 24:155-181}.
+
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{priorControl}}, 
@@ -129,7 +130,7 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \code{\link{hc}},
   \code{\link{me}},
   \code{\link{mclustModelNames}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclust.options}}
 }
 \examples{
 irisBIC <- mclustBIC(iris[,-5])

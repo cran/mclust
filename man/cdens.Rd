@@ -28,12 +28,12 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
   \item{parameters}{
      The parameters of the model:
      \describe{
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th 
               component of the mixture model. 
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance} 
@@ -64,10 +64,10 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006, revised 2010).
-  MCLUST Version 3 for R: Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report no. 504, 
-  Department of Statistics, University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
 \seealso{
@@ -77,16 +77,17 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
   \code{\link{estep}},
   \code{\link{mclustModelNames}},
   \code{\link{mclustVariance}},
-  \code{\link{mclustOptions}},
+  \code{\link{mclust.options}},
   \code{\link{do.call}}
 }
 \examples{
 z2 <- unmap(hclass(hcVVV(faithful),2)) # initial value for 2 class case
 
-model <- me( modelName="EEE", data=faithful, z=z2)
-cdens(modelName="EEE", data=faithful, logarithm = TRUE, 
+model <- me(modelName = "EEE", data = faithful, z = z2)
+cdens(modelName = "EEE", data = faithful, logarithm = TRUE, 
       parameters = model$parameters)[1:5,]
 
+data(cross)
 odd <- seq(1, nrow(cross), by = 2)
 oddBIC <- mclustBIC(cross[odd,-1]) 
 oddModel <- mclustModel(cross[odd,-1], oddBIC) ## best parameter estimates
@@ -98,5 +99,3 @@ densities <- cdens(modelName = oddModel$modelName, data = cross[even,-1],
 cbind(class = cross[even,1], densities)[1:5,]
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

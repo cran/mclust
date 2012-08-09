@@ -20,38 +20,38 @@ defaultPrior(data, G, modelName, \dots)
   }
   \item{modelName}{
     A character string indicating the model: \cr
-    "E": equal variance  (univariate) \cr
-    "V": variable variance (univariate)\cr 
-    "EII": spherical, equal volume \cr
-    "VII": spherical, unequal volume \cr
-    "EEI": diagonal, equal volume and shape\cr 
-    "VEI": diagonal, varying volume, equal shape\cr 
-    "EVI": diagonal, equal volume, varying shape \cr
-    "VVI": diagonal, varying volume and shape \cr
-    "EEE": ellipsoidal, equal volume, shape, and orientation \cr
-    "EEV": ellipsoidal, equal volume and equal shape\cr
-    "VEV": ellipsoidal, equal shape \cr
-    "VVV": ellipsoidal, varying volume, shape, and orientation 
+    \code{"E"}: equal variance  (univariate) \cr
+    \code{"V"}: variable variance (univariate)\cr 
+    \code{"EII"}: spherical, equal volume \cr
+    \code{"VII"}: spherical, unequal volume \cr
+    \code{"EEI"}: diagonal, equal volume and shape\cr 
+    \code{"VEI"}: diagonal, varying volume, equal shape\cr 
+    \code{"EVI"}: diagonal, equal volume, varying shape \cr
+    \code{"VVI"}: diagonal, varying volume and shape \cr
+    \code{"EEE"}: ellipsoidal, equal volume, shape, and orientation \cr
+    \code{"EEV"}: ellipsoidal, equal volume and equal shape\cr
+    \code{"VEV"}: ellipsoidal, equal shape \cr
+    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation 
   }
   \item{\dots}{
      One or more of the following:
-     \itemize{
-      \item{dof}{
+     \describe{
+      \item{\code{dof}}{
         The degrees of freedom for the prior on the variance. 
         The default is \code{d + 2}, where \code{d} is
         the dimension of the data.
       }
-      \item{scale}{
+      \item{\code{scale}}{
         The scale parameter for the prior on the variance. 
         The default is \code{var(data)/G^(2/d)},
         where \code{d} is the domension of the data.
       }
-      \item{shrinkage}{
+      \item{\code{shrinkage}}{
         The shrinkage parameter for the prior on the mean. 
         The default value is 0.01. 
         If 0 or NA, no prior is assumed for the mean.
       }
-      \item{mean}{
+      \item{\code{mean}}{
         The mean parameter for the prior. 
         The default value is \code{colMeans(data)}.
       }                   
@@ -68,6 +68,10 @@ defaultPrior(data, G, modelName, \dots)
   parameters for a conjugate prior.
 }
 \section{References}{
+  C. Fraley and A. E. Raftery (2002).
+  Model-based clustering, discriminant analysis, and density estimation.
+  \emph{Journal of the American Statistical Association 97:611-631}. 
+
   C. Fraley and A. E. Raftery (2005, revised 2009).
   Bayesian regularization for normal mixture estimation and model-based
   clustering.
@@ -77,14 +81,10 @@ defaultPrior(data, G, modelName, \dots)
   Bayesian regularization for normal mixture estimation and model-based
   clustering. \emph{Journal of Classification 24:155-181}.
 
-  C. Fraley and A. E. Raftery (2006, revised 2010).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
-
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.  
 }
 \seealso{
   \code{\link{mclustBIC}},

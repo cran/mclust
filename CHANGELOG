@@ -1,4 +1,20 @@
-2012/07    adoption of GPL (>= 2) license
+2012/08    version 4.0
+           - new summary and print methods for Mclust.
+           - new summary and print methods for densityMclust.
+           - included MclustDA function and methods.
+           - included MclustDR function and methods.
+           - included me.weighted function.
+           - restored hierarchical clustering capability for the EEE model (hcEEE).
+           - included vignettes for mclust version 4 from Technical Report 
+             No. 597 and for using weights in mclust.
+           - adoption of GPL (>= 2) license.
+2012/04    version 3.6
+            - bug fix: variable names lost when G = 1
+2012/03    version 3.5
+           - added summary.Mclust
+           - new functions for plotting and summarizing density estimation
+           - bug fixes
+           - clustCombi (code and doc provided by Jean-Patrick Baudry)
 2012/01    added NAMESPACE
 2011/05    removed intrinsic gamma
 2011/05    fixed hypvol function to avoid overflow

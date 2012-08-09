@@ -77,10 +77,10 @@ imputePairs(x, impx, symbols = c(16,1), colors = c("black", "red"), labels,
   A pairs plot displaying the location of missing and nonmissing values.
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report no. 504, 
-  Department of Statistics, University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{pairs}},

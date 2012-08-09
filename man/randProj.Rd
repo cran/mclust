@@ -31,12 +31,12 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
      used to produce superimposing ellipses on the plot. 
      The relevant components are as follows:
      \describe{
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
@@ -84,14 +84,14 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
     unique class in \code{classification}. Elements in \code{colors}
     correspond to classes in order of appearance in the sequence of
     observations (the order used by the function \code{unique}). 
-    The default is given is \code{.Mclust\$classPlotSymbols}.
+    The default is given by \code{mclust.options("classPlotSymbols")}.
   } 
   \item{colors}{
     Either an integer or character vector assigning a color to each
     unique class in \code{classification}. Elements in \code{colors}
     correspond to classes in order of appearance in the sequence of
     observations (the order used by the function \code{unique}). 
-    The default is given is \code{.Mclust\$classPlotColors}.
+    The default is given by \code{mclust.options("classPlotColors")}.
   }
   \item{scale}{
     A logical variable indicating whether or not the two chosen
@@ -129,16 +129,16 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006, revised 2010).
-  MCLUST Version 3: An R Package for Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{clPairs}},
   \code{\link{coordProj}},
   \code{\link{mclust2Dplot}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclust.options}}
 }
 \examples{
 est <- meVVV(iris[,-5], unmap(iris[,5]))

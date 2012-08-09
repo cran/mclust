@@ -17,17 +17,17 @@ sim(modelName, parameters, n, seed = NULL, ...)
  \item{parameters}{
      A list with the following components:
      \describe{
-        \item{pro}{
+        \item{\code{pro}}{
               A vector whose \emph{k}th component is the mixing proportion for
               the \emph{k}th component of the mixture model.
               If missing, equal proportions are assumed.
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
@@ -53,11 +53,8 @@ sim(modelName, parameters, n, seed = NULL, ...)
   columns are the \code{n} observations simulated from the specified MVN 
   mixture model.
 \item{Attributes:}{
-    \itemize{
-      \item \code{"modelName"}
-       A character string indicating the variance model used for
-       the simulation.
-    }
+      \code{"modelName"} A character string indicating the variance 
+      model used for the simulation.
   }
 }
 \details{
@@ -71,10 +68,10 @@ sim(modelName, parameters, n, seed = NULL, ...)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}.
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504,  Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{simE}}, \ldots,

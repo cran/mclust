@@ -13,10 +13,10 @@ same size and shape but differin orientation.
   Incermental model-based clustering for large datasets with small clusters.
   \emph{Journal of Computational and Graphical Statistics 14:1:18}.
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
 \keyword{datasets}

@@ -1,7 +1,7 @@
 useDynLib(mclust)
 
 # Export all names
-exportPattern(".")
+# exportPattern(".")
 
 # Import all packages listed as Imports or Depends
 import(
@@ -9,9 +9,10 @@ import(
          utils
        )
 
-export(".Mclust", mclustOptions)
-export(hc,hcE,hcEEE,hcEII,
-          hcV,hcVII,hcVVV)
+# export(.mclust)
+export(mclust.options, emControl)
+
+export(hc,hcE,hcEEE,hcEII,hcV,hcVII,hcVVV)
 export(hclass)
 export(em,emE,emEEE,emEEI,emEEV,emEII,emEVI,
           emV,emVEI,emVEV,emVII,emVVI,emVVV)
@@ -24,16 +25,14 @@ export(estep,estepE,estepEEE,estepEEI,estepEEV,estepEII,estepEVI,
 export(mstep,mstepE,mstepEEE,mstepEEI,mstepEEV,mstepEII,mstepEVI,
              mstepV,mstepVEI,mstepVEV,mstepVII,mstepVVI,mstepVVV)
 export(mvn,mvnX,mvnXII,mvnXXI,mvnXXX)
-export(dens, densityMclust)
 export(cdens,cdensE,cdensEEE,cdensEEI,cdensEEV,cdensEII,cdensEVI,
              cdensV,cdensVEI,cdensVEV,cdensVII,cdensVVI,cdensVVV)
 
-export(bic,nVarParams)
+export(bic,pickBIC,nVarParams)
 
-export(map,unmap)
+export(map,unmap,partconv,partuniq)
 
-export(Mclust,mclustBIC)
-export(mclustModelNames,mclustModel,mclustVariance)
+export(mclustModel,mclustModelNames,mclustVariance)
 
 export(decomp2sigma,sigma2decomp)
 
@@ -41,16 +40,43 @@ export(imputeData,imputePairs)
 
 export(mapClass,classError,adjustedRandIndex)
 
-export(mclustDA,mclustDAtrain,mclustDAtest)
 export(cv1EMtrain,bicEMtrain)
 
 export(clPairs,mclust1Dplot,mclust2Dplot,mvn2plot,surfacePlot,uncerPlot)
 export(coordProj,randProj)
 
-export(priorControl,defaultPrior)
+export(priorControl,defaultPrior,hypvol)
 
-S3method( "plot", "densityMclust")
-S3method( "plot", "Mclust")
+export(mclustBIC, summaryMclustBIC, summaryMclustBICn)
+S3method( "print", "mclustBIC")
+S3method( "summary", "mclustBIC")
+S3method( "print", "summary.mclustBIC")
 S3method( "plot", "mclustBIC")
-S3method( "plot", "mclustDA")
-S3method( "plot", "mclustDAtrain")
+
+export(Mclust, print.Mclust, summary.Mclust, print.summary.Mclust, plot.Mclust, predict.Mclust, logLik.Mclust)
+S3method( "print", "Mclust")
+S3method( "summary", "Mclust")
+S3method( "print", "summary.Mclust")
+S3method( "plot", "Mclust")
+
+export(densityMclust, plot.densityMclust, dens, predict.densityMclust, cdfMclust, densityMclust.diagnostic, plotDensityMclust1, plotDensityMclust2, plotDensityMclustd)
+S3method( "plot", "densityMclust")
+
+export(MclustDA, print.MclustDA, summary.MclustDA, print.summary.MclustDA, plot.MclustDA, predict.MclustDA, cv.MclustDA, getParameters.MclustDA, logLik.MclustDA)
+S3method( "print", "MclustDA")
+S3method( "summary", "MclustDA")
+S3method( "print", "summary.MclustDA")
+S3method( "plot", "MclustDA")
+S3method( "predict", "MclustDA")
+
+export(MclustDR, print.MclustDR, summary.MclustDR, print.summary.MclustDR, plot.MclustDR, plotEvalues.MclustDR, projpar.MclustDR, projdir.MclustDR)
+S3method( "print", "MclustDR")
+S3method( "summary", "MclustDR")
+S3method( "print", "summary.MclustDR")
+S3method( "plot", "MclustDR")
+
+export(clustCombi, print.clustCombi, plot.clustCombi, combiPlot, entPlot, combMat)
+S3method( "plot", "clustCombi")
+S3method( "print", "clustCombi")
+
+export(me.weighted)

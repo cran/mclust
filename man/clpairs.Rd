@@ -26,14 +26,14 @@ clPairs(data, classification, symbols, colors, labels=dimnames(data)[[2]],
     unique class in \code{classification}. Elements in \code{symbols}
     correspond to classes in order of appearance in the sequence of
     observations (the order used by the function \code{unique}). 
-    The default is given is \code{.Mclust\$classPlotSymbols}.
+    The default is given by \code{mclust.options("classPlotSymbols")}.
   }
   \item{colors}{
     Either an integer or character vector assigning a color to each
     unique class in \code{classification}. Elements in \code{colors}
     correspond to classes in order of appearance in the sequence of
     observations (the order used by the function \code{unique}). 
-    The default is given is \code{.Mclust\$classPlotColors}.
+    The default is given by \code{mclust.options("classPlotColors")}.
   }
   \item{labels}{
     A vector of character strings for labeling the variables. The default
@@ -53,15 +53,15 @@ clPairs(data, classification, symbols, colors, labels=dimnames(data)[[2]],
   classifications are labeled with different symbols. 
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006, revised 2010).
-  MCLUST Version 3 for R: Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report no. 504, 
-  Department of Statistics, University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{pairs}},
   \code{\link{coordProj}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclust.options}}
 }
 \examples{
 clPairs(iris[,-5], cl=iris[,5], symbols=as.character(1:3))

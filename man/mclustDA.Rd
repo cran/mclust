@@ -1,186 +1,222 @@
-\name{mclustDA}
-\alias{mclustDA}
-\alias{print.mclustDA}
-\title{
-  MclustDA discriminant analysis.
-}
+\name{MclustDA}
+\alias{MclustDA}
+\alias{print.MclustDA}
+
+\title{MclustDA discriminant analysis}
+
 \description{
-  MclustDA training and testing.
+Discriminant analysis based on Gaussian finite mixture modeling.
 }
+
 \usage{
-mclustDA(train, test, pro=NULL, G=NULL, modelNames=NULL, prior=NULL, 
-         control=emControl(), initialization=NULL, 
-         warn=FALSE, verbose=FALSE, \dots)
+MclustDA(data, class, G = NULL, modelNames = NULL, 
+         modelType = c("MclustDA", "EDDA"), 
+         prior = NULL, control = emControl(), 
+         initialization = NULL, warn = FALSE, \dots)
 }
+
 \arguments{
-  \item{train}{
-    A list with two named components: \code{data} giving the data
-    and \code{labels} giving the class labels for the observations in
-    the data.
+  \item{data}{
+    A data frame or matrix giving the training data.
   }
-  \item{test}{
-    A list with two named components: \code{data} giving the data
-    and \code{labels} giving the class labels for the observations in
-    the data. The labels are used only to compute the error rate
-    in the \code{print} method and  can be set to \code{NULL} if unknown.
-    The default is to test the training data.
-  }
- \item{pro}{
-    Optional prior probabilities for each class in the training data.
-  }
+  \item{class}{
+    A vector giving the class labels for the observations in 
+    the training data.}
+    
  \item{G}{
     An integer vector specifying the numbers of mixture components
-    (clusters) for which the BIC is to be calculated. 
-    The default is \code{G=1:9}. 
+    (clusters) for which the BIC is to be calculated within each class. 
+    The default is \code{G = 1:5}.\cr
+    A different set of mixture components for each class can be specified
+    by providing this argument with a list of integers for each class. 
+    See the examples below.
   }
+  
   \item{modelNames}{
     A vector of character strings indicating the models to be fitted 
-    in the EM phase of clustering. The help file for
-    \code{mclustModelNames} describes the available models.
-    The default is \code{c("E", "V")} for univariate data and
-    \code{mclustOptions()\$emModelNames} for multivariate data.
-   }
+    by EM within each class (see the description in 
+    \code{\link{mclustModelNames}}).
+    A different set of mixture models for each class can be specified
+    by providing this argument with a list of character strings.
+    See the examples below.
+  }
+   
+  \item{modelType}{
+    A character string specifying whether the models given in
+    \code{modelNames} should fit a different number of mixture 
+    components and covariance structures for each class 
+    (\code{"MclustDA"}, the default) or should be constrained 
+    to have a single component for each class with the same covariance 
+    structure among classes (\code{"EDDA"}).
+    See Details section and the examples below.
+  }
+
   \item{prior}{
     The default assumes no prior, but this argument allows specification of a 
     conjugate prior on the means and variances through the function 
-    \code{priorControl}.
-    }
+    \code{\link{priorControl}}.
+  }
+  
   \item{control}{
     A list of control parameters for EM. The defaults are set by the call
     \code{emControl()}. 
   }
+  
   \item{initialization}{
-   A list containing zero or more of the following components:
-  \itemize{
-  \item{hcPairs}{
+    A list containing zero or more of the following components:
+  \describe{
+  \item{\code{hcPairs}}{
     A matrix of merge pairs for hierarchical clustering such as produced
     by function \code{hc}. The default is to compute a hierarchical
     clustering tree by applying function \code{hc} with
     \code{modelName = "E"} to univariate data and
     \code{modelName = "VVV"} to multivariate data or a
     subset as indicated by the \code{subset} argument. 
-    The hierarchical clustering results are used as starting values for EM.  
-  }
-  \item{subset}{
+    The hierarchical clustering results are used as starting values 
+    for EM.}
+  \item{\code{subset}}{
     A logical or numeric vector specifying a subset of the data
-    to be used in the initial hierarchical clustering phase.
+    to be used in the initial hierarchical clustering phase.}
   }
   }
-  }
+  
   \item{warn}{
-     A logical value indicating whether or not certain warnings
+    A logical value indicating whether or not certain warnings
     (usually related to singularity) should be issued when
-     estimation fails. The default is to suppress these warnings.
+    estimation fails. The default is to suppress these warnings.
   }
-  \item{verbose}{
-    A logical variable telling whether or not to print an indication that the
-    function is in the training phase, which may take some time to complete.
-  }
-  \item{\dots }{
-    Catches unused arguments in indirect or list calls via \code{do.call}.
-  }
+  
+  \item{\dots }{Further arguments passed to or from other methods.}
 }
+
 \value{
-  A list with the following components: 
-  \item{test}{ 
-    A list with the following components:
-     \describe{
-        \item{classification}{
-              The classification of the test data for this instance of 
-              \code{mclustDA}.
-        }
-        \item{uncertainty}{
-            The uncertainty of the classification (0 least certain,
-            1 most certain).
-        }
-        \item{labels}{
-              The test labels (if any) from the input.
-        }
-      }
-  }
-  \item{training}{ 
-    A list with the following components:
-     \describe{
-        \item{classification}{
-              The classification of the training data for this instance of 
-              \code{mclustDA}.
-        }
-        \item{z}{
-            A  matrix whose \emph{[i,k]}th entry is the probability that 
-            observation \emph{i} in the training data belongs to the 
-            \emph{k}th class.
-        }
-        \item{labels}{
-              The training labels from the input.
-        }
-      }
-  }
-  \item{summary}{ 
-    A data frame summarizing the \code{mclustDA} results including
-    the mixture models and numbers of components for the training classes.
-  }
+ An object of class \code{"MclustDA"} providing the optimal (according 
+ to BIC) mixture model.
+ 
+ The details of the output components are as follows:
+
+  \item{call}{The matched call} 
+
+  \item{models}{A list of \code{\link{Mclust}} objects containing information
+  on fitted model for each class.} 
+    
+  \item{n}{The total number of observations in the data.}
+
+  \item{d}{The dimension of the data.}
+
+  \item{BIC}{All BIC values.}
+  
+  \item{bic}{Optimal BIC value.}
+    
+  \item{loglik}{Log-likelihood for the selected model.}
+  
+  \item{df}{Number of estimated parameters.}
 }
+
 \details{
-  \code{mclustDA} combines functions \code{mclustDAtrain} and 
-  \code{mclustDAtest} and their summaries. This is suitable when 
-   all test data are available in advance, so that the training
-   model is only used once. 
+The \code{"EDDA"} method for discriminant analysis is described in Bensmail and Celeux (1996), while \code{"MclustDA"} in Fraley and Raftery (2002).
 }
+
 \section{References}{
+  Bensmail, H., and Celeux, G. (1996)
+  Regularized Gaussian Discriminant Analysis Through Eigenvalue
+  Decomposition.
+  \emph{Journal of the American Statistical Association}, 91, 1743-1748.
+  
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
+  \emph{Journal of the American Statistical Association}, 97, 611-631. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
+\author{Luca Scrucca}
+
 \seealso{
-  \code{\link{plot.mclustDA}}, 
-  \code{\link{mclustDAtrain}}, 
-  \code{\link{mclustDAtest}},
+  \code{\link{summary.MclustDA}}, 
+  \code{\link{plot.MclustDA}}, 
+  \code{\link{predict.MclustDA}}, 
   \code{\link{classError}}
 }
 \examples{
-n <- 250 ## create artificial data
+odd <- seq(from = 1, to = nrow(iris), by = 2)
+even <- odd + 1
+X.train <- iris[odd,-5]
+Class.train <- iris[odd,5]
+X.test <- iris[even,-5]
+Class.test <- iris[even,5]
+
+# common EEE covariance structure (which is essentially equivalent to linear discriminant analysis)
+irisMclustDA <- MclustDA(X.train, Class.train, modelType = "EDDA", modelNames = "EEE")
+summary(irisMclustDA, parameters = TRUE)
+summary(irisMclustDA, newdata = X.test, newclass = Class.test)
+
+# common covariance structure selected by BIC
+irisMclustDA <- MclustDA(X.train, Class.train, modelType = "EDDA")
+summary(irisMclustDA, parameters = TRUE)
+summary(irisMclustDA, newdata = X.test, newclass = Class.test)
+
+# general covariance structure selected by BIC
+irisMclustDA <- MclustDA(X.train, Class.train)
+summary(irisMclustDA, parameters = TRUE)
+summary(irisMclustDA, newdata = X.test, newclass = Class.test)
+
+plot(irisMclustDA)
+plot(irisMclustDA, dimens = 3:4)
+plot(irisMclustDA, dimens = 4)
+
+plot(irisMclustDA, what = "classification")
+plot(irisMclustDA, what = "classification", newdata = X.test)
+plot(irisMclustDA, what = "classification", dimens = 3:4)
+plot(irisMclustDA, what = "classification", newdata = X.test, dimens = 3:4)
+plot(irisMclustDA, what = "classification", dimens = 4)
+plot(irisMclustDA, what = "classification", dimens = 4, newdata = X.test)
+
+plot(irisMclustDA, what = "train&test", newdata = X.test)
+plot(irisMclustDA, what = "train&test", newdata = X.test, dimens = 3:4)
+plot(irisMclustDA, what = "train&test", newdata = X.test, dimens = 4)
+
+plot(irisMclustDA, what = "error")
+plot(irisMclustDA, what = "error", dimens = 3:4)
+plot(irisMclustDA, what = "error", dimens = 4)
+plot(irisMclustDA, what = "error", newdata = X.test, newclass = Class.test)
+plot(irisMclustDA, what = "error", newdata = X.test, newclass = Class.test, dimens = 3:4)
+plot(irisMclustDA, what = "error", newdata = X.test, newclass = Class.test, dimens = 4)
+
+\dontrun{
+# simulated 1D data
+n <- 250 
 set.seed(1)
 triModal <- c(rnorm(n,-5), rnorm(n,0), rnorm(n,5))
 triClass <- c(rep(1,n), rep(2,n), rep(3,n))
-
 odd <- seq(from = 1, to = length(triModal), by = 2)
 even <- odd + 1
-triMclustDA <- mclustDA(train=list(data=triModal[odd],labels=triClass[odd]),
-                   test= list(data=triModal[even],labels=triClass[even]),
-                       verbose = TRUE)
+triMclustDA <- MclustDA(triModal[odd], triClass[odd])
+summary(triMclustDA, parameters = TRUE)
+summary(triMclustDA, newdata = triModal[even], newclass = triClass[even])
+plot(triMclustDA)
+plot(triMclustDA, what = "classification")
+plot(triMclustDA, what = "classification", newdata = triModal[even])
+plot(triMclustDA, what = "train&test", newdata = triModal[even])
+plot(triMclustDA, what = "error")
+plot(triMclustDA, what = "error", newdata = triModal[even], newclass = triClass[even])
 
-names(triMclustDA)
-\dontrun{
-  plot(triMclustDA, trainData = triModal[odd], testData = triModal[even])
-}
-
+# simulated 2D cross data
+data(cross)
 odd <- seq(from = 1, to = nrow(cross), by = 2)
 even <- odd + 1
-crossMclustDA <- mclustDA( train=list(data=cross[odd,-1],
-                                      labels=cross[odd,1]),
-                       test= list(data=cross[even,-1],labels=cross[even,1]),
-                       verbose = TRUE)
-
-\dontrun{
-  plot(crossMclustDA, trainData = cross[odd,-1], testData = cross[even,-1])
+crossMclustDA <- MclustDA(cross[odd,-1], cross[odd,1])
+summary(crossMclustDA, parameters = TRUE)
+summary(crossMclustDA, newdata = cross[even,-1], newclass = cross[even,1])
+plot(crossMclustDA)
+plot(crossMclustDA, what = "classification")
+plot(crossMclustDA, what = "classification", newdata = cross[even,-1])
+plot(crossMclustDA, what = "train&test", newdata = cross[even,-1])
+plot(crossMclustDA, what = "error")
+plot(crossMclustDA, what = "error", newdata =cross[even,-1], newclass = cross[even,1])
 }
-
-odd <- seq(from = 1, to = nrow(iris), by = 2)
-even <- odd + 1
-irisMclustDA <- mclustDA(train=list(data=iris[odd,-5],labels=iris[odd,5]),
-                       test= list(data=iris[even,-5],labels=iris[even,5]),
-                       verbose = TRUE)
-
-\dontrun{
-  plot(irisMclustDA, trainData = iris[odd,-5], testData = iris[even,-5])
 }
-
-}
-\keyword{cluster}
-% docclass is function
+\keyword{multivariate}

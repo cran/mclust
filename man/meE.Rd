@@ -73,7 +73,7 @@ meVVV(data, z, prior=NULL, control=emControl(),
   \item{warn}{
     A logical value indicating whether or not certain warnings
     (usually related to singularity) should be issued when the
-    estimation fails. The default is set in \code{.Mclust\$warn}.
+    estimation fails. The default is given by \code{mclust.options("warn")}.
   }
  \item{\dots }{
    Catches unused arguments in indirect or list calls via \code{do.call}.
@@ -91,25 +91,25 @@ meVVV(data, z, prior=NULL, control=emControl(),
   }
   \item{parameters}{
      \describe{
-        \item{pro}{
+        \item{\code{pro}}{
               A vector whose \emph{k}th component is the mixing proportion for 
               the \emph{k}th component of the mixture model.
               If the model includes a Poisson term for noise, there 
               should be one more mixing proportion than the number 
               of Gaussian components.
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th 
               component of the mixture model. 
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance} 
               for details.  
         }
-        \item{Vinv}{
+        \item{\code{Vinv}}{
               The estimate of the reciprocal hypervolume of the data region
               used in the computation when the input indicates the
               addition of a noise component to the model.
@@ -120,19 +120,12 @@ meVVV(data, z, prior=NULL, control=emControl(),
     The log likelihood for the data in the mixture model. 
   }
   \item{Attributes:}{
-    \itemize{
-      \item \code{"info"} Information on the iteration.
-      \item \code{"WARNING"}
-	An appropriate warning if problems are encountered in the computations.
-    }
+      \code{"info"} Information on the iteration.\cr
+      \code{"WARNING"} An appropriate warning if problems are encountered 
+      in the computations.\cr
   }
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
-
   C. Fraley and A. E. Raftery (2002a).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
@@ -145,12 +138,17 @@ meVVV(data, z, prior=NULL, control=emControl(),
   C. Fraley and A. E. Raftery (2007).
   Bayesian regularization for normal mixture estimation and model-based
   clustering. \emph{Journal of Classification 24:155-181}.
+
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{em}},
   \code{\link{me}},
   \code{\link{estep}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclust.options}}
 }
 \examples{
 meVVV(data = iris[,-5], z = unmap(iris[,5]))

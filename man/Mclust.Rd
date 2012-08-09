@@ -24,14 +24,15 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
     The default is \code{G=1:9}. 
   }
   \item{modelNames}{
-   A vector of character strings indicating the models to be fitted 
+    A vector of character strings indicating the models to be fitted 
     in the EM phase of clustering. The help file for
     \code{mclustModelNames} describes the available models.
-    The default is \code{c("E", "V")} for univariate data and
-    \code{mclustOptions()\$emModelNames} for multivariate data (n > d),
-    the spherical and diagonal models 
-   \code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")} 
-    for multivariate data (n <= d).
+    The default is:
+    \describe{
+        \item{\code{c("E", "V")}}{for univariate data}
+        \item{\code{mclust.options("emModelNames")}}{for multivariate data (n > d)}
+        \item{\code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")}}{the spherical and diagonal models for multivariate data (n <= d)}
+     }
    }
   \item{prior}{
     The default assumes no prior, but this argument allows specification of a 
@@ -43,18 +44,18 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
     \code{emControl()}. 
   }
  \item{initialization}{
-   A list containing zero or more of the following components:
-  \itemize{
-  \item{hcPairs}{
+    A list containing zero or more of the following components:
+  \describe{
+  \item{\code{hcPairs}}{
     A matrix of merge pairs for hierarchical clustering such as produced
     by function \code{hc}. For multivariate data, the default is to compute
     a hierarchical clustering tree by applying function \code{hc} with
-    \code{modelName = "VVV"} to the data or a
-    subset as indicated by the \code{subset} argument.
+    \code{modelName = "VVV"} to the data or a subset as indicated by the
+    \code{subset} argument.
     The hierarchical clustering results are to start EM.
     For univariate data, the default is to use quantiles to start EM.
   }
-  \item{subset}{
+  \item{\code{subset}}{
     A logical or numeric vector specifying a subset of the data
     to be used in the initial hierarchical clustering phase.
   }
@@ -70,10 +71,13 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
 }
 \value{
- A list giving the optimal (according to BIC) parameters,
-  conditional probabilities \code{z}, and loglikelihood,
-  together with the associated classification and its uncertainty.
-  The details of the output components are as follows:
+ An object of class \code{"Mclust"} providing the optimal (according to BIC)
+ mixture model estimation.
+ 
+ The details of the output components are as follows:
+  
+  \item{call}{The matched call} 
+
   \item{modelName}{
     A character string denoting the model at which the optimal BIC occurs.
   }
@@ -95,20 +99,23 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \item{loglik}{
     The loglikelihood corresponding to the optimal BIC.
   }
+  \item{df}{
+    The number of estimated parameters.
+  }
   \item{parameters}{
      A list with the following components:
      \describe{
-        \item{pro}{
+        \item{\code{pro}}{
               A vector whose \emph{k}th component is the mixing proportion for
               the \emph{k}th component of the mixture model.
               If missing, equal proportions are assumed.
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
@@ -117,7 +124,7 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
       }
   }
   \item{z}{
-    A  matrix whose \emph{[i,k]}th entry is the probability that observation
+    A matrix whose \emph{[i,k]}th entry is the probability that observation
     \emph{i} in the test data belongs to the \emph{k}th class.
   }
   \item{classification}{
@@ -131,11 +138,11 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
 }
 \section{References}{
-  C. Fraley and A. E. Raftery (2006, revised 2010).
-  MCLUST Version 3 for R: Normal Mixture Modeling
-  and Model-Based Clustering, Technical Report no. 504, 
-  Department of Statistics,  University of Washington.
-
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
+  
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 
@@ -150,17 +157,26 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   clustering. \emph{Journal of Classification 24:155-181}.
 }
 \seealso{
+  \code{\link{summary.Mclust}}, 
+  \code{\link{plot.Mclust}}, 
   \code{\link{priorControl}}, 
   \code{\link{emControl}}, 
   \code{\link{mclustBIC}}, 
   \code{\link{mclustModelNames}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclust.options}}
 }
 \examples{
-irisMclust <- Mclust(iris[,-5])
-\dontrun{
- plot(irisMclust)
-}
+mod1 = Mclust(iris[,1:4])
+summary(mod1)
+
+mod2 = Mclust(iris[,1:4], G = 1)
+summary(mod2)
+
+mod3 = Mclust(iris[,1:4], prior = priorControl())
+summary(mod3)
+
+mod4 = Mclust(iris[,1:4], prior = priorControl(functionName="defaultPrior", shrinkage=0.1))
+summary(mod4)
 }
 \keyword{cluster}
 % docclass is function

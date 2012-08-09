@@ -15,10 +15,10 @@ mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
     A character string representing a model name. This can be either
     \code{"Spherical"}, \code{"Diagonal"}, or \code{"Ellipsoidal"} or 
     else \cr
-    "X" for one-dimensional data,\cr
-    "XII" for a spherical Gaussian, \cr
-    "XXI" for a diagonal Gaussian \cr
-    "XXX" for a general ellipsoidal Gaussian 
+    \code{"X"} for one-dimensional data,\cr
+    \code{"XII"} for a spherical Gaussian, \cr
+    \code{"XXI"} for a diagonal Gaussian \cr
+    \code{"XXX"} for a general ellipsoidal Gaussian 
   }
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
@@ -32,7 +32,7 @@ mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
   \item{warn}{
     A logical value indicating whether or not a warning should be issued
     whenever a singularity is encountered.
-    The default is set in \code{.Mclust\$warn}.
+    The default is given by \code{mclust.options("warn")}.
   }
  \item{\dots }{
    Catches unused arguments in indirect or list calls via \code{do.call}.
@@ -45,12 +45,12 @@ mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
   }
   \item{parameters}{
      \describe{
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
@@ -62,10 +62,8 @@ mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
     The log likelihood for the data in the mixture model.
   }
   \item{Attributes:}{
-    \itemize{
-      \item \code{"WARNING"}
-        An appropriate warning if problems are encountered in the computations.
-    }
+      \code{"WARNING"} An appropriate warning if problems are 
+      encountered in the computations.
   }
 }
 \section{References}{
@@ -73,10 +71,10 @@ mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
   
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{mvnX}},

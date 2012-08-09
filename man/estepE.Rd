@@ -41,10 +41,10 @@ estepVVV(data, parameters, warn = NULL, \dots)
   }
   \item{parameters}{
     The parameters of the model:
-    \itemize{
-      \item An argument describing the variance (depends on the model):
+    %\itemize{
+    %\item An argument describing the variance (depends on the model):
       \describe{
-         \item{pro}{
+         \item{\code{pro}}{
                Mixing proportions for the components of the mixture.
                If the model includes a Poisson term for noise, there
                should be one more mixing proportion than the number
@@ -54,13 +54,13 @@ estepVVV(data, parameters, warn = NULL, \dots)
               The mean for each component. If there is more than one component,
               this is a matrix whose columns are the means of the  components.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance} 
               for details.
         }
-        \item{Vinv}{
+        \item{\code{Vinv}}{
               An estimate of the reciprocal hypervolume of the data region.
               If not supplied or set to a negative value, the default is
               determined by applying function \code{hypvol} to the data.
@@ -68,11 +68,11 @@ estepVVV(data, parameters, warn = NULL, \dots)
               mixing proportion for a noise component.
         }
       }
-    }
+    %}
   }
   \item{warn}{
     A logical value indicating whether or certain warnings should be issued.
-    The default is set in \code{.Mclust\$warn}.
+    The default is given by \code{mclust.options("warn")}.
   }
   \item{\dots}{
     Catches unused arguments in indirect or list calls via \code{do.call}.
@@ -95,10 +95,8 @@ estepVVV(data, parameters, warn = NULL, \dots)
     The logliklihood for the data in the mixture model. 
   }
   \item{Attribute}{
-    \itemize{
-      \item \code{"WARNING"}: An appropriate warning if problems are
+      \code{"WARNING"}: An appropriate warning if problems are
       encountered in the computations.
-    }
   }
 }
 \section{References}{
@@ -106,17 +104,17 @@ estepVVV(data, parameters, warn = NULL, \dots)
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association}. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{estep}},
   \code{\link{em}},
   \code{\link{mstep}},
   \code{\link{do.call}},
-  \code{\link{mclustOptions}},
+  \code{\link{mclust.options}},
   \code{\link{mclustVariance}} 
 }
 \examples{

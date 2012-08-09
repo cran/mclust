@@ -74,17 +74,17 @@
   \item{parameters}{
      A list with the following components:
      \describe{
-        \item{pro}{
+        \item{\code{pro}}{
               A vector whose \emph{k}th component is the mixing proportion for
               the \emph{k}th component of the mixture model.
               If missing, equal proportions are assumed.
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
@@ -103,17 +103,12 @@
      The uncertainty associated with the classification.
   }
   \item{Attributes:}{
-    \itemize{
-      \item \code{"bestBICvalues"}
-        Some of the best bic values for the analysis.
-      \item \code{"prior"}
-        The prior as specified in the input.
-      \item \code{"control"}
-        The control parameters for EM as specified in the input.
-      \item \code{"initialization"}
-        The parameters used to initial EM for computing the maximum
-        likelihood values used to obtain the BIC.
-    }
+      \code{"bestBICvalues"} Some of the best bic values for the analysis.\cr
+      \code{"prior"} The prior as specified in the input.\cr
+      \code{"control"} The control parameters for EM as specified in 
+      the input.\cr
+      \code{"initialization"} The parameters used to initial EM for 
+      computing the maximum likelihood values used to obtain the BIC.
   }
 }
 \section{References}{
@@ -121,10 +116,10 @@
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}.
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
 \seealso{

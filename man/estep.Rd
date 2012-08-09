@@ -25,29 +25,29 @@
      A names list giving the parameters of the model.
      The components are as follows:
      \describe{
-         \item{pro}{
+         \item{\code{pro}}{
                Mixing proportions for the components of the mixture. 
                If the model includes a Poisson term for noise, there 
                should be one more mixing proportion than the number 
                of Gaussian components.
         }
-        \item{mean}{
+        \item{\code{mean}}{
               The mean for each component. If there is more than one component,
               this is a matrix whose kth column is the mean of the \emph{k}th
               component of the mixture model.
         }
-        \item{variance}{
+        \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
               specification. See the help file for \code{mclustVariance}
               for details.
         }
-        \item{Vinv}{
-	      An estimate of the reciprocal hypervolume of the data region.
-      	      If set to NULL or a negative value, the default is determined by 
-              applying function \code{hypvol} to the data.
-    	      Used only when \code{pro} includes an additional
-	      mixing proportion for a noise component.
+        \item{\code{Vinv}}{
+              An estimate of the reciprocal hypervolume of the data region.
+              If set to NULL or a negative value, the default is determined
+              by applying function \code{hypvol} to the data.
+              Used only when \code{pro} includes an additional
+              mixing proportion for a noise component.
         }
      }
   }
@@ -75,29 +75,27 @@
   \item{loglik}{
     The loglikelihood for the data in the mixture model. 
   }
-  \item{Attribute}{
-    \itemize{
-      \item \code{"WARNING"}: An appropriate warning if problems are
+  \item{Attributes}{
+      \code{"WARNING"}: an appropriate warning if problems are
       encountered in the computations.
     }
-  }
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley and A. E. Raftery (2006).
-  MCLUST Version 3 for R: Normal Mixture Modeling and Model-Based Clustering, 
-  Technical Report no. 504, Department of Statistics,
-  University of Washington.
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{estepE}}, \dots,
   \code{\link{estepVVV}},
   \code{\link{em}},
   \code{\link{mstep}},
-  \code{\link{mclustOptions}}
+  \code{\link{mclust.options}}
   \code{\link{mclustVariance}}
 }
 \examples{

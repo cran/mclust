@@ -1,6 +1,6 @@
-.First.lib <- function(lib, pkg) 
+.onLoad <- function(libname, pkgname) 
 {
-  library.dynam("mclust", pkg, lib)
+  library.dynam("mclust", pkgname, libname)
 }
 
 #############################################################################
@@ -43,24 +43,41 @@ mclust.options <- function(...)
 
 #############################################################################
 
-adjustedRandIndex <- function(x, y)
+# This old version is inefficient for large vectors
+# adjustedRandIndex <- function(x, y)
+# {
+#   x <- as.vector(x)
+#   y <- as.vector(y)
+#   xx <- outer(x, x, "==")
+#   yy <- outer(y, y, "==")
+#   upper <- row(xx) < col(xx)
+#   xx <- xx[upper]
+#   yy <- yy[upper]
+#   a <- sum(as.numeric(xx & yy))
+#   b <- sum(as.numeric(xx & !yy))
+#   c <- sum(as.numeric(!xx & yy))
+#   d <- sum(as.numeric(!xx & !yy))
+#   ni <- (b + a)
+#   nj <- (c + a)
+#   abcd <- a + b + c + d
+#   q <- (ni * nj)/abcd
+#   (a - q)/((ni + nj)/2 - q)
+# }
+
+adjustedRandIndex <- function (x, y) 
 {
   x <- as.vector(x)
   y <- as.vector(y)
-  xx <- outer(x, x, "==")
-  yy <- outer(y, y, "==")
-  upper <- row(xx) < col(xx)
-  xx <- xx[upper]
-  yy <- yy[upper]
-  a <- sum(as.numeric(xx & yy))
-  b <- sum(as.numeric(xx & !yy))
-  c <- sum(as.numeric(!xx & yy))
-  d <- sum(as.numeric(!xx & !yy))
-  ni <- (b + a)
-  nj <- (c + a)
-  abcd <- a + b + c + d
-  q <- (ni * nj)/abcd
-  (a - q)/((ni + nj)/2 - q)
+  if(length(x) != length(y)) 
+     stop("arguments must be vectors of the same length")
+  tab <- table(x,y)
+  a <- sum(choose(tab, 2))
+  b <- sum(choose(rowSums(tab), 2)) - a
+  c <- sum(choose(colSums(tab), 2)) - a
+  d <- choose(sum(tab), 2) - a - b - c
+  ARI <- (a - (a + b) * (a + c)/(a + b + c + d)) /
+         ((a + b + a + c)/2 - (a + b) * (a + c)/(a + b + c + d))
+  return(ARI)
 }
 
 bicEMtrain <- function(data, labels, modelNames=NULL) 
@@ -208,6 +225,7 @@ cv1EMtrain <- function(data, labels, modelNames=NULL)
     errorRate/n
 }
 
+# This version is bugged when a quantile is equal to the following
 qclass <- function (x, k) 
 {
   q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
@@ -215,7 +233,17 @@ qclass <- function (x, k)
   q[1] <- q[1] - 1
   for(i in 1:k) 
      cl[x > q[i] & x <= q[i+1]] <- i
-  
+  return(cl)
+}
+# This should correct the above bug
+qclass <- function (x, k) 
+{
+  q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
+  q[1] <- q[1] - 1
+  q[length(q)] <- q[length(q)] + 1
+  cl <- rep(0, length(x))
+  for(i in 1:k) 
+    cl[x >= q[i] & x < q[i+1]] <- i
   return(cl)
 }
 
@@ -541,16 +569,16 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
                       initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),  
                       Vinv = NULL, warn = FALSE, x = NULL, ...)
 {
- if (!is.null(x)) {
-    if (!missing(prior) || !missing(control) || 
-        !missing(initialization) || !missing(Vinv)) 
- stop("only G and modelNames may be specified as arguments when x is supplied")
-    prior <- attr(x,"prior") 
-    control <- attr(x,"control")
-    initialization <- attr(x,"initialization")
-    Vinv <- attr(x,"Vinv")
-    warn <- attr(x,"warn")
-  }
+  if(!is.null(x)) 
+    { if(!missing(prior) || !missing(control) || 
+         !missing(initialization) || !missing(Vinv)) 
+      stop("only G and modelNames may be specified as arguments when x is supplied")
+      prior <- attr(x,"prior") 
+      control <- attr(x,"control")
+      initialization <- attr(x,"initialization")
+      Vinv <- attr(x,"Vinv")
+      warn <- attr(x,"warn")
+    }
   dimData <- dim(data)
   oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
   if(!oneD && length(dimData) != 2)
@@ -582,7 +610,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       G <- if (is.null(initialization$noise)) 1:9 else 0:9
     }
     else {
-      G <- sort(as.integer(G))
+      G <- sort(as.integer(unique(G)))
     }
     if (is.null(initialization$noise)) {
       if (any(G > n)) G <- G[G <= n]
@@ -952,7 +980,7 @@ pickBIC <- function(x, k = 3)
   x
 }
 
-print.mclustBIC <- function(x, fill = FALSE, ...)
+print.mclustBIC <- function(x, pick = 3, ...)
 {
   subset <- !is.null(attr(x, "subset"))
   oldClass(x) <- attr(x, "args") <- NULL
@@ -963,14 +991,12 @@ print.mclustBIC <- function(x, fill = FALSE, ...)
   n <- attr(x, "n")
   d <- attr(x, "d")
   attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
-        ##
-  ## if(!subset && any(ret) && fill) {
-  ##  x <- bicFill(x, ret, n, d)
-  ## }
-        ##
-  cat("\n BIC:\n")
+
+  cat("\nBIC:\n")
   NextMethod("print")
   cat("\n")
+  cat("Top", pick, "models based on the BIC criterion:\n")
+  print(pickBIC(x, pick), ...)
   invisible()
 }
 
@@ -1001,7 +1027,7 @@ mclustModelNames <- function(model)
   return(list(model = model, type = type))
 }
 
-print.Mclust <- function(x, ndigits = options()$digits, ...)
+print.Mclust <- function(x, digits = getOption("digits"), ...)
 {
   cat("\'", class(x)[1], "\' model object:\n", sep = "")
   M <- mclustModelNames(x$model)$type
@@ -1030,7 +1056,8 @@ summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, .
   #
   obj <- list(title = title, n = object$n, d = object$d, 
               G = G, modelName = object$modelName, 
-              loglik = object$loglik, df = object$df, bic = object$bic,
+              loglik = object$loglik, df = object$df, 
+              bic = object$bic, icl = icl(object),
               pro = pro, mean = mean, variance = sigma, 
               prior = attr(object$BIC, "prior"), 
               classification = object$classification, 
@@ -1057,9 +1084,9 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   cat("\nMclust ", x$modelName, " (", mclustModelNames(x$modelName)$type, 
       ") model with ", x$G, ifelse(x$G > 1, " components:", " component:"), "\n\n",
       sep="")
-  tab <- data.frame("log-likelihood" = x$loglik,
-                    "n" = x$n, "df" = x$df, 
-                    "BIC" = x$bic, row.names = "")
+  tab <- data.frame("log-likelihood" = x$loglik, "n" = x$n, 
+                    "df" = x$df, "BIC" = x$bic, "ICL" = x$icl, 
+                    row.names = "")
   print(tab, digits = digits)
   #
   cat("\nClustering table:")
@@ -1087,23 +1114,23 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
 }
 
 
-print.summary.mclustBIC <- function(x, ndigits = options()$digits, ...)
+print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
 {
   cat("\nclassification table:")
   print(table(x$classification), ...)
   #----------------------------------------------------------------------
   #  cat("\nuncertainty (quartiles):\n")
-  #  print(quantile(x$uncertainty), digits = ndigits, ...)
+  #  print(quantile(x$uncertainty), digits = digits, ...)
   #----------------------------------------------------------------------
   bic <- attr(x,"bestBICvalues")
   l <- length(bic)
   if(l == 1) {
           cat("\nBIC value:\n")
-      print(round(bic, ndigits))
+      print(round(bic, digits))
         }
         else {
           cat("\nbest BIC values:\n")
-      print(round(bic, ndigits))
+      print(round(bic, digits))
         }
         if(is.null(x$model)) {
           M <- "noise"
@@ -1223,8 +1250,7 @@ summary.mclustBIC <- function(object, dataset, G, modelNames, ...)
 summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...) 
 {
     dimData <- dim(data)
-    oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 
-        1
+    oneD <- (is.null(dimData) || length(dimData[dimData > 1]) == 1)
     if (!oneD && length(dimData) != 2) 
         stop("data must be a vector or a matrix")
     if (oneD) {
@@ -1247,72 +1273,67 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
     attr(object, "prior") <- attr(object, "warn") <- NULL
     attr(object, "modelNames") <- attr(object, "oneD") <- NULL
     attr(object, "initialization") <- attr(object, "control") <- NULL
-    d <- if (is.null(dim(data))) 
-        1
-    else ncol(data)
+    d <- if (is.null(dim(data))) 1 else ncol(data)
     if (is.null(G)) 
         G <- dimnames(object)[[1]]
     if (is.null(modelNames)) 
         modelNames <- dimnames(object)[[2]]
-    bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], 
-        k = 3)
-    if (all(is.na(bestBICs))) {
+    bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
+    if(all(is.na(bestBICs))) 
+      {
         return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
-            control = control, initialization = initialization, 
-            class = "summary.mclustBIC"))
-    }
+                         control = control, initialization = initialization, 
+                         class = "summary.mclustBIC"))
+      }
     temp <- unlist(strsplit(names(bestBICs)[1], ","))
     bestModel <- temp[1]
     G <- as.numeric(temp[2])
-    if (G == 1) {
+    if(G == 1) 
+      {
         out <- mvn(modelName = bestModel, data = data, prior = prior)
-        ans <- c(list(bic = bestBICs, classification = rep(1, 
-            n), uncertainty = rep(0, n)), out)
-        orderedNames <- c("modelName", "n", "d", "G", "bic", 
-            "loglik", "parameters", "classification", "uncertainty")
+        ans <- c(list(bic = bestBICs, classification = rep(1, n), 
+                      uncertainty = rep(0, n)), out)
+        orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", 
+                          "parameters", "classification", "uncertainty")
         return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
-            prior = prior, control = control, initialization = initialization, 
-            class = "summary.mclustBIC"))
+                         prior = prior, control = control, initialization = initialization, 
+                         class = "summary.mclustBIC"))
     }
-    if (is.null(subset)) {
-        if (d > 1 || !is.null(hcPairs)) {
-            z <- unmap(hclass(hcPairs, G))
-        }
-        else {
-            z <- unmap(qclass(data, G))
-        }
+    if(is.null(subset)) 
+      {
+        if(d > 1 || !is.null(hcPairs))
+          { z <- unmap(hclass(hcPairs, G)) }
+        else 
+          { z <- unmap(qclass(data, G), groups = 1:G) }
         out <- me(modelName = bestModel, data = data, z = z, 
-            prior = prior, control = control, warn = warn)
+                  prior = prior, control = control, warn = warn)
     }
-    else {
-        if (d > 1 || !is.null(hcPairs)) {
-            z <- unmap(hclass(hcPairs, G))
-        }
-        else {
-            z <- unmap(qclass(data[subset], G))
-        }
+    else 
+      {
+        if(d > 1 || !is.null(hcPairs)) 
+          { z <- unmap(hclass(hcPairs, G)) }
+        else 
+          { z <- unmap(qclass(data[subset], G)) }
         ms <- mstep(modelName = bestModel, prior = prior, z = z, 
-            data = as.matrix(data)[subset, ], control = control, 
-            warn = warn)
+                    data = as.matrix(data)[subset, ], control = control, 
+                    warn = warn)
         es <- do.call("estep", c(list(data = data), ms))
         out <- me(modelName = bestModel, data = data, z = es$z, 
-            prior = prior, control = control, warn = warn)
-    }
-    obsNames <- if (is.null(dim(data))) {
-        names(data)
-    }
-    else {
-        dimnames(data)[[1]]
-    }
+                  prior = prior, control = control, warn = warn)
+      }
+    obsNames <- if (is.null(dim(data))) names(data) else dimnames(data)[[1]]
     classification <- map(out$z)
     uncertainty <- 1 - apply(out$z, 1, max)
     names(classification) <- names(uncertainty) <- obsNames
-    ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
-        uncertainty = uncertainty), out)
+    ans <- c(list(bic = as.vector(bestBICs[1]), 
+                  classification = classification, 
+                  uncertainty = uncertainty), 
+             out)
     orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", 
-        "parameters", "z", "classification", "uncertainty")
+                      "parameters", "z", "classification", "uncertainty")
     structure(ans[orderedNames], bestBICvalues = bestBICs, prior = prior, 
-        control = control, initialization = initialization, class = "summary.mclustBIC")
+              control = control, initialization = initialization, 
+              class = "summary.mclustBIC")
 }
 
 defaultPrior <- function(data, G, modelName, ...)
@@ -1454,17 +1475,17 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   p <- ncol(data)
   mu <- as.matrix(parameters$mean)
   G <- ncol(mu)
-        if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
-            any(is.null(parameters[c("pro", "mean", "variance")]))) {
-                WARNING <- "parameters are missing"
-                if (warn) warning(WARNING)
-                z <- matrix(NA,n,G)
-                dimnames(z) <- list(dimnames(data)[[1]], NULL)
-                return(structure(z, logarithm = logarithm, modelName = "EEE", 
-                                 WARNING = WARNING, returnCode = 9))
-        }
-        if (is.null(parameters$variance$cholSigma))
-           stop("variance parameters are missing")
+  if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
+      any(is.null(parameters[c("pro", "mean", "variance")]))) 
+    { WARNING <- "parameters are missing"
+      if (warn) warning(WARNING)
+      z <- matrix(NA,n,G)
+      dimnames(z) <- list(dimnames(data)[[1]], NULL)
+      return(structure(z, logarithm = logarithm, modelName = "EEE", 
+                       WARNING = WARNING, returnCode = 9))
+    }
+  if(is.null(parameters$variance$cholSigma))
+     stop("variance parameters are missing")
   temp <- .Fortran("eseee",
     as.logical(1),
     as.double(data),
@@ -1478,11 +1499,11 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     double(p),
     double(1),
     double(n * G),
-                PACKAGE = "mclust")[10:12]
+    PACKAGE = "mclust")[10:12]
   lapackCholInfo <- temp[[1]][1]
   loglik <- temp[[2]]
   z <- matrix(temp[[3]], n, G)
-        WARNING <- NULL
+  WARNING <- NULL
   if(lapackCholInfo) {
     if(lapackCholInfo > 0) {
       WARNING <- "sigma is not positive definite"
@@ -1493,21 +1514,21 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
       if (warn) warning(WARNING)
     }
     z[] <- NA
-                ret <- -9 
+    ret <- -9 
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
     if (warn) warning(WARNING)
     z[] <- NA
-                ret <- -1
+    ret <- -1
   }
-        else {
-          if (!logarithm) z <- exp(z)
-          ret <- 0
-        }
-        dimnames(z) <- list(dimnames(data)[[1]],NULL)
+  else {
+        if (!logarithm) z <- exp(z)
+        ret <- 0
+       }
+  dimnames(z) <- list(dimnames(data)[[1]],NULL)
   structure(z, logarithm = logarithm, modelName = "EEE",
-                  WARNING = WARNING, retrunCode = ret)
+            WARNING = WARNING, retrunCode = ret)
 }
 
 emEEE <- function(data, parameters, prior = NULL, control = emControl(), 
@@ -5076,12 +5097,13 @@ plot.Mclust <- function(x,
 }
 
 plot.mclustBIC <- function(x, G = NULL, modelNames = NULL, 
-         symbols = NULL, colors = NULL, 
-         xlab = NULL, ylim = NULL, 
-         legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
-         CEX = 1, ...)
+                           symbols = NULL, colors = NULL, 
+                           xlab = NULL, ylab = "BIC", ylim = NULL, 
+                           legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
+                           ...)
 {
-  if (is.null(xlab)) xlab <- "Number of components"
+
+  if(is.null(xlab)) xlab <- "Number of components"
   fill <- FALSE
   subset <- !is.null(attr(x, "initialization")$subset)
   noise <- !is.null(attr(x, "initialization")$noise)
@@ -5102,36 +5124,35 @@ plot.mclustBIC <- function(x, G = NULL, modelNames = NULL,
 # X <- is.na(BIC)
 # nrowBIC <- nrow(BIC)
 # ncolBIC <- ncol(BIC)
-  if(is.null(symbols)) {
-    colNames <- dimnames(x)[[2]]
-    m <- length(modelNames)
-    if(is.null(colNames)) {
-      symbols <- if(m > 9) LETTERS[1:m] else as.character(1:m)
-      names(symbols) <- modelNames
+  if(is.null(symbols)) 
+    { colNames <- dimnames(x)[[2]]
+      m <- length(modelNames)
+      if(is.null(colNames)) 
+        { symbols <- if(m > 9) LETTERS[1:m] else as.character(1:m)
+          names(symbols) <- modelNames
+        }
+    else 
+        { symbols <- .mclust$bicPlotSymbols[modelNames] }
     }
-    else {
-      symbols <- .mclust$bicPlotSymbols[modelNames]
+  if(is.null(colors)) 
+    { colNames <- dimnames(x)[[2]]
+      if(is.null(colNames)) 
+        { colors <- 1:m
+          names(colors) <- modelNames
+        }
+      else 
+        { colors <- .mclust$bicPlotColors[modelNames] }
     }
-  }
-  if(is.null(colors)) {
-    colNames <- dimnames(x)[[2]]
-    if(is.null(colNames)) {
-      colors <- 1:m
-      names(colors) <- modelNames
-    }
-    else {
-      colors <- .mclust$bicPlotColors[modelNames]
-    }
-  }
   x <- x[,modelNames, drop = FALSE]
   if(is.null(ylim))
     ylim <- range(as.vector(x[!is.na(x)]))
-  matplot(x, type = "b", xlim = range(G), ylim = ylim,
+  matplot(as.numeric(dnx[[1]]), x, type = "b", 
+          xlim = range(G), ylim = ylim,
           pch = symbols, col = colors, lty = 1,
-          xlab = xlab, ylab = "BIC", main = "")
- if (!is.null(legendArgs)) 
-   do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
-            legendArgs))
+          xlab = xlab, ylab = ylab, main = "")
+ if(!is.null(legendArgs))
+   { do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
+                         legendArgs)) }
  invisible(symbols)
 }
 
@@ -5295,8 +5316,7 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
         symFill <- c(17, 15, 16, 18)
         good <- !ERRORS
         if(L > 4) {
-          points(Data[good, 1], Data[good, 2], pch = 1, col = colors, cex = CEX
-            )
+          points(Data[good, 1], Data[good, 2], pch = 1, col = colors, cex = CEX)
           points(Data[!good, 1], Data[!good, 2], pch = 16, cex = CEX)
         }
         else {
@@ -5321,13 +5341,11 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
         }
         breaks <- quantile(uncertainty, probs = sort(quantiles))
         I <- uncertainty <= breaks[1]
-        points(Data[I, 1], Data[I, 2], pch = 16, col = "gray75", cex = 0.5 * 
-          CEX)
+        points(Data[I, 1], Data[I, 2], pch = 16, col = "gray75", cex = 0.5 * CEX)
         I <- uncertainty <= breaks[2] & !I
         points(Data[I, 1], Data[I, 2], pch = 16, col = "gray50", cex = 1 * CEX)
         I <- uncertainty > breaks[2] & !I
-        points(Data[I, 1], Data[I, 2], pch = 16, col = "black", cex = 1.5 * CEX
-          )
+        points(Data[I, 1], Data[I, 2], pch = 16, col = "black", cex = 1.5 * CEX)
       }
       ,
       {
@@ -8865,6 +8883,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
       double(p * p * G),
       double(K),
       double(p),
+      double(p*p),
                         PACKAGE = "mclust")[7:13]
   }
   else {
@@ -8891,6 +8910,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
       double(p * p * G),
       double(K),
       double(p),
+      double(p*p),
                         PACKAGE = "mclust")[c(11:17, 10)]
   }
   z <- temp[[1]]
@@ -8988,6 +9008,7 @@ mstepVVV <- function(data, z, prior = NULL, warn = NULL, ...)
       double(p * G),
       double(p * p * G),
       double(G),
+      double(p * p),
                         PACKAGE = "mclust")[7:9]
   }
   else {
@@ -9009,6 +9030,7 @@ mstepVVV <- function(data, z, prior = NULL, warn = NULL, ...)
       double(p * G),
       double(p * p * G),
       double(G),
+      double(p * p),
                         PACKAGE = "mclust")[11:13]
   }
   mu <- matrix(temp[[1]], p, G)

@@ -1,16 +1,16 @@
 \name{plot.mclustBIC}
 \alias{plot.mclustBIC}
-\title{
-  BIC Plot
-}
+
+\title{BIC Plot for Model-Based Clustering}
+
 \description{
-  Plots the BIC from mclust modeling via function \code{mclustBIC}.
+Plots the BIC values returned by the \code{\link{mclustBIC}} function.
 }
+
 \usage{
 \method{plot}{mclustBIC}(x, G = NULL, modelNames = NULL, symbols = NULL,
-                         colors = NULL, xlab = NULL, ylim = NULL,
-                         legendArgs = list(x="bottomright", ncol=2, cex=1), 
-                         CEX = 1, \dots)
+     colors = NULL, xlab = NULL, ylab = "BIC", ylim = NULL,
+     legendArgs = list(x="bottomright", ncol=2, cex=1), \dots)
 }
 \arguments{
   \item{x}{
@@ -41,6 +41,9 @@
  \item{xlab}{
     Optional label for the horizontal axis of the BIC plot.
   }
+ \item{ylab}{
+    Label for the vertical axis of the BIC plot.
+  }
  \item{ylim}{
     Optional limits for the vertical axis of the BIC plot.
   }
@@ -48,16 +51,12 @@
     Arguments to pass to the \code{legend} function. Set to \code{NULL}
     for no legend.
   }
-  \item{CEX}{
-    A scalar controling the size of the splot symbols.
-  }
   \item{\dots}{
     Other graphics parameters.
   }
 }
 \value{
-  A plot of the BIC values for the models specified in the 
- \code{modelNames} argument.
+  A plot of the BIC values.
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).

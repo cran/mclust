@@ -64,7 +64,7 @@ mstepVVV( data, z, prior=NULL, warn=NULL, \dots)
     function \code{me}).
     The default uses the default values from the function \code{emControl},
     which sets no limit on  the number of iterations, and a relative tolerance 
-    of \code{sqrt(.Machine\$double.eps)} on succesive iterates.
+    of \code{sqrt(.Machine$double.eps)} on succesive iterates.
    }
   \item{\dots }{
     Catches unused arguments in indirect or list calls via \code{do.call}.

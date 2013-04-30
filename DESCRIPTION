@@ -1,13 +1,13 @@
 Package: mclust
-Version: 4.0
-Date: 2012-08-09
+Version: 4.1
+Date: 2013-04-30
 Author: Chris Fraley, Adrian Raftery and Luca Scrucca
 Title: Normal Mixture Modeling for Model-Based Clustering,
         Classification, and Density Estimation
 Description: Normal Mixture Modeling fitted via EM algorithm for
         Model-Based Clustering, Classification, and Density Estimation,
         including Bayesian regularization.
-Depends: R (>= 2.13), stats, utils
+Depends: R (>= 2.15), stats, utils
 Suggests: mix
 License: GPL (>= 2)
 Maintainer: Luca Scrucca <luca@stat.unipg.it>
@@ -15,5 +15,6 @@ URL: http://www.stat.washington.edu/mclust/
 Repository: CRAN
 ByteCompile: true
 LazyLoad: yes
-Packaged: 2012-08-09 16:11:17 UTC; luca
-Date/Publication: 2012-08-09 17:14:39
+Packaged: 2013-04-30 10:56:38 UTC; luca
+NeedsCompilation: yes
+Date/Publication: 2013-05-01 09:33:36

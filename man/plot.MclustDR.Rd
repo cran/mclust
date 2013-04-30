@@ -12,7 +12,7 @@ Graphs data projected onto the estimated subspace for model-based clustering and
      what = c("scatterplot", "pairs", "contour", "classification",
               "boundaries", "density", "evalues"), 
      symbols, colors, col.contour = gray(0.7), col.sep = grey(0.4), 
-     ngrid = 100, levels = c(0.25, 0.5, 0.75, 0.95), asp = NULL, \dots)
+     ngrid = 100, nlevels = 5, asp = NULL, \dots)
 }
 
 \arguments{
@@ -30,7 +30,7 @@ Graphs data projected onto the estimated subspace for model-based clustering and
       By default, the first two directions are selected for plotting.}
       \item{\code{"pairs"} =}{a scatterplot matrix of data projected onto the estimated subspace and with data points marked according to the corresponding mixture component.
          By default, all the available directions are used, unless they have been specified by \code{dimens}.}
-      \item{\code{"contour"} =}{a two-dimensional plot of data projected onto the first two directions specified by \code{dimens} (by default, the first two directions) with density contours for mixture components and  data points marked according to the corresponding mixture component.}
+      \item{\code{"contour"} =}{a two-dimensional plot of data projected onto the first two directions specified by \code{dimens} (by default, the first two directions) with density contours for classes or clusters and data points marked according to the corresponding mixture component.}
       \item{\code{"classification"} =}{a two-dimensional plot of data projected onto the first two directions specified by \code{dimens} (by default, the first two directions) with classification region and data points marked according to the corresponding mixture component.}
       \item{\code{"boundaries"} =}{a two-dimensional plot of data projected onto the first two directions specified by \code{dimens} (by default, the first two directions) with uncertainty boundaries and data points marked according to the corresponding mixture component.
       The uncertainty is shown using a greyscale with darker regions indicating higher uncertainty.
@@ -62,9 +62,8 @@ Graphs data projected onto the estimated subspace for model-based clustering and
   \item{ngrid}{
     An integer specifying the number of grid points to use in evaluating the classification regions.
 }
-  \item{levels}{
-    A vector of values in the range \eqn{[0,1]} specifying the contour levels 
-    in case \code{what = "contour"}.
+  \item{nlevels}{
+    The number of levels to use in case \code{what = "contour"}.
 }
   \item{asp}{For scatterplots the \eqn{y/x} aspect ratio, see
     \code{\link{plot.window}}.
@@ -77,7 +76,13 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 %\value{}
 
 \references{
-Scrucca, L. (2010) Dimension reduction for model-based clustering. \emph{Statistics and Computing}, 20(4), pp. 471-484.
+  Scrucca, L. (2010) Dimension reduction for model-based clustering.
+  \emph{Statistics and Computing}, 20(4), pp. 471-484.
+
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
 \author{Luca Scrucca}

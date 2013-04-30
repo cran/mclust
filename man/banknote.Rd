@@ -12,13 +12,13 @@ The data set contains six measurements made on 100 genuine and 100 counterfeit o
 \format{A data frame with the following variables:
 
 \describe{
+\item{Status}{the status of the banknote: \code{genuine} or \code{counterfeit}}
 \item{Length}{Length of bill (mm)}
 \item{Left}{Width of left edge (mm)}
 \item{Right}{Width of right edge (mm)}
 \item{Bottom}{Bottom margin width (mm)}
 \item{Top}{Top margin width (mm)}
 \item{Diagonal}{Length of diagonal (mm)}
-\item{Status}{the status of the banknote: \code{genuine} or \code{counterfeit}}
 }
 
 }

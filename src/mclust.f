@@ -2641,7 +2641,8 @@ c         z(i,k) = temp * exp(-(const+sum))
           call dcopy( p, pscale(j,1), p, pmu, 1)
 c         call dtrsv('U','T','N', p, U, p, pmu, 1)
           i = p-j+1
-          call dtrsv('U','T','N', i, U(j,j),i,pmu(j),1)
+c         call dtrsv('U','T','N', i, U(j,j),i,pmu(j),1)
+          call dtrsv('U','T','N', i, U(j,j),p,pmu(j),1)
           sum  = sum + ddot(i, pmu(j), 1, pmu(j), 1)
           temp = temp + log(abs(pscale(j,j)))
           term = term + dlngam((pdof+one-dble(j))/two)
@@ -14018,7 +14019,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
       end
 
       subroutine mevvv ( EQPRO, x, n, p, G, Vinv, z, maxi, tol, eps, 
-     *                   mu, U, pro, w)
+     *                   mu, U, pro, w, S)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
@@ -14036,10 +14037,10 @@ c        http://www.stat.washington.edu/mclust/license.txt
 c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p,G), pro(G)
-      double precision   mu(p,*), U(p,p,*), pro(*)
+c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
+      double precision   mu(p,*), U(p,p,*), pro(*), S(p,*)
 
-      integer                 nz, p1, iter, i, j, k, j1
+      integer                 nz, p1, iter, i, j, k, l, j1
 
       double precision        piterm, hold, rcmin, rteps
       double precision        temp, term, cs, sn, umin, umax
@@ -14089,10 +14090,20 @@ c     FLMAX  = d1mach(2)
 
 c zero out the lower triangle
       do k = 1, G
+        do j = 1, p
+          do l = 1, p
+            S(l,j) = U(l,j,k)
+          end do
+        end do
         i = 1
         do j = 2, p
-          call dcopy( p-i, zero, 0, U(j,i,k), 1)
+          call dcopy( p-i, zero, 0, S(j,i), 1)
           i = j
+        end do
+        do j = 1, p
+          do l = 1, p
+            U(l,j,k) = S(l,j)
+          end do
         end do
       end do
 
@@ -14105,7 +14116,12 @@ c zero out the lower triangle
       zsum = one
       do k = 1, G
         do j = 1, p
-          call dcopy( j, zero, 0, U(1,j,k), 1)
+          do l = 1, p
+            S(l,j) = U(l,j,k)
+          end do
+        end do
+        do j = 1, p
+          call dcopy( j, zero, 0, S(1,j), 1)
         end do
         call dcopy( p, zero, 0, mu(1,k), 1)
         sumz = zero
@@ -14124,18 +14140,23 @@ c zero out the lower triangle
             call dscal( p, sqrt(z(i,k)), w, 1)
             j = 1
             do j1 = 2, p
-              call drotg( U(j,j,k), w(j), cs, sn)
-              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              call drotg( S(j,j), w(j), cs, sn)
+              call drot( p-j, S(j,j1), p, w(j1), 1, cs, sn)
               j = j1
             end do
-            call drotg( U(p,p,k), w(p), cs, sn)
+            call drotg( S(p,p), w(p), cs, sn)
           end do
           do j = 1, p
-            call dscal( j, one/sqrt(sumz), U(1,j,k), 1)
+            call dscal( j, one/sqrt(sumz), S(1,j), 1)
           end do
         else
           call dcopy( p, FLMAX, 0,  z(1,k), 1) 
         end if
+        do j = 1, p
+          do l = 1, p
+            U(l,j,k) = S(l,j)
+          end do
+        end do
       end do
 
       if (zsum .le. rteps) then
@@ -14165,7 +14186,12 @@ c zero out the lower triangle
 
       rcmin = FLMAX
       do k = 1, G
-        call absrng( p, U(1,1,k), p1, umin, umax)
+        do j = 1, p
+          do l = 1, p
+            S(l,j) = U(l,j,K)
+          end do
+        end do
+        call absrng( p, S, p1, umin, umax)
         rcmin = min(umin/(one+umax),rcmin)
       end do
 
@@ -14177,12 +14203,17 @@ c zero out the lower triangle
       end if
 
       do k = 1, G
+        do j = 1, p
+          do l = 1, p
+            S(l,j) = U(l,j,K)
+          end do
+        end do
 
 c       temp = pro(k)
 
         detlog = zero
         do j = 1, p
-          detlog = detlog + log(abs(U(j,j,k)))
+          detlog = detlog + log(abs(S(j,j)))
         end do
 
         const = piterm+detlog
@@ -14190,7 +14221,7 @@ c       temp = pro(k)
         do i = 1, n
           call dcopy( p, x(i,1), n, w, 1)
           call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U(1,1,k), p, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, S, p, w, 1)
           sum    = ddot( p, w, 1, w, 1)/two
 c         z(i,k) = temp*exp(-(const+sum))
           z(i,k) = -(const+sum)
@@ -14244,7 +14275,7 @@ c     w(1) = rcmin
 
       subroutine mevvvp( EQPRO, x, n, p, G, Vinv, 
      *                   pshrnk, pmu, pscale, pdof,
-     *                   z, maxi, tol, eps, mu, U, pro, w)
+     *                   z, maxi, tol, eps, mu, U, pro, w, S)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
@@ -14265,10 +14296,10 @@ c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
 c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p,G), pro(G)
-      double precision   mu(p,*), U(p,p,*), pro(*)
+c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
+      double precision   mu(p,*), U(p,p,*), pro(*), S(p,*)
 
-      integer                 nz, p1, iter, i, j, k, j1
+      integer                 nz, p1, iter, i, j, k, l, j1
 
       double precision        piterm, hold, rcmin, rteps
       double precision        temp, term, cs, sn, umin, umax
@@ -14334,7 +14365,12 @@ c     FLMAX  = d1mach(2)
       zsum = one
       do k = 1, G
         do j = 1, p
-          call dcopy( p, pscale(1,j), 1, U(1,j,k), 1)
+          do l = 1, p
+            S(l,j) = U(l,j,k)
+          end do
+        end do
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, S(1,j), 1)
         end do
         sumz = zero
         call dcopy( p, zero, 0, mu(1,k), 1)
@@ -14353,11 +14389,11 @@ c     FLMAX  = d1mach(2)
             call dscal( p, sqrt(z(i,k)), w, 1)
             j = 1
             do j1 = 2, p
-              call drotg( U(j,j,k), w(j), cs, sn)
-              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              call drotg( S(j,j), w(j), cs, sn)
+              call drot( p-j, S(j,j1), p, w(j1), 1, cs, sn)
               j = j1
             end do
-            call drotg( U(p,p,k), w(p), cs, sn)
+            call drotg( S(p,p), w(p), cs, sn)
           end do
           call dcopy( p, pmu, 1, w, 1)
           call daxpy( p, (-one), mu(1,k), 1, w, 1)
@@ -14366,20 +14402,25 @@ c     FLMAX  = d1mach(2)
           call dscal( p, sqrt(temp), w, 1)
           j = 1
           do j1 = 2, p
-            call drotg( U(j,j,k), w(j), cs, sn)
-            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+            call drotg( S(j,j), w(j), cs, sn)
+            call drot( p-j, S(j,j1), p, w(j1), 1, cs, sn)
             j = j1
           end do
-          call drotg( U(p,p,k), w(p), cs, sn)
+          call drotg( S(p,p), w(p), cs, sn)
           do j = 1, p
             temp = pdof+sumz+dble(p)+two
-            call dscal( j, one/sqrt(temp), U(1,j,k), 1)
+            call dscal( j, one/sqrt(temp), S(1,j), 1)
           end do
           call dscal( p, sumz/const, mu(1,k), 1)
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else
           call dcopy( p, FLMAX, 0,  z(1,k), 1) 
         end if
+        do j = 1, p
+          do l = 1, p
+            U(l,j,k) = S(l,j)
+          end do
+        end do
       end do
 
       if (zsum .le. rteps) then
@@ -14409,7 +14450,12 @@ c     FLMAX  = d1mach(2)
 
       rcmin = FLMAX
       do k = 1, G
-        call absrng( p, U(1,1,k), p1, umin, umax)
+        do j = 1, p
+          do l = 1, p
+            S(l,j) = U(l,j,K)
+          end do
+        end do
+        call absrng( p, S, p1, umin, umax)
         rcmin = min(umin/(one+umax),rcmin)
       end do
 
@@ -14425,10 +14471,15 @@ c     FLMAX  = d1mach(2)
       do k = 1, G
 
 c       temp = pro(k)
+        do j = 1, p
+          do l = 1, p
+            S(l,j) = U(l,j,k)
+          end do
+        end do
 
         detlog = zero
         do j = 1, p
-          detlog = detlog + log(abs(U(j,j,k)))
+          detlog = detlog + log(abs(S(j,j)))
         end do
 
         rmu  = rmu - detlog
@@ -14439,7 +14490,7 @@ c       temp = pro(k)
         do i = 1, n
           call dcopy( p, x(i,1), n, w, 1)
           call daxpy( p, (-one), mu(1,k), 1, w, 1)
-          call dtrsv( 'U', 'T', 'N', p, U(1,1,k), p, w, 1)
+          call dtrsv( 'U', 'T', 'N', p, S, p, w, 1)
           sum    = ddot( p, w, 1, w, 1)/two
 c         z(i,k) = temp*exp(-(const+sum))
           z(i,k) = -(const+sum)
@@ -14492,8 +14543,13 @@ c     w(1) = rcmin
 
       sum = zero
       do k = 1, G
+        do j = 1, p
+          do l = 1, p
+             S(l,j) = U(l,j,k)
+          end do
+        end do
         call daxpy( p, (-one), mu(1,k), 1, pmu, 1)
-        call dtrsv('U','T','N',p,U,p,pmu,1)
+        call dtrsv('U','T','N',p, S, p, pmu, 1)
         sum = sum + ddot( p, pmu, 1, pmu, 1)
       end do
 
@@ -14506,7 +14562,8 @@ c     w(1) = rcmin
         call dcopy( p, pscale(j,1), p, pmu, 1)
 c       call dtrsv('U','T','N', p, U, p, pmu, 1)
         i = p-j+1
-        call dtrsv('U','T','N', i, U(j,j,k),i,pmu(j),1)
+c       call dtrsv('U','T','N', i, U(j,j,k),i,pmu(j),1)
+        call dtrsv('U','T','N', i, S(j,j), p, pmu(j), 1)
         sum    = sum + ddot(i, pmu(j), 1, pmu(j), 1)
         temp   = temp + log(abs(pscale(j,j)))
         term   = term + dlngam((pdof+one-dble(j))/two)
@@ -14522,7 +14579,7 @@ c       call dtrsv('U','T','N', p, U, p, pmu, 1)
       return
       end
 
-      subroutine msvvv ( x, z, n, p, G, w, mu, U, pro)
+      subroutine msvvv ( x, z, n, p, G, w, mu, U, pro, S)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
@@ -14536,10 +14593,10 @@ c        http://www.stat.washington.edu/mclust/license.txt
 c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p,G), pro(G)
-      double precision   mu(p,*), U(p,p,*), pro(*)
+c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
+      double precision   mu(p,*), U(p,p,*), pro(*), S(p,*)
 
-      integer                 i, j, k, j1
+      integer                 i, j, k, l, j1
 
       double precision        sum, temp, cs, sn
 
@@ -14554,7 +14611,8 @@ c------------------------------------------------------------------------------
       do k = 1, G
         call dcopy( p, zero, 0, mu(1,k), 1)
         do j = 1, p
-          call dcopy( j, zero, 0, U(1,j,k), 1)
+c         call dcopy( j, zero, 0, U(1,j,k), 1)
+          call dcopy( j, zero, 0, S(1,j), 1)
         end do
         sum = zero
         do i = 1, n
@@ -14571,25 +14629,30 @@ c------------------------------------------------------------------------------
             call dscal( p, sqrt(z(i,k)), w, 1)
             j = 1
             do j1 = 2, p
-              call drotg( U(j,j,k), w(j), cs, sn)
-              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              call drotg( S(j,j), w(j), cs, sn)
+              call drot( p-j, S(j,j1), p, w(j1), 1, cs, sn)
               j = j1
             end do
-            call drotg( U(p,p,k), w(p), cs, sn)
+            call drotg( S(p,p), w(p), cs, sn)
           end do
           temp = sqrt(sum)
           if (temp .ge. one .or. one .lt. temp*FLMAX) then
             do j = 1, p
-              call dscal( j, one/temp, U(1,j,k), 1)
+              call dscal( j, one/temp, S(1,j), 1)
             end do
           else
             do j = 1, p
-              call dcopy( j, FLMAX, 0, U(1,j,k), 1)
+              call dcopy( j, FLMAX, 0, S(1,j), 1)
             end do
           end if
         else
           call dcopy( p, FLMAX, 0, mu(1,k), 1)
         end if
+        do j = 1, p
+          do l = 1, p
+            U(l,j,k) = S(l,j)
+          end do
+        end do
       end do
 
       return
@@ -14597,7 +14660,7 @@ c------------------------------------------------------------------------------
 
       subroutine msvvvp( x, z, n, p, G,
      *                   pshrnk, pmu, pscale, pdof,
-     *                   w, mu, U, pro)
+     *                   w, mu, U, pro, S)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust
@@ -14614,8 +14677,8 @@ c     double precision   pshrnk, pmu(p), pscale(p,p), pdof
 c     double precision   x(n,p), z(n,G), w(p)
       double precision   x(n,*), z(n,*), w(*)
 
-c     double precision   mu(p,G), U(p,p,G), pro(G)
-      double precision   mu(p,*), U(p,p,*), pro(*)
+c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
+      double precision   mu(p,*), U(p,p,*), pro(*), S(p,*)
 
 c------------------------------------------------------------------------------
 c
@@ -14629,7 +14692,7 @@ c  U       double  (output) (p,p,G)
 c  pro     double  (output) (G) mixing proportions (used even if equal).
 c  w       double  (scratch) (max(p,G))
 
-      integer                 i, j, k, j1
+      integer                 i, j, k, l, j1
 
       double precision        sumz, temp, cs, sn, const
 
@@ -14643,7 +14706,12 @@ c------------------------------------------------------------------------------
 
       do k = 1, G
         do j = 1, p
-          call dcopy( p, pscale(1,j), 1, U(1,j,k), 1)
+          do l = 1, p
+            S(l,j) = U(l,j,k)
+          end do
+        end do
+        do j = 1, p
+          call dcopy( p, pscale(1,j), 1, S(1,j))
         end do
         sumz = zero
         call dcopy( p, zero, 0, mu(1,k), 1)
@@ -14661,11 +14729,11 @@ c------------------------------------------------------------------------------
             call dscal( p, sqrt(z(i,k)), w, 1)
             j = 1
             do j1 = 2, p
-              call drotg( U(j,j,k), w(j), cs, sn)
-              call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+              call drotg( S(j,j), w(j), cs, sn)
+              call drot( p-j, S(j,j1), p, w(j1), 1, cs, sn)
               j = j1
             end do
-            call drotg( U(p,p,k), w(p), cs, sn)
+            call drotg( S(p,p), w(p), cs, sn)
           end do
           call dcopy( p, pmu, 1, w, 1)
           call daxpy( p, (-one), mu(1,k), 1, w, 1)
@@ -14674,21 +14742,26 @@ c------------------------------------------------------------------------------
           call dscal( p, sqrt(temp), w, 1)
           j = 1
           do j1 = 2, p
-            call drotg( U(j,j,k), w(j), cs, sn)
-            call drot( p-j, U(j,j1,k), p, w(j1), 1, cs, sn)
+            call drotg( S(j,j), w(j), cs, sn)
+            call drot( p-j, S(j,j1), p, w(j1), 1, cs, sn)
             j = j1
           end do
-          call drotg( U(p,p,k), w(p), cs, sn)
+          call drotg( S(p,p), w(p), cs, sn)
           temp = pdof+sumz+dble(p)+one
           if (pshrnk .gt. zero) temp = temp + one
           do j = 1, p
-            call dscal( j, one/sqrt(temp), U(1,j,k), 1)
+            call dscal( j, one/sqrt(temp), S(1,j), 1)
           end do
           call dscal( p, sumz/const, mu(1,k), 1)
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else 
           call dcopy( p, FLMAX, 0, mu(1,k), 1)
         end if
+        do j = 1, p
+          do l = 1, p
+            U(l,j,k) = S(l,j)
+          end do
+        end do
       end do
 
       return
@@ -15365,7 +15438,8 @@ c     rcond = umin / (one + umax)
         call dcopy( p, pscale(j,1), p, pmu, 1)
 c       call dtrsv('U','T','N', p, U, p, pmu, 1)
         i = p-j+1
-        call dtrsv('U','T','N', i, U(j,j),i,pmu(j),1)
+c       call dtrsv('U','T','N', i, U(j,j),i,pmu(j),1)
+        call dtrsv('U','T','N', i, U(j,j),p,pmu(j),1)
         sum  = sum + ddot(i, pmu(j), 1, pmu(j), 1)
       end do
 

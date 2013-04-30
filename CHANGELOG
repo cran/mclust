@@ -1,3 +1,23 @@
+2013/04    version 4.1
+           - new icl function for computing the integrated complete-data
+             likelihood
+           - new mclustICL function with associated print and plot methods
+           - print.mclustBIC shows also the top models based on BIC
+           - modified summary.Mclust to return also the icl
+           - rewrite of adjustedRandIndex function. This version is more
+             efficient for large vectors
+           - updated help for adjustedRandIndex
+           - modifications to MclustDR and its summary method
+           - changed behavior of plot.MclustDR(..., what = "contour")
+           - improved plot of uncertainty for 
+             plot.MclustDR(..., what = "boundaries")
+           - corrected a bug for malformed GvHD data
+           - corrected version of qclass for selecting initial values in 
+             case of 1D data when successive quantiles coincide
+           - corrected version of plot BIC values when only a single G
+             component models are fitted
+           - various bug fixes 
+
 2012/08    version 4.0
            - new summary and print methods for Mclust.
            - new summary and print methods for densityMclust.

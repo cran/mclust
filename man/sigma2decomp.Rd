@@ -24,7 +24,7 @@ sigma2decomp(sigma, G=NULL, tol=NULL, \dots)
   \item{tol}{
     Tolerance for determining whether or not the covariances have equal volume,
     shape, and or orientation. The default is the square root of the relative
-    machine precision, \code{sqrt(.Machine\$double.eps)}, 
+    machine precision, \code{sqrt(.Machine$double.eps)}, 
     which is about \code{1.e-8}.
   }
   \item{\dots}{

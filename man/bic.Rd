@@ -14,7 +14,7 @@ bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
 \arguments{
   \item{modelName}{
     A character string indicating the model. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
   }
   \item{loglik}{
     The loglikelihood for a data set with respect to the Gaussian mixture model
@@ -58,9 +58,9 @@ bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
   Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
-  \code{\link{nVarParams}},
   \code{\link{mclustBIC}},
-  \code{\link{do.call}}.
+  \code{\link{nVarParams}},
+  \code{\link{mclustModelNames}}.
 }
 \examples{
 n <- nrow(iris)

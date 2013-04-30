@@ -48,10 +48,10 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \describe{
   \item{\code{hcPairs}}{
     A matrix of merge pairs for hierarchical clustering such as produced
-    by function \code{hc}. For multivariate data, the default is to compute
-    a hierarchical clustering tree by applying function \code{hc} with
-    \code{modelName = "VVV"} to the data or a subset as indicated by the
-    \code{subset} argument.
+    by function \code{hc}. For multivariate data, the default is 
+    to compute a hierarchical clustering tree by applying function 
+    \code{hc} with \code{modelName = "VVV"} to the data or a subset as
+    indicated by the \code{subset} argument.
     The hierarchical clustering results are to start EM.
     For univariate data, the default is to use quantiles to start EM.
   }
@@ -161,6 +161,7 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \code{\link{plot.Mclust}}, 
   \code{\link{priorControl}}, 
   \code{\link{emControl}}, 
+  \code{\link{hc}},
   \code{\link{mclustBIC}}, 
   \code{\link{mclustModelNames}},
   \code{\link{mclust.options}}

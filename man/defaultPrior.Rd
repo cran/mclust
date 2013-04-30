@@ -44,7 +44,7 @@ defaultPrior(data, G, modelName, \dots)
       \item{\code{scale}}{
         The scale parameter for the prior on the variance. 
         The default is \code{var(data)/G^(2/d)},
-        where \code{d} is the domension of the data.
+        where \code{d} is the dimension of the data.
       }
       \item{\code{shrinkage}}{
         The shrinkage parameter for the prior on the mean. 

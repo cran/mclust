@@ -6,7 +6,7 @@
 ## Author: Luca Scrucca                             ##
 ######################################################
 
-MclustDR <- function(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$double.eps))
+MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(.Machine$double.eps))
 {
 #  Dimension reduction for model-based clustering and classification
 #
@@ -38,6 +38,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$doubl
     G <- object$G
     modelName <- object$modelName
     y <- object$classification
+    cl2mc <- seq(G)
     class <- as.factor(y)
     par <- object$parameters
     f <- par$pro
@@ -61,6 +62,9 @@ MclustDR <- function(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$doubl
        { y[class == levels(class)[i]] <- paste(levels(class)[i], 
                     object$models[[i]]$classification, sep =":") }
     y <- as.numeric(factor(y))
+    cl2mc <- rep(seq(length(object$models)), 
+                 sapply(object$models, function(m) m$G))
+    
     m <- sapply(object$models, function(mod) mod$n) 
     ncomp <- sapply(object$models, function(mod) mod$G) 
     G <- sum(ncomp)
@@ -104,7 +108,12 @@ MclustDR <- function(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$doubl
   M.II <- matrix(0, p, p)
   for(j in 1:G)
      M.II <- M.II + f[j]*crossprod(inv.sqrt.Sigma%*%(Sigma.G[,,j]-S))
-  M <- crossprod(inv.sqrt.Sigma %*% M.I) + M.II
+  # convex combiation of M_I and M_II
+  M <- 2*lambda*crossprod(inv.sqrt.Sigma %*% M.I) + 2*(1-lambda)*M.II
+  # regularize the M_II
+  # M <- M.I + lambda*M.II
+  # M <- crossprod(inv.sqrt.Sigma %*% M.I) + 
+  #      (1-lambda)*M.II + lambda/p * diag(p)  
   #
   SVD <- eigen.decomp(M, Sigma)
   l <- SVD$l; l <- (l+abs(l))/2
@@ -122,11 +131,13 @@ MclustDR <- function(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$doubl
   #
   out = list(call = call, type = type,
              x = x, Sigma = Sigma, 
-             mixcomp = y, class = class, 
+             class = class, mixcomp = y, class2mixcomp = cl2mc,
              G = G, modelName = modelName,
              mu = mu.G, sigma = Sigma.G, pro = f,
-             M = M, raw.evectors = as.matrix(SVD$v),
-             evalues = l, basis = basis, std.basis = std.basis,
+             M = M, M.I = M.I, M.II = M.II, 
+             lambda = lambda, 
+             evalues = l, raw.evectors = as.matrix(SVD$v),             
+             basis = basis, std.basis = std.basis,
              numdir = numdir, dir = Z)
   class(out) = "MclustDR"
   return(out)
@@ -147,10 +158,22 @@ summary.MclustDR <- function(object, numdir, std = FALSE, ...)
 {
   if(missing(numdir)) numdir <- object$numdir
   dim <- 1:numdir
-  obj <- list(type = object$type, std = std,
+  
+  if(object$type == "Mclust")
+    { n <- as.vector(table(object$class))
+      G <- object$G }
+  else
+    { n <- as.vector(table(object$class))
+      G <- as.vector(table(object$class2mixcomp)) }
+  
+  obj <- list(type = object$type, 
+              modelName = object$modelName, 
+              classes = levels(object$class),
+              n = n, G = G, 
               basis = object$basis[,seq(dim),drop=FALSE],
-              std.basis = object$std.basis[,seq(dim),drop=FALSE],
-              evalues = object$evalues[seq(dim)])
+              std = std, std.basis = object$std.basis[,seq(dim),drop=FALSE],
+              evalues = object$evalues[seq(dim)],
+              evalues.cumperc = cumsum(object$evalues/sum(object$evalues))[seq(dim)]*100)
   class(obj) <- "summary.MclustDR"
   return(obj)
 }
@@ -162,8 +185,27 @@ print.summary.MclustDR <- function(x, digits = max(5, getOption("digits") - 3), 
   cat(title, "\n")
   cat(rep("-", nchar(title)),"\n",sep="")
   
-  cat(paste("\nMixture model type:", x$type, "\n"))
-  
+  if(x$type == "Mclust")
+    { 
+      tab <- data.frame(n = x$n)
+      rownames(tab) <- x$classes
+      tab <- as.matrix(tab)
+      names(dimnames(tab)) <- c("Clusters", "")
+      cat(paste("\nMixture model type: ", x$type, 
+                " (", x$modelName, ", ", x$G, ")\n", sep = ""))
+      print(tab, quote = FALSE, right = TRUE)
+    }
+  else if(x$type == "MclustDA" | x$type == "EDDA")
+    {
+      tab <- data.frame(n = x$n, Model = x$modelName, G = x$G)
+      rownames(tab) <- x$classes
+      tab <- as.matrix(tab)
+      names(dimnames(tab)) <- c("Classes", "")
+      cat(paste("\nMixture model type:", x$type, "\n"))
+      print(tab, quote = FALSE, right = TRUE)
+    }
+  else stop("invalid model type")
+
   if(x$std) 
     { cat("\nStandardized basis vectors using predictors \nscaled to have std.dev. equal to one:\n")
       print(x$std.basis, digits = digits)
@@ -175,7 +217,7 @@ print.summary.MclustDR <- function(x, digits = max(5, getOption("digits") - 3), 
   cat("\n")
   
   evalues <- rbind("Eigenvalues" = x$evalues, 
-                   "Cum. %" = cumsum(x$evalues/sum(x$evalues))*100)
+                   "Cum. %" = x$evalues.cumperc)
   colnames(evalues) <- colnames(x$basis)
   print(evalues, digits=digits)
   
@@ -207,9 +249,59 @@ projpar.MclustDR <- function(object, dim, center = TRUE, raw = FALSE)
                                crossprod(R %*% V)), c(numdir, numdir, G))
   #
   return(list(mean = Mu, variance = Sigma))
+
+#plot(object$dir[,dim], col = as.numeric(object$class))
+#points(par$mean, col = object$class2mixcomp, pch = 3, cex = 2)
+
+#plot(x[,1:2], col = as.numeric(object$class))
+#points(mu[,1:2], col = object$class2mixcomp, pch = 3, cex = 2)
+
 }  
 
-projdir.MclustDR <- function(object, dim = 1:2, ngrid = 100, xlim, ylim)
+predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points, ...)
+{  
+  dim <- dim[dim <= object$numdir]
+    if(missing(newdata) & missing(eval.points))
+    { dir <- object$dir[,dim,drop=FALSE] }
+  else if(!missing(newdata))
+         { newdata <- as.matrix(newdata) 
+           newdata <- scale(newdata, center = colMeans(object$x), scale = FALSE)
+           dir <- newdata %*% object$basis[,dim,drop=FALSE]
+         }
+  else if(!missing(eval.points))
+         { dir <- as.matrix(eval.points) }
+  
+  n <- nrow(dir)
+  G <- object$G # num. components
+  nclass <- nlevels(object$class) # num. classes
+  par <- projpar.MclustDR(object, dim)
+  Mu <- par$mean
+  Sigma <- par$variance
+
+  cden <- array(NA, c(n, G))
+  for(j in 1:G)
+     { cden[,j] <- mvdnorm(dir, Mu[j,], Sigma[,,j], log = FALSE) }
+  z <- sweep(cden, 2, FUN = "*", STATS = object$pro)  
+  den <- apply(z, 1, sum)
+  z <- sweep(z, 1, FUN = "/", STATS = den)
+  zz <- matrix(0, n, nclass)
+  for(j in seq(nclass))
+     { zz[,j] <- rowSums(z[,object$class2mixcomp == j,drop=FALSE]) }
+  z <- zz; rm(zz)
+
+  class <- factor(apply(z,1,which.max), 
+                  levels = 1:nclass, 
+                  labels = levels(object$class))
+
+  out <- list(dir = dir,
+              density = den,
+              z = z,
+              uncertainty = 1 - apply(z,1,max),
+              classification = class)
+  return(out)
+}
+
+predict2D.MclustDR <- function(object, dim = 1:2, ngrid = 100, xlim, ylim)
 {
   dim <- dim[1:2]
   dir <- object$dir[,dim,drop=FALSE]
@@ -224,22 +316,16 @@ projdir.MclustDR <- function(object, dim = 1:2, ngrid = 100, xlim, ylim)
   xygrid <- cbind(seq(xlim[1], xlim[2], length = ngrid),
                   seq(ylim[1], ylim[2], length = ngrid))
   grid <- expand.grid(xygrid[,1], xygrid[,2])
-  d <- array(NA, c(nrow(grid), G))
-  for(j in 1:G)
-      d[,j] <- mvdnorm(grid, Mu[j,], Sigma[,,j], log = FALSE)
-  mixdens <- apply(d, 1, function(x, p = object$pro) sum(p*x))
-  z <- t(apply(d, 1, function(x, p = object$pro) p*x/sum(p*x)))
-  Z <- apply(z,1,which.max)
+  pred <- predict.MclustDR(object, dim = dim, eval.points = grid)
   out <- list(x = xygrid[,1], y = xygrid[,2],
-              density = array(d, c(ngrid, ngrid, ncol(z))),
-              mix.density = matrix(mixdens, ngrid, ngrid),
-              cond.density = array(z, c(ngrid, ngrid, ncol(z))),
-              MAP = matrix(Z, ngrid, ngrid))
+              density = matrix(pred$density, ngrid, ngrid),
+              z = array(pred$z, c(ngrid, ngrid, ncol(pred$z))),
+              uncertainty = matrix(pred$uncertainty, ngrid, ngrid),
+              classification = matrix(pred$classification, ngrid, ngrid))
   return(out)
 }
 
-
-plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour", "classification", "boundaries", "density", "evalues"), symbols, colors, col.contour = gray(0.7), col.sep = grey(0.4), ngrid = 100, levels = c(0.25, 0.5, 0.75, 0.95), asp = NULL, ...)
+plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour", "classification", "boundaries", "density", "evalues"), symbols, colors, col.contour = gray(0.7), col.sep = grey(0.4), ngrid = 100, nlevels = 5, asp = NULL, ...)
 { 
   object <- x
   x <- object$x
@@ -268,9 +354,9 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
              { symbols <- LETTERS }
     }
   if(length(symbols) == 1) symbols <- rep(symbols,nclass)
-  if(length(symbols) < G)
+  if(length(symbols) < nclass)
     { warning("more symbols needed to show classification")
-      symbols <- rep(16, G) }
+      symbols <- rep(16, nclass) }
       
   if(missing(colors))
     { colors <- .mclust$classPlotColors }
@@ -282,7 +368,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   if(what == "scatterplot")
     { dir <- dir[,dimens,drop=FALSE]
       plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)
-      plot(dir, col = colors[class], pch = symbols[y],
+      plot(dir, col = colors[class], pch = symbols[class],
            xlim = par("usr")[1:2], ylim = par("usr")[3:4],
            xaxs = "i", yaxs = "i",
            xlab = colnames(dir)[1], ylab = colnames(dir)[2], ...)
@@ -290,7 +376,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
 
   if(what == "pairs")
     { dir <- dir[,dimens,drop=FALSE]
-      pairs(dir, col = colors[class], pch = symbols[y], 
+      pairs(dir, col = colors[class], pch = symbols[class], 
             gap = 0.25, asp = asp, ...)
     }
 
@@ -315,7 +401,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
              }
          }
       #
-      oldpar <- par(mar = c(0,5.1,1,1), no.readonly = TRUE)
+      oldpar <- par(mar = c(0,5.1,1,1), mfrow = par("mfrow"), no.readonly = TRUE)
       on.exit(par(oldpar))
       layout(matrix(1:2,2,1), heights = c(2,1))
       plot(0, 0, type = "n", xlab = colnames(dir), ylab = "Density", 
@@ -333,43 +419,51 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     }
 
   if(what == "contour") 
-    { dimens <- dimens[1:2]
+    { 
+      dimens <- dimens[1:2]
       dir <- object$dir[,dimens,drop=FALSE]
       par <- projpar.MclustDR(object, dimens)
       Mu <- par$mean
       Sigma <- par$variance
+      # draw contours for each class or cluster
       plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)
       plot(dir, type = "n", 
            xlim = par("usr")[1:2], ylim = par("usr")[3:4],
            xaxs = "i", yaxs = "i")
-      for(j in 1:G)
-         { q <- sqrt(qchisq(levels, 2))
-           for(i in 1:length(q))
-               lines(ellipse(Mu[j,], solve(Sigma[,,j]), q[i]), 
-                     col = col.contour)
-         }
-      points(dir, col = colors[class], pch = symbols[y], ...)
+      for(k in seq(nclass))
+      {
+        i <- which(object$class2mixcomp == k)
+        parameters <- list(pro = object$pro[i]/sum(object$pro[i]), 
+                           mean = t(par$mean[i,,drop=FALSE]), 
+                           variance = list(G = length(i), d = 2, 
+                                           sigma = par$variance[,,i,drop=FALSE]))
+        surfacePlot(dir, parameters, col = col.contour, nlevels = nlevels,
+                    xlim = par("usr")[1:2], ylim = par("usr")[3:4], 
+                    asp = asp, add = TRUE)
+      }
+      points(dir, col = colors[class], pch = symbols[class], ...)
     }
 
   if(what == "classification" & object$type == "Mclust")
     { dimens <- dimens[1:2]
       dir <- object$dir[,dimens,drop=FALSE]
       plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)
-      grid <- projdir.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
-      image(grid$x, grid$y, matrix(grid$MAP, ngrid), 
+      pred <- predict2D.MclustDR(object, dimens, ngrid,
+                                 xlim = par("usr")[1:2], 
+                                 ylim = par("usr")[3:4])
+      pred$classification <- apply(pred$z, 1:2, which.max)                         
+      image(pred$x, pred$y, pred$classification, 
             col = adjustcolor(colors[1:G], alpha.f = 0.1),
             #xlim = par("usr")[1:2], ylim = par("usr")[3:4],
             xaxs = "i", yaxs = "i",
             xlab = colnames(dir)[1], ylab = colnames(dir)[2],
             useRaster = TRUE)
       for(j in 1:G)         
-         { z <- ifelse(grid$MAP == j, 1, -1)
-           contour(grid$x, grid$y, z, col = col.sep,
+         { z <- ifelse(pred$classification == j, 1, -1)
+           contour(pred$x, pred$y, z, col = col.sep,
                    add = TRUE, levels = 0, drawlabels = FALSE) 
          }
-      points(dir, col = colors[class], pch = symbols[y], ...)
+      points(dir, col = colors[class], pch = symbols[class], ...)
     }
   
   if(what == "classification" & 
@@ -378,93 +472,98 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
       dimens <- dimens[1:2]
       dir <- object$dir[,dimens,drop=FALSE]
       plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)      
-      grid <- projdir.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
-      # create MAP for class based on grid$MAP for mix components
-      tab <- table(y, class)
-      MAP <- grid$MAP
-      for(i in 1:nrow(tab))
-         { j <- which(tab[i,] > 0)
-           MAP[grid$MAP == i] <- j }
-      #
-      image(grid$x, grid$y, matrix(MAP, ngrid), 
+      pred <- predict2D.MclustDR(object, dimens, ngrid,
+                                 xlim = par("usr")[1:2], 
+                                 ylim = par("usr")[3:4])
+      pred$classification <- apply(pred$z, 1:2, which.max)                         
+      image(pred$x, pred$y, pred$classification, 
             col = adjustcolor(colors[1:nclass], alpha.f = 0.1),
             xlim = par("usr")[1:2], ylim = par("usr")[3:4],
             xaxs = "i", yaxs = "i",
             xlab = colnames(dir)[1], ylab = colnames(dir)[2],
             useRaster = TRUE)
       for(j in 1:nclass)
-         { z <- ifelse(MAP == j, 1, -1)
-           contour(grid$x, grid$y, z, col = col.sep,
+         { z <- ifelse(pred$classification == j, 1, -1)
+           contour(pred$x, pred$y, z, col = col.sep,
                    add = TRUE, levels = 0, drawlabels = FALSE) 
          }
-      points(dir, col = colors[class], pch = symbols[y], ...)
+      points(dir, col = colors[class], pch = symbols[class], ...)
     }
 
   if(what == "boundaries" & object$type == "Mclust")
     { dimens <- dimens[1:2]
       dir <- object$dir[,dimens,drop=FALSE]
       plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)      
-      grid <- projdir.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
-      u <- 1-apply(grid$cond.density,c(1,2),max)
-      image(grid$x, grid$y, u, 
-            col = rev(gray.colors(15, start = 0, end = 1)),
+      pred <- predict2D.MclustDR(object, dimens, ngrid,
+                                 xlim = par("usr")[1:2], 
+                                 ylim = par("usr")[3:4])
+      image(pred$x, pred$y, pred$uncertainty, 
+            col = rev(gray.colors(10, start = 0, end = 1)),
+            breaks = seq(0, 1-1/nclass, length = 11),
             xlim = par("usr")[1:2], ylim = par("usr")[3:4],
             xaxs = "i", yaxs = "i",
             xlab = colnames(dir)[1], ylab = colnames(dir)[2],
             useRaster = TRUE)
-      points(dir, col = colors[y], pch = symbols[y], ...)                        
+      points(dir, col = colors[class], pch = symbols[class], ...)                        
     }
     
   if(what == "boundaries" & 
      (object$type == "EDDA" | object$type == "MclustDA"))
-    { dimens <- dimens[1:2]
+    { 
+      dimens <- dimens[1:2]
       dir <- object$dir[,dimens,drop=FALSE]
-      plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)      
-      grid <- projdir.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
-      # create MAP for class based on grid$MAP for mix components
-      tab <- table(y, class)
-      cdens <- array(NA, c(ngrid, ngrid, nclass))
-      for(i in 1:ncol(tab))
-         { j <- which(tab[,i] > 0)
-           cdens[,,i] <- apply(grid$cond.density[,,j],c(1,2),sum) }
-      #      
-      u <- 1-apply(cdens,c(1,2),max)
-      image(grid$x, grid$y, u, 
-            col = rev(gray.colors(15, start = 0, end = 1)),
-            xlim = par("usr")[1:2], ylim = par("usr")[3:4],
-            xaxs = "i", yaxs = "i",
+      plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)
+      pred <- predict2D.MclustDR(object, dimens, ngrid,
+                                 xlim = par("usr")[1:2], 
+                                 ylim = par("usr")[3:4])
+      levels <- seq(0, 1-1/nclass, length = 11)
+      col <- rev(gray.colors(10, start = 0, end = 1))
+      oldpar <- par(no.readonly = TRUE)
+      on.exit(par(oldpar))
+      #
+      # this will add a legend on the right. Useful??
+      # w <- (1 + oldpar$mar[2L]) * par("csi") * 2.54
+      # layout(matrix(c(2, 1), ncol = 2L), widths = c(1, lcm(w)))
+      # par(las = 1)
+      # mar <- oldpar$mar; mar[4L] <- min(2.5,mar[2L]); mar[2L] <- 1; par(mar = mar)
+      # plot.new()
+      # plot.window(xlim = c(0, 1), ylim = range(levels), xaxs = "i", yaxs = "i")
+      # rect(0, levels[-length(levels)], 1, levels[-1L], col = col)
+      # axis(4); box()
+      #
+      # mar <- oldpar$mar; mar[4L] <- 1; par(mar = mar)
+      image(pred$x, pred$y, pred$uncertainty,
+            col = col, breaks = levels,
+            xlim = oldpar$usr[1:2], ylim = oldpar$usr[3:4],
+            # xlim = range(dir[,1]), ylim = range(dir[,2]), 
+            # xaxs = "i", yaxs = "i",
             xlab = colnames(dir)[1], ylab = colnames(dir)[2],
             useRaster = TRUE)
-      points(dir, col = colors[class], pch = symbols[y], ...)                        
+      points(dir, col = colors[class], pch = symbols[class], ...)
     }
 
   if(what=="evalues")
     { plotEvalues.MclustDR(object, numdir = max(dimens), plot = TRUE) }
 
-  #
   return(invisible())
 }
 
-plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim)
+plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, ...)
 { 
   object <- x
   G <- object$G
   f <- object$pro
+  lambda <- object$lambda
   # dim <- if(missing(numdir)) seq(object$numdir) else seq(numdir)
-  dim <- seq(object$numdir)
+  if(missing(numdir)) numdir <- object$numdir
+  dim <- seq(numdir)
   d <- length(dim)
   par <- projpar.MclustDR(object, dim = dim, center = TRUE, raw = TRUE)
   mu <- par$mean
   Sigma.G <- par$variance
   #
   M1 <- t(mu) %*% diag(f) %*% mu
-  l1 <- diag(crossprod(M1))
+  l1 <- 2*lambda*diag(crossprod(M1))
   #
   S <- matrix(0, d, d)
   for(j in seq(G)) S <- S + f[j]*Sigma.G[,,j]
@@ -472,7 +571,7 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim)
   for(j in 1:G)
    { C <- (Sigma.G[,,j]-S)
      M2 <- M2 + f[j] * C %*% t(C) }
-  l2 <- diag(M2)
+  l2 <- 2*(1-lambda)*diag(M2)
   # 
   l <- object$evalues[dim]
   #
@@ -541,22 +640,35 @@ ellipse <- function(c, M, r, npoints = 100)
   return(coord)
 }
 
-eigen.decomp <- function(X1, X2)
+eigen.decomp <- function(A, B)
 {
 #
-# Eigenvalue decomposition of X1 with respect to X2 (see Li, 2000)
+# Generalized eigenvalue decomposition of A with respect to B
 #
+# A generalized eigenvalue problem AV = BLV is said to be symmetric positive 
+# definite if A is symmetric and B is positive definite. V is the matrix of
+# generalized eigenvectors, and L is the diagonal matrix of generalized 
+# eigenvalues (Stewart, 2001, pag. 229-230).
+# 
+# Properties:
+# V'AV = L
+# V'BV = I
+#
+# The algorithm implemented is described in Stewart (2001, pag. 234) and used
+# by Li (2000).
+#
+# References: 
+# Li, K.C., 2000. High dimensional data analysis via the SIR-PHD approach,
+# Stewart, G.W., 2001. Matrix Algorithms: vol II Eigensystems, SIAM.
+
+  svd <- svd(B, nu=0)
   # Computes inverse square root matrix such that: 
-  #  t(inv.sqrt.X2) %*% inv.sqrt.X2    = 
-  #     inv.sqrt.X2 %*% t(inv.sqrt.X2) = solve(X2)
-  svd <- svd(X2, nu=0)
-  inv.sqrt.X2 <- svd$v %*% diag(1/sqrt(svd$d)) %*% t(svd$v)
-  # Compute  X2^(-1/2)' X1 X2^(-1/2) = UDU'
-  # evectors = X2^(-1/2) U 
+  # t(inv.sqrt.B) %*% inv.sqrt.B = inv.sqrt.B %*% t(inv.sqrt.B) = solve(B)
+  inv.sqrt.B <- svd$v %*% diag(1/sqrt(svd$d)) %*% t(svd$v)
+  # Compute  B^(-1/2)' A B^(-1/2) = UDU'
+  # evectors = B^(-1/2) U 
   # evalues  = D
-  X1.2 <- t(inv.sqrt.X2) %*% X1 %*% inv.sqrt.X2
-  svd <- svd(X1.2, nu=0)
-  evalues  <- svd$d
-  evectors <- inv.sqrt.X2  %*% svd$v
-  list(l = evalues, v = evectors)
+  A <- t(inv.sqrt.B) %*% A %*% inv.sqrt.B
+  svd <- svd(A, nu=0)
+  list(l = svd$d, v = inv.sqrt.B  %*% svd$v)
 }

@@ -25,6 +25,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   class <- as.factor(class)
   classLabel <- levels(class)
   ncl <- nlevels(class)
+  if(length(unique(class)) < 2) 
+    stop("Invalid class labels!")
   #
   if(is.null(G)) 
     { G <- rep(list(1:5), ncl) }
@@ -49,7 +51,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   if(modelType == "EDDA")
     { 
       mc[[1]] <- as.name("mstep")
-      mc$class <- mc$G <- mc$modelNames <- NULL; mc$warn <- FALSE
+      mc$class <- mc$G <- mc$modelNames <- mc$modelType <- NULL
+      mc$warn <- FALSE
       mc$z <- unmap(as.numeric(class))
       G <- 1; modelNames <- unique(unlist(modelNames))
       BIC <- rep(NA, length(modelNames))
@@ -212,7 +215,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   #   class[models[[j]]$observations] <- classes[j]
   class <- eval.parent(object$call$class)
   data <- eval.parent(object$call$data)
-  pred <- predict(object, data = data, ...)
+  pred <- predict(object, newdata = data, ...)
   err <- classError(class, pred$classification)$errorRate
   tab <- table(class, pred$classification)
   names(dimnames(tab)) <- c("Class", "Predicted")
@@ -349,7 +352,14 @@ dmvnorm <- function (x, mean, sigma, log = FALSE)
   
   md <- mahalanobis(x, center = mean, cov = sigma)
   logdet <- determinant(sigma, logarithm = TRUE)$modulus
+  # SVD <- svd(sigma)
+  # Positive <- (SVD$d > sqrt(.Machine$double.eps))
+  # invSigma <- SVD$v[ ,Positive, drop = FALSE] %*% 
+  #             ((1/SVD$d[Positive]) * t(SVD$u[, Positive, drop = FALSE]))
+  # logdet <- sum(log(SVD$d[Positive]))
+  # md <- mahalanobis(x, center = mean, cov = invSigma, inverted = TRUE)
   logdens <- -(ncol(x) * log(2 * pi) + logdet + md)/2
+
   if(log)
     return(logdens)
   else
@@ -584,7 +594,7 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
       }
 
       if(length(dimens) == 2) 
-        { scatellipses(data, dimens, nclass, symbols, colors) }
+        { scatellipses(data, dimens, nclass, symbols, colors, ...) }
       
       if(length(dimens) > 2)
         { gap <- 0.2
@@ -888,8 +898,9 @@ cv.MclustDA <- function(object, nfold = 10, verbose = TRUE, ...)
        cvclass[folds[[i]]] <- classTest
        err[i] <- length(classTest) - sum(classTest == class[folds[[i]]], na.rm = TRUE)
        if(verbose) setTxtProgressBar(pbar, i)
-
      }
+  if(verbose) close(pbar)
+  #    
   cv.error <- sum(err)/n
   folds.size <- sapply(folds,length)
   err <- err/folds.size

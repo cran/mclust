@@ -5,8 +5,7 @@
 }
 \description{
   Supplies a list of values including tolerances for singularity and
-  convergence assessment, for use functions inivoling EM
-  within \emph{MCLUST}.
+  convergence assessment, for use functions involving EM within \emph{MCLUST}.
 }
 \usage{
 emControl(eps, tol, itmax, equalPro) 
@@ -17,8 +16,8 @@ emControl(eps, tol, itmax, equalPro)
     computations due to computational singularity in
     covariances. Smaller values of \code{eps} allow computations to
     proceed nearer to singularity. The default is the relative machine
-    precision \code{.Machine\$double.eps}, which is approximately
-    \$2e-16\$ on IEEE-compliant machines. 
+    precision \code{.Machine$double.eps}, which is approximately
+    \eqn{2e-16} on IEEE-compliant machines. 
   }
   \item{tol}{
     A vector of length two giving relative convergence tolerances for the 

@@ -2,17 +2,18 @@
 \alias{mclustBIC}
 \alias{EMclust}
 \alias{print.mclustBIC}
-\title{
-  BIC for Model-Based Clustering
-}
+
+\title{BIC for Model-Based Clustering}
+
 \description{
-  BIC for EM initialized by model-based hierarchical clustering
-  for parameterized Gaussian mixture models.
+BIC for parameterized Gaussian mixture models fitted by EM algorithm initialized by model-based hierarchical clustering.
 }
+
 \usage{
-mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(), 
-          initialization=list(hcPairs=NULL, subset=NULL, noise=NULL), 
-          Vinv=NULL, warn=FALSE, x=NULL, \dots)
+mclustBIC(data, G = NULL, modelNames = NULL, 
+          prior = NULL, control = emControl(), 
+          initialization = list(hcPairs = NULL, subset = NULL, noise = NULL), 
+          Vinv = NULL, warn = FALSE, x = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -30,7 +31,7 @@ mclustBIC(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \item{modelNames}{
     A vector of character strings indicating the models to be fitted 
     in the EM phase of clustering. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
     The default is:
     \describe{
         \item{\code{c("E", "V")}}{for univariate data}

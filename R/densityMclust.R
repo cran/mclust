@@ -32,7 +32,7 @@ plot.densityMclust <- function(x, data = NULL, what = c("density", "BIC", "diagn
 {
   object <- x # Argh.  Really want to use object anyway
   what <- match.arg(what)
-
+         
   if(what == "density")
     { 
       if(object$d == 1)      plotDensityMclust1(object, data = data, ...)
@@ -59,7 +59,7 @@ plot.densityMclust <- function(x, data = NULL, what = c("density", "BIC", "diagn
   if(what == "diagnostic")
     { if(missing(data))
          data <- eval.parent(object$call$data)
-      densityMclust.diagnostic(object, data, what = c("cdf", "qq"), ...)
+      densityMclust.diagnostic(object, data, what = c("cdf", "qq"), ...) 
     }
     
   invisible()
@@ -161,7 +161,10 @@ plotDensityMclustd <- function(x, data = NULL, col = grey(0.6), nlevels = 11, le
     { addPoints <- FALSE
       mc$data <- object$range }
   else
-    { addPoints <- TRUE }
+    { data <- as.matrix(data)
+      addPoints <- TRUE 
+      object$range <- apply(data, 2, range) 
+      object$varname <- colnames(data) }
 
   nc <- object$d
   oldpar <- par(mfrow = c(nc, nc), 
@@ -213,9 +216,10 @@ plotDensityMclustd <- function(x, data = NULL, col = grey(0.6), nlevels = 11, le
 
 dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
+  if(is.null(warn)) warn <- .mclust$warn
   aux <- list(...)
   cden <- cdens(modelName = modelName, data = data,
-                logarithm = TRUE, parameters = parameters, warn = NULL)
+                logarithm = TRUE, parameters = parameters, warn = warn)
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   G <- if(oneD) 

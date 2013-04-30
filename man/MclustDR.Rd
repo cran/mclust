@@ -8,7 +8,7 @@
 A dimension reduction method for visualizing the clustering or classification structure obtained from a finite mixture of Gaussian densities.
 }
 \usage{
-MclustDR(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$double.eps))
+MclustDR(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(.Machine$double.eps))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -18,16 +18,23 @@ MclustDR(object, normalized = TRUE, Sigma, tol = sqrt(.Machine$double.eps))
 }
   \item{Sigma}{Marginal covariance matrix of data. If not provided is estimated by the MLE of observed data.
 }
-  \item{tol}{A tolerance value.
-}
+
+  \item{lambda}{a tuning parameter in the range [0,1] described in Scrucca (2013).}
+
+  \item{tol}{A tolerance value.}
 }
 \details{
 The method aims at reducing the dimensionality by identifying a set of linear combinations, ordered by importance as quantified by the associated eigenvalues, of the original features which capture most of the clustering or classification structure contained in the data. 
 
-Information on the dimension reduction subspace is obtained from the variation on group means and, depending on the estimated mixture model, on the variation on group covariances (see Scrucca, 2010).
+Information on the dimension reduction subspace is obtained from the variation on group means and, depending on the estimated mixture model, on the variation on group covariances (see Scrucca, 2010). 
 
 Observations may then be projected onto such a reduced subspace, thus providing summary plots which help to visualize the underlying structure.
+
+The method has been extended to the supervised case, i.e., when the true classification is known (see Scrucca, 2013).
+
+This implementation doesn't provide a formal procedure for the selection of dimensionality. A future release will include one or more methods.
 }
+
 \value{
   An object of class \code{"MclustDR"} with the following components:
 
@@ -55,9 +62,11 @@ Observations may then be projected onto such a reduced subspace, thus providing 
 
   \item{M}{The kernel matrix.}
   
-  \item{raw.evectors}{The raw eigenvectors from the generalized eigen-decomposition of the kernel matrix, ordered according to the eigenvalues.}
-
+  \item{lambda}{The tuning parameter.}
+  
   \item{evalues}{The eigenvalues from the generalized eigen-decomposition of the kernel matrix.}
+
+  \item{raw.evectors}{The raw eigenvectors from the generalized eigen-decomposition of the kernel matrix, ordered according to the eigenvalues.}
 
   \item{basis}{The basis of the estimated dimension reduction subspace.}
 
@@ -70,7 +79,16 @@ Observations may then be projected onto such a reduced subspace, thus providing 
 }
 
 \references{
-Scrucca, L. (2010) Dimension reduction for model-based clustering. \emph{Statistics and Computing}, 20(4), pp. 471-484.
+  Scrucca, L. (2010) Dimension reduction for model-based clustering. 
+  \emph{Statistics and Computing}, 20(4), pp. 471-484.
+
+  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
+  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
+  Clustering, Classification, and Density Estimation. 
+  Technical Report No. 597, Department of Statistics, University of Washington.
+
+  Scrucca, L. (2013) Graphical Tools for Model-based Mixture Discriminant Analysis.
+  Under review on \emph{Advances in Data Analysis and Classification}.
 }
 
 \author{Luca Scrucca}

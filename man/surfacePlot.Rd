@@ -62,7 +62,7 @@ surfacePlot(data, parameters,
   }
   \item{nlevels}{
     The number of levels to use for a contour plot.
-    Default: \code{20}.
+    Default: \code{11}.
   }
   \item{levels}{
     A vector of levels at which to draw the lines in a contour plot.

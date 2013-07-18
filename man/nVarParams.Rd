@@ -13,7 +13,7 @@ nVarParams(modelName, d, G)
 \arguments{
   \item{modelName}{
     A character string indicating the model. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
   }
   \item{d}{
     The dimension of the data. Not used for models in which neither

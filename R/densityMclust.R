@@ -136,7 +136,7 @@ plotDensityMclust2 <- function(x, data = NULL, col = grey(0.6), nlevels = 11, le
   for(k in seq(par$variance$G))
      { par$variance$cholsigma[,,k] <- chol(par$variance$sigma[,,k]) }
   mc$parameters <- par
-  # now surfacePlot() it is called
+  # now surfacePlot() is called
   mc[[1]] <- as.name("surfacePlot")
   out <- eval(mc, parent.frame())
   if(addPoints)

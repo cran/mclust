@@ -25,8 +25,11 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   class <- as.factor(class)
   classLabel <- levels(class)
   ncl <- nlevels(class)
-  if(length(unique(class)) < 2) 
-    stop("Invalid class labels!")
+  # luca: removed 2176/2013
+  # if(length(unique(class)) < 2) 
+  #   stop("Invalid class labels!")
+  if(ncl == 1) G <- 1
+
   #
   if(is.null(G)) 
     { G <- rep(list(1:5), ncl) }
@@ -54,7 +57,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
       mc$class <- mc$G <- mc$modelNames <- mc$modelType <- NULL
       mc$warn <- FALSE
       mc$z <- unmap(as.numeric(class))
-      G <- 1; modelNames <- unique(unlist(modelNames))
+      G <- 1
+      modelNames <- unique(unlist(modelNames))
       BIC <- rep(NA, length(modelNames))
       Model <- NULL
       for(i in seq(modelNames))
@@ -86,8 +90,11 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
            par$mean <- if(oneD) par$mean[l] else par$mean[,l,drop=FALSE]
            par$variance$G <- 1
            if(oneD)
-             { par$variance$sigma <- par$variance$sigma[l]
-               par$variance$sigmasq <- par$variance$sigmasq[l]
+             { # par$variance$sigma <- par$variance$sigma[l]
+               if(length(par$variance$sigmasq) > 1)
+                 par$variance$sigmasq <- par$variance$sigmasq[l]
+               else
+                 par$variance$sigmasq <- par$variance$sigmasq
              }
            else
              { par$variance$sigma <- par$variance$sigma[,,l,drop=FALSE]
@@ -197,28 +204,14 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   prior <- attr(object, "prior")
   printParameters <- parameters
   par <- getParameters.MclustDA(object)
-  # par <- vector(mode = "list", length = nclass)
-  # for(i in seq(nclass))
-  #   { par[[i]] <- models[[i]]$parameters
-  #     if(is.null(par[[i]]$pro)) par$pro <- 1
-  #     if(par[[i]]$variance$d < 2)
-  #       { sigma <- rep(par[[i]]$variance$sigma,
-  #                      models[[i]]$G)[1:models[[i]]$G]
-  #         names(sigma) <- names(par[[i]]$mean)
-  #         par[[i]]$variance$sigma <- sigma
-  #       }
-  #     par[[i]]$variance <- par[[i]]$variance$sigma
-  #   }
-  
-  # class <- rep(NA, sum(n))
-  # for(j in 1:nclass) 
-  #   class[models[[j]]$observations] <- classes[j]
   class <- eval.parent(object$call$class)
   data <- eval.parent(object$call$data)
   pred <- predict(object, newdata = data, ...)
   err <- classError(class, pred$classification)$errorRate
-  tab <- table(class, pred$classification)
-  names(dimnames(tab)) <- c("Class", "Predicted")
+  tab <- try(table(class, pred$classification))
+  if(class(tab) == "try-error") 
+    { err <- tab <- NA }
+  else names(dimnames(tab)) <- c("Class", "Predicted")
     
   tab.newdata <- err.newdata <- NULL
   if(!missing(newdata))

@@ -26,7 +26,7 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   \item{modelNames}{
     A vector of character strings indicating the models to be fitted 
     in the EM phase of clustering. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
     The default is:
     \describe{
         \item{\code{c("E", "V")}}{for univariate data}
@@ -59,8 +59,14 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
     A logical or numeric vector specifying a subset of the data
     to be used in the initial hierarchical clustering phase.
   }
+  \item{\code{noise}}{
+    A logical or numeric vector indicating an initial guess as to
+    which observations are noise in the data. If numeric the entries
+    should correspond to row indexes of the data. If supplied, a noise
+    term will be added to the model in the estimation.
+   }
   }
-  }
+ }
  \item{warn}{
     A logical value indicating whether or not certain warnings 
     (usually related to singularity) should be issued.
@@ -118,7 +124,7 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
         \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
-              specification. See the help file for \code{mclustVariance}
+              specification. See the help file for \code{\link{mclustVariance}}
               for details.
         }
       }

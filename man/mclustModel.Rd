@@ -47,7 +47,7 @@ mclustModel(data, BICvalues, G, modelNames, \dots)
   The details of the output components are as follows:
   \item{modelName}{
     A character string indicating the model. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
   }
    \item{n}{
     The number of observations in the data.
@@ -81,7 +81,7 @@ mclustModel(data, BICvalues, G, modelNames, \dots)
         \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
-              specification. See the help file for \code{mclustVariance}
+              specification. See the help file for \code{\link{mclustVariance}}
               for details.
             }
 	\item{\code{Vinv}}{

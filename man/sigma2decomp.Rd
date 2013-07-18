@@ -36,7 +36,7 @@ sigma2decomp(sigma, G=NULL, tol=NULL, \dots)
   including the following components: 
   \item{modelName}{
     A character string indicating the infered model. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
    }
   \item{d}{
     The dimension of the data. 

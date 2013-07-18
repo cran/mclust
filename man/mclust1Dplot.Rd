@@ -39,7 +39,7 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
         \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
-              specification. See the help file for \code{mclustVariance}
+              specification. See the help file for \code{\link{mclustVariance}}
               for details.
         }
      }

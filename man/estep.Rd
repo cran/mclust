@@ -13,7 +13,7 @@
 \arguments{
   \item{modelName}{
     A character string indicating the model. The help file for
-    \code{mclustModelNames} describes the available models.
+    \code{\link{mclustModelNames}} describes the available models.
   }
  \item{data}{
     A numeric vector, matrix, or data frame of observations.
@@ -39,7 +39,7 @@
         \item{\code{variance}}{
               A list of variance parameters for the model.
               The components of this list depend on the model
-              specification. See the help file for \code{mclustVariance}
+              specification. See the help file for \code{\link{mclustVariance}}
               for details.
         }
         \item{\code{Vinv}}{

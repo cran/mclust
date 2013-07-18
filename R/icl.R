@@ -27,14 +27,15 @@ mclustICL <- function(data, G = NULL, modelNames = NULL,
   n <- nrow(data)
   d <- ncol(data)
 
-  if(d == 1)
-    { modelNames <- c("V", "E") }
-  else
-    { modelNames <- mclust.options("emModelNames")
-      if(n <= d) 
-        { m <- match(c("EEE","EEV","VEV","VVV"),modelNames,nomatch=0)
-          modelNames <- modelNames[-m]
-        }
+  if(is.null(modelNames))
+    { if(d == 1)
+        { modelNames <- c("E", "V") }
+      else
+        { modelNames <- mclust.options("emModelNames") }
+    }
+  if(n <= d) 
+    { m <- match(c("EEE","EEV","VEV","VVV"),modelNames,nomatch=0)
+      modelNames <- modelNames[-m]
     }
   
   if(is.null(G)) 

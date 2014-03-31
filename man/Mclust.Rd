@@ -1,16 +1,17 @@
 \name{Mclust}
 \alias{Mclust}
 \alias{print.Mclust}
-\title{
-  Model-Based Clustering
-}
+
+\title{Model-Based Clustering}
+
 \description{
   The optimal model according to BIC for EM initialized by hierarchical 
   clustering for parameterized Gaussian mixture models.
 }
 \usage{
-Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(), 
-       initialization=NULL, warn=FALSE, \dots)
+Mclust(data, G = NULL, modelNames = NULL, 
+       prior = NULL, control = emControl(), 
+       initialization = NULL, warn = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -25,14 +26,13 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
   \item{modelNames}{
     A vector of character strings indicating the models to be fitted 
-    in the EM phase of clustering. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-    The default is:
-    \describe{
-        \item{\code{c("E", "V")}}{for univariate data}
-        \item{\code{mclust.options("emModelNames")}}{for multivariate data (n > d)}
-        \item{\code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")}}{the spherical and diagonal models for multivariate data (n <= d)}
+    in the EM phase of clustering. The default is:
+    \tabular{ll}{
+    for univariate data \tab \code{c("E", "V")} \cr
+    for multivariate data (\eqn{n > d}) \tab \code{mclust.options("emModelNames")} \cr
+    for multivariate data (\eqn{n <= d}) the spherical and diagonal models \tab \code{c("EII", "VII", "EEI", "EVI", "VEI", "VVI")}
      }
+    The help file for \code{\link{mclustModelNames}} describes the available models.
    }
   \item{prior}{
     The default assumes no prior, but this argument allows specification of a 
@@ -84,6 +84,8 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   
   \item{call}{The matched call} 
 
+  \item{data}{The input data matrix.} 
+
   \item{modelName}{
     A character string denoting the model at which the optimal BIC occurs.
   }
@@ -107,6 +109,9 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
   }
   \item{df}{
     The number of estimated parameters.
+  }
+  \item{hypvol}{
+    The hypervolume parameter for the noise component if required, otherwise set to \code{NULL} (see \code{\link{hypvol}}).
   }
   \item{parameters}{
      A list with the following components:
@@ -176,14 +181,30 @@ Mclust(data, G=NULL, modelNames=NULL, prior=NULL, control=emControl(),
 mod1 = Mclust(iris[,1:4])
 summary(mod1)
 
-mod2 = Mclust(iris[,1:4], G = 1)
-summary(mod2)
+mod2 = Mclust(iris[,1:4], G = 3)
+summary(mod2, parameters = TRUE)
 
+# Using prior
 mod3 = Mclust(iris[,1:4], prior = priorControl())
 summary(mod3)
 
 mod4 = Mclust(iris[,1:4], prior = priorControl(functionName="defaultPrior", shrinkage=0.1))
 summary(mod4)
+
+# Clustering of faithful data with some artificial noise added 
+nNoise = 100
+set.seed(0) # to make it reproducible
+Noise = apply(faithful, 2, function(x) 
+                           runif(nNoise, min = min(x)-.1, max = max(x)+.1))
+data = rbind(faithful, Noise)
+plot(faithful)
+points(Noise, pch = 20, cex = 0.5, col = "lightgrey")
+set.seed(0)
+NoiseInit = sample(c(TRUE,FALSE), size = nrow(faithful)+nNoise, 
+                   replace = TRUE, prob = c(3,1)/4)
+mod5 = Mclust(data, initialization = list(noise = NoiseInit))
+summary(mod5, parameter = TRUE)
+plot(mod5, "classification")
 }
+
 \keyword{cluster}
-% docclass is function

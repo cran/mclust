@@ -14,6 +14,10 @@ MclustDR(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(.Machine$dou
 \arguments{
   \item{object}{An object of class \code{Mclust} or \code{MclustDA} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.
 }
+%  \item{data}{Data frame or matrix of observations. If not provided is obtained by evaluating \code{object} in the current environment.
+%}
+%  \item{class}{A vector giving the class labels for the observations. If not provided is obtained by evaluating \code{object} in the current environment.
+%}
   \item{normalized}{Logical. If \code{TRUE} directions are normalized to unit norm.
 }
   \item{Sigma}{Marginal covariance matrix of data. If not provided is estimated by the MLE of observed data.

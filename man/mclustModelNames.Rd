@@ -13,14 +13,8 @@ mclustModelNames(model)
   \item{model}{A string specifying the model.}
 }
 
-\value{Returns a list giving the optimal (according to BIC) parameters,
-  conditional probabilities \code{z}, and loglikelihood,
-\item{model}{A character string indicating the model (as in input).}
-\item{type}{The description of the indicated model (see details below).}
-}
-
 \details{
-The following models are available:
+The following models are available in package \pkg{mclust}:
 \tabular{lcl}{
 \bold{univariate mixture} \tab \tab \cr
     \code{"E"} \tab = \tab equal variance  (one-dimensional) \cr
@@ -40,9 +34,15 @@ The following models are available:
     \code{"X"} \tab = \tab univariate normal \cr
     \code{"XII"} \tab = \tab spherical multivariate normal \cr
     \code{"XXI"} \tab = \tab diagonal multivariate normal \cr
-    \code{"XXX"} \tab = \tab elliposidal multivariate normal 
+    \code{"XXX"} \tab = \tab ellipsoidal multivariate normal 
 }
 }
+
+\value{Returns a list with the following components:
+\item{model}{a character string indicating the model (as in input).}
+\item{type}{the description of the indicated model (see Details section).}
+}
+
 \section{References}{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
@@ -54,7 +54,7 @@ The following models are available:
   Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
-  \code{\link{Mclust}}
+  \code{\link{Mclust}},
   \code{\link{mclustBIC}}
 }
 \examples{

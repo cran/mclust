@@ -6,7 +6,7 @@
 #############################################################################
 
 me.weighted <- function(modelName, data, z, weights = NULL, prior = NULL, 
-control = emControl(), Vinv = NULL, warn = NULL, ...)
+                        control = emControl(), Vinv = NULL, warn = NULL, ...)
 {
   N <- nrow(data)
   if (is.null(weights))
@@ -34,15 +34,15 @@ control = emControl(), Vinv = NULL, warn = NULL, ...)
   {
     iter <- iter+1
     fit.m <- do.call("mstep",list(data=data,z=zw
-      ,modelName=modelName,prior=prior
-      ,control=control,Vinv=Vinv,warn=warn))
+                                  ,modelName=modelName,prior=prior
+                                  ,control=control,Vinv=Vinv,warn=warn))
     fit.m$parameters$pro <- fit.m$parameters$pro/mean(weights)
     fit.e <- do.call("estep",c(list(data=data
-      ,control=control,Vinv=Vinv,warn=warn),fit.m))
+                                    ,control=control,Vinv=Vinv,warn=warn),fit.m))
     zw <- fit.e$z*weights
     criterion <- criterion&(iter<control$itmax[1])
     ldens <- do.call("dens",c(list(data=data,logarithm=TRUE
-      ,warn=warn),fit.m))
+                                   ,warn=warn),fit.m))
     ll <- sum(weights*ldens)
     criterion <- criterion&(ll-llold>control$tol[1])
     llold <- ll

@@ -12,9 +12,10 @@ surfacePlot(data, parameters,
             type = c("contour", "image", "persp"), 
             what = c("density", "uncertainty"), 
             transformation = c("none", "log", "sqrt"),          
-            grid = 50, nlevels = 11, levels = NULL, 
-            scale = FALSE, xlim = NULL, ylim = NULL, 
-            identify = FALSE, verbose = FALSE, swapAxes = FALSE, \dots)
+            grid = 50, nlevels = 11, levels = NULL, col = grey(0.6),
+            xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
+            scale = FALSE, identify = FALSE, swapAxes = FALSE, 
+            verbose = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -67,28 +68,34 @@ surfacePlot(data, parameters,
   \item{levels}{
     A vector of levels at which to draw the lines in a contour plot.
   }
+  \item{col}{
+    The color to be used for drawing contour lines.
+  }
+  \item{xlim, ylim}{
+    Optional argument specifying bounds for the ordinate, abscissa of the plot.
+    This may be useful for when comparing plots.
+  }
+  \item{xlab, ylab}{
+    Optional argument specifying labels for the x-axis and y-axis.
+  }
   \item{scale}{
     A logical variable indicating whether or not the two
     dimensions should be plotted on the same scale, and
     thus preserve the shape of the distribution.
     The default is not to scale.
   }
-  \item{xlim, ylim}{
-    An argument specifying bounds for the ordinate, abscissa of the plot.
-    This may be useful for when comparing plots.
-  }
   \item{identify}{
     A logical variable indicating whether or not to add a title to the plot
     identifying the dimensions used.
+  }
+  \item{swapAxes}{
+    A logical variable indicating whether or not the axes should be swapped
+    for the plot.
   }
   \item{verbose}{
     A logical variable telling whether or not to print an indication that
     the function is in the process of computing values at the grid points,
     which typically takes some time to complete.
-  }
-  \item{swapAxes}{
-    A logical variable indicating whether or not the axes should be swapped
-    for the plot.
   }
  \item{\dots}{
     Other graphics parameters.

@@ -6,7 +6,7 @@
 \description{Compute density estimation for multivariate observations based on Gaussian finite mixture models estimated by \code{\link{densityMclust}}.}
 
 \usage{
-  \method{predict}{densityMclust}(object, newdata, \dots)
+  \method{predict}{densityMclust}(object, newdata, what = c("dens", "cdens"), \dots)
 }
 
 \arguments{
@@ -15,13 +15,15 @@
 
   \item{newdata}{a vector, a data frame or matrix giving the data. If missing the density is computed for the input data obtained from the call to \code{\link{densityMclust}}.}
 
+  \item{what}{a character string specifying what to retrieve: \code{"dens"} returns a vector of values for the mixture density, \code{cdens} returns a matrix of component densities for each mixture component (along the columns).}
+
   \item{\dots}{further arguments passed to or from other methods.}
 }
 
 % \details{}
 
 \value{
-Returns a vector of densities evaluated at \code{newdata}.
+Returns a vector or a matrix of densities evaluated at \code{newdata} depending on the argument \code{what} (see above).
 }
 
 \references{

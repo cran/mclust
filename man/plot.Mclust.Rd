@@ -9,7 +9,7 @@
 }
 \usage{
 \method{plot}{Mclust}(x, what = c("BIC", "classification", "uncertainty", "density"), 
-     dimens = NULL, xlab = NULL, ylim = NULL,
+     dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,
      addEllipses = TRUE, identify = TRUE, 
      legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
      \dots)
@@ -33,8 +33,8 @@
     desired coordinate projections for multivariate data in case of
     \code{"classification"} or \code{"uncertainty"} plots. 
   }
- \item{xlab}{
-    Optional label for the horizontal axis of the BIC plot.
+ \item{xlab, ylab}{
+    Optional labels for the x-axis and the y-axis.
   }
  \item{ylim}{
     Optional limits for the vertical axis of the BIC plot.

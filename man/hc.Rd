@@ -8,17 +8,21 @@
   for Gaussian mixture models parameterized by eigenvalue decomposition.
 }
 \usage{
-hc(modelName, data, \dots)
+hc(modelName = mclust.options("hcModelNames")[1], data, 
+   use = mclust.options("hcUse"), \dots)
 }
 \arguments{
   \item{modelName}{
-    A character string indicating the model. Possible models: \cr\cr 
+    A character string indicating the model to be used.\cr
+    Possible models are: \cr\cr 
     \code{"E"}: equal variance  (one-dimensional) \cr
     \code{"V"} : spherical, variable variance (one-dimensional) \cr
     \code{"EII"}: spherical, equal volume \cr
     \code{"VII"}: spherical, unequal volume \cr
     \code{"EEE"}: ellipsoidal, equal volume, shape, and orientation \cr
-    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation
+    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation.\cr\cr
+    By default the first model listed in
+    \code{mclust.options("hcModelNames")}, i.e., \code{"VVV"}, is used.
   }
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
@@ -26,8 +30,16 @@ hc(modelName, data, \dots)
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
   }
+  \item{use}{
+    A character string specifying what type of data/transformation should be 
+    used for model-based hierarchical clustering.\cr
+    This is experimental and it is only useful for the initialization of 
+    EM algorithm.
+    By default it uses the method specified in \code{mclust.options("hcUse")}, 
+    which is set to \code{"VARS"}, i.e., the original input variables.
+  }
   \item{\dots}{
-    Arguments for the method-specific hc functions. See
+    Arguments for the method-specific \code{hc} functions. See for example
     \code{\link{hcE}}.
   }
 }
@@ -71,7 +83,8 @@ hc(modelName, data, \dots)
 \seealso{
   \code{\link{hcE}},...,
   \code{\link{hcVVV}},
-  \code{\link{hclass}}
+  \code{\link{hclass}},
+  \code{\link{mclust.options}}  
 }
 \examples{
 hcTree <- hc(modelName = "VVV", data = iris[,-5])
@@ -89,5 +102,3 @@ coordProj(iris[,-5], dimens = dimens, classification=cl[,"3"])
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -12,7 +12,8 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
              classification = NULL, truth = NULL, uncertainty = NULL,
              what = c("classification","uncertainty","errors"), 
              quantiles = c(0.75,0.95), symbols = NULL, colors = NULL, 
-             scale = FALSE, xlim = NULL, ylim = NULL, CEX  = 1, PCH = ".",
+             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
+             scale = FALSE, CEX  = 1, PCH = ".",
              identify = FALSE, swapAxes = FALSE, \dots) 
 }
 \arguments{
@@ -96,15 +97,18 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
     observations (the order used by the function \code{unique}). 
     The default is given is \code{mclust.options("classPlotColors")}.
   }
+  \item{xlim, ylim}{
+    Optional argument specifying bounds for the ordinate, abscissa of the plot.
+    This may be useful for when comparing plots.
+  }
+  \item{xlab, ylab}{
+    Optional argument specifying labels for the x-axis and y-axis.
+  }
   \item{scale}{
     A logical variable indicating whether or not the two chosen
     dimensions should be plotted on the same scale, and
     thus preserve the shape of the distribution.
     Default: \code{scale=FALSE} 
-  }
-  \item{xlim, ylim}{
-    An argument specifying bounds for the ordinate, abscissa of the plot.
-    This may be useful for when comparing plots.
   }
   \item{CEX}{
     An argument specifying the size of the plotting symbols. 

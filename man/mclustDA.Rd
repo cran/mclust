@@ -95,8 +95,12 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
  
  The details of the output components are as follows:
 
-  \item{call}{The matched call} 
+  \item{call}{The matched call.} 
 
+  \item{data}{The input data matrix.} 
+  
+  \item{class}{The input class labels.} 
+    
   \item{models}{A list of \code{\link{Mclust}} objects containing information
   on fitted model for each class.} 
     

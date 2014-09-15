@@ -8,14 +8,13 @@ Diagnostic plots for density estimation. Only available for the one-dimensional 
 }
 
 \usage{
-densityMclust.diagnostic(object, data, what = c("cdf", "qq"), col = c(1,3),
-                         lwd = c(2,2), lty = c(1,2), legend = TRUE, \dots)
+densityMclust.diagnostic(object, what = c("cdf", "qq"), col = c(1,3),
+                         lwd = c(2,2), lty = c(1,2), legend = TRUE, 
+                         grid = TRUE, main, \dots)
 }
 
 \arguments{
   \item{object}{\code{mclustDensity} object obtained from \code{\link{densityMclust}} function.}
-
-  \item{data}{data points used for density estimation.}
 
   \item{what}{the type of graph requested:
     \describe{
@@ -31,6 +30,10 @@ densityMclust.diagnostic(object, data, what = c("cdf", "qq"), col = c(1,3),
   \item{lty}{a pair of values for the line type to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
 
   \item{legend}{a logical indicating if a legend must be added to the plot of fitted CDF vs the empirical CDF.}
+
+  \item{grid}{a logical indicating if a \code{\link{grid}} should be added to the plot.}
+
+  \item{main}{a character string for the plot title.}
   
   \item{\dots}{additional arguments.}
 }
@@ -63,8 +66,8 @@ x = faithful$waiting
 dens = densityMclust(x)
 plot(dens, x, what = "diagnostic")
 # or
-densityMclust.diagnostic(dens, x, what = "cdf")
-densityMclust.diagnostic(dens, x, what = "qq")
+densityMclust.diagnostic(dens, what = "cdf")
+densityMclust.diagnostic(dens, what = "qq")
 }
 
 \keyword{cluster}

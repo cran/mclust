@@ -1,10 +1,10 @@
 \name{imputeData}
 \alias{imputeData}
 \title{
-  Missing Data Imputation via the mix package
+  Missing Data Imputation via the \pkg{mix} package
 }
 \description{
-  Imputes missing data using the mix package.
+  Imputes missing data using the \pkg{mix} package.
 }
 \usage{
 imputeData(x, categorical = NULL, seed = NULL)
@@ -24,7 +24,7 @@ imputeData(x, categorical = NULL, seed = NULL)
   }
   \item{seed}{
     A seed for the function \code{rngseed} that is used to initialize
-    the random number generator in \code{mix}. By default, a seed is
+    the random number generator in \pkg{mix}. By default, a seed is
     chosen uniformly in the interval \code{(.Machine$integer.max/1024,
     .Machine$integer.max)}.
   }
@@ -41,14 +41,14 @@ imputeData(x, categorical = NULL, seed = NULL)
   \code{\link{imputePairs}}
 }
 \examples{
-library(mix)
+# Note that package 'mix' must be installed.
+\dontrun{
 
 # impute the continuos variables in the stlouis data
-stlimp <- imputeData( stlouis[,-(1:3)])
+stlimp <- imputeData(stlouis[,-(1:3)])
 
 # plot imputed values
-imputePairs( stlouis[,-(1:3)], stlimp)
+imputePairs(stlouis[,-(1:3)], stlimp)
+}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

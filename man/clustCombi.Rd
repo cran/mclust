@@ -45,7 +45,7 @@ MclustOutput <- Mclust(ex4.1) # or you can run Mclust yourself
 output <- clustCombi(ex4.1, MclustOutput) # and provide the output to clustCombi
 
 # any further optional argument is passed to Mclust (see the Mclust documentation)
-output <- clustCombi(ex4.1, modelName = "EEV", G = 1:15) 
+\dontrun{output <- clustCombi(ex4.1, modelName = "EEV", G = 1:15)}
 
 output # is of class clustCombi
 # plots the hierarchy of combined solutions, then some "entropy plots" which 
@@ -76,7 +76,7 @@ output$combiM[[5]]
 # are merged at this step... 
 output$combiM[[5]] %*% c(0,0,0,1,0,0) 
 # recover the 5-classes soft clustering from the 6-classes soft clustering 
-# and the 6 -> 5 "combining matrix"
+# and the 6 -> 5 combining matrix
 all( output$combiz[[5]] == t( output$combiM[[5]] \%*\% t(output$combiz[[6]]) ) ) 
 # the hard clustering under the 5-classes solution
 head( output$classification[[5]] )

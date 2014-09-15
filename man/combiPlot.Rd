@@ -61,9 +61,10 @@ combiM2
 combiPlot(ex4.1, MclustOutput$z, combiM2)
 title("Combine 1, 2 and then 1 and 2 again")
 
-plot(rep(1,6), 1:6, col = mclust.options()$classPlotColors, 
-     pch = mclust.options()$classPlotSymbols, 
-     xlab = "", ylab = "Class label", xaxt = "n")
-title("legend")
+plot(0,0,type="n", xlab = "", ylab = "", axes = FALSE)
+legend("center", legend = 1:6,
+       col = mclust.options("classPlotColors"), 
+       pch = mclust.options("classPlotSymbols"), 
+       title = "Class labels:")
 }
 \keyword{ cluster }

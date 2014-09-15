@@ -1,29 +1,38 @@
 \name{cdfMclust}
 \alias{cdfMclust}
+\alias{quantileMclust}
 
 \title{
-  Cumulative density function from \code{mclustDensity} estimation
+  Cumulative Distribution and Quantiles for a univariate Gaussian mixture 
+  distribution
 }
 
 \description{
-Computes the estimated CDF from a one-dimensional density estimation at points given by the optional argument data. If not provided, a regular grid of evalutaion points is used. 
-}
+Compute the cumulative density function (cdf) or quantiles from an estimated one-dimensional Gaussian mixture fitted using \code{\link{densityMclust}}.}
 
 \usage{
 cdfMclust(object, data, ngrid = 100, \dots)
+quantileMclust(object, p, ...)
 }
 
 \arguments{
   \item{object}{a \code{densityMclust} model object.}
   \item{data}{a numeric vector of evaluation points.}
   \item{ngrid}{the number of points in a regular grid to be used as evaluation points if no \code{data} are provided.}
+  \item{p}{a numeric vector of probabilities.}
  \item{\dots}{further arguments passed to or from other methods.}
 }
 
-\value{
-Return a list of \code{x} and \code{y} values providing the evaluation points and the calculated CDF.}
+\details{The cdf is evaluated at points given by the optional argument  \code{data}. If not provided, a regular grid of length \code{ngrid} for the evaluation points is used. 
 
-%\details{}
+The quantiles are computed using interpolating splines on an adaptive finer grid.
+}
+
+\value{
+\code{cdfMclust} returns a list of \code{x} and \code{y} values providing, respectively, the evaluation points and the estimated cdf. 
+
+\code{quantileMclust} returns a vector of quantiles.
+}
 
 \section{References}{
   C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
@@ -45,7 +54,10 @@ dens <- densityMclust(x)
 summary(dens, parameters = TRUE)
 cdf <- cdfMclust(dens)
 str(cdf)
+q <- quantileMclust(dens, p = c(0.01, 0.1, 0.5, 0.9, 0.99))
+cbind(quantile = q, cdf = cdfMclust(dens, q)$y)
 plot(cdf, type = "l", xlab = "x", ylab = "CDF")
+points(q, cdfMclust(dens, q)$y, pch = 20, col = "red3")
 
 par(mfrow = c(2,2))
 dens.waiting <- densityMclust(faithful$waiting)

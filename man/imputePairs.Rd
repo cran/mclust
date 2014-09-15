@@ -6,7 +6,7 @@
 \description{
   Creates a scatter plot for each pair of variables in given data,
   allowing display of imputations for missing values in different
-  colors and symbols than nonmissing values.
+  colors and symbols than non missing values.
 }
 \usage{
 imputePairs(x, impx, symbols = c(16,1), colors = c("black", "red"), labels,
@@ -87,13 +87,14 @@ imputePairs(x, impx, symbols = c(16,1), colors = c("black", "red"), labels,
   \code{\link{imputeData}}
 }
 \examples{
-library(mix)
-
+# Note that package 'mix' must be installed.
+\dontshow{library(mix)}
+ 
 # impute the continuos variables in the stlouis data
-stlimp <- imputeData( stlouis[,-(1:3)])
+stlimp <- imputeData(stlouis[,-(1:3)])
 
 # plot imputed values
-imputePairs( stlouis[,-(1:3)], stlimp)
+imputePairs(stlouis[,-(1:3)], stlimp)
 }
 \keyword{cluster}
 % docclass is function

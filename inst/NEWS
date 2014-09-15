@@ -1,23 +1,34 @@
+Version 4.4 (2014-09)
+    o add option for using transformation of variables in the hierarchical 
+      initialization step.
+    o add quantileMclust for computing the quantiles from a univariate 
+      Gaussian mixture distribution.
+    o bug fixes on summaryMclustBIC, summaryMclustBICn, Mclust to return a 
+      matrix of 1s on a single column for z even in the case of G = 1. This 
+      is to avoid error on some plots.
+    o pdf files (previously included as vignettes) moved to inst/doc with 
+      corresponding index.html.
+
 Version 4.3 (2014-03)
-    o bug fix for logLik.MclustDA in the univariate case 
-    o add argument "what" to predict.densityMclust function for choosing
+    o bug fix for logLik.MclustDA() in the univariate case. 
+    o add argument "what" to predict.densityMclust() function for choosing
       what to retrieve, the mixture density or component density.
-    o hc function has an additional parameter to control if the orginal
+    o hc function has an additional parameter to control if the original
       variables or a transformation of them should be used for
-      hierarchical clustering
-    o included "hcUse" in mclust.options to be passed as default to hc
+      hierarchical clustering.
+    o included "hcUse" in mclust.options to be passed as default to hc().
     o original data (and class for classification models) are stored in the
       object returned by the main functions.
-    o add component hypvol to Mclust object which provide the hypervolume
-      of the noise component when required, otherwise is set to NA
+    o add component "hypvol"" to Mclust object which provide the hypervolume
+      of the noise component when required, otherwise is set to NA.
     o add a warning when prior is used and BIC returns NAs.
-    o bug fixes for summary.Mclust, print.summary.Mclust, plot.Mclust 
-      and icl in the case of presence of a noise component.
-    o some plots on plot.MclustDR require plot.new before calling
-      plot.window      
-    o bug fixes for MclustDR when p=1
-    o correction to Mclust man page
-    o bug fixes
+    o bug fixes for summary.Mclust(), print.summary.Mclust(), plot.Mclust() 
+      and icl() in the case of presence of a noise component.
+    o some plots on plot.MclustDR() require plot.new() before calling
+      plot.window().      
+    o bug fixes for MclustDR() when p=1.
+    o correction to Mclust man page.
+    o bug fixes.
 
 Version 4.2 (2013-07)
     o fix bug in sim* functions when no obs are assigned to a component.

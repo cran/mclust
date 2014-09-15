@@ -10,10 +10,10 @@
                    "EEV", "VEV", "VVV"), 
   hcModelNames = c("VVV", "EEE", "VII", "EII"),
   hcUse = "VARS",
-  # "EII", "VII", "EEE", "VVV" 
   bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1, 15, 12, 7, 0, 17, 2),
                              .Names = c("EII", "VII", "EEI", "EVI", "VEI",
-                                        "VVI", "EEE", "EEV", "VEV", "VVV", "E", "V")), 
+                                        "VVI", "EEE", "EEV", "VEV", "VVV", 
+                                        "E", "V")), 
   bicPlotColors = structure(c("gray", "black", "orange", "brown", "red",
                               "magenta", "forestgreen", "green", "cyan",
                               "blue", "gray", "black"), 
@@ -237,78 +237,6 @@ cv1EMtrain <- function(data, labels, modelNames=NULL)
   }
   errorRate <- apply(cv, 2, sum)
   errorRate/n
-}
-
-# This version is bugged when a quantile is equal to the following
-qclass <- function (x, k) 
-{
-  q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
-  cl <- rep(0, length(x))
-  q[1] <- q[1] - 1
-  for(i in 1:k) 
-    cl[x > q[i] & x <= q[i+1]] <- i
-  return(cl)
-}
-# This should correct the above bug
-qclass <- function (x, k) 
-{
-  x <- as.vector(x)
-  eps <- sqrt(.Machine$double.eps)
-  q <- NA
-  n <- k
-  while(length(q) < (k+1))
-  { n <- n + 1
-    q <- unique(quantile(x, seq(from = 0, to = 1, length = n))) 
-  }
-  if(length(q) > (k+1))
-  { dq <- diff(q)
-    nr <- length(q)-k-1
-    q <- q[-order(dq)[1:nr]]
-  }
-  q[1] <- min(x) - eps
-  q[length(q)] <- max(x) + eps
-  cl <- rep(0, length(x))
-  for(i in 1:k) 
-  { cl[ x >= q[i] & x < q[i+1] ] <- i }
-  return(cl)
-}
-
-hclass <- function(hcPairs, G)
-{
-  initial <- attributes(hcPairs)$init
-  n <- length(initial)
-  k <- length(unique(initial))
-  G <- if(missing(G)) k:2 else rev(sort(unique(G)))
-  select <- k - G
-  if(length(select) == 1 && !select)
-    return(matrix(initial, ncol = 1, dimnames = list(NULL, 
-                                                     as.character(G))))
-  bad <- select < 0 | select >= k
-  if(all(bad))
-    stop("No classification with the specified number of clusters")
-  if(any(bad))
-    warning("Some selected classifications are inconsistent\n                          with mclust object"
-    )
-  L <- length(select)
-  cl <- matrix(as.double(NA), nrow = n, ncol = L, dimnames = list(NULL, as.character(
-    G)))
-  if(select[1])
-    m <- 1
-  else {
-    cl[, 1] <- initial
-    m <- 2
-  }
-  for(l in 1:max(select)) {
-    ij <- hcPairs[, l]
-    i <- min(ij)
-    j <- max(ij)
-    initial[initial == j] <- i
-    if(select[m] == l) {
-      cl[, m] <- initial
-      m <- m + 1
-    }
-  }
-  apply(cl[, L:1, drop = FALSE], 2, partconv, consec = TRUE)
 }
 
 EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL), Vinv = NULL, warn = FALSE, x = NULL, ...)
@@ -588,6 +516,8 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
             returnCodes = RET, class = "mclustBIC")
 }
 
+# EMclust <- function(...) .Defunct("mclustBIC", package = "mclust")
+
 mclustBIC <- function(data, G = NULL, modelNames = NULL, 
                       prior = NULL, control = emControl(), 
                       initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),  
@@ -595,8 +525,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
 {
   if(!is.null(x)) 
   { if(!missing(prior) || !missing(control) || 
-         !missing(initialization) || !missing(Vinv)) 
-    stop("only G and modelNames may be specified as arguments when x is supplied")
+       !missing(initialization) || !missing(Vinv))
+      stop("only G and modelNames may be specified as arguments when x is supplied")
     prior <- attr(x,"prior") 
     control <- attr(x,"control")
     initialization <- attr(x,"initialization")
@@ -727,7 +657,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       #######################################################
       # all data in initial hierarchical clustering phase
       #######################################################
-      if (is.null(initialization$hcPairs)) {
+      if (is.null(initialization$hcPairs)) { 
         if (d != 1) {
           if (n > d) {
             hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], data = data)
@@ -778,12 +708,12 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = "VVV", 
-                          data = data[subset,  ])
+            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
+                          data = data[subset,])
           }
           else {
             hcPairs <- hc(modelName = "EII", 
-                          data = data[subset,  ])
+                          data = data[subset,])
           }
         }
         else {
@@ -856,7 +786,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
     if (is.null(initialization$hcPairs)) {
       if (d != 1) {
         if (n > d) {
-          hcPairs <- hc(modelName = "VVV", data = data[!noise,  ])
+          hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
+                        data = data[!noise,  ])
         }
         else {
           hcPairs <- hc(modelName = "EII", data = data[!noise,  ])
@@ -967,11 +898,12 @@ Mclust <- function (data, G = NULL, modelNames = NULL, prior = NULL, control = e
   orderedNames <- c("call", "data", "modelName", 
                     "n", "d", "G", 
                     "BIC", "bic", "loglik", "df", 
-                    "hypvol", "parameters", 
+                    "hypvol", "parameters", "z", 
                     "classification", "uncertainty")
-  structure(if(Sumry$G > 1) ans[c(orderedNames,"z")] 
-            else            ans[orderedNames],
-            class = "Mclust")
+#   structure(if(Sumry$G > 1) ans[c(orderedNames,"z")] 
+#             else            ans[orderedNames],
+#             class = "Mclust")
+  structure(ans[orderedNames], class = "Mclust")  
 }
 
 predict.Mclust <- function(object, newdata, ...)
@@ -1229,50 +1161,48 @@ summaryMclustBICn <- function(object, data, G=NULL, modelNames=NULL, ...)
   if (is.null(G)) G <- dimnames(object)[[1]]
   if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
   bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
-  if (all(is.na(bestBICs))) {
-    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, control
-                     = control, initialization = initialization, class = "summary.mclustBIC"))
+  if(all(is.na(bestBICs))) 
+    { return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
+                       control = control, initialization = initialization, 
+                       class = "summary.mclustBIC"))
   }
   temp <- unlist(strsplit(names(bestBICs)[1], ","))
   bestModel <- temp[1] 
   G <- as.numeric(temp[2])
-  if(G == 0) {
-    ans <- list(bic = bestBICs, classification = rep(0, n), 
-                uncertainty = rep(0, n), n = n, d = ncol(data), 
-                G = 0, loglik = n * logb(Vinv), Vinv = Vinv)
-    orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
-                      "classification", "uncertainty")
-    return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
-                     prior = prior, control = control, 
-                     initialization = initialization, 
-                     class = "summary.mclustBIC"))
+  if(G == 0) 
+    { ans <- list(bic = bestBICs, 
+                  z = unmap(rep(0,n)),
+                  classification = rep(0, n), 
+                  uncertainty = rep(0, n), 
+                  n = n, d = ncol(data), 
+                  G = 0, loglik = n * logb(Vinv), 
+                  Vinv = Vinv)
+      orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
+                        "z", "classification", "uncertainty")
+     return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
+                      prior = prior, control = control, 
+                      initialization = initialization, 
+                      class = "summary.mclustBIC"))
   }
   G1 <- G + 1
   z <- matrix(0, n, G1)
-  if(d > 1 || !is.null(hcPairs)) {
-    z[!noise, 1:G] <- unmap(hclass(hcPairs, G))
-  }
-  else {
-    z[!noise, 1:G] <- unmap(qclass(data[!noise], G))
-  }
+  if(d > 1 || !is.null(hcPairs))
+    { z[!noise, 1:G] <- unmap(hclass(hcPairs, G)) }
+  else 
+    { z[!noise, 1:G] <- unmap(qclass(data[!noise], G)) }
   z[noise, G1] <- 1
   out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
             control = control, warn = warn, Vinv = Vinv)
-  obsNames <- if (is.null(dim(data))) {
-    names(data)
-  }  
-  else {
-    dimnames(data)[[1]]
-  }
+  obsNames <- if(is.null(dim(data))) 
+                names(data) else dimnames(data)[[1]]
   classification <- map(out$z)
-  # print(G1)
   classification[classification == G1] <- 0
   uncertainty <- 1 - apply(out$z, 1, max)
   names(classification) <- names(uncertainty) <- obsNames
   ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
                 uncertainty = uncertainty, Vinv = Vinv), out)
   orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "parameters", 
-                    "z", "Vinv", "classification", "uncertainty")
+                    "Vinv", "z", "classification", "uncertainty")
   structure(ans[orderedNames], 
             bestBICvalues = bestBICs, 
             prior = prior, control = control, 
@@ -1326,47 +1256,49 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
   attr(object, "modelNames") <- attr(object, "oneD") <- NULL
   attr(object, "initialization") <- attr(object, "control") <- NULL
   d <- if (is.null(dim(data))) 1 else ncol(data)
-  if (is.null(G)) 
+  if(is.null(G)) 
     G <- dimnames(object)[[1]]
-  if (is.null(modelNames)) 
+  if(is.null(modelNames)) 
     modelNames <- dimnames(object)[[2]]
   bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
   if(all(is.na(bestBICs))) 
-  {
-    return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
-                     control = control, initialization = initialization, 
-                     class = "summary.mclustBIC"))
+    { return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
+                       control = control, initialization = initialization, 
+                       class = "summary.mclustBIC")) 
   }
   temp <- unlist(strsplit(names(bestBICs)[1], ","))
   bestModel <- temp[1]
   G <- as.numeric(temp[2])
   if(G == 1) 
-  {
-    out <- mvn(modelName = bestModel, data = data, prior = prior)
-    ans <- c(list(bic = bestBICs, classification = rep(1, n), 
-                  uncertainty = rep(0, n)), out)
+    { out <- mvn(modelName = bestModel, data = data, prior = prior)
+      ans <- c(list(bic = bestBICs, 
+                    z = unmap(rep(1,n)),
+                    classification = rep(1, n), 
+                    uncertainty = rep(0, n)), 
+               out)
     orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", 
-                      "parameters", "classification", "uncertainty")
+                      "parameters", "z", "classification", "uncertainty")
     return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
-                     prior = prior, control = control, initialization = initialization, 
+                     prior = prior, control = control, 
+                     initialization = initialization, 
                      class = "summary.mclustBIC"))
   }
   
   if(is.null(subset)) 
   {
     if(d > 1 || !is.null(hcPairs))
-    { z <- unmap(hclass(hcPairs, G)) }
+      { z <- unmap(hclass(hcPairs, G)) }
     else 
-    { z <- unmap(qclass(data, G), groups = 1:G) }
+      { z <- unmap(qclass(data, G), groups = 1:G) }
     out <- me(modelName = bestModel, data = data, z = z, 
               prior = prior, control = control, warn = warn)
   }
   else 
   {
     if(d > 1 || !is.null(hcPairs)) 
-    { z <- unmap(hclass(hcPairs, G)) }
+      { z <- unmap(hclass(hcPairs, G)) }
     else 
-    { z <- unmap(qclass(data[subset], G)) }
+      { z <- unmap(qclass(data[subset], G)) }
     ms <- mstep(modelName = bestModel, prior = prior, z = z, 
                 data = as.matrix(data)[subset,], control = control, 
                 warn = warn)
@@ -1676,73 +1608,6 @@ estepEEE <- function(data, parameters, warn = NULL, ...)
   structure(list(modelName = "EEE", n = n, d = p, G = G, 
                  z = z, parameters = parameters, loglik = loglik),
             WARNING = WARNING, returnCode = ret)
-}
-
-hcEEE <- function(data, partition, minclus = 1, ...)
-{
-  if(minclus < 1) stop("minclus must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  #=====================================================================
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
-  data <- as.matrix(data)
-  dimnames(data) <- NULL
-  n <- nrow(data)
-  p <- ncol(data)
-  if(n <= p)
-    warning("# of observations <= data dimension")
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = TRUE)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l
-  m <- l - minclus
-  if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  storage.mode(data) <- "double"
-  
-  ## R 2.12.0: 32 bit Windows build fails due to compiler bug
-  ## workaround: removal (hopefully temporary) of hc functionality for EEE
-  
-  # Luca: commente the next line and uncommented below
-  #  stop("hc for EEE model is not currently supported")
-  
-  temp <- .Fortran("hceee",
-                   data,
-                   as.integer(n),
-                   as.integer(p),
-                   as.integer(partition),
-                   as.integer(l),
-                   as.integer(m),
-                   if(p < 3) integer(m) else integer(1),
-                   if(p < 4) integer(m) else integer(1),
-                   double(p),
-                   double(p * p),
-                   double(p * p),
-                   double(p * p),
-                   PACKAGE ="mclust")[c(1, 7:10)]
-  #
-  # currently temp[[5]] is not output
-  temp[[4]] <- temp[[4]][1:2]
-  temp[[5]] <- temp[[5]][1:2]
-  names(temp[[5]]) <- c("determinant", "trace")
-  temp[[1]] <- temp[[1]][1:(m + 1),  ]
-  if(p < 3)
-    tree <- rbind(temp[[2]], temp[[3]])
-  else if(p < 4)
-    tree <- rbind(temp[[1]][-1, 3], temp[[3]])
-  else tree <- t(temp[[1]][-1, 3:4, drop = FALSE])
-  determinant <- temp[[1]][, 1]
-  attr(determinant, "breakpoints") <- temp[[4]]
-  trace <- temp[[1]][, 2]
-  structure(tree,  initialPartition = partition, 
-            dimensions = dimdat, modelName = "EEE", 
-            call = match.call())
 }
 
 meEEE <- function(data, z, prior = NULL, control = emControl(), 
@@ -3089,48 +2954,6 @@ simEEV <- function(parameters, n, seed = NULL, ...)
   structure(cbind(group = clabels, x), modelName = "EEV")
 }
 
-hcE <- function(data, partition, minclus = 1, ...)
-{
-  if(minclus < 1) stop("minclus must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  #====================================================================
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(!oneD)
-    stop("data must be one-dimensional")
-  data <- as.vector(data)
-  n <- length(data)
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = TRUE)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l
-  m <- l - minclus
-  if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  storage.mode(data) <- "double"
-  ld <- max(c((l * (l - 1))/2, 3 * m))
-  temp <- .Fortran("hc1e",
-                   data,
-                   as.integer(n),
-                   as.integer(partition),
-                   as.integer(l),
-                   as.integer(m),
-                   as.integer(ld),
-                   double(ld),
-                   PACKAGE = "mclust")[c(1, 3, 7)]
-  temp[[1]] <- temp[[1]][1:m]
-  temp[[2]] <- temp[[2]][1:m]
-  temp[[3]] <- temp[[3]][1:m]
-  change <- temp[[3]]
-  structure(rbind(temp[[1]], temp[[2]]),   initialPartition = partition, 
-            dimensions = n, modelName = "E",
-            call = match.call())
-}
-
 emEII <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
@@ -3216,54 +3039,6 @@ estepEII <- function(data, parameters, warn = NULL, ...)
   structure(list(modelName = "EII", n = n, d = p, G = G, 
                  z = z, parameters = parameters, loglik = loglik),
             WARNING = WARNING, returnCode = ret)
-}
-
-hcEII <- function(data, partition, minclus = 1, ...)
-{
-  if(minclus < 1) stop("minclus must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  #====================================================================
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
-  data <- as.matrix(data)
-  dimnames(data) <- NULL
-  n <- nrow(data)
-  p <- ncol(data)
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = TRUE)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l
-  m <- l - minclus
-  if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  if(n <= p)
-    warning("# of observations <= data dimension")
-  #=============================================================
-  storage.mode(data) <- "double"
-  ld <- max(c((l * (l - 1))/2, 3 * m))
-  temp <- .Fortran("hceii",
-                   data,
-                   as.integer(n),
-                   as.integer(p),
-                   as.integer(partition),
-                   as.integer(l),
-                   as.integer(m),
-                   double(p),
-                   as.integer(ld),
-                   double(ld),
-                   PACKAGE = "mclust")[c(1, 9)]
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
-  temp[[2]] <- temp[[2]][1:m]
-  change <- temp[[2]]
-  structure(t(temp[[1]]), initialPartition = partition, 
-            dimensions = dimdat, modelName = "EII", 
-            call =  match.call())
 }
 
 meEII <- function(data, z, prior = NULL, control = emControl(), 
@@ -4188,7 +3963,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     uncertainty <- 1 - apply(z, 1, max)
   if(!is.null(parameters)) {
     mu <- parameters$mean
-    L <- ncol(mean)
+    L <- ncol(mu)
     sigma <- parameters$variance$sigma
     haveParams <- !is.null(mu) && !is.null(sigma) && !any(is.na(mu)) && !any(
       is.na(sigma))
@@ -4956,6 +4731,7 @@ mvn2plot <- function (mu, sigma, k = 15, alone = FALSE, col = "grey20")
   invisible()
 }
 
+# new version
 plot.Mclust <- function(x, 
                         what = c("BIC", "classification", "uncertainty", "density"), 
                         dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,  
@@ -4982,166 +4758,183 @@ plot.Mclust <- function(x,
                             "uncertainty", "density"), 
                     several.ok = TRUE)
   oldpar <- par(no.readonly = TRUE)
-  if(length(what) > 1)
-  { par(ask = TRUE)
-    on.exit(par(oldpar))
-  }
+  # on.exit(par(oldpar))
   
-  if(any(match("BIC", what, nomatch = FALSE)))
-  { plot.mclustBIC(object$BIC, xlab = xlab, ylim = ylim,
+  plot.MclustBic <- function(...)
+  { plot.mclustBIC(object$BIC, xlab = xlab, ylim = ylim, 
                    legendArgs = legendArgs,...)
-    if(length(what) == 1)
-      return(invisible())
   }
-  
-  if(p == 1)
-  {
-    if(any(match("classification", what, nomatch = FALSE)))
-      mclust1Dplot(data = data, 
-                   # parameters = object$parameters, 
-                   what = "classification",
-                   classification = object$classification,
-                   z = object$z, 
-                   xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                   identify = identify, ...)
-    if(any(match("uncertainty", what, nomatch = FALSE)))
-      mclust1Dplot(data = data,
-                   parameters = object$parameters,
-                   z = object$z, what = "uncertainty", 
-                   xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                   identify = identify, ...)
-    if(any(match("density", what, nomatch = FALSE)))
-      mclust1Dplot(data = data,
-                   parameters = object$parameters,
-                   z = object$z, what = "density", 
-                   xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                   identify = identify, ...)
-  }
-  
-  if(p == 2) 
-  { if(any(match("classification", what, nomatch = FALSE)))
-  { mclust2Dplot(data = data, what = "classification", 
-                 classification = object$classification, 
-                 parameters = if(addEllipses) object$parameters else NULL,
-                 xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
-                 ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                 identify = identify, ...) 
-  }
-  if(any(match("uncertainty", what, nomatch = FALSE)))
-  { mclust2Dplot(data = data, parameters = object$parameters, 
-                 z = object$z, what = "uncertainty", 
-                 xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
-                 ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                 identify = identify, ...)
-  }
-  if(any(match("density", what, nomatch = 0)))
-  { surfacePlot(data = data, parameters = object$parameters,
-                what = "density", nlevels = 11,
-                transformation = "log",
-                xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
-                ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                identify = identify, ...) 
-  }
-  }
-  
-  if(p > 2) 
-  {
-    if(any(match("classification", what, nomatch = FALSE)))
-    { 
-      if(d == 2)
-      { if(addEllipses)
-      { coordProj(data = data, what = "classification", 
-                  parameters = object$parameters, z = object$z, 
-                  dimens = dimens, identify = identify, ...) 
-      }
-      else
-      { mclust2Dplot(data = data[,dimens], what = "classification", 
+
+  plot.MclustClassification <- function(...)
+  {  
+    if(p == 1)
+      { mclust1Dplot(data = data, 
+                     # parameters = object$parameters, 
+                     what = "classification",
                      classification = object$classification,
-                     # z = object$z, 
-                     identify = identify, ...)
-      }
+                     z = object$z, 
+                     xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
+                     identify = identify, ...) 
+    }
+    if(p == 2) 
+      { mclust2Dplot(data = data, what = "classification", 
+                     classification = object$classification, 
+                     parameters = if(addEllipses) object$parameters else NULL,
+                     xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
+                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
+                     identify = identify, ...) 
+    }
+    if(p > 2)
+    { 
+      if(d == 2)
+      { if(addEllipses)
+          { coordProj(data = data, what = "classification", 
+                      parameters = object$parameters, z = object$z, 
+                      dimens = dimens, identify = identify, ...) 
+        }
+      else
+          { mclust2Dplot(data = data[,dimens], what = "classification", 
+                         classification = object$classification,
+                         # z = object$z, 
+                         identify = identify, ...)
+        }
       }
       else
       { if(addEllipses)
-      { on.exit(par(oldpar))
-        par(mfrow = c(d, d), 
-            mar = rep(c(0.3,0.3/2),each=2), 
-            oma = c(4, 4, 4, 4))
-        for(i in seq(d))
-        { for(j in seq(d)) 
-        { if(i == j) 
-        { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-          text(0,0, colnames(data[,dimens])[i], 
-               cex=1.5, adj=0.5)
-          box()
-        } 
-        else 
-        { coordProj(data = data, 
-                    what = "classification", 
-                    parameters = object$parameters,
-                    z = object$z,
-                    dimens = dimens[c(j,i)], 
-                    identify = FALSE, 
-                    xaxt = "n", yaxt = "n", ...)
-        }
-        if(i == 1 && (!(j%%2))) axis(3)
-        if(i == d && (j%%2))   axis(1)
-        if(j == 1 && (!(i%%2))) axis(2)
-        if(j == d && (i%%2))   axis(4)
-        }
-        }
-      }
+          { on.exit(par(oldpar))
+            par(mfrow = c(d, d), 
+                mar = rep(c(0.3,0.3/2),each=2), 
+                oma = c(4, 4, 4, 4))
+            for(i in seq(d))
+            { for(j in seq(d)) 
+              { if(i == j) 
+                  { plot(data[,c(j,i)],type="n",xlab="",ylab="",axes=FALSE)
+                    text(mean(par("usr")[1:2]),
+                         mean(par("usr")[3:4]),
+                         labels = colnames(data[,dimens])[i], 
+                         cex=1.5, adj=0.5)
+                    box()
+                } 
+                else 
+                  { coordProj(data = data, 
+                              what = "classification", 
+                              parameters = object$parameters,
+                              z = object$z,
+                              dimens = dimens[c(j,i)], 
+                              identify = FALSE, 
+                              xaxt = "n", yaxt = "n", ...)
+                }
+                if(i == 1 && (!(j%%2))) axis(3)
+                if(i == d && (j%%2))    axis(1)
+                if(j == 1 && (!(i%%2))) axis(2)
+                if(j == d && (i%%2))    axis(4)
+              }
+            }
+          }
       else
-      { clPairs(data[,dimens], gap = 0.3, cex.labels = 1.5,
-                classification = object$classification, ...) 
-      }
+        { clPairs(data[,dimens], gap = 0.3, cex.labels = 1.5,
+                  classification = object$classification, ...) }
       }
     }
     
-    if(any(match("uncertainty", what, nomatch = FALSE)))
-    { 
-      if(d == 2)
-      { coordProj(data = data, parameters = object$parameters, 
-                  z = object$z, what = "uncertainty", 
-                  dimens = dimens, identify = identify, ...) }
-      else
-      { on.exit(par(oldpar))
-        par(mfrow = c(d, d), 
-            mar = rep(c(0.3,0.3/2),each=2), 
-            oma = c(4, 4, 4, 4))
-        for(i in seq(d))
-        { for(j in seq(d)) 
-        { if(i == j) 
-        { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-          text(0,0, colnames(data[,dimens])[i], 
-               cex=1.5, adj=0.5)
-          box()
-        } 
-        else 
-        { coordProj(data = data, 
-                    what = "uncertainty", 
-                    parameters = object$parameters, 
-                    z = object$z,
-                    dimens = dimens[c(j,i)], 
-                    identify = FALSE, 
-                    xaxt = "n", yaxt = "n", ...)
-        }
-        if(i == 1 && (!(j%%2))) axis(3)
-        if(i == d && (j%%2))   axis(1)
-        if(j == 1 && (!(i%%2))) axis(2)
-        if(j == d && (i%%2))   axis(4)
-        }
-        }
-      }
-    }
-    
-    if(any(match("density", what, nomatch = FALSE)))
-    { objdens <- object
-      objdens$varname <- colnames(data)
-      objdens$range <- if(objdens$d > 1) apply(data, 2, range) else range(data)
-      plotDensityMclustd(objdens, nlevels = 11, ...)
-    }
   }
+
+  plot.MclustUncertainty <- function(...) 
+  {
+    if(p == 1)
+      { mclust1Dplot(data = data,
+                     parameters = object$parameters,
+                     z = object$z, what = "uncertainty", 
+                     xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
+                     identify = identify, ...) 
+    }
+    if(p == 2) 
+      { mclust2Dplot(data = data, parameters = object$parameters, 
+                     z = object$z, what = "uncertainty", 
+                     xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
+                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
+                     identify = identify, ...)
+    }
+    if(p > 2) 
+      { if(d == 2)
+          { coordProj(data = data, parameters = object$parameters, 
+                      z = object$z, what = "uncertainty", 
+                      dimens = dimens, identify = identify, ...) }
+        else
+          { on.exit(par(oldpar))
+            par(mfrow = c(d, d), 
+                mar = rep(c(0.3,0.3/2),each=2), 
+                oma = c(4, 4, 4, 4))
+            for(i in seq(d))
+               { for(j in seq(d)) 
+                    { if(i == j) 
+                        { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
+                          text(0,0, colnames(data[,dimens])[i], 
+                               cex=1.5, adj=0.5)
+                          box()
+                        } 
+                      else 
+                    { coordProj(data = data, 
+                                what = "uncertainty", 
+                                parameters = object$parameters, 
+                                z = object$z,
+                                dimens = dimens[c(j,i)], 
+                                identify = FALSE, 
+                                xaxt = "n", yaxt = "n", ...)
+                    }
+                    if(i == 1 && (!(j%%2))) axis(3)
+                    if(i == d && (j%%2))   axis(1)
+                    if(j == 1 && (!(i%%2))) axis(2)
+                    if(j == d && (i%%2))   axis(4)
+                  }
+            }
+          }
+      }
+  }
+  
+  plot.MclustDensity <- function(...)
+  {
+    if(p == 1)
+      { mclust1Dplot(data = data,
+                     parameters = object$parameters,
+                     z = object$z, what = "density", 
+                     xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
+                     identify = identify, ...) 
+    }
+    if(p == 2) 
+      { surfacePlot(data = data, parameters = object$parameters,
+                    what = "density", nlevels = 11,
+                    transformation = "log",
+                    xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
+                    ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
+                    identify = identify, ...) 
+    }
+    if(p > 2) 
+      { objdens <- object
+        objdens$varname <- colnames(data)
+        objdens$range <- if(objdens$d > 1) apply(data, 2, range) else range(data)
+        plotDensityMclustd(objdens, nlevels = 11, ...) }
+  }
+  
+  if(interactive() & length(what) > 1)
+    { choice <- menu(what, graphics = FALSE, 
+                     title = "Model-based clustering plots:")
+      while(choice != 0)
+           { if(what[choice] == "BIC") plot.MclustBic(...)
+             if(what[choice] == "classification") plot.MclustClassification(...)
+             if(what[choice] == "uncertainty") plot.MclustUncertainty(...)
+             if(what[choice] == "density") plot.MclustDensity(...)
+             choice <- menu(what, graphics = FALSE, 
+                            title = "Model-based clustering plots:") 
+           }
+  }
+  else 
+    { if(what == "BIC") plot.MclustBic(...)
+      if(what == "classification") plot.MclustClassification(...) 
+      if(what == "uncertainty") plot.MclustUncertainty(...) 
+      if(what == "density") plot.MclustDensity(...) 
+  }
+    
   
   invisible()
 }
@@ -5584,7 +5377,7 @@ surfacePlot <- function(data, parameters,
          image = {
            title3 <- "Image"
            image(x = x, y = y, z = zz, xlab = xlab, ylab = ylab, 
-                 main = "", ...)
+                 col = col, main = "", ...)
          }, 
          persp = {
            title3 <- "Perspective"
@@ -5593,13 +5386,13 @@ surfacePlot <- function(data, parameters,
            if(is.null(dots$phi))   dots$phi <- 20
            if(is.null(dots$expand)) dots$expand <- 0.6
            do.call("persp", c(list(x = x, y = y, z = zz, 
-                                   xlab = xlab, ylab = ylab, 
+                                   xlab = xlab, ylab = ylab, col = col,
                                    zlab = "Density", main = ""), dots))
          }, stop("type improperly specified"))
-  if (identify) {
-    TITLE <- paste(c(title1, title2, title3, "Plot"), collapse = " ")
-    title(TITLE)
-  }
+  if(identify) 
+    { TITLE <- paste(c(title1, title2, title3, "Plot"), collapse = " ")
+      title(TITLE) }
+
   invisible(list(x = x, y = y, z = zz))
 }
 
@@ -5788,41 +5581,40 @@ hypvol <- function (data, reciprocal = FALSE)
 
 imputeData <- function(x, categorical=NULL, seed=NULL) 
 {
-  if (!exists("prelim.mix") || ! exists("em.mix") || !exists("da.mix") ||
-        !exists("imp.mix") || !exists("rngseed") ) library(mix)
+  if(!requireNamespace("mix", quietly = TRUE)) 
+     stop("imputeData function require 'mix' package to be installed!")
   
   fac <- apply( x, 2, is.factor)
-  if (is.null(categorical)) {
-    categorical <- fac
-  }
-  else {
-    if (any(!categorical & fac)) {
-      stop("x has a factor that is not designated as categorical")
-    }
-    if (any(categorical | !fac)) {
-      warning("a categorical is not designated as a factor")
-      for(i in which(categorical | !fac)) x[[i]] <- as.factor(x[[i]])
-    }
+  if(is.null(categorical)) 
+    { categorical <- fac }
+  else 
+    { if(any(!categorical & fac)) 
+        { stop("x has a factor that is not designated as categorical") }
+      if(any(categorical | !fac)) 
+        { warning("a categorical is not designated as a factor")
+         for(i in which(categorical | !fac)) 
+             x[[i]] <- as.factor(x[[i]])
+      }
   }
   
   # remove categorical variables and add dummy variable
-  if (nocat <- !any(categorical)) {
-    x <- cbind(as.factor(1),x)
-    categorical <- c(TRUE, categorical)
+  if(nocat <- !any(categorical)) 
+    { x <- cbind(as.factor(1),x)
+      categorical <- c(TRUE, categorical)
   }
   
   ord <- c(which(categorical),which(!categorical))
   
   # do the imputations
-  s <- prelim.mix(x[,ord],p=sum(categorical))
-  if (is.null(seed)) seed <- runif(1,min=.Machine$integer.max/1024,max=
-                                     .Machine$integer.max)
-  rngseed(seed)   # set random number generator seed
-  thetahat <- em.mix(s) # find ML estimate
-  newtheta <- da.mix(s, thetahat, steps=100, showits=TRUE)
-  ximp <- imp.mix(s, newtheta) # impute under newtheta
+  s <- mix::prelim.mix(x[,ord],p=sum(categorical))
+  if(is.null(seed)) seed <- runif(1, min = .Machine$integer.max/1024,
+                                     max = .Machine$integer.max)
+  mix::rngseed(seed) # set random number generator seed
+  thetahat <- mix::em.mix(s) # find ML estimate
+  newtheta <- mix::da.mix(s, thetahat, steps=100, showits=TRUE)
+  ximp <- mix::imp.mix(s, newtheta) # impute under newtheta
   
-  if (nocat)  ximp[,-1] else ximp[,order(ord)]
+  if(nocat) ximp[,-1] else ximp[,order(ord)]
 }
 
 map <- function(z, warn = TRUE, ...)
@@ -6160,9 +5952,10 @@ checkModelName <- function(modelName)
          EVI = ,
          VVI = ,
          EEE = ,
-         VEE = ,
-         EVE = ,
-         VVE = ,
+       # VEE = ,
+       # EVV = ,
+       # EVE = ,
+       # VVE = ,
          EEV = ,
          VEV = ,
          VVV = TRUE,
@@ -6190,69 +5983,8 @@ estep <- function(modelName, data, parameters, warn = NULL, ...)
   eval(mc, parent.frame())
 }
 
-# old original (default)
-# hc <- function(modelName = mclust.options("hcModelNames")[1], data, ...)
-# {
-#   switch(EXPR = modelName,
-#          E = ,
-#          V = ,
-#          EII  = ,
-#          VII = ,
-#          EEE = ,
-#          VVV = TRUE,
-#          stop("invalid model name for hierarchical clustering"))
-#   funcName <- paste("hc", modelName, sep = "")
-#   mc <- match.call(expand.dots = TRUE)
-#   mc[[1]] <- as.name(funcName)
-#   mc[[2]] <- NULL
-#   eval(mc, parent.frame())
-# }
 
-# new
-hc <- function(modelName = mclust.options("hcModelNames")[1], 
-               data, use = mclust.options("hcUse"), ...)
-{
-  switch(EXPR = modelName,
-         E = ,
-         V = ,
-         EII  = ,
-         VII = ,
-         EEE = ,
-         VVV = TRUE,
-         stop("invalid model name for hierarchical clustering"))
-  funcName <- paste("hc", modelName, sep = "")
-  mc <- match.call(expand.dots = TRUE)
-  mc$usePC <- NULL
-  
-  data <- data.matrix(data)
-  switch(use,
-         "VARS" = { Z <- data },
-         "STD" = { Z <- scale(data, center = TRUE, scale = TRUE) },
-         "PCR" = { data <- scale(data, center = TRUE, scale = TRUE)
-                   SVD <- svd(data, nu=0)
-                   # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
-                   Z <- data %*% SVD$v },
-         "PCS" = { data <- scale(data, center = TRUE, scale = FALSE)
-                   SVD <- svd(data, nu=0)
-                   # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
-                   Z <- data %*% SVD$v },
-         "SPHSVD" = { data <- scale(data, center = TRUE, scale = FALSE)
-                      n <- nrow(data)
-                      Sigma <- var(data) * (n - 1)/n
-                      SVD <- svd(Sigma, nu = 0)
-                      Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d)) },
-         "SPHQR" = { data <- scale(data, center = TRUE, scale = FALSE)
-                     n <- nrow(data)
-                     QR <- qr(data)
-                     Z <- sqrt(n) * qr.Q(QR) },
-         stop("'use' argument not allowed. See help(mclust.options)")
-  )
-  
-  mc$data <- Z 
-  mc[[1]] <- as.name(funcName)
-  mc[[2]] <- NULL
-  eval(mc, parent.frame())
-}
+#############################################################################
 
 mclustVariance <- function(modelName, d=NULL, G=2) 
 {
@@ -6592,8 +6324,9 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
                      PACKAGE = "mclust")[7:14]
   }
   else {
-    priorParams <- do.call(prior$functionName, c(list(data = 
-                                                        data, G = G, modelName = "VEI"), 
+    priorParams <- do.call(prior$functionName, c(list(data = data, 
+                                                      G = G, 
+                                                      modelName = "VEI"), 
                                                  prior[names(prior) != "functionName"]))
     temp <- .Fortran("meveip",
                      as.logical(control$equalPro),
@@ -6674,8 +6407,7 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
   attr(info, "inner") <- c(iterations = inner, error = inerr)
   dimnames(z) <- list(dimnames(data)[[1]], NULL)
   dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-  dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]],
-                          NULL)
+  dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
   variance <- list(modelName = "VEI", d = p, G = G, 
                    sigma = sigma, scale = scale, shape = shape)
   parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
@@ -7474,51 +7206,6 @@ simVEV <- function(parameters, n, seed = NULL, ...)
   structure(cbind(group = clabels, x), modelName = "VEV")
 }
 
-hcV <- function(data, partition, minclus = 1, alpha = 1, ...)
-{
-  if(minclus < 1) stop("minclus must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  #=====================================================================
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(!oneD)
-    stop("data must be one-dimensional")
-  data <- as.vector(data)
-  n <- length(data)
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = TRUE)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l
-  m <- l - minclus
-  if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  storage.mode(data) <- "double"
-  alpha <- alpha * (vecnorm(data - mean(data))^2/n)
-  alpha <- min(alpha, .Machine$double.eps)
-  ld <- max(c((l * (l - 1))/2, 3 * m))
-  temp <- .Fortran("hc1v",
-                   data,
-                   as.integer(n),
-                   as.integer(partition),
-                   as.integer(l),
-                   as.integer(m),
-                   as.double(alpha),
-                   as.integer(ld),
-                   double(ld),
-                   PACKAGE = "mclust")[c(1, 3, 8)]
-  temp[[1]] <- temp[[1]][1:m]
-  temp[[2]] <- temp[[2]][1:m]
-  temp[[3]] <- temp[[3]][1:m]
-  change <- temp[[3]]
-  structure(rbind(temp[[1]], temp[[2]]),   initialPartition = partition, 
-            dimensions = n, modelName = "V",
-            call = match.call())
-}
-
 cdensVII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
   if (is.null(warn)) warn <- .mclust$warn
@@ -7665,57 +7352,6 @@ estepVII <- function(data, parameters, warn = NULL, ...)
   structure(list(modelName = "VII", n = n, d = p, G = G, 
                  z = z, parameters = parameters, loglik = loglik),
             WARNING = WARNING, returnCode = ret)
-}
-
-hcVII <- function(data, partition, minclus = 1, alpha = 1, ...)
-{
-  if(minclus < 1) stop("minclus must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  #=====================================================================
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
-  data <- as.matrix(data)
-  dimnames(data) <- NULL
-  n <- nrow(data)
-  p <- ncol(data)
-  if(n <= p)
-    warning("# of observations <= data dimension")
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = TRUE)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l
-  m <- l - minclus
-  if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  storage.mode(data) <- "double"
-  ll <- (l * (l - 1))/2
-  ld <- max(n, ll, 3 * m)
-  alpha <- alpha * traceW(data/sqrt(n * p))
-  alpha <- max(alpha, .Machine$double.eps)
-  temp <- .Fortran("hcvii",
-                   data,
-                   as.integer(n),
-                   as.integer(p),
-                   as.integer(partition),
-                   as.integer(l),
-                   as.integer(m),
-                   as.double(alpha),
-                   double(p),
-                   as.integer(ld),
-                   double(ld),
-                   PACKAGE = "mclust")[c(1, 10)]
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
-  temp[[2]] <- temp[[2]][1:m]
-  change <- temp[[2]]
-  structure(t(temp[[1]]), initialPartition = partition, 
-            dimensions = dimdat, modelName = "VII", 
-            call = match.call())
 }
 
 meVII <- function(data, z, prior = NULL, control = emControl(), 
@@ -8872,63 +8508,6 @@ estepVVV <- function(data, parameters, warn = NULL, ...)
   structure(list(modelName = "VVV", n = n, d = p, G = G, 
                  z = z, parameters = parameters, loglik = loglik),
             WARNING = WARNING, returnCode = ret)
-}
-
-hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
-{
-  if(minclus < 1) stop("minclus must be positive")
-  if(any(is.na(data)))
-    stop("missing values not allowed in data")
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
-  data <- as.matrix(data)
-  dimnames(data) <- NULL
-  n <- nrow(data)
-  p <- ncol(data)
-  if(n <= p)
-    warning("# of observations <= data dimension")
-  if(missing(partition))
-    partition <- 1:n
-  else if(length(partition) != n)
-    stop("partition must assign a class to each observation")
-  partition <- partconv(partition, consec = TRUE)
-  l <- length(unique(partition))
-  attr(partition, "unique") <- l
-  m <- l - minclus
-  if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  storage.mode(data) <- "double"
-  ll <- (l * (l - 1))/2
-  #  dp <- duplicated(partition)
-  #x[c((1:n)[!dp],(1:n)[dp]),], 
-  #as.integer(c(partition[!dp], partition[dp])), 
-  ld <- max(n, ll + 1, 3 * m)
-  alpha <- alpha * traceW(data/sqrt(n * p))
-  alpha <- max(alpha, .Machine$double.eps)
-  temp <- .Fortran("hcvvv",
-                   cbind(data, 0.),
-                   as.integer(n),
-                   as.integer(p),
-                   as.integer(partition),
-                   as.integer(l),
-                   as.integer(m),
-                   as.double(alpha),
-                   as.double(beta),
-                   double(p),
-                   double(p * p),
-                   double(p * p),
-                   double(p * p),
-                   as.integer(ld),
-                   double(ld),
-                   PACKAGE = "mclust")[c(1, 14)]
-  temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
-  temp[[2]] <- temp[[2]][1:m]
-  change <- temp[[2]] 
-  structure(t(temp[[1]]), initialPartition = partition, 
-            dimensions = dimdat, modelName = "VVV", 
-            call = match.call())
 }
 
 meVVV <- function(data, z, prior = NULL, control = emControl(), 

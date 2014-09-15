@@ -80,7 +80,7 @@ plot(dens)
 plot(dens, x, col = "cadetblue", drawlabels = FALSE, pch = 20,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
 plot(dens, x, col = "grey", 
-     points.col = mclust.options()$classPlotColors[dens$classification], 
+     points.col = mclust.options("classPlotColors")[dens$classification], 
      pch = dens$classification)
 plot(dens, type = "image", col = topo.colors(50))
 plot(dens, type = "persp")
@@ -92,7 +92,7 @@ plot(dens)
 plot(dens, x, col = "cadetblue", drawlabels = FALSE,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
 plot(dens, type = "image", col = gray.colors(50))
-plot(dens, type = "persp", col = gray(0.5), border = NA)
+plot(dens, type = "persp", col = gray(0.5))
 }
 
 \keyword{cluster}

@@ -251,13 +251,6 @@ projpar.MclustDR <- function(object, dim, center = TRUE, raw = FALSE)
     crossprod(R %*% V)), c(numdir, numdir, G))
   #
   return(list(mean = Mu, variance = Sigma))
-  
-  #plot(object$dir[,dim], col = as.numeric(object$class))
-  #points(par$mean, col = object$class2mixcomp, pch = 3, cex = 2)
-  
-  #plot(x[,1:2], col = as.numeric(object$class))
-  #points(mu[,1:2], col = object$class2mixcomp, pch = 3, cex = 2)
-  
 }  
 
 predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points, ...)
@@ -343,32 +336,31 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   
   what <- match.arg(what)
   if(what == "pairs")
-  { if(length(dimens) == 2) what <- "scatterplot" }  
+    { if(length(dimens) == 2) what <- "scatterplot" }  
   if(length(dimens) == 1) 
-  { if(!(what == "density" | what == "evalues"))
-    what <- "density"
-  }
+    { if(!(what == "density" | what == "evalues")) what <- "density" }
   
   if(missing(symbols)) 
-  { if(G <= length(.mclust$classPlotSymbols)) 
-  { symbols <- .mclust$classPlotSymbols }
-  else if(G <= 26) 
-  { symbols <- LETTERS }
-  }
+    { if(G <= length(.mclust$classPlotSymbols)) 
+        { symbols <- .mclust$classPlotSymbols }
+      else if(G <= 26) 
+             { symbols <- LETTERS }
+    }
   if(length(symbols) == 1) symbols <- rep(symbols,nclass)
   if(length(symbols) < nclass)
-  { warning("more symbols needed to show classification")
-    symbols <- rep(16, nclass) }
+    { warning("more symbols needed to show classification")
+      symbols <- rep(16, nclass) }
   
   if(missing(colors))
-  { colors <- .mclust$classPlotColors }
+    { colors <- .mclust$classPlotColors }
   if(length(colors) == 1) colors <- rep(colors,nclass)
   if(length(colors) < nclass) 
-  { warning("more colors needed to show mixture components")
-    colors <- rep("black", nclass) }
+    { warning("more colors needed to show mixture components")
+      colors <- rep("black", nclass) }
   
   if(what == "scatterplot")
-  { dir <- dir[,dimens,drop=FALSE]
+  { 
+    dir <- dir[,dimens,drop=FALSE]
     plot(dir, col = colors[class], pch = symbols[class],
          xlab = colnames(dir)[1], ylab = colnames(dir)[2], 
          asp = asp, ...)
@@ -441,26 +433,31 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
+  niceRange <- function (x, f = 0.04) 
+  {
+    r <- range(x)
+    d <- diff(r)
+    out <- c(r[1] - d*f, r[2] + d*f)
+    return(out)
+  }
+
   if(what == "classification" & object$type == "Mclust")
   { dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
-    plot.new()
-    plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
+                               xlim = niceRange(dir[,1]), 
+                               ylim = niceRange(dir[,2]))
     pred$classification <- apply(pred$z, 1:2, which.max)
     #
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:G], alpha.f = 0.1),
-          #xlim = par("usr")[1:2], ylim = par("usr")[3:4],
           xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE)
+          useRaster = TRUE, asp = asp)
     for(j in 1:G)         
-    { z <- ifelse(pred$classification == j, 1, -1)
-      contour(pred$x, pred$y, z, col = col.sep,
-              add = TRUE, levels = 0, drawlabels = FALSE) 
+       { z <- ifelse(pred$classification == j, 1, -1)
+         contour(pred$x, pred$y, z, col = col.sep,
+                 add = TRUE, levels = 0, drawlabels = FALSE) 
     }
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
@@ -470,23 +467,20 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   { 
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
-    plot.new()
-    plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)      
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
+                               xlim = niceRange(dir[,1]), 
+                               ylim = niceRange(dir[,2]))
     pred$classification <- apply(pred$z, 1:2, which.max)
     #
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:nclass], alpha.f = 0.1),
-          xlim = par("usr")[1:2], ylim = par("usr")[3:4],
           xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE)
+          useRaster = TRUE, asp = asp)
     for(j in 1:nclass)
-    { z <- ifelse(pred$classification == j, 1, -1)
-      contour(pred$x, pred$y, z, col = col.sep,
-              add = TRUE, levels = 0, drawlabels = FALSE) 
+       { z <- ifelse(pred$classification == j, 1, -1)
+         contour(pred$x, pred$y, z, col = col.sep,
+                 add = TRUE, levels = 0, drawlabels = FALSE) 
     }
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
@@ -494,18 +488,15 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   if(what == "boundaries" & object$type == "Mclust")
   { dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
-    plot.new()
-    plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)      
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
+                               xlim = niceRange(dir[,1]), 
+                               ylim = niceRange(dir[,2]))
     image(pred$x, pred$y, pred$uncertainty, 
           col = rev(gray.colors(10, start = 0, end = 1)),
           breaks = seq(0, 1-1/nclass, length = 11),
-          xlim = par("usr")[1:2], ylim = par("usr")[3:4],
           xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE)
+          useRaster = TRUE, asp = asp)
     points(dir, col = colors[class], pch = symbols[class], ...)                        
   }
   
@@ -514,34 +505,16 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   { 
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
-    plot.new()
-    plot.window(xlim = range(dir[,1]), ylim = range(dir[,2]), asp = asp)
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = par("usr")[1:2], 
-                               ylim = par("usr")[3:4])
+                               xlim = niceRange(dir[,1]), 
+                               ylim = niceRange(dir[,2]))
     levels <- seq(0, 1-1/nclass, length = 11)
     col <- rev(gray.colors(10, start = 0, end = 1))
-    oldpar <- par(no.readonly = TRUE)
-    on.exit(par(oldpar))
-    #
-    # this will add a legend on the right. Useful??
-    # w <- (1 + oldpar$mar[2L]) * par("csi") * 2.54
-    # layout(matrix(c(2, 1), ncol = 2L), widths = c(1, lcm(w)))
-    # par(las = 1)
-    # mar <- oldpar$mar; mar[4L] <- min(2.5,mar[2L]); mar[2L] <- 1; par(mar = mar)
-    # plot.new()
-    # plot.window(xlim = c(0, 1), ylim = range(levels), xaxs = "i", yaxs = "i")
-    # rect(0, levels[-length(levels)], 1, levels[-1L], col = col)
-    # axis(4); box()
-    #
-    # mar <- oldpar$mar; mar[4L] <- 1; par(mar = mar)
     image(pred$x, pred$y, pred$uncertainty,
           col = col, breaks = levels,
-          xlim = oldpar$usr[1:2], ylim = oldpar$usr[3:4],
-          # xlim = range(dir[,1]), ylim = range(dir[,2]), 
-          # xaxs = "i", yaxs = "i",
+          xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE)
+          useRaster = TRUE, asp = asp)
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   

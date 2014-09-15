@@ -46,6 +46,6 @@ nVarParams(modelName, d, G)
   \code{\link{bic}}
 }
 \examples{
-sapply(mclust.options()$emModelNames, nVarParams, d = 2, G = 1)
+sapply(mclust.options("emModelNames"), nVarParams, d = 2, G = 1)
 }
 \keyword{cluster}

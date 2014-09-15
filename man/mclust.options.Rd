@@ -33,12 +33,12 @@ Available options are:
   \item{\code{hcModelNames}}{
     A vector of character strings associated with multivariate models for
     which model-based hierarchical clustering is available in MCLUST. \cr
-    The current default is the following list:\cr
-    \code{"VVV"} = ellipsoidal, varying volume, shape, and orientation \cr
+    The available models are the following:\cr
+    \code{"EII"} = spherical, equal volume \cr
     \code{"EEE"} = ellipsoidal, equal volume, shape, and orientation \cr
     \code{"VII"} = spherical, unequal volume \cr
-    \code{"EII"} = spherical, equal volume \cr
-    The first model in this list is used as default for initialization of 
+    \code{"VVV"} = ellipsoidal, varying volume, shape, and orientation. \cr
+    The last model in this list is used as default for initialization of 
     EM-algorithm.
   }
   \item{\code{hcUse}}{
@@ -46,15 +46,15 @@ Available options are:
     model-based hierarchical clustering to start the EM-algorithm.
     Possible values are:\cr
     \code{"VARS"} = original variables (default);\cr
-    \code{"STD"} = standardized varaibles;\cr
+    \code{"STD"} = standardized variables;\cr
     \code{"PCR"} = principal components computed using SVD on standardized 
-    (center and scaled) variables (i.e., using the correlation matrix);\cr
+    (center and scaled) variables (i.e. using the correlation matrix);\cr
     \code{"PCS"} = principal components computed using SVD on centered 
-    variables (i.e., using the covariance matrix);\cr
-    \code{"SPHSVD"} = sphered variables (centered, scaled, uncorrelated)  
+    variables (i.e. using the covariance matrix);\cr
+    \code{"SPH"} = sphered variables (centered, scaled, uncorrelated)  
     computed using SVD;\cr
-    \code{"SPHQR"} = sphered variables (centered, scaled, uncorrelated)  
-    computed using QR decomposition.
+    \code{"SVD"} = scaled SVD transformation;\cr
+    \code{"RANDOM"} = random partition.
   }
   \item{\code{bicPlotSymbols}}{
     A vector whose entries correspond to graphics symbols for plotting the 

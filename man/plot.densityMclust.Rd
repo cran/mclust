@@ -17,7 +17,7 @@
 \method{plot}{densityMclust}(x, data = NULL, what = c("density", "BIC", "diagnostic"), \dots)
 
 plotDensityMclust1(x, data = NULL, hist.col = "lightgrey", 
-                   hist.border = "grey",  breaks = "Sturges", \dots)
+                   hist.border = "white",  breaks = "Sturges", \dots)
 
 plotDensityMclust2(x, data = NULL, col = grey(0.6), nlevels = 11, 
                    levels = NULL, points.col = 1, pch = 1, \dots)
@@ -110,7 +110,7 @@ summary(dens, parameters = TRUE)
 plot(dens, what = "BIC")
 plot(dens)
 plot(dens, x)
-plot(dens, x, what = "diagnostic")
+plot(dens, what = "diagnostic")
 
 x = as.matrix(faithful)
 dens = densityMclust(x)

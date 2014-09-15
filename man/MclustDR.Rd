@@ -34,7 +34,7 @@ Information on the dimension reduction subspace is obtained from the variation o
 
 Observations may then be projected onto such a reduced subspace, thus providing summary plots which help to visualize the underlying structure.
 
-The method has been extended to the supervised case, i.e., when the true classification is known (see Scrucca, 2013).
+The method has been extended to the supervised case, i.e. when the true classification is known (see Scrucca, 2013).
 
 This implementation doesn't provide a formal procedure for the selection of dimensionality. A future release will include one or more methods.
 }
@@ -78,7 +78,7 @@ This implementation doesn't provide a formal procedure for the selection of dime
 
   \item{numdir}{The dimension of the projection subspace.}
 
-  \item{dir}{The estimated directions, i.e., the data projected onto the estimated dimension reduction subspace.}
+  \item{dir}{The estimated directions, i.e. the data projected onto the estimated dimension reduction subspace.}
 
 }
 
@@ -91,8 +91,8 @@ This implementation doesn't provide a formal procedure for the selection of dime
   Clustering, Classification, and Density Estimation. 
   Technical Report No. 597, Department of Statistics, University of Washington.
 
-  Scrucca, L. (2013) Graphical Tools for Model-based Mixture Discriminant Analysis.
-  Under review on \emph{Advances in Data Analysis and Classification}.
+  Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis.
+  \emph{Advances in Data Analysis and Classification}, 8(2), pp. 147-165
 }
 
 \author{Luca Scrucca}

@@ -22,7 +22,7 @@ hc(modelName = mclust.options("hcModelNames")[1], data,
     \code{"EEE"}: ellipsoidal, equal volume, shape, and orientation \cr
     \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation.\cr\cr
     By default the first model listed in
-    \code{mclust.options("hcModelNames")}, i.e., \code{"VVV"}, is used.
+    \code{mclust.options("hcModelNames")}, i.e. \code{"VVV"}, is used.
   }
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
@@ -36,7 +36,7 @@ hc(modelName = mclust.options("hcModelNames")[1], data,
     This is experimental and it is only useful for the initialization of 
     EM algorithm.
     By default it uses the method specified in \code{mclust.options("hcUse")}, 
-    which is set to \code{"VARS"}, i.e., the original input variables.
+    which is set to \code{"VARS"}, i.e. the original input variables.
   }
   \item{\dots}{
     Arguments for the method-specific \code{hc} functions. See for example

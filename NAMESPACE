@@ -59,7 +59,7 @@ S3method( "summary", "Mclust")
 S3method( "print", "summary.Mclust")
 S3method( "plot", "Mclust")
 
-export(densityMclust, plot.densityMclust, dens, predict.densityMclust, cdfMclust, densityMclust.diagnostic, plotDensityMclust1, plotDensityMclust2, plotDensityMclustd)
+export(densityMclust, plot.densityMclust, dens, predict.densityMclust, cdfMclust, quantileMclust, densityMclust.diagnostic, plotDensityMclust1, plotDensityMclust2, plotDensityMclustd)
 S3method( "plot", "densityMclust")
 
 export(MclustDA, print.MclustDA, summary.MclustDA, print.summary.MclustDA, plot.MclustDA, predict.MclustDA, cv.MclustDA, getParameters.MclustDA, logLik.MclustDA)

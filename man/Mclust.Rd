@@ -139,13 +139,10 @@ Mclust(data, G = NULL, modelNames = NULL,
     \emph{i} in the test data belongs to the \emph{k}th class.
   }
   \item{classification}{
-    \code{map(z)}: The classification corresponding to \code{z}.
+    The classification corresponding to \code{z}, i.e. \code{map(z)}.
   }
   \item{uncertainty}{
      The uncertainty associated with the classification.
-  }
-  \item{Attributes:}{
-     The input parameters other than the data.
   }
 }
 \section{References}{
@@ -204,7 +201,7 @@ NoiseInit = sample(c(TRUE,FALSE), size = nrow(faithful)+nNoise,
                    replace = TRUE, prob = c(3,1)/4)
 mod5 = Mclust(data, initialization = list(noise = NoiseInit))
 summary(mod5, parameter = TRUE)
-plot(mod5, "classification")
+plot(mod5, what = "classification")
 }
 
 \keyword{cluster}

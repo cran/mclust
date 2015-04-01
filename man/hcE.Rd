@@ -79,6 +79,7 @@ hcVVV(data, partition, minclus = 1, alpha = 1, beta = 1, \dots)
 \seealso{
   \code{\link{hc}},
   \code{\link{hclass}}
+  \code{\link{randomPairs}}
 }
 \examples{
 hcTree <- hcEII(data = iris[,-5])

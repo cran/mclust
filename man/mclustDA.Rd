@@ -11,8 +11,11 @@ Discriminant analysis based on Gaussian finite mixture modeling.
 \usage{
 MclustDA(data, class, G = NULL, modelNames = NULL, 
          modelType = c("MclustDA", "EDDA"), 
-         prior = NULL, control = emControl(), 
-         initialization = NULL, warn = FALSE, \dots)
+         prior = NULL, 
+         control = emControl(), 
+         initialization = NULL, 
+         warn = mclust.options("warn"), 
+         \dots)
 }
 
 \arguments{
@@ -83,14 +86,15 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
   \item{warn}{
     A logical value indicating whether or not certain warnings
     (usually related to singularity) should be issued when
-    estimation fails. The default is to suppress these warnings.
+    estimation fails. 
+    The default is controlled by \code{\link{mclust.options}}.
   }
   
   \item{\dots }{Further arguments passed to or from other methods.}
 }
 
 \value{
- An object of class \code{"MclustDA"} providing the optimal (according 
+ An object of class \code{'MclustDA'} providing the optimal (according 
  to BIC) mixture model.
  
  The details of the output components are as follows:
@@ -201,7 +205,7 @@ even <- odd + 1
 triMclustDA <- MclustDA(triModal[odd], triClass[odd])
 summary(triMclustDA, parameters = TRUE)
 summary(triMclustDA, newdata = triModal[even], newclass = triClass[even])
-plot(triMclustDA)
+plot(triMclustDA, what = "scatterplot")
 plot(triMclustDA, what = "classification")
 plot(triMclustDA, what = "classification", newdata = triModal[even])
 plot(triMclustDA, what = "train&test", newdata = triModal[even])
@@ -215,7 +219,7 @@ even <- odd + 1
 crossMclustDA <- MclustDA(cross[odd,-1], cross[odd,1])
 summary(crossMclustDA, parameters = TRUE)
 summary(crossMclustDA, newdata = cross[even,-1], newclass = cross[even,1])
-plot(crossMclustDA)
+plot(crossMclustDA, what = "scatterplot")
 plot(crossMclustDA, what = "classification")
 plot(crossMclustDA, what = "classification", newdata = cross[even,-1])
 plot(crossMclustDA, what = "train&test", newdata = cross[even,-1])

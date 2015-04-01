@@ -4,11 +4,11 @@
 \alias{plotDensityMclust2}
 \alias{plotDensityMclustd}
 
-\title{Plot for a \code{mclustDensity} object}
+\title{Plots for Mixture-Based Density Estimate}
 
 \description{
-  Plotting methods for \code{mclustDensity} objects. Available graphs are
-  plot of BIC values and density for univariate and bivariate data. For 
+  Plotting methods for an object of class \code{'mclustDensity'}. Available graphs 
+  are plot of BIC values and density for univariate and bivariate data. For 
   higher data dimensionality a scatterplot matrix of pairwise densities is
   drawn.
 }
@@ -28,11 +28,11 @@ plotDensityMclustd(x, data = NULL, col = grey(0.6), nlevels = 11,
 }
 
 \arguments{
-  \item{x}{\code{mclustDensity} object obtained from \code{\link{densityMclust}} function.}
+  \item{x}{An object of class \code{'mclustDensity'} obtained from a call to \code{\link{densityMclust}} function.}
 
-  \item{data}{optional data points.}
+  \item{data}{Optional data points.}
 
-  \item{what}{the type of graph requested:
+  \item{what}{The type of graph requested:
     \describe{
     \item{\code{"density"} =}{a plot of estimated density; if \code{data} is also provided the density is plotted over data points (see Details section).}
     \item{\code{"BIC"} =}{a plot of BIC values for the estimated models versus the number of components.}
@@ -40,25 +40,25 @@ plotDensityMclustd(x, data = NULL, col = grey(0.6), nlevels = 11,
     }
   }
   
-  \item{hist.col}{the colour to be used to fill the bars of the histogram.}
+  \item{hist.col}{The colour to be used to fill the bars of the histogram.}
 
-  \item{hist.border}{the color of the border around the bars of the histogram.}
+  \item{hist.border}{The color of the border around the bars of the histogram.}
   
-  \item{breaks}{see the argument in function \code{\link[graphics]{hist}}.}
+  \item{breaks}{See the argument in function \code{\link[graphics]{hist}}.}
 
-  \item{points.col}{the color to be used for plotting \code{data} points.}
+  \item{points.col}{The color to be used for plotting \code{data} points.}
 
-  \item{pch}{an integer, a symbol or a single character to be used for plotting \code{data} points.}
+  \item{pch}{An integer, a symbol or a single character to be used for plotting \code{data} points.}
 
-  \item{col}{color for the contour lines drawn.} 
+  \item{col}{Color for the contour lines drawn.} 
   
-  \item{nlevels}{an integer, the number of levels to be used in plotting contour densities.}
+  \item{nlevels}{An integer, the number of levels to be used in plotting contour densities.}
   
-  \item{levels}{a vector of density levels at which to draw the contour lines.}
+  \item{levels}{A vector of density levels at which to draw the contour lines.}
   
-  \item{gap}{distance between subplots, in margin lines, for the matrix of pairwise scatterplots.}
+  \item{gap}{Distance between subplots, in margin lines, for the matrix of pairwise scatterplots.}
 
-  \item{\dots}{additional arguments.}
+  \item{\dots}{Additional arguments.}
 }
 
 \details{The function \code{plot.densityMclust} allows to obtain the plot of
@@ -107,32 +107,30 @@ x = faithful$waiting
 dens = densityMclust(x)
 summary(dens)
 summary(dens, parameters = TRUE)
-plot(dens, what = "BIC")
 plot(dens)
-plot(dens, x)
-plot(dens, what = "diagnostic")
+plot(dens, x, what = "density")
+plot(dens, what = "BIC")
 
 x = as.matrix(faithful)
 dens = densityMclust(x)
 summary(dens)
 summary(dens, parameters = TRUE)
-plot(dens, what = "BIC")
 plot(dens)
-plot(dens, x, col = "cadetblue", drawlabels = FALSE, pch = 20,
+plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE, pch = 20,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, x, col = "grey", 
+plot(dens, x, what = "density", col = "grey", 
      points.col = dens$classification+1, pch = dens$classification)
-plot(dens, type = "image", col = terrain.colors(50))
-plot(dens, type = "persp")
+plot(dens, what = "density", type = "image", col = terrain.colors(50))
+plot(dens, what = "density", type = "persp")
 
 x = iris[,1:4]
 dens = densityMclust(x)
 summary(dens, parameters = TRUE)
 plot(dens)
-plot(dens, x, col = "cadetblue", drawlabels = FALSE,
+plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, type = "image", col = topo.colors(50))
-plot(dens, type = "persp", border = NA)
+plot(dens, what = "density", type = "image", col = topo.colors(50))
+plot(dens, what = "density", type = "persp", border = NA)
 }
 
 \keyword{cluster}

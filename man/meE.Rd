@@ -1,6 +1,7 @@
 \name{meE}
 \alias{meE}
 \alias{meV}
+\alias{meX}
 \alias{meEII}
 \alias{meVII}
 \alias{meEEI}
@@ -8,9 +9,17 @@
 \alias{meEVI}
 \alias{meVVI}
 \alias{meEEE}
+\alias{meEVE}
+\alias{meVEE}
+\alias{meVVE}
 \alias{meEEV}
 \alias{meVEV}
+\alias{meEVV}
 \alias{meVVV}
+\alias{meXII}
+\alias{meXXI}
+\alias{meXXX}
+
 \title{
   EM algorithm starting with M-step for a parameterized Gaussian mixture model.
 }
@@ -19,30 +28,26 @@
   starting with the maximization step.
 }
 \usage{
-meE(data, z, prior=NULL, control=emControl(), 
-    Vinv=NULL, warn=NULL, \dots)
-meV(data, z, prior=NULL, control=emControl(),
-    Vinv=NULL, warn=NULL, \dots)
-meEII(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meVII(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meEEI(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meVEI(data, z, prior=NULL, control=emControl(),
-     Vinv=NULL, warn=NULL, \dots)
-meEVI(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meVVI(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meEEE(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meEEV(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meVEV(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
-meVVV(data, z, prior=NULL, control=emControl(),
-      Vinv=NULL, warn=NULL, \dots)
+meE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meX(data, prior = NULL, warn = NULL, \dots)
+meEII(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVII(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEEI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVEI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEVI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVVI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEEE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEVE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVEE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVVE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEEV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVEV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEVV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meVVV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meXII(data, prior = NULL, warn = NULL, \dots)
+meXXI(data, prior = NULL, warn = NULL, \dots)
+meXXX(data, prior = NULL, warn = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -51,13 +56,13 @@ meVVV(data, z, prior=NULL, control=emControl(),
     correspond to observations and columns correspond to variables. 
   }
   \item{z}{
-    A matrix whose \code{[i,k]}th entry is the
-    conditional probability of the ith observation belonging to
-    the \emph{k}th component of the mixture.  
+    A matrix whose \code{[i,k]}th entry is the conditional probability of 
+    the ith observation belonging to the \emph{k}th component of the mixture.
   }
  \item{prior}{
     Specification of a conjugate prior on the means and variances.
-    The default assumes no prior.                                                 }
+    The default assumes no prior.
+  }
   \item{control}{
     A list of control parameters for EM. The defaults are set by the call
     \code{emControl()}. 
@@ -154,5 +159,3 @@ meVVV(data, z, prior=NULL, control=emControl(),
 meVVV(data = iris[,-5], z = unmap(iris[,5]))
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

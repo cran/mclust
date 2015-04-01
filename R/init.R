@@ -20,9 +20,9 @@
 #   eval(mc, parent.frame())
 # }
 
-# new
-hc <- function(modelName = mclust.options("hcModelNames")[1], 
-               data, use = mclust.options("hcUse"), ...)
+# new version allowing transformation of the data
+hc <- function(data, modelName = mclust.options("hcModelNames")[1], 
+               use = mclust.options("hcUse"), ...)
 {
   switch(EXPR = modelName,
          E = ,
@@ -34,38 +34,48 @@ hc <- function(modelName = mclust.options("hcModelNames")[1],
          stop("invalid model name for hierarchical clustering"))
   funcName <- paste("hc", modelName, sep = "")
   mc <- match.call(expand.dots = TRUE)
-  mc$use <- NULL
+  mc$use <- mc$modelName <- NULL
   data <- data.matrix(data)
+
+  dropCols <- function(x)
+  { # select only those columns of matrix x with all finite numeric values
+    x[,apply(x, 2, function(x) all(is.finite(x))), drop = FALSE]
+  }
 
   use <- toupper(use)
   if(use == "RANDOM")
     { return(randomPairs(data, ...)) }
+
   switch(use,
          "VARS" = { Z <- data },
-         "STD" = { Z <- scale(data, center = TRUE, scale = TRUE) },
+         "STD" = { Z <- scale(data, center = TRUE, scale = TRUE) 
+                   Z <- dropCols(Z) },
          "PCR" = { data <- scale(data, center = TRUE, scale = TRUE)
+                   data <- dropCols(data)
                    SVD <- svd(data, nu=0)
                    # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
                    Z <- data %*% SVD$v },
          "PCS" = { data <- scale(data, center = TRUE, scale = FALSE)
                    SVD <- svd(data, nu=0)
                    # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
-                   Z <- data %*% SVD$v },
+                   Z <- data %*% SVD$v 
+                   Z <- dropCols(Z) },
          "SPH" = { data <- scale(data, center = TRUE, scale = FALSE)
-                   n <- nrow(data)
+                   n <- nrow(data); p <- ncol(data)
                    Sigma <- var(data) * (n - 1)/n
                    SVD <- svd(Sigma, nu = 0)
-                   Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d)) },
+                   Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) 
+                   Z <- dropCols(Z) },
          "SVD" = { data <- scale(data, center = TRUE, scale = TRUE)
-                   n <- nrow(data)
+                   data <- dropCols(data)
+                   n <- nrow(data); p <- ncol(data)
                    SVD <- svd(data, nu=0)
-                   Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d)) },
+                   Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) },
          stop("'use' argument not allowed. See help(mclust.options)")
   )
-  
+  # call the proper hc<funcName> function
   mc$data <- Z 
   mc[[1]] <- as.name(funcName)
-  mc[[2]] <- NULL
   eval(mc, parent.frame())
 }
 
@@ -74,9 +84,9 @@ hc <- function(modelName = mclust.options("hcModelNames")[1],
 # Usage:
 # Mclust(data, initialization = list(hcPairs = randomPairs(data)))
 
-randomPairs <- function(data, seed = NULL, ...)
+randomPairs <- function(data, seed, ...)
 {
-  if(!is.null(seed)) set.seed(seed)
+  if(!missing(seed)) set.seed(seed)
   data <- as.matrix(data)
   n <- nrow(data)
   tree <- matrix(sample(1:n, n, replace = FALSE), nrow = 2, ncol = ceiling(n/2))
@@ -106,12 +116,11 @@ hclass <- function(hcPairs, G)
   bad <- select < 0 | select >= k
   if(all(bad))
     stop("No classification with the specified number of clusters")
-  if(any(bad))
-    warning("Some selected classifications are inconsistent\n                          with mclust object"
-    )
+  if(any(bad) & mclust.options("warn"))
+    { warning("Some selected classifications are inconsistent with mclust object") }
   L <- length(select)
-  cl <- matrix(as.double(NA), nrow = n, ncol = L, dimnames = list(NULL, as.character(
-    G)))
+  cl <- matrix(as.double(NA), nrow = n, ncol = L, 
+               dimnames = list(NULL, as.character(G)))
   if(select[1])
     m <- 1
   else {
@@ -138,9 +147,9 @@ hcEII <- function(data, partition, minclus = 1, ...)
     stop("missing values not allowed in data")
   #====================================================================
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
+  oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
+  #if(oneD || length(dimdat) > 2)
+  #  stop("data should in the form of a matrix")
   data <- as.matrix(data)
   dimnames(data) <- NULL
   n <- nrow(data)
@@ -154,9 +163,9 @@ hcEII <- function(data, partition, minclus = 1, ...)
   attr(partition, "unique") <- l
   m <- l - minclus
   if(m <= 0)
-    stop("initial number of clusters is not greater than minclus")
-  if(n <= p)
-    warning("# of observations <= data dimension")
+    { stop("initial number of clusters is not greater than minclus") }
+  if(n <= p & mclust.options("warn"))
+    { warning("# of observations <= data dimension") }
   #=============================================================
   storage.mode(data) <- "double"
   ld <- max(c((l * (l - 1))/2, 3 * m))
@@ -186,14 +195,14 @@ hcEEE <- function(data, partition, minclus = 1, ...)
     stop("missing values not allowed in data")
   #=====================================================================
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
+  oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
+  #if(oneD || length(dimdat) > 2)
+  #  stop("data should in the form of a matrix")
   data <- as.matrix(data)
   dimnames(data) <- NULL
   n <- nrow(data)
   p <- ncol(data)
-  if(n <= p)
+  if(n <= p & mclust.options("warn"))
     warning("# of observations <= data dimension")
   if(missing(partition))
     partition <- 1:n
@@ -226,7 +235,7 @@ hcEEE <- function(data, partition, minclus = 1, ...)
                    double(p * p),
                    double(p * p),
                    double(p * p),
-                   PACKAGE ="mclust")[c(1, 7:10)]
+                   PACKAGE = "mclust")[c(1, 7:10)]
   #
   # currently temp[[5]] is not output
   temp[[4]] <- temp[[4]][1:2]
@@ -253,14 +262,14 @@ hcVII <- function(data, partition, minclus = 1, alpha = 1, ...)
     stop("missing values not allowed in data")
   #=====================================================================
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
+  oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
+  #if(oneD || length(dimdat) > 2)
+  #  stop("data should in the form of a matrix")
   data <- as.matrix(data)
   dimnames(data) <- NULL
   n <- nrow(data)
   p <- ncol(data)
-  if(n <= p)
+  if(n <= p & mclust.options("warn"))
     warning("# of observations <= data dimension")
   if(missing(partition))
     partition <- 1:n
@@ -303,14 +312,14 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
   if(any(is.na(data)))
     stop("missing values not allowed in data")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD || length(dimdat) > 2)
-    stop("data should in the form of a matrix")
+  oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
+  #if(oneD || length(dimdat) > 2)
+  #  stop("data should in the form of a matrix")
   data <- as.matrix(data)
   dimnames(data) <- NULL
   n <- nrow(data)
   p <- ncol(data)
-  if(n <= p)
+  if(n <= p & mclust.options("warn"))
     warning("# of observations <= data dimension")
   if(missing(partition))
     partition <- 1:n
@@ -357,15 +366,15 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
 ## Initialization for 1-dim data ############################################
 
 # This version is bugged when a quantile is equal to the following
-qclass <- function (x, k) 
-{
-  q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
-  cl <- rep(0, length(x))
-  q[1] <- q[1] - 1
-  for(i in 1:k) 
-    cl[x > q[i] & x <= q[i+1]] <- i
-  return(cl)
-}
+# qclass <- function (x, k) 
+# {
+#   q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
+#   cl <- rep(0, length(x))
+#   q[1] <- q[1] - 1
+#   for(i in 1:k) 
+#     cl[x > q[i] & x <= q[i+1]] <- i
+#   return(cl)
+# }
 # This should correct the above bug
 qclass <- function (x, k) 
 {

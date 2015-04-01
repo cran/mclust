@@ -75,24 +75,23 @@ x = as.matrix(faithful)
 dens = densityMclust(x)
 summary(dens)
 summary(dens, parameters = TRUE)
-plot(dens, what = "BIC")
 plot(dens)
-plot(dens, x, col = "cadetblue", drawlabels = FALSE, pch = 20,
+plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE, pch = 20,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, x, col = "grey", 
+plot(dens, x, what = "density", col = "grey", 
      points.col = mclust.options("classPlotColors")[dens$classification], 
      pch = dens$classification)
-plot(dens, type = "image", col = topo.colors(50))
-plot(dens, type = "persp")
+plot(dens, what = "density", type = "image", col = topo.colors(50))
+plot(dens, what = "density", type = "persp")
 
 x = iris[,1:4]
 dens = densityMclust(x)
 summary(dens, parameters = TRUE)
 plot(dens)
-plot(dens, x, col = "cadetblue", drawlabels = FALSE,
+plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, type = "image", col = gray.colors(50))
-plot(dens, type = "persp", col = gray(0.5))
+plot(dens, what = "density", type = "image", col = gray.colors(50))
+plot(dens, what = "density", type = "persp", col = gray(0.5))
 }
 
 \keyword{cluster}

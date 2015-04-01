@@ -1,6 +1,8 @@
 \name{mclustICL}
 \alias{mclustICL}
 \alias{print.mclustICL}
+\alias{summary.mclustICL}
+\alias{print.summary.mclustICL}
 
 \title{ICL Criterion for Model-Based Clustering}
 
@@ -10,8 +12,12 @@ ICL (Integrated Complete-data Likelihood) for parameterized Gaussian mixture mod
 
 \usage{
 mclustICL(data, G = NULL, modelNames = NULL, 
-          initialization = list(hcPairs = NULL, subset = NULL, noise = NULL), 
+          initialization = list(hcPairs = NULL, 
+                                subset = NULL, 
+                                noise = NULL), 
           \dots)
+
+\method{summary}{mclustICL}(object, G, modelNames, \dots)
 }
 
 \arguments{
@@ -62,12 +68,20 @@ mclustICL(data, G = NULL, modelNames = NULL,
     Futher arguments used in the call to \code{\link{Mclust}}. 
     See also \code{\link{mclustBIC}}.
   }
+
+  \item{object}{
+    An integer vector specifying the numbers of mixture components
+    (clusters) for which the criteria should be calculated. 
+    The default is \code{G = 1:9}. 
+  }
+
 }
 
 \value{
-Returns the ICL criterion for the specified mixture models and numbers of clusters.
+Returns an object of class \code{'mclustICL'} containing the the ICL criterion 
+for the specified mixture models and numbers of clusters.
 
-The corresponding \code{print} method shows the matrix of values and the top models according to the ICL criterion.
+The corresponding \code{print} method shows the matrix of values and the top models according to the ICL criterion. The \code{summary} method shows only the top models.
 }
 
 \section{References}{
@@ -85,20 +99,23 @@ The corresponding \code{print} method shows the matrix of values and the top mod
   \code{\link{plot.mclustICL}}, 
   \code{\link{Mclust}}, 
   \code{\link{mclustBIC}}, 
+  \code{\link{mclustBootstrapLRT}}, 
   \code{\link{bic}},
   \code{\link{icl}}
 }
 
 \examples{
 data(faithful)
-faithful.ICL = mclustICL(faithful)
+faithful.ICL <- mclustICL(faithful)
 faithful.ICL
+summary(faithful.ICL)
 plot(faithful.ICL)
+\dontrun{
 # compare with
 faithful.BIC = mclustBIC(faithful)
 faithful.BIC
 plot(faithful.BIC)
 }
+}
 
 \keyword{cluster}
-% docclass is function

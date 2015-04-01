@@ -8,8 +8,8 @@
   Observations in different classes are represented by different symbols.
 }
 \usage{
-clPairs(data, classification, symbols, colors, labels=dimnames(data)[[2]], 
-        CEX=1, \dots)
+clPairs(data, classification, symbols, colors, labels = dimnames(data)[[2]], 
+        CEX = 1, gap = 0.2, \dots)
 }
 \arguments{
   \item{data}{
@@ -42,6 +42,9 @@ clPairs(data, classification, symbols, colors, labels=dimnames(data)[[2]],
   \item{CEX}{
     An argument specifying the size of the plotting symbols. 
     The default value is 1.
+  }
+  \item{gap}{
+    An argument specifying the distance between subplots (see \code{\link{pairs}}).
   }
   \item{\dots}{
     Additional arguments to be passed to the graphics device.

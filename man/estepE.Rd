@@ -11,6 +11,11 @@
 \alias{estepEEV}
 \alias{estepVEV}
 \alias{estepVVV}
+\alias{estepEVE}
+\alias{estepEVV}
+\alias{estepVEE}
+\alias{estepVVE}
+
 \title{
   E-step in the EM algorithm for a parameterized Gaussian mixture model.
 }
@@ -31,6 +36,10 @@ estepEEE(data, parameters, warn = NULL, \dots)
 estepEEV(data, parameters, warn = NULL, \dots)
 estepVEV(data, parameters, warn = NULL, \dots)
 estepVVV(data, parameters, warn = NULL, \dots)
+estepEVE(data, parameters, warn = NULL, \dots)
+estepEVV(data, parameters, warn = NULL, \dots)
+estepVEE(data, parameters, warn = NULL, \dots)
+estepVVE(data, parameters, warn = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -114,8 +123,8 @@ estepVVV(data, parameters, warn = NULL, \dots)
   \code{\link{em}},
   \code{\link{mstep}},
   \code{\link{do.call}},
-  \code{\link{mclust.options}},
-  \code{\link{mclustVariance}} 
+  \code{\link{mclustVariance}},
+  \code{\link{mclust.options}}.
 }
 \examples{
 msEst <- mstepEII(data = iris[,-5], z = unmap(iris[,5]))

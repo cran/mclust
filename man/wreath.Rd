@@ -2,11 +2,13 @@
 \alias{wreath}
 
 \title{Data Simulated from a 14-Component Mixture}
+
 \usage{data(wreath)}
+
 \description{
 A dataset consisting of 1000 observations drawn from a 14-component 
 normal mixture in which the covariances of the components have the
-same size and shape but differin orientation.   
+same size and shape but differ in orientation.   
 }
 \section{References}{
   C. Fraley,  A. E. Raftery and R. Wehrens (2005).

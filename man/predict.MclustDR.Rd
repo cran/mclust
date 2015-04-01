@@ -13,7 +13,7 @@
 
 \arguments{
   
-  \item{object}{an object of class \code{"MclustDR"} resulting from a call to \code{\link{MclustDR}.}}
+  \item{object}{an object of class \code{'MclustDR'} resulting from a call to \code{\link{MclustDR}.}}
 
   \item{dim}{the dimensions of the reduced subspace used for prediction.}
 

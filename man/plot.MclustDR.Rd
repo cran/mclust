@@ -17,7 +17,7 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 
 \arguments{
   \item{x}{
-    An object of class \code{"MclustDR"} resulting from a call to \code{\link{MclustDR}}.
+    An object of class \code{'MclustDR'} resulting from a call to \code{\link{MclustDR}}.
 }
   \item{dimens}{
     A vector of integers giving the dimensions of the desired coordinate
@@ -92,9 +92,8 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 \seealso{\link{MclustDR}}
 
 \examples{
-mod = Mclust(iris[,1:4])
+mod = Mclust(iris[,1:4], G = 1:5)
 dr = MclustDR(mod)
-plot(dr)
 plot(dr, what = "evalues")
 plot(dr, what = "scatterplot", dimens = c(1,3))
 plot(dr, what = "pairs")
@@ -105,9 +104,8 @@ plot(dr, what = "density")
 plot(dr, what = "density", dimens = 2)
 
 data(banknote)
-da = MclustDA(banknote[,2:7], banknote$Status)
+da = MclustDA(banknote[,2:7], banknote$Status, G = 1:3)
 dr = MclustDR(da)
-plot(dr)
 plot(dr, what = "evalues")
 plot(dr, what = "pairs")
 plot(dr, what = "contour")

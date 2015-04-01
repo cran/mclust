@@ -1,3 +1,29 @@
+Version 5.0.0 (2015-03) NOT ON CRAN
+    o added the four missing models (EVV, VEE, EVE, VVE) to the mclust family.
+      A noise component is allowed, but no prior is available. 
+    o added mclustBootstrapLRT function (and print and plot methods) for
+      selecting the number of mixture components based on the bootstrap 
+      sequential likelihood ratio test.
+    o added MclustBootstrap function (and print and summary methods) for
+      performing bootstrap inference. This provides standard errors for 
+      parameters and confidence intervals.
+    o a "A quick tour of mclust" vignette is included as html generated using
+      rmarkdown and knitr. Older vignettes are included as other documentation
+      for the package.
+    o modified arguments to mvn2plot to control colour, lty, lwd, and pch of
+      ellipses and mean point.
+    o added functions emX, emXII, emXXI, emXXX, cdensX, cdensXII, cdensXXI, and
+      cdensXXX, to deal with single-component cases, so calling the em function
+      works even if G = 1. 
+    o small changes to icl.R, now icl is a generic method, with specialized 
+      methods for 'Mclust' and 'MclustDA' objects.
+    o bug fixes for transformations in the initialization step when some 
+      variables are constant (i.e. the variance is zero) or a one-dimensional
+      data is provided.
+    o change the order of arguments in hc (and all the functions calling it).
+    o small modification to CITATION file upon request of CRAN maintainers.
+    o small bugs fix.
+
 Version 4.4 (2014-09)
     o add option for using transformation of variables in the hierarchical 
       initialization step.

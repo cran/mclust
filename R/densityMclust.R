@@ -5,9 +5,8 @@ densityMclust <- function(data, ...)
   else                      varname <- deparse(substitute(data))
   obj <- Mclust(data, ...)
   obj$call <- mc
-  d <- dens(modelName = obj$modelName, 
-            data = data, 
-            parameters = obj$parameters)
+  d <- dens(modelName = obj$modelName, data = data, 
+            parameters = obj$parameters, logarithm = FALSE)
   obj <- c(obj,
            list(varname = varname,
                 range = if(obj$d > 1) apply(data, 2, range) else range(data),
@@ -42,36 +41,60 @@ predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), ..
 plot.densityMclust <- function(x, data = NULL, what = c("density", "BIC", "diagnostic"), ...) 
 {
   object <- x # Argh.  Really want to use object anyway
-  what <- match.arg(what)
+
+  what <- match.arg(what, several.ok = TRUE)
+  if(object$d > 1) 
+    what <- setdiff(what, "diagnostic")
+  oldpar <- par(no.readonly = TRUE)
+  # on.exit(par(oldpar))
   
-  if(what == "density")
-    { 
-      if(object$d == 1)      plotDensityMclust1(object, data = data, ...)
-      else if(object$d == 2) plotDensityMclust2(object, data = data, ...)
-      else                   plotDensityMclustd(object, data = data, ...)
-    }
+  plot.densityMclust.density <- function(...)
+  { 
+    if(object$d == 1)      plotDensityMclust1(object, data = data, ...)
+    else if(object$d == 2) plotDensityMclust2(object, data = data, ...)
+    else                   plotDensityMclustd(object, data = data, ...)
+  }
   
-  if(what == "BIC")
-    { 
-      # this add right axis for bic diff
-      # oldpar <- par(no.readonly = TRUE)
-      # on.exit(par(oldpar))
-      # mar <- oldpar$mar
-      # mar[4] <- max(mar[4],3)
-      # par(mar = mar)
-      # plot.mclustBIC(object$BIC, ...)
-      # yaxp <- par("yaxp")
-      # bicdiff <- seq(0, yaxp[1] - object$bic, length = 100)
-      # bicdiff <- pretty(bicdiff, yaxp[3]+1)
-      # axis(4, at = object$bic+bicdiff, labels = signif(bicdiff,2))
-      plot.mclustBIC(object$BIC, ...)
-    }
+  plot.densityMclust.bic <- function(...)
+  { 
+    # this add right axis for bic diff
+    # oldpar <- par(no.readonly = TRUE)
+    # on.exit(par(oldpar))
+    # mar <- oldpar$mar
+    # mar[4] <- max(mar[4],3)
+    # par(mar = mar)
+    # plot.mclustBIC(object$BIC, ...)
+    # yaxp <- par("yaxp")
+    # bicdiff <- seq(0, yaxp[1] - object$bic, length = 100)
+    # bicdiff <- pretty(bicdiff, yaxp[3]+1)
+    # axis(4, at = object$bic+bicdiff, labels = signif(bicdiff,2))
+    plot.mclustBIC(object$BIC, ...)
+  }
   
-  if(what == "diagnostic")
-    { densityMclust.diagnostic(object, what = c("cdf", "qq"), ...) }
+  plot.densityMclust.diagnostic <- function(...)
+  { densityMclust.diagnostic(object, ...) }
   
+  if(interactive() & length(what) > 1)
+    { title <- "Model-based density estimation plots:"
+      # present menu waiting user choice
+      choice <- menu(what, graphics = FALSE, title = title)
+      while(choice != 0)
+           { if(what[choice] == "density")    plot.densityMclust.density(...)
+             if(what[choice] == "BIC")        plot.densityMclust.bic(...)
+             if(what[choice] == "diagnostic") plot.densityMclust.diagnostic(...)
+             # re-present menu waiting user choice
+             choice <- menu(what, graphics = FALSE, title = title)
+           }
+  } 
+  else 
+    { if(what == "density")    plot.densityMclust.density(...)
+      if(what == "BIC")        plot.densityMclust.bic(...)
+      if(what == "diagnostic") plot.densityMclust.diagnostic(...)
+  }
+ 
   invisible()
 }
+
 
 plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.border = "white", breaks = "Sturges", ...) 
 {
@@ -87,10 +110,10 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
   #
   xrange <- c(min(object$range) - diff(object$range)/10,
               max(object$range) + diff(object$range)/10)
-  xlim <- mc$xlim
+  xlim <- eval(mc$xlim, parent.frame())
   if(!is.null(xlim)) 
     xrange <- range(xlim)
-  ylim <- mc$ylim
+  ylim <- eval(mc$ylim, parent.frame())
   #
   eval.points <- seq(from = xrange[1], to = xrange[2], length = 1000)
   d <- predict.densityMclust(object, eval.points)
@@ -123,16 +146,13 @@ plotDensityMclust2 <- function(x, data = NULL, col = grey(0.6), nlevels = 11, le
   mc <- match.call(expand.dots = TRUE)
   mc$x <- mc$points.col <- mc$pch <- NULL
   mc$nlevels <- nlevels; mc$levels <- levels
-  if(!is.null(mc$type))
-    if(mc$type == "image" & (length(col) < 2)) col <- NULL
   mc$col <- col
   
   if(is.null(data)) 
-  { addPoints <- FALSE
-    mc$data <- object$data
-  }
-  else
-  { addPoints <- TRUE }
+    { addPoints <- FALSE
+      mc$data <- object$data
+  } else
+    { addPoints <- TRUE }
   
   # set mixture parameters
   par <- object$parameters
@@ -161,8 +181,6 @@ plotDensityMclustd <- function(x, data = NULL, col = grey(0.6), nlevels = 11, le
   mc <- match.call(expand.dots = TRUE)
   mc$x <- mc$points.col <- mc$pch <- mc$gap <- NULL
   mc$nlevels <- nlevels; mc$levels <- levels
-  if(!is.null(mc$type))
-    if(mc$type == "image" & (length(col) < 2)) col <- NULL
   mc$col <- col
   
   if(is.null(data)) 
@@ -224,36 +242,35 @@ plotDensityMclustd <- function(x, data = NULL, col = grey(0.6), nlevels = 11, le
 
 dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   aux <- list(...)
   cden <- cdens(modelName = modelName, data = data,
                 logarithm = TRUE, parameters = parameters, warn = warn)
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  G <- if(oneD) 
-  { length(parameters$mean) }
-  else 
-  { ncol(as.matrix(parameters$mean)) }
-  if(G > 1) 
-  { pro <- parameters$pro
-    if(is.null(pro))
-      stop("mixing proportions must be supplied")
-    noise <- length(pro) == (G + 1)
-    if(is.null(pro)) 
-      stop("mixing proportions must be supplied")
-    if(noise) 
-    { proN <- pro[length(pro)]
-      pro <- pro[-length(pro)]
-    }
-    if(any(proz <- pro == 0)) 
-    { pro <- pro[!proz]
-      cden <- cden[, !proz, drop = FALSE]
-    }
-    cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
+  G <- if(oneD) { length(parameters$mean) }
+       else     { ncol(as.matrix(parameters$mean)) }
+  pro <- parameters$pro
+  if(is.null(pro))
+    stop("mixing proportions must be supplied")
+  noise <- (!is.null(parameters$Vinv))
+  if(G > 1)
+    { if(noise) 
+        { # proN <- pro[length(pro)]
+          pro <- pro[-length(pro)]
+          # pro <- pro/sum(pro)
+      }
+      if(any(proz <- pro == 0)) 
+        { pro <- pro[!proz]
+          cden <- cden[, !proz, drop = FALSE]
+      }
+      cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
   }
   maxlog <- apply(cden, 1, max)
   cden <- sweep(cden, 1, FUN = "-", STATS = maxlog)
   den <- logb(apply(exp(cden), 1, sum)) + maxlog
+  if(noise) 
+    den <- den + parameters$pro[G+1]*parameters$Vinv
   if(!logarithm) den <- exp(den)
   den
 }
@@ -274,9 +291,10 @@ cdens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, .
   eval(mc, parent.frame())
 }
 
-densityMclust.diagnostic <- function(object, what = c("cdf", "qq"), 
-                                     col = c(1,3), lwd = c(2,2), lty = c(1,2),
-                                     legend = TRUE, grid = TRUE, main, ...)
+densityMclust.diagnostic <- function(object, type = c("cdf", "qq"), 
+                                     col = c("black", "green4"), 
+                                     lwd = c(2,2), lty = c(1,2),
+                                     legend = TRUE, grid = TRUE, main = TRUE, ...)
 {
 # Diagnostic plots for density estimation 
 # (only available for the one-dimensional case)
@@ -284,7 +302,7 @@ densityMclust.diagnostic <- function(object, what = c("cdf", "qq"),
 # Arguments:
 # object = a 'densityMclust' object
 # data = the data vector
-# what = type of diagnostic plot:
+# type = type of diagnostic plot:
 # cdf = the fitted distribution function vs the empirical distribution function;
 # qq = the fitted distribution function evaluated over the observed points vs 
 #      the quantile from a uniform distribution.
@@ -296,42 +314,47 @@ densityMclust.diagnostic <- function(object, what = c("cdf", "qq"),
   if(!any(class(object) == "densityMclust"))
     { stop("first argument must be an object of class 'densityMclust'") }
   if(object$d > 1)
-    { warning("only available for one-dimensional data") }  
-  what <- match.arg(what, c("cdf", "qq"), several.ok = TRUE)
-  
+    { warning("only available for one-dimensional data") 
+      return() }  
+  type <- match.arg(type, c("cdf", "qq"), several.ok = TRUE)
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
+
   data <- as.numeric(object$data)
   n <- length(data)
   cdf <- cdfMclust(object, data = data, ngrid = min(n*10,1000), ...)
   
   oldpar <- par(no.readonly = TRUE)
-  if(length(what) > 1) 
-  { par(ask = TRUE)
-    on.exit(par(oldpar)) }
+  if(interactive() & length(type) > 1) 
+    { par(ask = TRUE)
+      on.exit(par(oldpar)) }
   
-  if(any(what == "cdf"))
+  if(any(type == "cdf"))
   { # Fitted CDF vs Emprical CDF    
     empcdf <- ecdf(data)
-    plot(empcdf, do.points = FALSE, col = col[2], lwd = lwd[2], lty = lty[2],
-         xlab = object$varname, ylab = "Cumulative Distribution Function",
-         main = if(missing(main)) "CDF plot" else main,
+    plot(empcdf, do.points = FALSE, 
+         col = col[2], lwd = lwd[2], lty = lty[2],
+         xlab = object$varname, 
+         ylab = "Cumulative Distribution Function",
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
-         ...)
+         main = NULL, ...)
+    if(main) title(main = "CDF plot", cex.main = 1.1)
     lines(cdf, col = col[1], lwd = lwd[1], lty = lty[1])
+    rug(data)
     if(legend)
       { legend("bottomright", legend = c("Est.CDF", "Emp.CDF"), 
-               ncol = 2, inset = 0.05, cex = 0.8,
+               ncol = 1, inset = 0.05, cex = 0.8,
                col = col, lwd = lwd, lty = lty) }
   }
   
-  if(any(what == "qq"))
+  if(any(type == "qq"))
   { # Q-Q plot
     q <- quantileMclust(object, p = ppoints(n))
     plot(q, sort(data),
          xlab = "Quantiles from estimated density", 
          ylab = "Sample Quantiles", 
-         main = if(missing(main)) "Q-Q plot" else main, 
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
-         ...)
+         main = NULL, ...)
+    if(main) title(main = "Q-Q plot", cex.main = 1.1)
     with(list(y = sort(data), x = q),
          { i <- (y > quantile(y, 0.25) & y < quantile(y, 0.75))
            abline(lm(y ~ x, subset = i), lty = 2) 
@@ -349,16 +372,16 @@ densityMclust.diagnostic <- function(object, what = c("cdf", "qq"),
 
 cdfMclust <- function(object, data, ngrid = 100, ...)
 {
-  # Cumulative Density Function
-  # (only available for the one-dimensional case)
-  #
-  # Returns the estimated CDF evaluated at points given by the optional
-  # argument data. If not provided, a regular grid of ngrid points is used. 
-  #
-  # Arguments:
-  # object = a 'densityMclust' object
-  # data = the data vector
-  # ngrid = the length of rectangular grid 
+# Cumulative Density Function
+# (only available for the one-dimensional case)
+#
+# Returns the estimated CDF evaluated at points given by the optional
+# argument data. If not provided, a regular grid of ngrid points is used. 
+#
+# Arguments:
+# object = a 'densityMclust' object
+# data = the data vector
+# ngrid = the length of rectangular grid 
   
   if(!any(class(object) == "densityMclust"))
     { stop("first argument must be an object of class 'densityMclust'") }
@@ -371,25 +394,18 @@ cdfMclust <- function(object, data, ngrid = 100, ...)
     { eval.points <- sort(as.vector(data))
       ngrid <- length(eval.points) }
   
-  G <- object$parameters$variance$G
+  G <- object$G
   pro <- object$parameters$pro
   mean <- object$parameters$mean
   var <- object$parameters$variance$sigmasq
   if(length(var) < G) var <- rep(var, G)
-  
+  noise <- (!is.null(object$parameters$Vinv))
+
   cdf <- rep(0, ngrid)
   for(k in seq(G))
      { cdf <- cdf + pro[k]*pnorm(eval.points, mean[k], sqrt(var[k])) }
-  
-  # old: integral of the density function is approximated by adaptive
-  # quadrature using the R function integrate().
-  # f <- function(x) { predict.densityMclust(object, x) }
-  # cdf <- rep(NA, ngrid)
-  # for(i in 1:ngrid)
-  #    { cdf[i] <- integrate(f, stop.on.error = FALSE,
-  #                          rel.tol = sqrt(.Machine$double.eps),
-  #                          lower = -Inf,
-  #                          upper = eval.points[i])$value }
+  if(noise) 
+    cdf <- cdf/sum(pro[seq(G)])
   
   out <- list(x = eval.points, y = cdf)    
   return(out)

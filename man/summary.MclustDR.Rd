@@ -12,9 +12,9 @@
 }
 
 \arguments{
-  \item{object}{An object of class \code{"MclustDR"} resulting from a call to \code{\link{MclustDR}}.}
+  \item{object}{An object of class \code{'MclustDR'} resulting from a call to \code{\link{MclustDR}}.}
 
-  \item{x}{An object of class \code{"summary.MclustDR"}, usually, a result of a call to \code{summary.MclustDR}.}
+  \item{x}{An object of class \code{'summary.MclustDR'}, usually, a result of a call to \code{summary.MclustDR}.}
 
   \item{numdir}{An integer providing the number of basis directions to be printed.}
 

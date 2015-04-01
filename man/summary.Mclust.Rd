@@ -12,9 +12,9 @@
 }
 
 \arguments{
-  \item{object}{An object of class \code{"Mclust"} resulting of a call to \code{\link{Mclust}} or \code{\link{densityMclust}}.}
+  \item{object}{An object of class \code{'Mclust'} resulting of a call to \code{\link{Mclust}} or \code{\link{densityMclust}}.}
 
-  \item{x}{An object of class \code{"summary.Mclust"}, usually, a result of a call to \code{summary.Mclust}.}
+  \item{x}{An object of class \code{'summary.Mclust'}, usually, a result of a call to \code{summary.Mclust}.}
 
   \item{parameters}{Logical; if \code{TRUE}, the parameters of mixture components are printed.}
 

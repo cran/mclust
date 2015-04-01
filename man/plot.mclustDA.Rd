@@ -15,13 +15,13 @@ Graphical tools for training and test data, known training data classification, 
 
 \arguments{
   \item{x}{
-    An object of class \code{"MclustDA"} resulting from a call to \code{\link{MclustDA}}.
+    An object of class \code{'MclustDA'} resulting from a call to \code{\link{MclustDA}}.
   }
 
  \item{what}{
     The type of graph requested: 
     \describe{
-      \item{\code{"scatterplot"} =}{a plot of training data with points marked based the known classification.}
+      \item{\code{"scatterplot"} =}{a plot of training data with points marked based the known classification. Ellipses corresponding to covariances of mixture components are also drawn.}
       \item{\code{"classification"} =}{a plot of data with points marked based the predicted classification; if \code{newdata} is provided then the test set is shown otherwise the training set.}
       \item{\code{"train&test"} =}{a plot of training and test data with points marked according to the type of set.}
       \item{\code{"error"} =}{a plot of training set (or test set if \code{newdata} and \code{newclass} are provided) with misclassified points marked.}

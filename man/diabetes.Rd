@@ -1,13 +1,22 @@
 \name{diabetes}
 \alias{diabetes}
-\alias{diabetes.class}
+\docType{data}
+
 \title{Diabetes data}
+
+\description{The data set contains three measurements made on 145 diabetic patients classified into three groups.}
+
 \usage{data(diabetes)}
-\description{
-Diabetes data from Reaven and Miller. Number of objects: 145; 3
-variables. Three classes.
+
+\format{A data frame with the following variables:
+\describe{
+\item{class}{The type of diabete: \code{Normal}, \code{Overt}, and \code{Chemical}.}
+\item{glucose}{Area under plasma glucose curve after a three hour oral glucose tolerance test (OGTT).}
+\item{insulin}{Area under plasma insulin curve after a three hour oral glucose tolerance test (OGTT).}
+\item{sspg}{Steady state plasma glucose.}
 }
-\references{G.M. Reaven and R.G. Miller, \emph{Diabetologica} 16:17-24 (1979).
-  }
+}
+
+\source{Reaven, G. M. and Miller, R. G. (1979). An attempt to define the nature of chemical diabetes using a multidimensional analysis. \emph{Diabetologia} 16:17-24.}
 
 \keyword{datasets}

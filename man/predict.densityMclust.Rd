@@ -11,7 +11,7 @@
 
 \arguments{
   
-  \item{object}{an object of class \code{"densityMclust"} resulting from a call to \code{\link{densityMclust}}.}
+  \item{object}{an object of class \code{'densityMclust'} resulting from a call to \code{\link{densityMclust}}.}
 
   \item{newdata}{a vector, a data frame or matrix giving the data. If missing the density is computed for the input data obtained from the call to \code{\link{densityMclust}}.}
 

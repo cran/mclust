@@ -8,34 +8,36 @@ Diagnostic plots for density estimation. Only available for the one-dimensional 
 }
 
 \usage{
-densityMclust.diagnostic(object, what = c("cdf", "qq"), col = c(1,3),
-                         lwd = c(2,2), lty = c(1,2), legend = TRUE, 
-                         grid = TRUE, main, \dots)
+densityMclust.diagnostic(object, type = c("cdf", "qq"), 
+                         col = c("black", "green4"), 
+                         lwd = c(2,2), lty = c(1,2), 
+                         legend = TRUE, grid = TRUE, 
+                         main = TRUE, \dots)
 }
 
 \arguments{
-  \item{object}{\code{mclustDensity} object obtained from \code{\link{densityMclust}} function.}
+  \item{object}{An object of class \code{'mclustDensity'} obtained from a call to \code{\link{densityMclust}} function.}
 
-  \item{what}{the type of graph requested:
+  \item{type}{The type of graph requested:
     \describe{
       \item{\code{"cdf"} =}{a plot of the estimated CDF versus the empirical distribution function.}
       \item{\code{"qq"} =}{a Q-Q plot of sample quantiles versus the quantiles obtained from the inverse of the estimated cdf.}
     }
   }
   
-  \item{col}{a pair of values for the color to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
+  \item{col}{A pair of values for the color to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
 
-  \item{lwd}{a pair of values for the line width to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
+  \item{lwd}{A pair of values for the line width to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
 
-  \item{lty}{a pair of values for the line type to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
+  \item{lty}{A pair of values for the line type to be used for plotting, respectively, the estimated CDF and the empirical cdf.}
 
-  \item{legend}{a logical indicating if a legend must be added to the plot of fitted CDF vs the empirical CDF.}
+  \item{legend}{A logical indicating if a legend must be added to the plot of fitted CDF vs the empirical CDF.}
 
-  \item{grid}{a logical indicating if a \code{\link{grid}} should be added to the plot.}
+  \item{grid}{A logical indicating if a \code{\link{grid}} should be added to the plot.}
 
-  \item{main}{a character string for the plot title.}
+  \item{main}{A logical indicating if a title should be added to the plot.}
   
-  \item{\dots}{additional arguments.}
+  \item{\dots}{Additional arguments.}
 }
 
 \details{
@@ -64,10 +66,11 @@ The two diagnostic plots for density estimation in the one-dimensional case are 
 \examples{
 x = faithful$waiting
 dens = densityMclust(x)
-plot(dens, x, what = "diagnostic")
+\dontrun{
+plot(dens, x, what = "diagnostic")}
 # or
-densityMclust.diagnostic(dens, what = "cdf")
-densityMclust.diagnostic(dens, what = "qq")
+densityMclust.diagnostic(dens, type = "cdf")
+densityMclust.diagnostic(dens, type = "qq")
 }
 
 \keyword{cluster}

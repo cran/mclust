@@ -14,7 +14,7 @@ surfacePlot(data, parameters,
             transformation = c("none", "log", "sqrt"),          
             grid = 50, nlevels = 11, levels = NULL, col = grey(0.6),
             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
-            scale = FALSE, identify = FALSE, swapAxes = FALSE, 
+            scale = FALSE, main = FALSE, swapAxes = FALSE, 
             verbose = FALSE, \dots)
 }
 \arguments{
@@ -84,9 +84,9 @@ surfacePlot(data, parameters,
     thus preserve the shape of the distribution.
     The default is not to scale.
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title 
+    to the plot identifying the dimensions used.
   }
   \item{swapAxes}{
     A logical variable indicating whether or not the axes should be swapped

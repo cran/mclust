@@ -83,7 +83,7 @@ Available options are:
     A logical value indicating whether or not to issue certain warnings.
     Most of these warnings have to do with situations in which 
     singularities are encountered. 
-    The default is \code{warn = TRUE}. 
+    The default is \code{warn = FALSE}. 
   }
 }
 

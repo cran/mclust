@@ -12,8 +12,11 @@ BIC for parameterized Gaussian mixture models fitted by EM algorithm initialized
 \usage{
 mclustBIC(data, G = NULL, modelNames = NULL, 
           prior = NULL, control = emControl(), 
-          initialization = list(hcPairs = NULL, subset = NULL, noise = NULL), 
-          Vinv = NULL, warn = FALSE, x = NULL, \dots)
+          initialization = list(hcPairs = NULL, 
+                                subset = NULL, 
+                                noise = NULL), 
+          Vinv = NULL, warn = mclust.options("warn"), 
+          x = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -83,12 +86,13 @@ mclustBIC(data, G = NULL, modelNames = NULL,
   \item{warn}{
      A logical value indicating whether or not certain warnings
     (usually related to singularity) should be issued when
-     estimation fails. The default is to suppress these warnings.
+     estimation fails. 
+     The default is controlled by \code{\link{mclust.options}}.
   }
   \item{x}{
-     An object of class \code{"mclustBIC"}. If supplied, \code{mclustBIC}
+     An object of class \code{'mclustBIC'}. If supplied, \code{mclustBIC}
      will use the settings in \code{x} to produce another object of
-     class \code{"mclustBIC"}, but with \code{G} and \code{modelNames}
+     class \code{'mclustBIC'}, but with \code{G} and \code{modelNames}
      as specified in the arguments. Models that have already been computed
      in \code{x} are not recomputed. All arguments to \code{mclustBIC} 
      except \code{data}, \code{G} and \code{modelName} are
@@ -100,10 +104,15 @@ mclustBIC(data, G = NULL, modelNames = NULL,
     Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
+
 \value{
-  Bayesian Information Criterion for the specified mixture models
-  numbers of clusters. Auxiliary information returned as attributes.
+Return an object of class \code{'mclustBIC'} containing the Bayesian Information
+Criterion for the specified mixture models numbers of clusters. 
+Auxiliary information returned as attributes.
+
+The corresponding \code{print} method shows the matrix of values and the top models according to the BIC criterion.
 }
+
 \section{References}{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
@@ -138,8 +147,9 @@ irisBIC <- mclustBIC(iris[,-5])
 irisBIC
 plot(irisBIC)
 
+\dontrun{
 subset <- sample(1:nrow(iris), 100)
-irisBIC <- mclustBIC(iris[,-5], initialization=list(subset =subset))
+irisBIC <- mclustBIC(iris[,-5], initialization=list(subset = subset))
 irisBIC
 plot(irisBIC)
 
@@ -151,6 +161,7 @@ irisBIC2  <- mclustBIC(iris[,-5], G=seq(from=2,to=8,by=2),
                        modelNames=c("VII", "VVI", "VVV"), x= irisBIC1)
 irisBIC2
 plot(irisBIC2)
+}
 
 nNoise <- 450
 set.seed(0)
@@ -160,7 +171,7 @@ set.seed(0)
 noiseInit <- sample(c(TRUE,FALSE),size=nrow(iris)+nNoise,replace=TRUE,
                     prob=c(3,1))
 irisNdata <- rbind(iris[,-5], poissonNoise)
-irisNbic <- mclustBIC(data = irisNdata,
+irisNbic <- mclustBIC(data = irisNdata, G = 1:5,
                       initialization = list(noise = noiseInit))
 irisNbic
 plot(irisNbic)

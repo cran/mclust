@@ -68,10 +68,19 @@ em(modelName, data, parameters, prior = NULL, control = emControl(),
   }
 }
 \value{
-  A list including the following components: 
+A list including the following components: 
   \item{modelName}{
     A character string identifying the model (same as the input argument).
   }
+  \item{n}{
+    The number of observations in the data.
+  }
+  \item{d}{
+    The dimension of the data.
+  }
+  \item{G}{
+    The number of mixture components.
+  }  
   \item{z}{
     A matrix whose \code{[i,k]}th entry is the
     conditional probability of the \emph{i}th observation belonging to
@@ -107,6 +116,13 @@ em(modelName, data, parameters, prior = NULL, control = emControl(),
   \item{loglik}{
     The log likelihood for the data in the mixture model. 
   }
+  \item{control}{
+     The list of control parameters for EM used.
+  }
+  \item{prior}{
+     The specification of a conjugate prior on the means and variances used,
+     \code{NULL} if no prior is used.
+  }        
   \item{Attributes:}{
       \code{"info"} Information on the iteration.\cr
       \code{"WARNING"} An appropriate warning if problems are 

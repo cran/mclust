@@ -47,7 +47,7 @@ bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
 \value{
   The BIC or Bayesian Information Criterion for the given input arguments.
 }
-\section{References}{
+\references{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 

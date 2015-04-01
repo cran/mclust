@@ -6,9 +6,9 @@
 \alias{summaryMclustBICn}
 \alias{printSummaryMclustBIC}
 \alias{printSummaryMclustBICn}
-\title{
-  Summary Function for model-based clustering.
-}
+
+\title{Summary function for model-based clustering via BIC}
+
 \description{
   Optimal model characteristics and classification for model-based
   clustering via \code{mclustBIC}.
@@ -18,7 +18,7 @@
 }
 \arguments{
   \item{object}{
-    An \code{"mclustBIC"} object, 
+    An \code{'mclustBIC'} object, 
     which is the result of applying \code{mclustBIC} 
     to \code{data}.
   }

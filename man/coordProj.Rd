@@ -12,7 +12,7 @@ coordProj(data, dimens=c(1,2), parameters=NULL, z=NULL,
           classification=NULL, truth=NULL, uncertainty=NULL, 
           what = c("classification", "errors", "uncertainty"),
           quantiles = c(0.75, 0.95), symbols=NULL, colors=NULL, scale = FALSE, 
-          xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, \dots)
+          xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -109,12 +109,12 @@ coordProj(data, dimens=c(1,2), parameters=NULL, z=NULL,
     The default value is 1.
   }
   \item{PCH}{
-    An argument specifying the symbol to be used when a classificatiion
+    An argument specifying the symbol to be used when a classification
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title to
+    the plot identifying the dimensions used.
   }
   \item{\dots}{
     Other graphics parameters.
@@ -147,11 +147,11 @@ est <- meVVV(iris[,-5], unmap(iris[,5]))
 \dontrun{
 par(pty = "s", mfrow = c(1,1))
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
-          what = "classification", identify = TRUE) 
+          what = "classification", main = TRUE) 
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
-          truth = iris[,5], what = "errors", identify = TRUE) 
+          truth = iris[,5], what = "errors", main = TRUE) 
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
-          what = "uncertainty", identify = TRUE) 
+          what = "uncertainty", main = TRUE) 
 }
 }
 \keyword{cluster}

@@ -1,81 +1,181 @@
-.onLoad <- function(libname, pkgname) 
+Mclust <- function (data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = NULL, warn = mclust.options("warn"), ...) 
 {
-  library.dynam("mclust", pkgname, libname)
-}
-
-#############################################################################
-
-.mclust <- structure(list(
-  emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE", 
-                   "EEV", "VEV", "VVV"), 
-  hcModelNames = c("VVV", "EEE", "VII", "EII"),
-  hcUse = "VARS",
-  bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1, 15, 12, 7, 0, 17, 2),
-                             .Names = c("EII", "VII", "EEI", "EVI", "VEI",
-                                        "VVI", "EEE", "EEV", "VEV", "VVV", 
-                                        "E", "V")), 
-  bicPlotColors = structure(c("gray", "black", "orange", "brown", "red",
-                              "magenta", "forestgreen", "green", "cyan",
-                              "blue", "gray", "black"), 
-                            .Names = c("EII", "VII", "EEI", "VEI", "EVI",
-                                       "VVI", "EEE", "EEV", "VEV", "VVV", 
-                                       "E", "V")), 
-  #  classPlotSymbols = c(17, 0, 16, 4, 10, 18, 6, 7, 3, 11, 2, 12, 8, 15, 1, 9, 14, 13, 5), 
-  classPlotSymbols = c(16, 0, 17, 3, 15, 4, 1, 8, 2, 7, 
-                       5, 9, 6, 10, 11, 18, 12, 13, 14),
-  # classPlotColors = c("blue", "red", "green", "cyan", "magenta", "forestgreen", "purple", "orange", "gray", "brown", "black"), 
-  classPlotColors = c("dodgerblue2", "red3", "green3", "slateblue", 
-                      "darkorange", "skyblue1", "violetred4", "forestgreen",
-                      "steelblue4", "slategrey", "brown", "black",
-                      "darkseagreen", "darkgoldenrod3", "olivedrab",
-                      "royalblue", "tomato4", "cyan2", "springgreen2"),
-  warn = TRUE))
-#  .Names = c("emModelNames", "hcModelNames", "bicPlotSymbols", "bicPlotColors", "classPlotSymbols", "classPlotColors", "warn"))
-
-mclust.options <- function(...)
-{
-  current <- .mclust
-  if(nargs() == 0) return(current)
-  args <- list(...)
-  if(length(args) == 1 && is.null(names(args))) 
-  { arg <- args[[1]]
-    switch(mode(arg),
-           list = args <- arg,
-           character = return(.mclust[[arg]]),
-           stop("invalid argument: ", dQuote(arg)))
+  call <- match.call()
+  data <- data.matrix(data)
+  mc <- match.call(expand.dots = TRUE)
+  mc[[1]] <- as.name("mclustBIC")
+  mc[[2]] <- data
+  Bic <- eval(mc, parent.frame())
+  G <- attr(Bic, "G")
+  modelNames <- attr(Bic, "modelNames")
+  Sumry <- summary(Bic, data, G = G, modelNames = modelNames)
+  if(length(Sumry)==0) return()
+  if(!(length(G) == 1)) 
+    { bestG <- length(tabulate(Sumry$cl))
+      if(bestG == max(G) & warn) 
+        warning("optimal number of clusters occurs at max choice")
+      else if(bestG == min(G) & warn) 
+        warning("optimal number of clusters occurs at min choice")
   }
-  if(length(args) == 0) return(current)
-  n <- names(args)
-  if (is.null(n)) stop("options must be given by name")
-  changed <- current[n]
-  current[n] <- args
-  if(sys.parent() == 0) env <- asNamespace("mclust") else env <- parent.frame()
-  assign(".mclust", current, envir = env)
-  invisible(current)
+  attr(Bic, "n") <- attr(Bic, "warn") <- NULL
+  attr(Bic, "initialization") <- NULL
+  attr(Bic, "d") <- attr(Bic, "returnCodes") <- NULL 
+  oldClass(Sumry) <- NULL
+  
+  Sumry$bic <- Sumry$bic[1]
+  Sumry$hypvol <- if(is.null(attr(Bic, "Vinv"))) 
+                    as.double(NA) else 1/attr(Bic, "Vinv")
+  # df <- (2*Sumry$loglik - Sumry$bic)/log(Sumry$n)
+  df <- if(is.null(Sumry$modelName)) NULL 
+        else with(Sumry, nMclustParams(modelName, d, G, 
+                                       noise = (!is.na(hypvol)),
+                                       equalPro = attr(Sumry, "control")$equalPro))
+  ans <- c(list(call = call, data = data, BIC = Bic, df = df), Sumry)
+  orderedNames <- c("call", "data", "modelName", 
+                    "n", "d", "G", 
+                    "BIC", "bic", "loglik", "df", 
+                    "hypvol", "parameters", "z", 
+                    "classification", "uncertainty")
+  structure(ans[orderedNames], class = "Mclust")  
+}
+
+print.Mclust <- function(x, digits = getOption("digits"), ...)
+{
+  cat("\'", class(x)[1], "\' model object:\n", sep = "")
+  G <- x$G
+  if(G == 0 & !is.null(attr(x$BIC, "Vinv")))
+  { cat(" best model: single noise component\n")
+    return(invisible()) }
+  M <- mclustModelNames(x$modelName)$type
+  cat(" best model: ", M, " (", x$model, ") with ", G, " components\n", sep = "")
+  invisible()
+}
+
+summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, ...)
+{
+  # collect info
+  G  <- object$G
+  noise <- if(is.na(object$hypvol)) FALSE else object$hypvol
+  pro <- object$parameters$pro
+  if(is.null(pro)) pro <- 1
+  names(pro) <- if(noise) c(seq_len(G),0) else seq(G)
+  mean <- object$parameters$mean
+  if(object$d > 1)
+    { sigma <- object$parameters$variance$sigma }
+  else
+    { sigma <- rep(object$parameters$variance$sigmasq, object$G)[1:object$G]
+      names(sigma) <- names(mean) }
+  if(is.null(object$density))
+    title <- paste("Gaussian finite mixture model fitted by EM algorithm")
+  else
+    title <- paste("Density estimation via Gaussian finite mixture modeling")
+  #
+  obj <- list(title = title, n = object$n, d = object$d, 
+              G = G, modelName = object$modelName, 
+              loglik = object$loglik, df = object$df, 
+              bic = object$bic, icl = icl(object),
+              pro = pro, mean = mean, variance = sigma,
+              noise = noise,
+              prior = attr(object$BIC, "prior"), 
+              classification = object$classification, 
+              printParameters = parameters, 
+              printClassification = classification)
+  class(obj) <- "summary.Mclust"
+  return(obj)
+}
+
+print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
+{
+  cat(rep("-", nchar(x$title)),"\n",sep="")
+  cat(x$title, "\n")
+  cat(rep("-", nchar(x$title)),"\n",sep="")
+  #
+  if(is.null(x$modelName))
+    { cat("\nMclust model with only a noise component") }
+  else
+    { cat("\nMclust ", x$modelName, " (", 
+          mclustModelNames(x$modelName)$type, ") model with ", 
+          x$G, ifelse(x$G > 1, " components", " component"),
+          if(x$noise) "\nand a noise term", ":\n\n",
+          sep = "") 
+    }
+  #
+  if(!is.null(x$prior))
+    { cat("Prior: ")
+      cat(x$prior$functionName, "(", 
+          paste(names(x$prior[-1]), x$prior[-1], sep = " = ", 
+                collapse = ", "), ")", sep = "")
+      cat("\n\n")
+  }
+  #
+  tab <- data.frame("log-likelihood" = x$loglik, "n" = x$n, 
+                    "df" = x$df, "BIC" = x$bic, "ICL" = x$icl, 
+                    row.names = "")
+  print(tab, digits = digits)
+  #
+  cat("\nClustering table:")
+  print(table(x$classification), digits = digits)
+  #
+  if(x$printParameters)
+  { cat("\nMixing probabilities:\n")
+    print(x$pro, digits = digits)
+    cat("\nMeans:\n")
+    print(x$mean, digits = digits)
+    cat("\nVariances:\n")
+    if(x$d > 1) 
+      { for(g in 1:x$G)
+           { cat("[,,", g, "]\n", sep = "")
+             print(x$variance[,,g], digits = digits) }
+      }
+    else print(x$variance, digits = digits)
+    if(x$noise)
+      { cat("\nHypervolume of noise component:\n")
+        print(x$noise, digits = digits) }
+  }
+  if(x$printClassification)
+  { cat("\nClassification:\n")
+    print(x$classification, digits = digits)
+  }
+  #
+  invisible(x)
+}
+
+# old version, wrong df, data not needed, inefficient because compute dens on original scale
+# logLik.Mclust <- function(object, data, ...)
+# {
+#   if(!missing(data))
+#     object$data <- data.matrix(data)
+#   par <- object$parameters
+#   df <- with(object, (G-1) + G*d + nVarParams(modelName, d = d, G = G))
+# 
+#   #  l <- matrix(as.double(NA), object$n, object$G)
+#   #  for(k in seq(object$G))
+#   #     { l[,k] <- par$pro[k] * dmvnorm(data, par$mean[,k],
+#   #                                           par$variance$sigma[,,k]) }
+#   #  l <- sum(log(rowSums(l)))
+#   
+#   l <- sum(log(do.call("dens", object)))
+#   attr(l, "nobs") <- object$n
+#   attr(l, "df") <- df
+#   class(l) <- "logLik"
+#   return(l)
+# }
+
+logLik.Mclust <- function(object, ...)
+{
+  par <- object$parameters
+  # df <- with(object, (G-1) + G*d + nVarParams(modelName, d = d, G = G))
+  df <- with(object, nMclustParams(modelName, d, G, 
+                                   noise = (!is.na(hypvol)), 
+                                   equalPro = attr(BIC, "control")$equalPro))
+  l <- sum(do.call("dens", c(object, logarithm = TRUE)))
+  attr(l, "nobs") <- object$n
+  attr(l, "df") <- df
+  class(l) <- "logLik"
+  return(l)
 }
 
 #############################################################################
-
-# This old version is inefficient for large vectors
-# adjustedRandIndex <- function(x, y)
-# {
-#   x <- as.vector(x)
-#   y <- as.vector(y)
-#   xx <- outer(x, x, "==")
-#   yy <- outer(y, y, "==")
-#   upper <- row(xx) < col(xx)
-#   xx <- xx[upper]
-#   yy <- yy[upper]
-#   a <- sum(as.numeric(xx & yy))
-#   b <- sum(as.numeric(xx & !yy))
-#   c <- sum(as.numeric(!xx & yy))
-#   d <- sum(as.numeric(!xx & !yy))
-#   ni <- (b + a)
-#   nj <- (c + a)
-#   abcd <- a + b + c + d
-#   q <- (ni * nj)/abcd
-#   (a - q)/((ni + nj)/2 - q)
-# }
 
 adjustedRandIndex <- function (x, y) 
 {
@@ -92,34 +192,6 @@ adjustedRandIndex <- function (x, y)
   ARI <- (a - (a + b) * (a + c)/(a + b + c + d)) /
     ((a + b + a + c)/2 - (a + b) * (a + c)/(a + b + c + d))
   return(ARI)
-}
-
-bicEMtrain <- function(data, labels, modelNames=NULL) 
-{
-  z <- unmap(as.numeric(labels))
-  G <- ncol(z)
-  dimData <- dim(data)
-  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 
-    1
-  if (oneD || length(dimData) != 2) {
-    if (is.null(modelNames)) 
-      modelNames <- c("E", "V")
-    if (any(!match(modelNames, c("E", "V"), nomatch = 0))) 
-      stop("modelNames E or V for one-dimensional data")
-  }
-  else {
-    if (is.null(modelNames)) 
-      modelNames <- .mclust$emModelNames
-  }
-  BIC <- rep(NA, length(modelNames))
-  names(BIC) <- modelNames
-  for (m in modelNames) {
-    mStep <- mstep(modelName = m, data = data, z = z, warn = FALSE)
-    eStep <- do.call("estep", c(mStep, list(data=data, warn=FALSE)))
-    if (is.null(attr(eStep, "warn"))) 
-      BIC[m] <- do.call("bic", eStep)
-  }
-  BIC
 }
 
 classError <- function(classification, truth)
@@ -186,59 +258,6 @@ classError <- function(classification, truth)
   list(misclassified = bad, errorRate = length(bad)/length(truth))
 }
 
-cv1EMtrain <- function(data, labels, modelNames=NULL) 
-{
-  z <- unmap(as.numeric(labels))
-  G <- ncol(z)
-  dimDataset <- dim(data)
-  oneD <- is.null(dimDataset) || length(dimDataset[dimDataset > 1]) == 
-    1
-  if (oneD || length(dimDataset) != 2) {
-    if (is.null(modelNames)) 
-      modelNames <- c("E", "V")
-    if (any(!match(modelNames, c("E", "V"), nomatch = 0))) 
-      stop("modelNames E or V for one-dimensional data")
-    n <- length(data)
-    cv <- matrix(1, nrow = n, ncol = length(modelNames))
-    dimnames(cv) <- list(NULL, modelNames)
-    for (m in modelNames) {
-      for (i in 1:n) {
-        mStep <- mstep(modelName = m, data = data[-i], 
-                       z = z[-i,], warn = FALSE)
-        eStep <- do.call("estep", c(mStep, list(data = data[i], 
-                                                warn = FALSE)))
-        if (is.null(attr(eStep, "warn"))) {
-          k <- (1:G)[eStep$z == max(eStep$z)]
-          l <- (1:G)[z[i,] == max(z[i,])]
-          cv[i, m] <- as.numeric(!any(k == l))
-        }
-      }
-    }
-  }
-  else {
-    if (is.null(modelNames)) 
-      modelNames <- .mclust$emModelNames
-    n <- nrow(data)
-    cv <- matrix(1, nrow = n, ncol = length(modelNames))
-    dimnames(cv) <- list(NULL, modelNames)
-    for (m in modelNames) {
-      for (i in 1:n) {
-        mStep <- mstep(modelName = m, data = data[-i,],
-                       z = z[-i,], warn = FALSE)
-        eStep <- do.call("estep", c(mStep, list(data = data[i, 
-                                                            , drop = FALSE], warn = FALSE)))
-        if (is.null(attr(eStep, "warn"))) {
-          k <- (1:G)[eStep$z == max(eStep$z)]
-          l <- (1:G)[z[i,] == max(z[i,])]
-          cv[i, m] <- as.numeric(!any(k == l))
-        }
-      }
-    }
-  }
-  errorRate <- apply(cv, 2, sum)
-  errorRate/n
-}
-
 EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL), Vinv = NULL, warn = FALSE, x = NULL, ...)
 {
   if (!is.null(x)) {
@@ -271,10 +290,12 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
         modelNames <- c("E", "V")
       }
       else {
-        modelNames <- .mclust$emModelNames
-        if (n <= d) {
-          m <- match(c("EEE","EEV","VEV","VVV"),.mclust$emModelNames,nomatch=0)
-          modelNames <- modelNames[-m]
+        modelNames <- mclust.options("emModelNames")
+        if (n <= d) {          
+          # select only spherical and diagonal models
+          m <- match(modelNames, c("EII", "VII", "EEI", "VEI", "EVI", "VVI"),
+                     nomatch = 0)
+          modelNames <- modelNames[m]
         }
       }
     }
@@ -398,18 +419,18 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
-                          data = data[initialization$subset,  ])
+            hcPairs <- hc(data = data[initialization$subset,  ],
+                          modelName = mclust.options("hcModelNames")[1])
           }
           else {
-            hcPairs <- hc(modelName = "EII", 
-                          data = data[initialization$subset,  ])
+            hcPairs <- hc(data = data[initialization$subset,],
+                          modelName = "EII")
           }
         }
         else {
           hcPairs <- NULL
-          #    hcPairs <- hc(modelName = "E", 
-          #                  data = data[initialization$subset])
+          #    hcPairs <- hc(data = data[initialization$subset],
+          #                  modelName = "E")
         }
       }
       else hcPairs <- initialization$hcPairs
@@ -471,15 +492,16 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
     if (is.null(initialization$hcPairs)) {
       if (d != 1) {
         if (n > d) {
-          hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], data = data[!noise,])
+          hcPairs <- hc(data = data[!noise,],
+                        modelName = mclust.options("hcModelNames")[1])
         }
         else {
-          hcPairs <- hc(modelName = "EII", data = data[!noise,])
+          hcPairs <- hc(data = data[!noise,], modelName = "EII")
         }
       }
       else {
         hcPairs <- NULL 
-        #    hcPairs <- hc(modelName = "E", data = data[!noise])
+        #    hcPairs <- hc(data = data[!noise], modelName = "E")
       }
     }
     else hcPairs <- initialization$hcPairs
@@ -516,75 +538,80 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
             returnCodes = RET, class = "mclustBIC")
 }
 
-# EMclust <- function(...) .Defunct("mclustBIC", package = "mclust")
+# EMclust <- function(...) .Defunct("mclustBIC", PACKAGE = "mclust")
 
 mclustBIC <- function(data, G = NULL, modelNames = NULL, 
                       prior = NULL, control = emControl(), 
                       initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),  
-                      Vinv = NULL, warn = FALSE, x = NULL, ...)
+                      Vinv = NULL, warn = mclust.options("warn"), 
+                      x = NULL, ...)
 {
   if(!is.null(x)) 
-  { if(!missing(prior) || !missing(control) || 
-       !missing(initialization) || !missing(Vinv))
-      stop("only G and modelNames may be specified as arguments when x is supplied")
-    prior <- attr(x,"prior") 
-    control <- attr(x,"control")
-    initialization <- attr(x,"initialization")
-    Vinv <- attr(x,"Vinv")
-    warn <- attr(x,"warn")
+    { if(!missing(prior) || !missing(control) || 
+         !missing(initialization) || !missing(Vinv))
+         stop("only G and modelNames may be specified as arguments when x is supplied")
+      prior <- attr(x,"prior") 
+      control <- attr(x,"control")
+      initialization <- attr(x,"initialization")
+      Vinv <- attr(x,"Vinv")
+      warn <- attr(x,"warn")
   }
   dimData <- dim(data)
-  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  oneD <- (is.null(dimData) || length(dimData[dimData > 1]) == 1)
   if(!oneD && length(dimData) != 2)
     stop("data must be a vector or a matrix")
-  if(oneD) {
-    data <- drop(as.matrix(data))
-    n <- length(data)
-    d <- 1
+  if(oneD) 
+    { data <- drop(as.matrix(data))
+      n <- length(data)
+      d <- 1
   }
   else {
-    data <- as.matrix(data)
-    n <- nrow(data)
-    d <- ncol(data)
+      data <- as.matrix(data)
+      n <- nrow(data)
+      d <- ncol(data)
   }
-  if (is.null(x)) {
-    if (is.null(modelNames)) {
-      if (d == 1) {
-        modelNames <- c("E", "V")
-      }
-      else {
-        modelNames <- .mclust$emModelNames
-        if (n <= d) {
-          m <- match(c("EEE","EEV","VEV","VVV"),.mclust$emModelNames,nomatch=0)
-          modelNames <- modelNames[-m]
+  if(is.null(x)) 
+    { if(is.null(modelNames)) 
+        { if(d == 1) 
+            { modelNames <- c("E", "V") }
+          else {
+              modelNames <- mclust.options("emModelNames")
+              if(n <= d) 
+                { # select only spherical and diagonal models
+                  m <- match(modelNames, c("EII", "VII", "EEI", 
+                                           "VEI", "EVI", "VVI"),
+                             nomatch = 0)
+                  modelNames <- modelNames[m]
+                }
+          }
+    }
+    if(!is.null(prior))
+      { # remove models not available with prior
+        modelNames <- setdiff(modelNames, c("EVE","VEE","VVE","EVV"))
+    }
+    if(is.null(G)) 
+      { G <- if (is.null(initialization$noise)) 1:9 else 0:9 }
+    else {
+        G <- sort(as.integer(unique(G)))
+    }
+    if(is.null(initialization$noise)) 
+      { if (any(G > n)) G <- G[G <= n] }
+    else {
+        noise <- initialization$noise
+        if(!is.logical(noise)) 
+          { if(any(match(noise, 1:n, nomatch = 0) == 0))
+               stop("numeric noise must correspond to row indexes of data")
+            noise <- as.logical(match(1:n, noise, nomatch = 0))
         }
-      }
+        initialization$noise <- noise
+        nnoise <- sum(as.numeric(noise))
+        if(any(G > (n-nnoise))) G <- G[G <= n-nnoise]
     }
-    if (is.null(G)) {
-      G <- if (is.null(initialization$noise)) 1:9 else 0:9
-    }
-    else {
-      G <- sort(as.integer(unique(G)))
-    }
-    if (is.null(initialization$noise)) {
-      if (any(G > n)) G <- G[G <= n]
-    }
-    else {
-      noise <- initialization$noise
-      if (!is.logical(noise)) {
-        if (any(match(noise, 1:n, nomatch = 0) == 0))
-          stop("numeric noise must correspond to row indexes of data")
-        noise <- as.logical(match(1:n, noise, nomatch = 0))
-      }
-      initialization$noise <- noise
-      nnoise <- sum(as.numeric(noise))
-      if (any(G > (n-nnoise))) G <- G[G <= n-nnoise]
-    }
-    if (!is.null(initialization$subset)) {
-      subset <- initialization$subset
-      if (is.logical(subset)) subset <- which(subset)
-      n <- length(subset)
-      if (any(G > n)) G <- G[G <= n]
+    if(!is.null(initialization$subset)) 
+      { subset <- initialization$subset
+        if(is.logical(subset)) subset <- which(subset)
+        n <- length(subset)
+        if(any(G > n)) G <- G[G <= n]
     }
     Gall <- G
     Mall <- modelNames
@@ -606,31 +633,32 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
     Gall <- sort(as.numeric(unique(c(as.character(G), Glabels))))
     Mall <- unique(c(modelNames, Mlabels))
   }
-  if (any(as.logical(as.numeric(G))) < 0) {
-    if (is.null(initialization$noise)) {
-      stop("G must be positive")
-    }
+  
+  if(any(as.logical(as.numeric(G))) < 0) 
+    { if(is.null(initialization$noise)) 
+        { stop("G must be positive") }
     else {
-      stop("G must be nonnegative")
+          stop("G must be nonnegative")
     }
   }
-  if (d == 1 && any(nchar(modelNames) > 1)) {
-    Emodel <- any(sapply(modelNames, function(x)
-      charmatch("E", x, nomatch = 0)[1]) == 1)
-    Vmodel <- any(sapply(modelNames, function(x)
-      charmatch("V", x, nomatch = 0)[1]) == 1)
-    modelNames <- c("E", "V")[c(Emodel, Vmodel)]
+  
+  if(d == 1 && any(nchar(modelNames) > 1)) 
+    { Emodel <- any(sapply(modelNames, function(x)
+                    charmatch("E", x, nomatch = 0)[1]) == 1)
+      Vmodel <- any(sapply(modelNames, function(x)
+                    charmatch("V", x, nomatch = 0)[1]) == 1)
+      modelNames <- c("E", "V")[c(Emodel, Vmodel)]
   }
   l <- length(Gall)
   m <- length(Mall)
   EMPTY <- -.Machine$double.xmax
   BIC <- RET <- matrix(EMPTY, nrow = l, ncol = m, 
                        dimnames = list(as.character(Gall), as.character(Mall)))
-  if (!is.null(x)) {
-    BIC[dimnames(x)[[1]],dimnames(x)[[2]]] <- x
-    RET[dimnames(x)[[1]],dimnames(x)[[2]]] <- attr(x, "returnCodes")
-    BIC <- BIC[as.character(G),modelNames,drop=FALSE]
-    RET <- RET[as.character(G),modelNames,drop=FALSE]
+  if(!is.null(x)) 
+    { BIC[dimnames(x)[[1]],dimnames(x)[[2]]] <- x
+      RET[dimnames(x)[[1]],dimnames(x)[[2]]] <- attr(x, "returnCodes")
+      BIC <- BIC[as.character(G),modelNames,drop=FALSE]
+      RET <- RET[as.character(G),modelNames,drop=FALSE]
   }
   G <- as.numeric(G)
   Glabels <- as.character(G)
@@ -660,15 +688,16 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       if (is.null(initialization$hcPairs)) { 
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], data = data)
+            hcPairs <- hc(data = data, 
+                          modelName = mclust.options("hcModelNames")[1])
           }
           else {
-            hcPairs <- hc(modelName = "EII", data = data)
+            hcPairs <- hc(data = data, modelName = "EII")
           } 
         }
         else {
           hcPairs <- NULL 
-          #   hcPairs <- hc(modelName = "E", data = data)
+          #   hcPairs <- hc(data = data, modelName = "E")
         }
       }
       else hcPairs <- initialization$hcPairs
@@ -681,12 +710,12 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
           cl <- qclass( data, as.numeric(g))
         }
         z <- unmap(cl, groups = 1:max(cl))
-        if (any(apply( z, 2, max) == 0)) {
-          #  missing groups
-          warning("there are missing groups")    
-          small <- sqrt(.Machine$double.neg.eps)
-          z[z < small] <- small
-          z <-  t(apply( z, 1, function(x) x/sum(x)))
+        if(any(apply( z, 2, max) == 0) & warn) 
+          { #  missing groups
+            warning("there are missing groups")    
+            small <- sqrt(.Machine$double.neg.eps)
+            z[z < small] <- small
+            z <-  t(apply( z, 1, function(x) x/sum(x)))
         }
         for (modelName in modelNames[BIC[g,] == EMPTY]) {
           out <- me(modelName = modelName, data = data, z = z, 
@@ -732,12 +761,12 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
           cl <- qclass(data[subset], as.numeric(g))
         }
         z <- unmap(cl, groups = 1:max(cl))
-        if (any(apply( z, 2, max) == 0)) {
-          #  missing groups
-          warning("there are missing groups")         
-          small <- sqrt(.Machine$double.neg.eps)
-          z[z < small] <- small
-          z <-  t(apply( z, 1, function(x) x/sum(x)))
+        if(any(apply( z, 2, max) == 0) & warn) 
+          { #  missing groups
+            warning("there are missing groups")         
+            small <- sqrt(.Machine$double.neg.eps)
+            z[z < small] <- small
+            z <-  t(apply( z, 1, function(x) x/sum(x)))
         }
         for (modelName in modelNames[!is.na(BIC[g,])]) {
           ms <- mstep(modelName = modelName, z = z, 
@@ -811,11 +840,11 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         cl <- qclass(data[!noise], k = k)
       }
       z[!noise,1:k] <- unmap(cl, groups = 1:max(cl))
-      if (any(apply( z[!noise,1:k,drop=FALSE], 2, max) == 0)) {
-        #           missing groups
-        warning("there are missing groups")         
-        z[!noise,1:k] <- max( z[!noise,1:k], sqrt(.Machine$double.neg.eps))
-        z[!noise,1:k] <- apply( z[!noise,1:k,drop=FALSE], 1, function(z) z/sum(z))
+      if(any(apply( z[!noise,1:k,drop=FALSE], 2, max) == 0) & warn) 
+        { #           missing groups
+          warning("there are missing groups")         
+          z[!noise,1:k] <- max( z[!noise,1:k], sqrt(.Machine$double.neg.eps))
+          z[!noise,1:k] <- apply( z[!noise,1:k,drop=FALSE], 1, function(z) z/sum(z))
       }
       z[noise, k+1] <- 1
       K <- 1:(k+1) 
@@ -840,7 +869,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
                                   subset = initialization$subset,
                                   noise = initialization$noise), 
             Vinv = Vinv, warn = warn, n = n, d = d, oneD = oneD,
-            returnCodes = RET, class = "mclustBIC")
+            criterion = "BIC", returnCodes = RET, 
+            class = "mclustBIC")
 }
 
 mclustModel <- function(data, BICvalues, G=NULL, modelNames=NULL, ...)
@@ -867,45 +897,6 @@ mclustModel <- function(data, BICvalues, G=NULL, modelNames=NULL, ...)
   ans
 }
 
-Mclust <- function (data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = NULL, warn = FALSE, ...) 
-{
-  call <- match.call()
-  data <- data.matrix(data)
-  mc <- match.call(expand.dots = FALSE)
-  mc[[1]] <- as.name("mclustBIC")
-  mc[[2]] <- data
-  Bic <- eval(mc, parent.frame())
-  G <- attr(Bic, "G")
-  modelNames <- attr(Bic, "modelNames")
-  Sumry <- summary(Bic, data, G = G, modelNames = modelNames)
-  if (!(length(G) == 1)) {
-    bestG <- length(tabulate(Sumry$cl))
-    if (bestG == max(G)) 
-      warning("optimal number of clusters occurs at max choice")
-    else if (bestG == min(G)) 
-      warning("optimal number of clusters occurs at min choice")
-  }
-  attr(Bic, "n") <- attr(Bic, "warn") <- NULL
-  attr(Bic, "initialization") <- attr(Bic, "control") <- NULL
-  attr(Bic, "d") <- attr(Bic, "returnCodes") <- attr(Bic, "class") <- NULL
-  oldClass(Sumry) <- NULL
-  
-  Sumry$bic <- Sumry$bic[1]
-  Sumry$hypvol <- if(is.null(attr(Bic, "Vinv"))) as.double(NA) 
-                  else 1/attr(Bic, "Vinv")
-  df <- (2*Sumry$loglik - Sumry$bic)/log(Sumry$n)
-  ans <- c(list(call = call, data = data, BIC = Bic, df = df), Sumry)
-  orderedNames <- c("call", "data", "modelName", 
-                    "n", "d", "G", 
-                    "BIC", "bic", "loglik", "df", 
-                    "hypvol", "parameters", "z", 
-                    "classification", "uncertainty")
-#   structure(if(Sumry$G > 1) ans[c(orderedNames,"z")] 
-#             else            ans[orderedNames],
-#             class = "Mclust")
-  structure(ans[orderedNames], class = "Mclust")  
-}
-
 predict.Mclust <- function(object, newdata, ...)
 {
   if(!inherits(object, "Mclust")) 
@@ -926,12 +917,15 @@ predict.Mclust <- function(object, newdata, ...)
 
 pickBIC <- function(x, k = 3)
 {
+  if(!is.matrix(x))
+    { warning("sorry, the pickBIC function cannot be applied to the provided argument!")
+    return() }
   Glabels <- dimnames(x)[[1]]
   modelNames <- dimnames(x)[[2]]
   mis <- is.na(x)
-  if (all(mis)) {
-    warning("none of the selected models could be fitted")
-    return(rep(NA,k))
+  if(all(mis)) 
+    { warning("none of the selected models could be fitted")
+      return(rep(NA,k))
   }
   x[mis] <-  - .Machine$double.xmax
   x <- data.frame(as.vector(x), Glabels[as.vector(row(x))], 
@@ -962,7 +956,7 @@ print.mclustBIC <- function(x, pick = 3, ...)
   d <- attr(x, "d")
   attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
   
-  cat("\nBIC:\n")
+  cat("Bayesian Information Criterion (BIC):\n")
   NextMethod("print")
   cat("\n")
   cat("Top", pick, "models based on the BIC criterion:\n")
@@ -973,261 +967,57 @@ print.mclustBIC <- function(x, pick = 3, ...)
 mclustModelNames <- function(model)
 {
   type <- switch(EXPR = as.character(model),
-                 E = "univariate, equal variance",
-                 V = "univariate, unequal variance",
-                 EII = "spherical, equal volume",
-                 VII = "spherical, varying volume",
-                 EEI = "diagonal, equal volume and shape",
-                 VEI = "diagonal, equal shape",
-                 EVI = "diagonal, equal volume, varying shape",
-                 VVI = "diagonal, varying volume and shape",
-                 EEE = "elliposidal, equal volume, shape and orientation",
-                 VEE = "elliposidal, equal shape and orientation",
-                 EVE = "elliposidal, equal volume and orientation",
-                 VVE = "ellipsoidal, equal orientation",
-                 EEV = "ellipsoidal, equal volume and shape",
-                 VEV = "ellipsoidal, equal shape",
-                 EVV = "elliposidal, equal volume",
-                 VVV = "ellipsoidal, varying volume, shape, and orientation",
-                 X   = "univariate normal",
-                 XII = "spherical multivariate normal",
-                 XXI = "diagonal multivariate normal",
-                 XXX = "elliposidal multivariate normal",
+                 "E" = "univariate, equal variance",
+                 "V" = "univariate, unequal variance",
+                 "EII" = "spherical, equal volume",
+                 "VII" = "spherical, varying volume",
+                 "EEI" = "diagonal, equal volume and shape",
+                 "VEI" = "diagonal, equal shape",
+                 "EVI" = "diagonal, equal volume, varying shape",
+                 "VVI" = "diagonal, varying volume and shape",
+                 "EEE" = "ellipsoidal, equal volume, shape and orientation",
+                 "EVE" = "ellipsoidal, equal volume and orientation",
+                 "VEE" = "ellipsoidal, equal shape and orientation",
+                 "VVE" = "ellipsoidal, equal orientation",
+                 "EEV" = "ellipsoidal, equal volume and shape",
+                 "VEV" = "ellipsoidal, equal shape",
+                 "EVV" = "ellipsoidal, equal volume",
+                 "VVV" = "ellipsoidal, varying volume, shape, and orientation",
+                 "X"   = "univariate normal",
+                 "XII" = "spherical multivariate normal",
+                 "XXI" = "diagonal multivariate normal",
+                 "XXX" = "ellipsoidal multivariate normal",
                  warning("invalid model"))
   return(list(model = model, type = type))
 }
 
-print.Mclust <- function(x, digits = getOption("digits"), ...)
-{
-  cat("\'", class(x)[1], "\' model object:\n", sep = "")
-  G <- x$G
-  if(G == 0 & !is.null(attr(x$BIC, "Vinv")))
-  { cat(" best model: single noise component\n")
-    return(invisible()) }
-  M <- mclustModelNames(x$modelName)$type
-  cat(" best model: ", M, " (", x$model, ") with ", G, " components\n", sep = "")
-  invisible()
-}
-
-summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, ...)
-{
-  # collect info
-  G  <- object$G
-  noise <- if(is.na(object$hypvol)) FALSE else object$hypvol
-  pro <- object$parameters$pro
-  if(is.null(pro)) pro <- 1
-  names(pro) <- seq(ifelse(noise,0,1),G)
-  mean <- object$parameters$mean
-  if(object$d > 1)
-  { sigma <- object$parameters$variance$sigma }
-  else
-  { sigma <- rep(object$parameters$variance$sigmasq, object$G)[1:object$G]
-    names(sigma) <- names(mean) }
-  if(is.null(object$density))
-    title <- paste("Gaussian finite mixture model fitted by EM algorithm")
-  else
-    title <- paste("Density estimation via Gaussian finite mixture modeling")
-  #
-  obj <- list(title = title, n = object$n, d = object$d, 
-              G = G, modelName = object$modelName, 
-              loglik = object$loglik, df = object$df, 
-              bic = object$bic, icl = icl(object),
-              pro = pro, mean = mean, variance = sigma,
-              noise = noise,
-              prior = attr(object$BIC, "prior"), 
-              classification = object$classification, 
-              printParameters = parameters, 
-              printClassification = classification)
-  class(obj) <- "summary.Mclust"
-  return(obj)
-}
-
-print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
-{
-  cat(rep("-", nchar(x$title)),"\n",sep="")
-  cat(x$title, "\n")
-  cat(rep("-", nchar(x$title)),"\n",sep="")
-  #
-  if(!is.null(x$prior))
-  { cat("\nPrior: ")
-    cat(x$prior$functionName, "(", 
-        paste(names(x$prior[-1]), x$prior[-1], sep = " = ", 
-              collapse = ", "), ")", sep = "")
-    cat("\n")
-  }
-  #
-  if(is.null(x$modelName))
-  { cat("\nMclust model with only a noise component") }
-  else
-  { cat("\nMclust ", x$modelName, " (", mclustModelNames(x$modelName)$type, 
-        ") model with ", x$G, ifelse(x$G > 1, " components", " component"),
-        sep="")
-    if(x$noise) cat(" and a noise term") }
-  cat(":\n\n")
-  
-  tab <- data.frame("log-likelihood" = x$loglik, "n" = x$n, 
-                    "df" = x$df, "BIC" = x$bic, "ICL" = x$icl, 
-                    row.names = "")
-  print(tab, digits = digits)
-  #
-  cat("\nClustering table:")
-  print(table(x$classification), digits = digits)
-  #
-  if(x$printParameters)
-  { cat("\nMixing probabilities:\n")
-    print(x$pro, digits = digits)
-    cat("\nMeans:\n")
-    print(x$mean, digits = digits)
-    cat("\nVariances:\n")
-    if(x$d > 1) 
-    { for(g in 1:x$G)
-    { cat("[,,", g, "]\n", sep = "")
-      print(x$variance[,,g], digits = digits) }
-    }
-    else print(x$variance, digits = digits)
-    if(x$noise)
-    { cat("\nHypervolume of noise component:\n")
-      print(x$noise, digits = digits)
-    }
-  }
-  if(x$printClassification)
-  { cat("\nClassification:\n")
-    print(x$classification, digits = digits)
-  }
-  #
-  invisible(x)
-}
-
-print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
-{
-  cat("\nclassification table:")
-  print(table(x$classification), ...)
-  #----------------------------------------------------------------------
-  #  cat("\nuncertainty (quartiles):\n")
-  #  print(quantile(x$uncertainty), digits = digits, ...)
-  #----------------------------------------------------------------------
-  bic <- attr(x,"bestBICvalues")
-  l <- length(bic)
-  if(l == 1) {
-    cat("\nBIC value:\n")
-    print(round(bic, digits))
-  }
-  else {
-    cat("\nbest BIC values:\n")
-    print(round(bic, digits))
-  }
-  if(is.null(x$model)) {
-    M <- "noise"
-  }
-  else {
-    M <- mclustModelNames(x$model)$type
-  }
-  ##  cat("\nbest model:", M, "\n\n")
-  ##
-  ##  print(x$options)
-  invisible()
-}
-
-summaryMclustBICn <- function(object, data, G=NULL, modelNames=NULL, ...)
-{
-  dimData <- dim(data)
-  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
-  if(!oneD && length(dimData) != 2)
-    stop("data must be a vector or a matrix")
-  if(oneD) {
-    data <- drop(as.matrix(data))
-    n <- length(data)
-    d <- 1
-  }
-  else {
-    data <- as.matrix(data)
-    n <- nrow(data)
-    d <- ncol(data)
-  }
-  initialization <- attr(object, "initialization")
-  hcPairs <- initialization$hcPairs
-  noise <- initialization$noise
-  if(!is.logical(noise))
-    noise <- as.logical(match(1:n, noise, nomatch = 0))
-  prior <- attr(object, "prior")
-  control <- attr(object, "control")
-  warn <- attr(object, "warn")
-  Vinv <- attr(object, "Vinv")
-  oldClass(object) <- NULL
-  attr(object, "control") <- attr(object, "initialization") <- NULL
-  attr(object, "prior") <- attr(object, "Vinv") <- NULL
-  attr(object, "warn") <- NULL
-  ##
-  if (is.null(G)) G <- dimnames(object)[[1]]
-  if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
-  bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
-  if(all(is.na(bestBICs))) 
-    { return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
-                       control = control, initialization = initialization, 
-                       class = "summary.mclustBIC"))
-  }
-  temp <- unlist(strsplit(names(bestBICs)[1], ","))
-  bestModel <- temp[1] 
-  G <- as.numeric(temp[2])
-  if(G == 0) 
-    { ans <- list(bic = bestBICs, 
-                  z = unmap(rep(0,n)),
-                  classification = rep(0, n), 
-                  uncertainty = rep(0, n), 
-                  n = n, d = ncol(data), 
-                  G = 0, loglik = n * logb(Vinv), 
-                  Vinv = Vinv)
-      orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
-                        "z", "classification", "uncertainty")
-     return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
-                      prior = prior, control = control, 
-                      initialization = initialization, 
-                      class = "summary.mclustBIC"))
-  }
-  G1 <- G + 1
-  z <- matrix(0, n, G1)
-  if(d > 1 || !is.null(hcPairs))
-    { z[!noise, 1:G] <- unmap(hclass(hcPairs, G)) }
-  else 
-    { z[!noise, 1:G] <- unmap(qclass(data[!noise], G)) }
-  z[noise, G1] <- 1
-  out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
-            control = control, warn = warn, Vinv = Vinv)
-  obsNames <- if(is.null(dim(data))) 
-                names(data) else dimnames(data)[[1]]
-  classification <- map(out$z)
-  classification[classification == G1] <- 0
-  uncertainty <- 1 - apply(out$z, 1, max)
-  names(classification) <- names(uncertainty) <- obsNames
-  ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
-                uncertainty = uncertainty, Vinv = Vinv), out)
-  orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "parameters", 
-                    "Vinv", "z", "classification", "uncertainty")
-  structure(ans[orderedNames], 
-            bestBICvalues = bestBICs, 
-            prior = prior, control = control, 
-            initialization = initialization, 
-            class = "summary.mclustBIC")
-}
-
-summary.mclustBIC <- function(object, dataset, G, modelNames, ...)
+summary.mclustBIC <- function(object, data, G, modelNames, ...)
 {
   mc <- match.call(expand.dots = FALSE)
-  if (is.null(attr(object,"initialization")$noise)) {
-    mc[[1]] <- as.name("summaryMclustBIC")
-  }
-  else {
-    mc[[1]] <- as.name("summaryMclustBICn")
-  }
-  ans <- eval(mc, parent.frame())
-  Glabels <- dimnames(object)[[1]]
-  if (length(Glabels) != 1 && (!missing(G) && length(G) > 1)) {
-    Grange <- range(as.numeric(Glabels))
-    if (match(ans$G, Grange, nomatch = 0))
-      warning("best model occurs at the min or max # of components considered")
+  if(missing(data)) 
+    { if(!missing(G)) 
+        object <- object[rownames(object) %in% G,,drop=FALSE]
+      if(!missing(modelNames)) 
+        object <- object[,colnames(object) %in% modelNames,drop=FALSE]
+      ans <- pickBIC(object, ...)
+      class(ans) <- "summary.mclustBIC" 
+  } else
+  { if(is.null(attr(object,"initialization")$noise)) 
+      { mc[[1]] <- as.name("summaryMclustBIC") }
+    else 
+      { mc[[1]] <- as.name("summaryMclustBICn") }
+    warn <- attr(object, "warn")
+    ans <- eval(mc, parent.frame())
+    Glabels <- dimnames(object)[[1]]
+    if(length(Glabels) != 1 && (!missing(G) && length(G) > 1)) 
+      { Grange <- range(as.numeric(Glabels))
+        if(match(ans$G, Grange, nomatch = 0) & warn)
+          warning("best model occurs at the min or max # of components considered")
+    }
   }
   ans
 }
+
 
 summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...) 
 {
@@ -1307,7 +1097,7 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
               prior = prior, control = control, warn = warn)
   }
   obsNames <- if (is.null(dim(data))) names(data) else dimnames(data)[[1]]
-  classification <- map(out$z)
+  classification <- map(out$z, warn = warn)
   uncertainty <- 1 - apply(out$z, 1, max)
   names(classification) <- names(uncertainty) <- obsNames
   
@@ -1322,6 +1112,116 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
   structure(ans[orderedNames], bestBICvalues = bestBICs, prior = prior, 
             control = control, initialization = initialization, 
             class = "summary.mclustBIC")
+}
+
+summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
+{
+  dimData <- dim(data)
+  oneD <- is.null(dimData) || length(dimData[dimData > 1]) == 1
+  if(!oneD && length(dimData) != 2)
+    stop("data must be a vector or a matrix")
+  if(oneD) {
+    data <- drop(as.matrix(data))
+    n <- length(data)
+    d <- 1
+  }
+  else {
+    data <- as.matrix(data)
+    n <- nrow(data)
+    d <- ncol(data)
+  }
+  initialization <- attr(object, "initialization")
+  hcPairs <- initialization$hcPairs
+  noise <- initialization$noise
+  if(!is.logical(noise))
+    noise <- as.logical(match(1:n, noise, nomatch = 0))
+  prior <- attr(object, "prior")
+  control <- attr(object, "control")
+  warn <- attr(object, "warn")
+  Vinv <- attr(object, "Vinv")
+  oldClass(object) <- NULL
+  attr(object, "control") <- attr(object, "initialization") <- NULL
+  attr(object, "prior") <- attr(object, "Vinv") <- NULL
+  attr(object, "warn") <- NULL
+  ##
+  if (is.null(G)) G <- dimnames(object)[[1]]
+  if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
+  bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
+  if(all(is.na(bestBICs))) 
+    { return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
+                       control = control, initialization = initialization, 
+                       class = "summary.mclustBIC"))
+  }
+  temp <- unlist(strsplit(names(bestBICs)[1], ","))
+  bestModel <- temp[1] 
+  G <- as.numeric(temp[2])
+  if(G == 0) 
+    { ans <- list(bic = bestBICs[1], 
+                  z = unmap(rep(0,n)),
+                  classification = rep(0, n), 
+                  uncertainty = rep(0, n), 
+                  n = n, d = ncol(data), 
+                  modelName = bestModel, G = 0, 
+                  loglik = n * logb(Vinv), 
+                  Vinv = Vinv)
+      orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
+                        "z", "classification", "uncertainty")
+     return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
+                      prior = prior, control = control, 
+                      initialization = initialization, 
+                      class = "summary.mclustBIC"))
+  }
+  G1 <- G + 1
+  z <- matrix(0, n, G1)
+  if(d > 1 || !is.null(hcPairs))
+    { z[!noise, 1:G] <- unmap(hclass(hcPairs, G)) }
+  else 
+    { z[!noise, 1:G] <- unmap(qclass(data[!noise], G)) }
+  z[noise, G1] <- 1
+  out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
+            control = control, warn = warn, Vinv = Vinv)
+  obsNames <- if(is.null(dim(data))) 
+                names(data) else dimnames(data)[[1]]
+  classification <- map(out$z, warn = warn)
+  classification[classification == G1] <- 0
+  uncertainty <- 1 - apply(out$z, 1, max)
+  names(classification) <- names(uncertainty) <- obsNames
+  ans <- c(list(bic = as.vector(bestBICs[1]), classification = classification, 
+                uncertainty = uncertainty, Vinv = Vinv), out)
+  orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "parameters", 
+                    "Vinv", "z", "classification", "uncertainty")
+  structure(ans[orderedNames], 
+            bestBICvalues = bestBICs, 
+            prior = prior, control = control, 
+            initialization = initialization, 
+            class = "summary.mclustBIC")
+}
+
+print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
+{
+  if("classification" %in% names(x))
+    { bic <- attr(x,"bestBICvalues")
+      l <- length(bic)
+      if(l == 1) 
+        { cat("BIC value:\n")
+          print(bic, digits = digits)
+      }
+      else {
+          cat("Best BIC values:\n")
+          bic <- drop(as.matrix(bic))
+          bic <- rbind(BIC = bic, "BIC diff" = bic - max(bic))
+          print(bic, digits = digits)
+      }
+      cat("\nClassification table for model (", colnames(bic)[1], "):", sep = "")
+      print(table(x$classification), digits = digits, ...)
+  }
+  else {
+    cat("Best BIC values:\n")
+    x <- drop(as.matrix(x))
+    x <- rbind(BIC = x, "BIC diff" = x - max(x))
+    print(x, digits = digits)
+  }
+  invisible()
 }
 
 defaultPrior <- function(data, G, modelName, ...)
@@ -1367,8 +1267,8 @@ defaultPrior <- function(data, G, modelName, ...)
            }
            list(shrinkage = shrinkage, mean = mean, dof = dof,
                 scale = scale)
-         }
-         ,
+         },
+         ##############################################################
          EII = ,
          VII = ,
          XII = ,
@@ -1390,11 +1290,15 @@ defaultPrior <- function(data, G, modelName, ...)
            }
            list(shrinkage = shrinkage, mean = mean, dof = dof,
                 scale = scale)
-         }
-         ,
+         },
+         ##############################################################
          EEE = ,
+         EVE = ,
+         VEE = ,
+         VVE = ,
          EEV = ,
          VEV = ,
+         EVV = ,
          VVV = ,
          XXX = {
            n <- nrow(data)
@@ -1415,20 +1319,15 @@ defaultPrior <- function(data, G, modelName, ...)
            }
            list(shrinkage = shrinkage, mean = mean, dof = dof,
                 scale = scale)
-         }
-         ,
+         },
          stop("no default prior for this model"))
 }
 
-emControl <- function(eps = .Machine$double.eps, tol = c(1.0e-05, sqrt(.Machine$double.eps)), itmax = c(.Machine$integer.max, .Machine$integer.max), equalPro = FALSE)
+emControl <- function(eps = .Machine$double.eps, 
+                      tol = c(1.0e-05, sqrt(.Machine$double.eps)), 
+                      itmax = c(.Machine$integer.max, .Machine$integer.max), 
+                      equalPro = FALSE)
 {
-  ##
-  # argList <- list(eps=eps, tol=tol, itmax=itmax, equalPro=equalPro)
-  # nullArgs <- sapply(argList, is.null)
-  # argList[nullArgs] <- .mclust[names(nullArgs[nullArgs])]
-  # argList$itmax[argList$itmax == Inf] <- .Machine$integer.max
-  # argList
-  ##
   if(any(eps < 0)) stop("eps is negative")
   if(any(eps >= 1))
     stop("eps is not less than 1")
@@ -1529,7 +1428,7 @@ emEEE <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepEEE <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if (is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) > 2)
     stop("data must be a matrix or a vector")
@@ -1613,7 +1512,7 @@ estepEEE <- function(data, parameters, warn = NULL, ...)
 meEEE <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -1636,8 +1535,8 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "EEE", d = p, G = G, 
                      Sigma = matrix(as.double(NA), p, p), cholSigma = matrix(as.double(NA), p, p)) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="EEE", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -1746,7 +1645,7 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
                           NULL)
   variance <- list(modelName = "EEE", d = p, G = G,
                    sigma = sigma, Sigma = Sigma, cholSigma = cholSigma) 
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "EEE", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -1755,7 +1654,7 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
 
 mstepEEE <- function(data, z, prior = NULL,  warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -1853,11 +1752,10 @@ simEEE <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-    parameters[c("mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "EEE"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "EEE"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -1874,17 +1772,16 @@ simEEE <- function(parameters, n, seed = NULL, ...)
   }
   for(k in 1:G) {
     m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                                       ncol = d) %*% cholSigma, MARGIN = 2, STATS = mu[, k],
-                                FUN = "+")
+    x[clabels == k,] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
+                              cholSigma, MARGIN = 2, STATS = mu[,k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "EEE")
 }
 
 cdensEEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -1939,7 +1836,7 @@ cdensEEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 cdensEII <-
   function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   {
-    if (is.null(warn)) warn <- .mclust$warn
+    if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
     if(is.null(dimdat) || length(dimdat) != 2)
       stop("data must be a matrix")
@@ -2008,7 +1905,7 @@ emEEI <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepEEI <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -2078,7 +1975,7 @@ estepEEI <- function(data, parameters, warn = NULL, ...)
 meEEI <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -2101,8 +1998,8 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "EEI", d = p, G = G, 
                      scale = NA, shape = rep(NA,p)) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="EEI", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -2211,7 +2108,7 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
   variance <- list(modelName = "EEI", d = p, G = G, 
                    sigma = sigma, Sigma = Sigma, 
                    scale = scale, shape = shape)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "EEI", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -2220,7 +2117,7 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
 
 mstepEEI <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -2323,11 +2220,10 @@ simEEI <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-    parameters[c("mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "EEI"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "EEI"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -2345,13 +2241,13 @@ simEEI <- function(parameters, n, seed = NULL, ...)
                                        ncol = d) %*% cholSigma, MARGIN = 2, STATS = mu[, k],
                                 FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "EEI")
 }
 
 cdensE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -2423,7 +2319,7 @@ emE <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepE <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -2569,7 +2465,7 @@ emEEV <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepEEV <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -2643,7 +2539,7 @@ estepEEV <- function(data, parameters, warn = NULL, ...)
 meEEV <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -2666,8 +2562,8 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "EEV", d = p, G = G, 
                      scale = NA, shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
-    parameters <- list(Vinv= Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="EEV", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -2796,7 +2692,7 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
   ## Sigma = scale * O %*% diag(shape) %*% t(O)
   variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
                    scale = scale, shape = shape, orientation = O) 
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv) 
   structure(list(modelName = "EEV", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik),
@@ -2805,7 +2701,7 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
 
 mstepEEV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -2927,11 +2823,10 @@ simEEV <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-    parameters[c("mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "EEV"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "EEV"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -2950,7 +2845,7 @@ simEEV <- function(parameters, n, seed = NULL, ...)
                                        ncol = d) %*% cholSigma, MARGIN = 2, STATS = mu[, k],
                                 FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "EEV")
 }
 
@@ -2964,7 +2859,7 @@ emEII <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepEII <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3044,7 +2939,7 @@ estepEII <- function(data, parameters, warn = NULL, ...)
 meEII <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -3067,8 +2962,8 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
     WARNING <- "z is missing"
     if (warn) warning(WARNING)
     variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="EII", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -3169,7 +3064,7 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
                           NULL) 
   variance <- list(modelName = "EII", d = p, G = G, sigma = sigma, 
                    Sigma = Sigma, sigmasq = sigmasq, scale = sigmasq)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance = variance)
+  parameters <- list(pro=pro, mean=mu, variance = variance, Vinv=Vinv)
   structure(list(modelName = "EII", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control, 
                  loglik = loglik),
@@ -3178,7 +3073,7 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
 
 mstepEII <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -3270,11 +3165,10 @@ simEII <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d), modelName = "EII"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d), modelName = "EII"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -3289,14 +3183,14 @@ simEII <- function(parameters, n, seed = NULL, ...)
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
                                   cholSigma, MARGIN = 2, STATS = mu[, k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "EII")
 }
 
 meE <- function(data, z, prior = NULL, control = emControl(), 
                 Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -3317,8 +3211,8 @@ meE <- function(data, z, prior = NULL, control = emControl(),
     WARNING <- "z is missing"
     if (warn) warning(WARNING)
     variance <- list(modelName = "E", d = 1, G = G, sigmasq = NA)
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), mean=rep(NA,G), 
-                       variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="E", prior=prior, n=n, d=1, G=G,
                           z=z, parameters=parameters, control=control, loglik=NA), 
                      WARNING = WARNING, returnCode = 9))
@@ -3404,7 +3298,7 @@ meE <- function(data, z, prior = NULL, control = emControl(),
   info <- c(iterations = its, error = err)
   dimnames(z) <- list(names(data), NULL) 
   variance <- list(modelName = "E", d = 1, G = G, sigmasq = sigmasq)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "E", prior = prior, n = n, d = 1, G = G, 
                  z = z, parameters = parameters, control = control, 
                  loglik = loglik), 
@@ -3414,7 +3308,7 @@ meE <- function(data, z, prior = NULL, control = emControl(),
 
 mstepE <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -3494,11 +3388,10 @@ mstepE <- function(data, z, prior = NULL, warn = NULL, ...)
 
 simE <- function(parameters, n, seed = NULL, ...)
 {
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, 2), modelName = "E"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, 2), modelName = "E"))
   }
   if(!is.null(seed))
     set.seed(seed)
@@ -3519,7 +3412,7 @@ simE <- function(parameters, n, seed = NULL, ...)
 
 cdensEVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3581,7 +3474,7 @@ emEVI <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepEVI <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -3651,7 +3544,7 @@ estepEVI <- function(data, parameters, warn = NULL, ...)
 meEVI <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -3674,8 +3567,8 @@ meEVI <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "EVI", d = p, G = G, 
                      scale = NA, shape = matrix(as.double(NA),p,G)) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="EVI", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -3774,7 +3667,7 @@ meEVI <- function(data, z, prior = NULL, control = emControl(),
                           NULL)
   variance <- list(modelName = "EVI", d = p, G = G, 
                    sigma = sigma, scale = scale, shape = shape)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "EVI", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control, 
                  loglik = loglik), 
@@ -3783,7 +3676,7 @@ meEVI <- function(data, z, prior = NULL, control = emControl(),
 
 mstepEVI <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -3879,11 +3772,10 @@ simEVI <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "EVI"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "EVI"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -3900,73 +3792,71 @@ simEVI <- function(parameters, n, seed = NULL, ...)
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
                                   diag(sss[, k]), MARGIN = 2, STATS = mu[, k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "EVI")
 }
 
-clPairs <- function (data, classification, symbols=NULL, colors=NULL, 
-                     labels = dimnames(data)[[2]], CEX = 1, ...) 
+clPairs <- function (data, classification, symbols = NULL, colors = NULL, 
+                     labels = dimnames(data)[[2]], CEX = 1, gap = 0.2, ...) 
 {
   data <- as.matrix(data)
   m <- nrow(data)
   n <- ncol(data)
-  if (missing(classification)) 
+  if(missing(classification)) 
     classification <- rep(1, m)
-  if (!is.factor(classification)) 
+  if(!is.factor(classification)) 
     classification <- as.factor(classification)
   l <- length(levels(classification))
-  if (missing(symbols)) {
-    if (l == 1) {
-      symbols <- "."
-    }
-    if (l <= length(.mclust$classPlotSymbols)) {
-      symbols <- .mclust$classPlotSymbols
-    }
-    else if (l <= 9) {
-      symbols <- as.character(1:9)
-    }
-    else if (l <= 26) {
-      symbols <- LETTERS[1:l]
-    }
-    else symbols <- rep( 16,l)
+  if(missing(symbols)) 
+    { if(l == 1) 
+        { symbols <- "." }
+      if(l <= length(mclust.options("classPlotSymbols")))
+        { symbols <- mclust.options("classPlotSymbols") }
+      else { if(l <= 9) { symbols <- as.character(1:9) }
+             else if(l <= 26) { symbols <- LETTERS[1:l] }
+                  else symbols <- rep( 16,l)
+           }
   }
-  if (length(symbols) == 1) symbols <- rep(symbols, l)
-  if (length(symbols) < l) {
-    symbols <- rep( 16, l)
-    warning("more symbols needed")
+  if(length(symbols) == 1) symbols <- rep(symbols, l)
+  if(length(symbols) < l) 
+    { symbols <- rep( 16, l)
+      warning("more symbols needed")
   }
-  if (is.null(colors)) {
-    if (l <= length(.mclust$classPlotColors)) 
-      colors <- .mclust$classPlotColors[1:l]
+  if(is.null(colors)) 
+    { if(l <= length(mclust.options("classPlotColors"))) 
+      colors <- mclust.options("classPlotColors")[1:l]
   }
-  if (length(colors) == 1) colors <- rep(colors, l)
-  if (length(colors) < l) {
-    colors <- rep( "black", l)
-    warning("more colors needed")
+  if(length(colors) == 1) colors <- rep(colors, l)
+  if(length(colors) < l) 
+    { colors <- rep( "black", l)
+      warning("more colors needed")
   }
+  
   pairs(x = data, labels = labels, pch = symbols[classification], 
-        cex = CEX, col = colors[classification], ...)
-  invisible()
+        cex = CEX, col = colors[classification], gap = gap, ...)
+  
+  invisible(list(class = levels(classification), 
+                 pch = symbols[seq(l)], col = colors))
 }
 
 coordProj <- function(data, dimens = c(1,2), parameters = NULL, 
-                      z = NULL, classification = NULL, truth = NULL, uncertainty = NULL, 
+                      z = NULL, classification = NULL, 
+                      truth = NULL, uncertainty = NULL, 
                       what = c("classification", "errors", "uncertainty"), 
-                      quantiles = c(0.75, 0.94999999999999996), symbols = NULL, 
+                      quantiles = c(0.75, 0.95), symbols = NULL, 
                       colors = NULL, scale = FALSE, xlim = NULL, ylim = NULL, 
-                      CEX = 1, PCH = ".", identify = FALSE, ...)
+                      CEX = 1, PCH = ".", main = FALSE, ...)
 {
   if(is.null(dimens)) dimens <- c(1, 2)
   if(is.null(classification) && !is.null(z))
     classification <- map(z)
   if(is.null(uncertainty) && !is.null(z))
     uncertainty <- 1 - apply(z, 1, max)
-  if(!is.null(parameters)) {
-    mu <- parameters$mean
-    L <- ncol(mu)
-    sigma <- parameters$variance$sigma
-    haveParams <- !is.null(mu) && !is.null(sigma) && !any(is.na(mu)) && !any(
-      is.na(sigma))
+  if(!is.null(parameters)) 
+    { mu <- parameters$mean
+      L <- ncol(mu)
+      sigma <- parameters$variance$sigma
+      haveParams <- !is.null(mu) && !is.null(sigma) && !any(is.na(mu)) && !any( is.na(sigma))
   }
   else haveParams <- FALSE
   data <- data[, dimens, drop = FALSE]
@@ -3992,6 +3882,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     xlab <- dnames[1]
     ylab <- dnames[2]
   }
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   if(haveParams) {
     G <- ncol(mu)
     dimpar <- dim(sigma)
@@ -4018,8 +3909,8 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     L <- length(U)
     noise <- classification[1] == "0"
     if(is.null(symbols)) {
-      if(L <= length(.mclust$classPlotSymbols)) {
-        symbols <- .mclust$classPlotSymbols
+      if(L <= length(mclust.options("classPlotSymbols"))) {
+        symbols <- mclust.options("classPlotSymbols")
         if(noise) {
           first <- symbols[1]
           symbols[symbols == 16] <- first
@@ -4036,8 +3927,8 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     else if(length(symbols) == 1)
       symbols <- rep(symbols, L)
     if(is.null(colors)) {
-      if(L <= length(.mclust$classPlotColors)) {
-        colors <- .mclust$classPlotColors[1:L]
+      if(L <= length(mclust.options("classPlotColors"))) {
+        colors <- mclust.options("classPlotColors")[1:L]
         if(noise) {
           first <- colors[1]
           colors[colors == "black"] <- first
@@ -4084,7 +3975,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
          classification = {
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
                   xlim, ylim = ylim, main = "", ...)
-           if(identify) {
+           if(main) {
              TITLE <- paste(paste(dimens, collapse = ","), 
                             "Coordinate Projection showing Classification")
              title(main = TITLE)
@@ -4094,13 +3985,12 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
              points(data[I, 1], data[I, 2], pch = symbols[k], col = colors[k], cex
                     = if(U[k] == "0") CEX/4 else CEX)
            }
-         }
-         ,
+         },
          errors = {
            ERRORS <- classError(classification, truth)$misclassified
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
                   xlim, ylim = ylim, main = "", ...)
-           if(identify) {
+           if(main) {
              TITLE <- paste(paste(dimens, collapse = ","), 
                             "Coordinate Projection showing Errors")
              title(main = TITLE)
@@ -4126,12 +4016,11 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
                }
              }
            }
-         }
-         ,
+         },
          uncertainty = {
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
                   xlim, ylim = ylim, main = "", ...)
-           if(identify) {
+           if(main) {
              TITLE <- paste(paste(dimens, collapse = ","), 
                             "Coordinate Projection showing Uncertainty")
              title(main = TITLE)
@@ -4143,32 +4032,34 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
            points(data[I, 1], data[I, 2], pch = 16, col = "gray50", cex = 1 * CEX)
            I <- uncertainty > breaks[2] & !I
            points(data[I, 1], data[I, 2], pch = 16, col = "black", cex = 1.5 * CEX)
+         },
+         { plot(data[, 1], data[, 2], type = "n", 
+                xlab = xlab, ylab = ylab, 
+                xlim = xlim, ylim = ylim, main = "", ...)
+           if(main) 
+             { TITLE <- paste(paste(dimens, collapse = ","), "Coordinate Projection")
+               title(main = TITLE) }
+           points(data[, 1], data[, 2], pch = PCH, cex = CEX)
          }
-         ,
-{
-  plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
-         xlim, ylim = ylim, main = "", ...)
-  if(identify) {
-    TITLE <- paste(paste(dimens, collapse = ","), "Coordinate Projection")
-    title(main = TITLE)
-  }
-  points(data[, 1], data[, 2], pch = PCH, cex = CEX)
-}
   )
-if(haveParams) {
-  ## plot ellipsoids
-  for(k in 1:G)
-    mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
-}
-invisible()
+  if(haveParams) 
+    { ## plot ellipsoids
+      for(k in 1:G)
+        mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+  }
+
+  invisible()
 }
 
 imputePairs <- function (x, impx, symbols = c(16,1), colors = c("black", "red"),
                          labels, panel = points, ...,  
                          lower.panel = panel, 
-                         upper.panel = panel, diag.panel = NULL, text.panel = textPanel, 
-                         label.pos = 0.5 + has.diag/3, cex.labels = NULL, font.labels = 1, 
-                         row1attop = TRUE, gap = 1) 
+                         upper.panel = panel, 
+                         diag.panel = NULL, 
+                         text.panel = textPanel, 
+                         label.pos = 0.5 + has.diag/3, 
+                         cex.labels = NULL, font.labels = 1, 
+                         row1attop = TRUE, gap = 0.2) 
 {
   textPanel <- function(x = 0.5, y = 0.5, txt, cex, font) text(x, 
                                                                y, txt, cex = cex, font = font)
@@ -4301,7 +4192,7 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
                          what = c("classification", "density", "errors", "uncertainty"), 
                          symbols = NULL, colors = NULL, ngrid = length(data),  
                          xlab = NULL,  xlim = NULL, CEX  = 1, 
-                         identify = FALSE, ...) 
+                         main = FALSE, ...) 
 {
   
   grid1 <- function (n, range = c(0, 1), edge = TRUE) 
@@ -4333,6 +4224,7 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
     { data.frame(density = cden, uncertainty =  rep(NA, length(cden))) }
   }
   
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   if (is.null(xlab)) xlab <- " "
   p <- ncol(as.matrix(data))
   if (p != 1) 
@@ -4379,18 +4271,18 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
     U <- sort(unique(classification))
     L <- length(U)
     if(is.null(symbols)) 
-    { symbols <- rep("|", L) }
+      { symbols <- rep("|", L) }
     else if(length(symbols) == 1) 
-    { symbols <- rep(symbols, L) }
+      { symbols <- rep(symbols, L) }
     else if(length(symbols) < L) 
-    { warning("more symbols needed to show classification")
-      symbols <- rep("|", L) }
+      { warning("more symbols needed to show classification")
+        symbols <- rep("|", L) }
     if(is.null(colors))
-    { colors <- .mclust$classPlotColors[1:L] }
+      { colors <- mclust.options("classPlotColors")[1:L] }
     else if(length(colors) == 1) 
-    { colors <- rep(colors, L) }
+      { colors <- rep(colors, L) }
     else if(length(colors) < L)
-    { warning("more colors needed to show classification")
+      { warning("more colors needed to show classification")
       colors <- rep("black", L) }
   }
   if (length(what) > 1) what <- what[1]
@@ -4412,83 +4304,84 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
   M <- L
   switch(EXPR = what,
          "classification" = 
-{ plot(data, seq(from = 0, to = M, length = n), type = "n", 
-       xlab = xlab, ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
-  axis(side = 2, at = 0:M, labels = c("", sort(unique(classification))))
-  if(identify) title("Classification")
-  for(k in 1:L) 
-  { I <- classification == U[k]
-    points(data[I], rep(0, length(data[I])), 
-           pch = symbols[k], cex = CEX)
-    points(data[I], rep(k, length(data[I])), 
-           pch = symbols[k], col = colors[k], cex = CEX)
-  }
-},
-"errors" = 
-{ ERRORS <- classError(classification, truth)$misclassified
-  plot(data, seq(from = 0, to = M, length = n), type = "n", 
-       xlab = xlab, ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
-  axis(side = 2, at = 0:M, labels = c("", unique(classification)))
-  if(identify) title("Classification Errors")
-  good <- rep(TRUE, length(classification))
-  good[ERRORS] <- FALSE
-  sym <- "|"
-  for(k in 1:L) 
-  { K <- classification == U[k]
-    I <- K & good
-    if(any(I)) 
-    { if(FALSE) 
-    { sym <- if (L > 4) 
-      1
-      else if (k == 4) 
-        5
-      else k - 1
-    }
-    l <- sum(as.numeric(I))
-    points(data[I], rep(0, l), pch = sym, 
-           col = colors[k], cex = CEX)
-    }
-    I <- K & !good
-    if(any(I)) 
-    { if(FALSE) 
-    { sym <- if (L > 5) 
-      16
-      else k + 14 }
-    l <- sum(as.numeric(I))
-    points(data[I], rep(k, l), pch = sym, 
-           col = colors[k], cex = CEX)
-    # points(data[I], rep(0, l), pch = sym, cex = CEX)
-    # points(data[I], rep(-0.5, l), pch = sym, cex = CEX)
-    }
-  }
-},
-"uncertainty" = {
-  x <- grid1(n = ngrid, range = xlim, edge = TRUE)
-  lx <- length(x)
-  Z <- densNuncer(data = x, parameters = parameters)
-  plot(x, Z$uncertainty, xlab = xlab, ylab = "uncertainty", 
-       xlim = xlim, ylim = c(0,1), type = "l", main = "", ...)
-  if (identify)  title("Uncertainty")
-},
-"density" = {
-  if (is.null(parameters$pro) && parameters$variance$G != 1) 
-    stop("mixing proportions missing")
-  x <- grid1(n = ngrid, range = xlim, edge = TRUE)
-  lx <- length(x)
-  Z <- densNuncer(data = x, parameters = parameters)
-  plot(x, Z$density, xlab = xlab, ylab = "density", xlim = xlim, 
-       type = "l", main = "", ...)
-  if (identify) title("Density")
-},
-{
-  plot(data, rep(0, n), type = "n", xlab = "", ylab = "", 
-       xlim = xlim, main = "", ...)
-  points(data, rep(0, n), pch = "|", cex = CEX)
-  if (identify) title("Point Plot")
-  return(invisible())
-}
+         { plot(data, seq(from = 0, to = M, length = n), type = "n", 
+                xlab = xlab, ylab = "", xlim = xlim, 
+                ylim = grDevices::extendrange(r = c(0,M), f = 0.1),
+                yaxt = "n", main = "", ...)
+           axis(side = 2, at = 0:M, labels = c("", sort(unique(classification))))
+           if(main) title("Classification")
+           for(k in 1:L) 
+              { I <- classification == U[k]
+           points(data[I], rep(0, length(data[I])), 
+                  pch = symbols[k], cex = CEX)
+           points(data[I], rep(k, length(data[I])), 
+                  pch = symbols[k], col = colors[k], cex = CEX)
+           }
+         },
+         "errors" = 
+         { ERRORS <- classError(classification, truth)$misclassified
+           plot(data, seq(from = 0, to = M, length = n), type = "n", 
+                xlab = xlab, ylab = "", xlim = xlim, yaxt = "n", main = "", ...)
+           axis(side = 2, at = 0:M, labels = c("", unique(classification)))
+           if(main) title("Classification Errors")
+           good <- rep(TRUE, length(classification))
+           good[ERRORS] <- FALSE
+           sym <- "|"
+           for(k in 1:L) 
+           { K <- classification == U[k]
+           I <- K & good
+           if(any(I)) 
+           { if(FALSE) 
+           { sym <- if (L > 4) 
+             1
+           else if (k == 4) 
+             5
+           else k - 1
+           }
+             l <- sum(as.numeric(I))
+             points(data[I], rep(0, l), pch = sym, 
+                    col = colors[k], cex = CEX)
+           }
+           I <- K & !good
+           if(any(I)) 
+           { if(FALSE) 
+           { sym <- if (L > 5) 
+             16
+           else k + 14 }
+             l <- sum(as.numeric(I))
+             points(data[I], rep(k, l), pch = sym, 
+                    col = colors[k], cex = CEX)
+             # points(data[I], rep(0, l), pch = sym, cex = CEX)
+             # points(data[I], rep(-0.5, l), pch = sym, cex = CEX)
+           }
+           }
+         },
+         "uncertainty" = 
+         { x <- grid1(n = ngrid, range = xlim, edge = TRUE)
+           lx <- length(x)
+           Z <- densNuncer(data = x, parameters = parameters)
+           plot(x, Z$uncertainty, xlab = xlab, ylab = "uncertainty", 
+                xlim = xlim, ylim = c(0,1), type = "l", main = "", ...)
+           if(main)  title("Uncertainty")
+         },
+         "density" = 
+         { if(is.null(parameters$pro) && parameters$variance$G != 1) 
+             stop("mixing proportions missing")
+           x <- grid1(n = ngrid, range = xlim, edge = TRUE)
+           lx <- length(x)
+           Z <- densNuncer(data = x, parameters = parameters)
+           plot(x, Z$density, xlab = xlab, ylab = "density", xlim = xlim, 
+                type = "l", main = "", ...)
+           if(main) title("Density")
+         },
+         { plot(data, rep(0, n), type = "n", xlab = "", ylab = "", 
+                xlim = xlim, main = "", ...)
+           points(data, rep(0, n), pch = "|", cex = CEX)
+           if(main) title("Point Plot")
+           # return(invisible())
+         }
   )
-invisible()
+  invisible()
 }
 
 mclust2Dplot <- function (data, parameters = NULL, z = NULL,
@@ -4497,7 +4390,7 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
                           quantiles = c(0.75, 0.95), symbols = NULL, colors = NULL, 
                           xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
                           scale = FALSE, CEX = 1, PCH = ".", 
-                          identify = FALSE, swapAxes = FALSE, ...) 
+                          main = FALSE, swapAxes = FALSE, ...) 
 {
   if(dim(data)[2] != 2)
     stop("data must be two dimensional")
@@ -4514,6 +4407,7 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
   }
   else haveParams <- FALSE
   
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   if(is.null(xlim))
     xlim <- range(data[, 1])
   if(is.null(ylim))
@@ -4567,7 +4461,7 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
   
   if(charmatch("classification", what, nomatch = 0) && 
        is.null(classification) && !is.null(z))
-  { classification <- map(z) }
+    { classification <- map(z) }
   
   if(!is.null(classification)) 
   { classification <- as.character(classification)
@@ -4575,8 +4469,8 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
     L <- length(U)
     noise <- (U[1] == "0")
     if(is.null(symbols))
-    { if(L <= length(.mclust$classPlotSymbols)) 
-    { symbols <- .mclust$classPlotSymbols[1:L]
+    { if(L <= length(mclust.options("classPlotSymbols"))) 
+    { symbols <- mclust.options("classPlotSymbols")[1:L]
       if(noise)
       { symbols <- c(16,symbols)[1:L] }
     }
@@ -4585,8 +4479,8 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
     else if(L <= 26) { symbols <- LETTERS }
     }
     if(is.null(colors)) 
-    { if(L <= length(.mclust$classPlotColors)) 
-    { colors <- .mclust$classPlotColors[1:L]
+    { if(L <= length(mclust.options("classPlotColors"))) 
+    { colors <- mclust.options("classPlotColors")[1:L]
       if(noise) 
       { colors <- unique(c("black", colors))[1:L] }
     }
@@ -4623,7 +4517,7 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
          "classification"= {
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
                 ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-           if(identify) title("Classification")
+           if(main) title("Classification")
            for(k in 1:L) 
            { I <- classification == U[k]
              points(data[I, 1], data[I, 2], pch = symbols[k], 
@@ -4634,7 +4528,7 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
            ERRORS <- classError(classification, truth)$misclassified
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
                 ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-           if(identify) title("Classification Errors")
+           if(main) title("Classification Errors")
            CLASSES <- unique(as.character(truth))
            symOpen <- c(2, 0, 1, 5)
            symFill <- c(17, 15, 16, 18)
@@ -4661,7 +4555,7 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
          "uncertainty" = {
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
                 ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-           if(identify) title("Classification Uncertainty")
+           if(main) title("Classification Uncertainty")
            breaks <- quantile(uncertainty, probs = sort(quantiles))
            I <- uncertainty < breaks[1]
            points(data[I, 1], data[I, 2], pch = 16, col = "gray75",
@@ -4673,26 +4567,27 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
            points(data[I, 1], data[I, 2], pch = 16, col = "black",
                   cex = 1.5 * CEX)
          },
-{
-  plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
-       ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-  if (identify) title("Point Plot")
-  points(data[, 1], data[, 2], pch = PCH, cex = CEX)
-}
+         {  plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
+                 ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
+            if(main) title("Point Plot")
+            points(data[, 1], data[, 2], pch = PCH, cex = CEX)
+         }
   )
-if (haveParams) {
-  ## plot ellipsoids
-  for (k in 1:G) 
-    mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
-}
-invisible()
+  if(haveParams) 
+    { ## plot ellipsoids
+      for(k in 1:G) 
+        mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+  }
+
+  invisible()
 }
 
-mvn2plot <- function (mu, sigma, k = 15, alone = FALSE, col = "grey20") 
+mvn2plot <- function(mu, sigma, k = 15, alone = FALSE, 
+                     col = rep("grey20",3), pch = 8, lty = c(1,2), lwd = c(1,1)) 
 {
   p <- length(mu)
   if (p != 2) 
-    stop("two-dimensional case only")
+    stop("only two-dimensional case is available")
   if (any(unique(dim(sigma)) != p)) 
     stop("mu and sigma are incompatible")
   ev <- eigen(sigma, symmetric = TRUE)
@@ -4704,30 +4599,28 @@ mvn2plot <- function (mu, sigma, k = 15, alone = FALSE, col = "grey20")
   xy <- cbind(c(x, -x, -x, x), c(y, y, -y, -y))
   xy <- xy %*% V
   xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
-  if (alone) {
-    xymin <- apply(xy, 2, FUN = "min")
-    xymax <- apply(xy, 2, FUN = "max")
-    r <- ceiling(max(xymax - xymin)/2)
-    xymid <- (xymin + xymax)/2
-    plot(xy[, 1], xy[, 2], 
-         xlim = c(-r, r) + xymid[1], 
-         ylim = c(-r, r) + xymid[2], 
-         xlab = "x", ylab = "y", type = "n")
+  if(alone) 
+    { xymin <- apply(xy, 2, FUN = "min")
+      xymax <- apply(xy, 2, FUN = "max")
+      r <- ceiling(max(xymax - xymin)/2)
+      xymid <- (xymin + xymax)/2
+      plot(xy[, 1], xy[, 2], type = "n", xlab = "x", ylab = "y", 
+           xlim = c(-r, r) + xymid[1], ylim = c(-r, r) + xymid[2])
   }
   l <- length(x)
   i <- 1:l
-  for (k in 1:4) {
-    lines(xy[i,], col = col)
-    i <- i + l
+  for(k in 1:4) 
+     { lines(xy[i,], col = col[1], lty = lty[1], lwd = lwd[1])
+       i <- i + l
   }
   x <- s[1]
   y <- s[2]
   xy <- cbind(c(x, -x, 0, 0), c(0, 0, y, -y))
   xy <- xy %*% V
   xy <- sweep(xy, MARGIN = 2, STATS = mu, FUN = "+")
-  lines(xy[1:2,], lty = 2, col = col)
-  lines(xy[3:4,], lty = 2, col = col)
-  points(mu[1], mu[2], pch = 8, col = col)
+  lines(xy[1:2,], col = col[2], lty = lty[2], lwd = lwd[2])
+  lines(xy[3:4,], col = col[2], lty = lty[2], lwd = lwd[2])
+  points(mu[1], mu[2], col = col[3], pch = pch)
   invisible()
 }
 
@@ -4735,8 +4628,7 @@ mvn2plot <- function (mu, sigma, k = 15, alone = FALSE, col = "grey20")
 plot.Mclust <- function(x, 
                         what = c("BIC", "classification", "uncertainty", "density"), 
                         dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,  
-                        addEllipses = TRUE, identify = TRUE,
-                        legendArgs = list(x="bottomright", ncol=2, cex=1),
+                        addEllipses = TRUE, main = TRUE,
                         ...) 
 {
   
@@ -4753,19 +4645,17 @@ plot.Mclust <- function(x,
   else
     dimens <- dimens[dimens <= p]
   d <- length(dimens)
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   
-  what <- match.arg(what, c("BIC", "classification", 
-                            "uncertainty", "density"), 
-                    several.ok = TRUE)
+  ####################################################################
+  what <- match.arg(what, several.ok = TRUE)
   oldpar <- par(no.readonly = TRUE)
   # on.exit(par(oldpar))
   
-  plot.MclustBic <- function(...)
-  { plot.mclustBIC(object$BIC, xlab = xlab, ylim = ylim, 
-                   legendArgs = legendArgs,...)
-  }
+  plot.Mclust.bic <- function(...)
+    plot.mclustBIC(object$BIC, xlab = xlab, ylim = ylim, ...)
 
-  plot.MclustClassification <- function(...)
+  plot.Mclust.classification <- function(...)
   {  
     if(p == 1)
       { mclust1Dplot(data = data, 
@@ -4774,7 +4664,7 @@ plot.Mclust <- function(x,
                      classification = object$classification,
                      z = object$z, 
                      xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                     identify = identify, ...) 
+                     main = main, ...) 
     }
     if(p == 2) 
       { mclust2Dplot(data = data, what = "classification", 
@@ -4782,7 +4672,7 @@ plot.Mclust <- function(x,
                      parameters = if(addEllipses) object$parameters else NULL,
                      xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                      ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                     identify = identify, ...) 
+                     main = main, ...) 
     }
     if(p > 2)
     { 
@@ -4790,13 +4680,13 @@ plot.Mclust <- function(x,
       { if(addEllipses)
           { coordProj(data = data, what = "classification", 
                       parameters = object$parameters, z = object$z, 
-                      dimens = dimens, identify = identify, ...) 
+                      dimens = dimens, main = main, ...) 
         }
       else
           { mclust2Dplot(data = data[,dimens], what = "classification", 
                          classification = object$classification,
                          # z = object$z, 
-                         identify = identify, ...)
+                         main = main, ...)
         }
       }
       else
@@ -4821,7 +4711,7 @@ plot.Mclust <- function(x,
                               parameters = object$parameters,
                               z = object$z,
                               dimens = dimens[c(j,i)], 
-                              identify = FALSE, 
+                              main = FALSE, 
                               xaxt = "n", yaxt = "n", ...)
                 }
                 if(i == 1 && (!(j%%2))) axis(3)
@@ -4832,34 +4722,34 @@ plot.Mclust <- function(x,
             }
           }
       else
-        { clPairs(data[,dimens], gap = 0.3, cex.labels = 1.5,
+        { clPairs(data[,dimens], gap = 0.2, cex.labels = 1.5,
                   classification = object$classification, ...) }
       }
     }
     
   }
 
-  plot.MclustUncertainty <- function(...) 
+  plot.Mclust.uncertainty <- function(...) 
   {
     if(p == 1)
       { mclust1Dplot(data = data,
                      parameters = object$parameters,
                      z = object$z, what = "uncertainty", 
                      xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                     identify = identify, ...) 
+                     main = main, ...) 
     }
     if(p == 2) 
       { mclust2Dplot(data = data, parameters = object$parameters, 
                      z = object$z, what = "uncertainty", 
                      xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                      ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                     identify = identify, ...)
+                     main = main, ...)
     }
     if(p > 2) 
       { if(d == 2)
           { coordProj(data = data, parameters = object$parameters, 
                       z = object$z, what = "uncertainty", 
-                      dimens = dimens, identify = identify, ...) }
+                      dimens = dimens, main = main, ...) }
         else
           { on.exit(par(oldpar))
             par(mfrow = c(d, d), 
@@ -4879,7 +4769,7 @@ plot.Mclust <- function(x,
                                 parameters = object$parameters, 
                                 z = object$z,
                                 dimens = dimens[c(j,i)], 
-                                identify = FALSE, 
+                                main = FALSE, 
                                 xaxt = "n", yaxt = "n", ...)
                     }
                     if(i == 1 && (!(j%%2))) axis(3)
@@ -4892,14 +4782,14 @@ plot.Mclust <- function(x,
       }
   }
   
-  plot.MclustDensity <- function(...)
+  plot.Mclust.density <- function(...)
   {
     if(p == 1)
       { mclust1Dplot(data = data,
                      parameters = object$parameters,
                      z = object$z, what = "density", 
                      xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                     identify = identify, ...) 
+                     main = main, ...) 
     }
     if(p == 2) 
       { surfacePlot(data = data, parameters = object$parameters,
@@ -4907,7 +4797,7 @@ plot.Mclust <- function(x,
                     transformation = "log",
                     xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                    identify = identify, ...) 
+                    main = main, ...) 
     }
     if(p > 2) 
       { objdens <- object
@@ -4917,32 +4807,32 @@ plot.Mclust <- function(x,
   }
   
   if(interactive() & length(what) > 1)
-    { choice <- menu(what, graphics = FALSE, 
-                     title = "Model-based clustering plots:")
+    { title <- "Model-based clustering plots:"
+      # present menu waiting user choice
+      choice <- menu(what, graphics = FALSE, title = title)
       while(choice != 0)
-           { if(what[choice] == "BIC") plot.MclustBic(...)
-             if(what[choice] == "classification") plot.MclustClassification(...)
-             if(what[choice] == "uncertainty") plot.MclustUncertainty(...)
-             if(what[choice] == "density") plot.MclustDensity(...)
-             choice <- menu(what, graphics = FALSE, 
-                            title = "Model-based clustering plots:") 
+           { if(what[choice] == "BIC")            plot.Mclust.bic(...)
+             if(what[choice] == "classification") plot.Mclust.classification(...)
+             if(what[choice] == "uncertainty")    plot.Mclust.uncertainty(...)
+             if(what[choice] == "density")        plot.Mclust.density(...)
+             # re-present menu waiting user choice
+             choice <- menu(what, graphics = FALSE, title = title)
            }
-  }
+  } 
   else 
-    { if(what == "BIC") plot.MclustBic(...)
-      if(what == "classification") plot.MclustClassification(...) 
-      if(what == "uncertainty") plot.MclustUncertainty(...) 
-      if(what == "density") plot.MclustDensity(...) 
+    { if(what == "BIC")            plot.Mclust.bic(...)
+      if(what == "classification") plot.Mclust.classification(...) 
+      if(what == "uncertainty")    plot.Mclust.uncertainty(...) 
+      if(what == "density")        plot.Mclust.density(...) 
   }
     
-  
   invisible()
 }
 
 plot.mclustBIC <- function(x, G = NULL, modelNames = NULL, 
                            symbols = NULL, colors = NULL, 
                            xlab = NULL, ylab = "BIC", ylim = NULL, 
-                           legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
+                           legendArgs = list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01), 
                            ...)
 {
   
@@ -4951,12 +4841,12 @@ plot.mclustBIC <- function(x, G = NULL, modelNames = NULL,
   subset <- !is.null(attr(x, "initialization")$subset)
   noise <- !is.null(attr(x, "initialization")$noise)
   ret <- attr(x, "returnCodes") == -3
-  ## if(!subset && any(ret) && fill) {
-  ##    x <- bicFill(x, ret, n, d)
-  ##}
+  legendArgsDefault <- list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01)
+  legendArgs <- append(as.list(legendArgs), legendArgsDefault)
+  legendArgs <- legendArgs[!duplicated(names(legendArgs))]
+
   n <- ncol(x)
   dnx <- dimnames(x)
-  ##
   x <- matrix(as.vector(x), ncol = n)
   dimnames(x) <- dnx
   if(is.null(modelNames))
@@ -4975,7 +4865,7 @@ plot.mclustBIC <- function(x, G = NULL, modelNames = NULL,
       names(symbols) <- modelNames
     }
     else 
-    { symbols <- .mclust$bicPlotSymbols[modelNames] }
+      { symbols <- mclust.options("bicPlotSymbols")[modelNames] }
   }
   if(is.null(colors)) 
   { colNames <- dimnames(x)[[2]]
@@ -4984,26 +4874,31 @@ plot.mclustBIC <- function(x, G = NULL, modelNames = NULL,
       names(colors) <- modelNames
     }
     else 
-    { colors <- .mclust$bicPlotColors[modelNames] }
+      { colors <- mclust.options("bicPlotColors")[modelNames] }
   }
   x <- x[,modelNames, drop = FALSE]
   if(is.null(ylim))
     ylim <- range(as.vector(x[!is.na(x)]))
   matplot(as.numeric(dnx[[1]]), x, type = "b", 
-          xlim = range(G), ylim = ylim,
+          xaxt = "n", xlim = range(G), ylim = ylim,
           pch = symbols, col = colors, lty = 1,
           xlab = xlab, ylab = ylab, main = "")
+  axis(side = 1, at = as.numeric(dnx[[1]]))
   if(!is.null(legendArgs))
-  { do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
-                        legendArgs)) }
+    { do.call("legend", c(list(legend = modelNames, col = colors, pch = symbols),
+              legendArgs)) }
   invisible(symbols)
 }
 
-randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classification = NULL, 
-                     truth = NULL, uncertainty = NULL, what = c("classification", "errors", 
-                                                                "uncertainty"), quantiles = c(0.75, 0.94999999999999996), symbols = NULL, 
-                     colors = NULL, scale = FALSE, xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", 
-                     identify = FALSE, ...)
+randProj <- function(data, seeds = 0, 
+                     parameters = NULL, z = NULL,
+                     classification = NULL, truth = NULL, 
+                     uncertainty = NULL, 
+                     what = c("classification", "errors", "uncertainty"), 
+                     quantiles = c(0.75, 0.95), symbols = NULL, 
+                     colors = NULL, scale = FALSE, 
+                     xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", 
+                     main = FALSE, ...)
 {
   if(scale) par(pty = "s")
   if(is.null(classification) && !is.null(z))
@@ -5050,8 +4945,8 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
     L <- length(U)
     noise <- (U[1] == "0")
     if(is.null(symbols)) {
-      if(L <= length(.mclust$classPlotSymbols)) 
-      { symbols <- .mclust$classPlotSymbols[1:L]
+      if(L <= length(mclust.options("classPlotSymbols"))) 
+      { symbols <- mclust.options("classPlotSymbols")[1:L]
         if(noise)
         { symbols <- c(16,symbols)[1:L] }
       }
@@ -5065,8 +4960,8 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
     else if(length(symbols) == 1)
       symbols <- rep(symbols, L)
     if(is.null(colors)) 
-    { if(L <= length(.mclust$classPlotColors)) 
-    { colors <- .mclust$classPlotColors[1:L]
+    { if(L <= length(mclust.options("classPlotColors"))) 
+    { colors <- mclust.options("classPlotColors")[1:L]
       if(noise) 
       { colors <- unique(c("black", colors))[1:L] }
     }
@@ -5099,8 +4994,8 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
     bad <- !m
     warning("what improperly specified")
   }
-  if(bad)
-    what <- "bad"
+  if(bad) what <- "bad"
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   nullXlim <- is.null(xlim)
   nullYlim <- is.null(ylim)
   if(length(seeds) > 1)
@@ -5133,7 +5028,7 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
                points(Data[I, 1], Data[I, 2], pch = symbols[k], col = colors[k], cex
                       = CEX)
              }
-             if(identify) {
+             if(main) {
                TITLE <- paste("Random Projection showing Classification: seed = ", 
                               seed)
                title(TITLE)
@@ -5144,7 +5039,7 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
              ERRORS <- classError(classification, truth)$misclassified
              plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
                   = xlim, ylim = ylim, main = "", ...)
-             if(identify) {
+             if(main) {
                TITLE <- paste("Random Projection showing Errors: seed = ", seed)
                title(TITLE)
              }
@@ -5171,7 +5066,7 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
            uncertainty = {
              plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
                   = xlim, ylim = ylim, main = "", ...)
-             if(identify) {
+             if(main) {
                TITLE <- paste("Random Projection showing Uncertainty: seed = ", seed
                )
                title(TITLE)
@@ -5188,7 +5083,7 @@ randProj <- function(data, seeds = 0, parameters = NULL, z = NULL, classificatio
 {
   plot(Data[, 1], Data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim
        = xlim, ylim = ylim, main = "", ...)
-  if(identify) {
+  if(main) {
     TITLE <- paste("Random Projection: seed = ", seed)
     title(TITLE)
   }
@@ -5207,32 +5102,13 @@ if(haveParams) {
 invisible()
 }
 
-summary.mclustBIC <- function(object, data, G, modelNames, ...)
-{
-  mc <- match.call(expand.dots = FALSE)
-  if (is.null(attr(object,"initialization")$noise)) {
-    mc[[1]] <- as.name("summaryMclustBIC")
-  }
-  else {
-    mc[[1]] <- as.name("summaryMclustBICn")
-  }
-  ans <- eval(mc, parent.frame())
-  Glabels <- dimnames(object)[[1]]
-  if (length(Glabels) != 1 && (!missing(G) && length(G) > 1)) {
-    Grange <- range(as.numeric(Glabels))
-    if (match(ans$G, Grange, nomatch = 0))
-      warning("best model occurs at the min or max # of components considered")
-  }
-  ans
-}
-
 surfacePlot <- function(data, parameters, 
                         type = c("contour", "image", "persp"), 
                         what = c("density", "uncertainty"), 
                         transformation = c("none", "log", "sqrt"), 
                         grid = 50, nlevels = 11, levels = NULL, col = grey(0.6),
                         xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
-                        scale = FALSE, identify = FALSE, swapAxes = FALSE,
+                        scale = FALSE, main = FALSE, swapAxes = FALSE,
                         verbose = FALSE,  ...) 
 {
   grid1 <- function(n, range = c(0, 1), edge = TRUE) {
@@ -5285,43 +5161,43 @@ surfacePlot <- function(data, parameters,
   mu <- parameters$mean
   sigma <- parameters$variance$sigma
   haveParams <- !is.null(mu) && !is.null(sigma) && !is.null(pro) && 
-    !any(is.na(mu)) && !any(is.na(sigma)) && !(any(is.na(pro)))
-  if (haveParams) {
-    G <- ncol(mu)
-    dimpar <- dim(sigma)
-    if (length(dimpar) != 3) {
-      haveParams <- FALSE
-      warning("covariance must be a 3D matrix")
-    }
-    if (G != dimpar[3]) {
-      haveParams <- FALSE
-      warning("means and variance parameters are incompatible")
-    }
-    mu <- array(mu, c(2, G))
-    sigma <- array(sigma, c(2, 2, G))
+                !any(is.na(mu)) && !any(is.na(sigma)) && !(any(is.na(pro)))
+  if(haveParams) 
+    { G <- ncol(mu)
+      dimpar <- dim(sigma)
+      if(length(dimpar) != 3) 
+        { haveParams <- FALSE
+          warning("covariance must be a 3D matrix")
+      }
+      if(G != dimpar[3]) 
+        { haveParams <- FALSE
+          warning("means and variance parameters are incompatible")
+      }
+      mu <- array(mu, c(2, G))
+      sigma <- array(sigma, c(2, 2, G))
   }
   
-  if (!haveParams) 
+  if(!haveParams) 
     stop("need parameters to compute density")
   
   if(swapAxes) 
-  { if(haveParams) 
-  { parameters$pro <- pro[2:1]
-    parameters$mean <- mu[2:1,]
-    parameters$variance$sigma <- sigma[2:1, 2:1,]
+    { if(haveParams) 
+        { parameters$pro <- pro[2:1]
+          parameters$mean <- mu[2:1,]
+          parameters$variance$sigma <- sigma[2:1, 2:1,]
+      }
+      data <- data[, 2:1]
   }
-  data <- data[, 2:1]
-  }
-  
+  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   if(is.null(xlim)) xlim <- range(data[, 1])
   if(is.null(ylim)) ylim <- range(data[, 2])
   if(scale)
-  { par(pty = "s")
-    d <- diff(xlim) - diff(ylim)
-    if(d > 0) 
-    { ylim <- c(ylim[1] - d/2, ylim[2] + d/2) }
-    else 
-    { xlim <- c(xlim[1] + d/2, xlim[2] - d/2) }
+    { par(pty = "s")
+      d <- diff(xlim) - diff(ylim)
+      if(d > 0) 
+        { ylim <- c(ylim[1] - d/2, ylim[2] + d/2) }
+      else 
+        { xlim <- c(xlim[1] + d/2, xlim[2] - d/2) }
   }
   
   dnames <- dimnames(data)[[2]]
@@ -5343,28 +5219,22 @@ surfacePlot <- function(data, parameters,
   CI <- type
   DU <- what
   TRANS <- transformation
-  if (length(CI) > 1) 
-    CI <- CI[1]
-  if (length(DU) > 1) 
-    DU <- DU[1]
-  if (length(TRANS) > 1) 
-    TRANS <- TRANS[1]
-  switch(EXPR = DU, density = {
-    zz <- matrix(Z$density, lx, ly)
-    title2 <- "Density"
-  }, uncertainty = {
-    zz <- matrix(Z$uncertainty, lx, ly)
-    title2 <- "Uncertainty"
-  }, stop("what improperly specified"))
-  switch(EXPR = TRANS, none = {
-    title1 <- ""
-  }, log = {
-    zz <- logb(zz)
-    title1 <- "log"
-  }, sqrt = {
-    zz <- sqrt(zz)
-    title1 <- "sqrt"
-  }, stop("transformation improperly specified"))
+  if(length(CI) > 1) CI <- CI[1]
+  if(length(DU) > 1) DU <- DU[1]
+  if(length(TRANS) > 1) TRANS <- TRANS[1]
+  switch(EXPR = DU, 
+         density = { zz <- matrix(Z$density, lx, ly)
+                     title2 <- "Density" }, 
+         uncertainty = { zz <- matrix(Z$uncertainty, lx, ly)
+                         title2 <- "Uncertainty" }, 
+         stop("what improperly specified"))
+  switch(EXPR = TRANS, 
+         none = { title1 <- "" }, 
+         log = { zz <- logb(zz)
+                 title1 <- "log" }, 
+         sqrt = { zz <- sqrt(zz)
+                  title1 <- "sqrt" }, 
+         stop("transformation improperly specified"))
   
   switch(EXPR = CI, 
          contour = {
@@ -5376,6 +5246,13 @@ surfacePlot <- function(data, parameters,
          }, 
          image = {
            title3 <- "Image"
+           # browser()
+           if(length(col) == 1)
+             { if(!is.null(levels)) 
+                 nlevels <- length(levels)
+               col <- mapply(adjustcolor, col = col, 
+                             alpha.f = seq(0.1, 1, length = nlevels))
+           }
            image(x = x, y = y, z = zz, xlab = xlab, ylab = ylab, 
                  col = col, main = "", ...)
          }, 
@@ -5389,7 +5266,7 @@ surfacePlot <- function(data, parameters,
                                    xlab = xlab, ylab = ylab, col = col,
                                    zlab = "Density", main = ""), dots))
          }, stop("type improperly specified"))
-  if(identify) 
+  if(main) 
     { TITLE <- paste(c(title1, title2, title3, "Plot"), collapse = " ")
       title(TITLE) }
 
@@ -5423,6 +5300,172 @@ uncerPlot <- function (z, truth=NULL, ...)
     }
   }
   invisible()
+}
+
+# old version: LS 20150317
+sigma2decomp <- function(sigma, G = NULL, tol = sqrt(.Machine$double.eps), ...) 
+{
+  dimSigma <- dim(sigma)
+  if(is.null(dimSigma)) 
+    stop("sigma improperly specified")
+  d <- dimSigma[1]
+  if(dimSigma[2] != d) 
+    stop("sigma improperly specified")
+  l <- length(dimSigma)
+  if(l < 2 || l > 3) 
+    stop("sigma improperly specified")
+  if(is.null(G)) 
+    { if(l == 2) 
+        { G <- 1
+          sigma <- array(sigma, c(dimSigma, 1)) }
+    else { G <- dimSigma[3] }
+  } else 
+    { if(l == 3 && G != dimSigma[3]) 
+        stop("sigma and G are incompatible")
+      if(l == 2 && G != 1) 
+        sigma <- array(sigma, c(d,d,G))
+  }
+  
+  # angle between subspaces
+  subspace <- function(A, B)
+  { for(k in 1:ncol(A))
+       { B <- B - A[,k,drop=FALSE] %*% (t(A[,k,drop=FALSE]) %*% B) }
+    norm(B, type = "2")
+  }
+  # check equality of values
+  uniq <- function(x) { abs(max(x) - min(x)) < tol }
+  
+  decomp <- list(d = d, G = G, 
+                 scale = rep(0, G), 
+                 shape = matrix(0, d, G), 
+                 orientation = array(0, c(d, d, G)))
+  
+  for(k in 1:G) 
+     { ev <- eigen(sigma[,,k], symmetric = TRUE)
+       temp <- log(ev$values); temp[!is.finite(temp)] <- 0
+       logScale <- sum(temp)/d
+       decomp$scale[k] <- exp(logScale)
+       decomp$shape[,k] <- exp(temp - logScale)
+       decomp$orientation[,,k] <- ev$vectors
+  }
+  scaleName <- "V"
+  shapeName <- "V"
+  orientName <- "V"
+  # check scale/volume
+  if(uniq(decomp$scale)) 
+    { decomp$scale <- decomp$scale[1]
+      scaleName <- "E"
+  }
+  # check shape
+  if(all(apply(decomp$shape, 1, uniq))) 
+    { decomp$shape <- decomp$shape[, 1]
+      if(all(uniq(decomp$shape))) 
+        { shapeName <- "I"
+          decomp$shape <- rep(1, d)
+      }
+      else { shapeName <- "E" }
+  }
+  # check orientation
+  eqOrientation <- 
+  {  if(d == 2) all(apply(matrix(decomp$orientation, nrow = d * d, ncol = G), 
+                                1, uniq))
+    else       all(apply(decomp$orientation[,,-1,drop=FALSE], 3, 
+                         function(o) subspace(decomp$orientation[,,1],o)) < tol)
+  }
+  if(eqOrientation)
+    { decomp$orientation <- decomp$orientation[,,1]
+      if(all(apply(cbind(decomp$orientation, diag(d)), 1, uniq)))
+        { orientName <- "I"
+          decomp$orientation <- NULL }
+      else { orientName <- "E" }
+  }
+  
+  decomp$modelName <- paste0(scaleName, shapeName, orientName)
+  decomp$sigma <- sigma
+  orderedNames <- c("sigma", "d", "modelName", "G", "scale", "shape", "orientation")
+  return(decomp[orderedNames])
+}
+
+sigma2decomp <- function(sigma, G = NULL, tol = sqrt(.Machine$double.eps), ...) 
+{
+  dimSigma <- dim(sigma)
+  if(is.null(dimSigma)) 
+    stop("sigma improperly specified")
+  d <- dimSigma[1]
+  if(dimSigma[2] != d) 
+    stop("sigma improperly specified")
+  l <- length(dimSigma)
+  if(l < 2 || l > 3) 
+    stop("sigma improperly specified")
+  if(is.null(G)) 
+    { if(l == 2) 
+        { G <- 1
+          sigma <- array(sigma, c(dimSigma, 1)) }
+    else { G <- dimSigma[3] }
+  } else 
+    { if(l == 3 && G != dimSigma[3]) 
+        stop("sigma and G are incompatible")
+      if(l == 2 && G != 1) 
+        sigma <- array(sigma, c(d,d,G))
+  }
+  
+  # angle between subspaces
+  subspace <- function(A, B)
+  { for(k in 1:ncol(A))
+       { B <- B - A[,k,drop=FALSE] %*% (t(A[,k,drop=FALSE]) %*% B) }
+    norm(B, type = "2")
+  }
+  # check equality of values
+  uniq <- function(x) { abs(max(x) - min(x)) < tol }
+  
+  decomp <- list(d = d, G = G, 
+                 scale = rep(0, G), 
+                 shape = matrix(0, d, G), 
+                 orientation = array(0, c(d, d, G)))
+  
+  for(k in 1:G) 
+     { ev <- eigen(sigma[,,k], symmetric = TRUE)
+       temp <- log(ev$values); temp[!is.finite(temp)] <- 0
+       logScale <- sum(temp)/d
+       decomp$scale[k] <- exp(logScale)
+       decomp$shape[,k] <- exp(temp - logScale)
+       decomp$orientation[,,k] <- ev$vectors
+  }
+  scaleName <- "V"
+  shapeName <- "V"
+  orientName <- "V"
+  # check scale/volume
+  if(uniq(decomp$scale)) 
+    { decomp$scale <- decomp$scale[1]
+      scaleName <- "E"
+  }
+  # check shape
+  if(all(apply(decomp$shape, 1, uniq))) 
+    { decomp$shape <- decomp$shape[, 1]
+      if(all(uniq(decomp$shape))) 
+        { shapeName <- "I"
+          decomp$shape <- rep(1, d)
+      }
+      else { shapeName <- "E" }
+  }
+  # check orientation
+  D <- decomp$orientation
+  eqOrientation <- all(apply(D, 3, function(d) 
+                       any(apply(d, 2, 
+                                 function(x) cor(D[,,1], x)^2) > (1-tol))))
+  if(eqOrientation)
+    { decomp$orientation <- decomp$orientation[,,1]
+      orientName <- "E"
+      if(sum(abs(svd(decomp$orientation)$v) - diag(d)) < tol)
+        { orientName <- "I"
+          # decomp$orientation <- NULL 
+        }
+  }
+  
+  decomp$modelName <- paste0(scaleName, shapeName, orientName)
+  decomp$sigma <- sigma
+  orderedNames <- c("sigma", "d", "modelName", "G", "scale", "shape", "orientation")
+  return(decomp[orderedNames])
 }
 
 decomp2sigma <- function(d, G, scale, shape, orientation = NULL, ...)
@@ -5491,12 +5534,10 @@ decomp2sigma <- function(d, G, scale, shape, orientation = NULL, ...)
     shape <- matrix(shape, nrow = d, ncol = G)
   }
   sigma <- array(0, c(d, d, G))
-  for(k in 1:G) {
-    sigma[,  , k] <- crossprod(t(orientation[,  , k]) * sqrt(scale[
-      k] * shape[, k]))
-  }
-  structure(sigma, modelName = paste(c(scaleName, shapeName, orientName),
-                                     collapse = ""))
+  for(k in 1:G) 
+     { sigma[,,k] <- crossprod(t(orientation[,,k]) * sqrt(scale[k] * shape[,k])) }
+
+  structure(sigma, modelName = paste0(scaleName, shapeName, orientName))
 }
 
 grid1 <- function (n, range = c(0, 1), edge = TRUE) 
@@ -5535,8 +5576,7 @@ grid2 <- function (x, y)
 hypvol <- function (data, reciprocal = FALSE) 
 {
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 
-    1
+  oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
   if (oneD) {
     n <- length(as.vector(data))
     if (reciprocal) {
@@ -5617,22 +5657,21 @@ imputeData <- function(x, categorical=NULL, seed=NULL)
   if(nocat) ximp[,-1] else ximp[,order(ord)]
 }
 
-map <- function(z, warn = TRUE, ...)
+map <- function(z, warn = mclust.options("warn"), ...)
 {
   nrowz <- nrow(z)
   cl <- numeric(nrowz)
   I <- 1:nrowz
   J <- 1:ncol(z)
-  for(i in I) {
-    cl[i] <- (J[z[i,  ] == max(z[i,  ])])[1]
+  for(i in I) 
+     { cl[i] <- (J[z[i,  ] == max(z[i,  ])])[1] }
+  if(warn) 
+    { K <- as.logical(match(J, sort(unique(cl)), nomatch = 0))
+      if(any(!K))
+        warning(paste("no assignment to", paste(J[!K], 
+                      collapse = ",")))
   }
-  if(warn) {
-    K <- as.logical(match(J, sort(unique(cl)), nomatch = 0))
-    if(any(!K))
-      warning(paste("no assignment to", paste(J[!K], collapse
-                                              = ",")))
-  }
-  cl
+  return(cl)
 }
 
 orth2 <- function (n) 
@@ -5708,82 +5747,10 @@ shapeO <- function(shape, O, transpose = FALSE)
            as.integer(dimO[3]),
            double(l * l),
            integer(1),
-           PACKAGE="mclust")[[3]]
+           PACKAGE = "mclust")[[3]]
 }
 
-sigma2decomp <- function (sigma, G=NULL, tol=NULL, ...) 
-{
-  dimSigma <- dim(sigma)
-  if (is.null(dimSigma)) 
-    stop("sigma improperly specified")
-  d <- dimSigma[1]
-  if (dimSigma[2] != d) 
-    stop("sigma improperly specified")
-  l <- length(dimSigma)
-  if (l < 2 || l > 3) 
-    stop("sigma improperly specified")
-  if (is.null(G)) {
-    if (l == 2) {
-      G <- 1
-      sigma <- array(sigma, c(dimSigma, 1))
-    }
-    else {
-      G <- dimSigma[3]
-    }
-  }
-  else {
-    if (l == 3 && G != dimSigma[3]) 
-      stop("sigma and G are incompatible")
-    if (l == 2 && G != 1) 
-      sigma <- array(sigma, c(d,d,G))
-  }
-  decomp <- list(d = d, G = G, scale = rep(0, G), shape = matrix(0, 
-                                                                 d, G), orientation = array(0, c(d, d, G)))
-  for (k in 1:G) {
-    ev <- eigen(sigma[, , k], symmetric = TRUE)
-    temp <- log(ev$values)
-    logScale <- sum(temp)/d
-    decomp$scale[k] <- exp(logScale)
-    decomp$shape[, k] <- exp(temp - logScale)
-    decomp$orientation[, , k] <- ev$vectors
-  }
-  if (is.null(tol)) 
-    tol <- sqrt(.Machine$double.eps)
-  scaleName <- "V"
-  shapeName <- "V"
-  orientName <- "V"
-  uniq <- function(x, tol = sqrt(.Machine$double.eps)) {
-    abs(max(x) - min(x)) < tol
-  }
-  if (uniq(decomp$scale)) {
-    decomp$scale <- decomp$scale[1]
-    scaleName <- "E"
-  }
-  if (all(apply(decomp$shape, 1, uniq, tol = tol))) {
-    decomp$shape <- decomp$shape[, 1]
-    if (all(uniq(decomp$shape, tol = tol))) {
-      shapeName <- "I"
-      decomp$shape <- rep(1, d)
-    }
-    else {
-      shapeName <- "E"
-    }
-  }
-  if (all(apply(matrix(decomp$orientation, nrow = d * d, ncol = G), 
-                1, uniq, tol = tol))) {
-    decomp$orientation = decomp$orientation[, , 1]
-    if (all(apply(cbind(decomp$orientation, diag(d)), 1, 
-                  uniq, tol = tol))) {
-      orientName <- "I"
-      decomp$orientation <- NULL
-    }
-    else {
-      orientName <- "E"
-    }
-  }
-  modelName <-  paste(c(scaleName, shapeName, orientName), collapse = "")
-  c(list(modelName = modelName, decomp))
-}
+
 
 traceW <- function(x)
 {
@@ -5820,7 +5787,7 @@ unchol <- function(x, upper = NULL)
            as.integer(nrow(x)),
            as.integer(ncol(x)),
            integer(1),
-           PACKAGE="mclust")[[2]]
+           PACKAGE = "mclust")[[2]]
 }
 
 unmap <- function(classification, groups=NULL, noise=NULL, ...)
@@ -5831,31 +5798,31 @@ unmap <- function(classification, groups=NULL, noise=NULL, ...)
   n <- length(classification)
   u <- sort(unique(classification))
   if(is.null(groups))
-  { groups <- u }
+    { groups <- u }
   else 
-  { if(any(match( u, groups, nomatch = 0) == 0)) 
-    stop("groups incompatible with classification")
-    miss <- match( groups, u, nomatch = 0) == 0
-  }
+    { if(any(match( u, groups, nomatch = 0) == 0)) 
+      stop("groups incompatible with classification")
+      miss <- match( groups, u, nomatch = 0) == 0
+    }
   cgroups <- as.character(groups)
   if(!is.null(noise)) 
-  { noiz <- match( noise, groups, nomatch = 0)
-    if(any(noiz == 0)) stop("noise incompatible with classification")
-    groups <- c(groups[groups != noise],groups[groups==noise])
-    noise <- as.numeric(factor(as.character(noise), levels = unique(groups)))
+    { noiz <- match( noise, groups, nomatch = 0)
+      if(any(noiz == 0)) stop("noise incompatible with classification")
+      groups <- c(groups[groups != noise],groups[groups==noise])
+      noise <- as.numeric(factor(as.character(noise), levels = unique(groups)))
   }
   groups <- as.numeric(factor(cgroups, levels = unique(cgroups)))
   classification <- as.numeric(factor(as.character(classification), levels = unique(cgroups)))
   k <- length(groups) - length(noise)
   nam <- levels(groups)
   if(!is.null(noise)) 
-  { k <- k + 1
-    nam <- nam[1:k]
-    nam[k] <- "noise"
+    { k <- k + 1
+      nam <- nam[1:k]
+      nam[k] <- "noise"
   }
   z <- matrix(0, n, k, dimnames = c(names(classification),nam))
   for(j in 1:k)
-  { z[classification == groups[j], j] <- 1 }
+     { z[classification == groups[j], j] <- 1 }
   return(z)
 }
 
@@ -5915,50 +5882,39 @@ vecnorm <- function (x, p = 2)
   NextMethod("[")
 }
 
+
 bic <- function(modelName, loglik, n, d, G, noise = FALSE, equalPro = FALSE, ...)
 {
-  modelName <- switch(EXPR = modelName,
-                      X = "E",
-                      XII = "EII",
-                      XXI = "EEI",
-                      XXX = "EEE",
-                      modelName)
-  checkModelName(modelName)
-  if (G == 0) {
-    ## one cluster case
-    if(!noise) stop("undefined model")
-    nparams <- 1
-  }
-  else {
-    nparams <- nVarParams(modelName, d, G) + G*d
-    if(!equalPro)
-      nparams <- nparams + (G - 1)
-    if(noise)
-      nparams <- nparams + 2
-  }
-  2 * loglik - nparams * logb(n)
+  mc <- match.call(expand.dots = TRUE)
+  mc[[1]] <- as.name("nMclustParams")
+  nparams <- eval(mc, parent.frame())
+  2 * loglik - nparams * log(n)
 }
 
 
 checkModelName <- function(modelName)
 {
   switch(EXPR = modelName,
-         E = ,
-         V = ,
-         EII  = ,
-         VII = ,
-         EEI  = ,
-         VEI = ,
-         EVI = ,
-         VVI = ,
-         EEE = ,
-       # VEE = ,
-       # EVV = ,
-       # EVE = ,
-       # VVE = ,
-         EEV = ,
-         VEV = ,
-         VVV = TRUE,
+         "X" = ,
+         "E" = ,
+         "V" = ,
+         "XII" = ,
+         "XXI" = ,
+         "XXX" = ,
+         "EII" = ,
+         "VII" = ,
+         "EEI" = ,
+         "VEI" = ,
+         "EVI" = ,
+         "VVI" = ,
+         "EEE" = ,
+         "EVE" = ,
+         "VEE" = ,
+         "VVE" = ,
+         "EEV" = ,
+         "VEV" = ,
+         "EVV" = ,
+         "VVV" = TRUE,
          stop("invalid model name"))
 }
 
@@ -5986,7 +5942,7 @@ estep <- function(modelName, data, parameters, warn = NULL, ...)
 
 #############################################################################
 
-mclustVariance <- function(modelName, d=NULL, G=2) 
+mclustVariance <- function(modelName, d=NULL, G=2)
 {
   x <- -1
   if (nchar(modelName) == 1) {
@@ -6002,28 +5958,51 @@ mclustVariance <- function(modelName, d=NULL, G=2)
     if (is.null(d)) d <- 3
     varList <- switch(EXPR = modelName,
                       "XII" = list(sigmasq = x),
-                      "EII" = list(sigmasq = x),
-                      "VII" = list(sigmasq = rep(x,G)),
-                      "XXI" = list(scale = x, shape = rep(x,d)),
-                      "EEI" = list(scale = x, shape = rep(x,d)),
-                      "EVI" = list(scale = x, shape = matrix(x,d,G)),
-                      "VEI" = list(scale = rep(x,G), shape = rep(x,d)),
-                      "VVI" = list(scale = rep(x,G), shape = matrix(x,d,G)),
-                      "XXX" = {M <- matrix(x,d,d); M[row(M) > col(M)] <- 0;
-                               list(cholSigma = M)},
-                      "EEE" = {M <- matrix(x,d,d); M[row(M) > col(M)] <- 0;
-                               list(cholSigma = M)},
-                      "EEV" = list(scale = x, shape = rep(x,d),
+                      "EII" = list(sigmasq = x, 
+                                   scale = x, 
+                                   shape = rep(x,d)),
+                      "VII" = list(sigmasq = rep(x,G),
+                                   scale = rep(x,G),
+                                   shape = rep(x,d)),
+                      "XXI" = list(scale = x, 
+                                   shape = rep(x,d)),
+                      "EEI" = list(scale = x, 
+                                   shape = rep(x,d)),
+                      "EVI" = list(scale = x, 
+                                   shape = matrix(x,d,G)),
+                      "VEI" = list(scale = rep(x,G), 
+                                   shape = rep(x,d)),
+                      "VVI" = list(scale = rep(x,G), 
+                                   shape = matrix(x,d,G)),
+                      "XXX" = { M <- matrix(x,d,d); M[row(M) > col(M)] <- 0;
+                                list(cholSigma = M) },
+                      "EEE" = { M <- matrix(x,d,d); M[row(M) > col(M)] <- 0;
+                                list(cholSigma = M) },
+                      "VEE" = list(scale = rep(x,G), 
+                                   shape = rep(x,d),
+                                   orientation = matrix(x,d,d)),
+                      "VVE" = list(scale = rep(x,G), 
+                                   shape = matrix(x,d,G),
+                                   orientation = matrix(x,d,d)),
+                      "EVV" = list(scale = x, 
+                                   shape = matrix(x,d,G),
                                    orientation = array(x,c(d,d,G))),
-                      "VEV" = list(scale = x, shape = matrix(x,d,G),
+                      "EVE" = list(scale = x, 
+                                   shape = matrix(x,d,G),
+                                   orientation = matrix(x,d,d)),
+                      "EEV" = list(scale = x, 
+                                   shape = rep(x,d),
                                    orientation = array(x,c(d,d,G))),
-                      "VVV" = {A <- array(x,c(d,d,G)); 
-                               I <- row(A[,,1]) > col(A[,,1])
-                               for (k in 1:G) A[,,k][I] <- 0
-                               list(cholsigma = A)},
+                      "VEV" = list(scale = x, 
+                                   shape = matrix(x,d,G),
+                                   orientation = array(x,c(d,d,G))),
+                      "VVV" = { A <- array(x,c(d,d,G));
+                                I <- row(A[,,1]) > col(A[,,1])
+                                for (k in 1:G) A[,,k][I] <- 0
+                                list(cholsigma = A)},
                       stop("modelName not recognized"))
   }
-  c(modelName = modelName, d=d, G=G, varList)
+  c(modelName = modelName, d = d, G = G, varList)
 }
 
 me <- function(modelName, data, z, prior = NULL, control = emControl(), 
@@ -6050,30 +6029,31 @@ mstep <- function(modelName, data, z, prior = NULL, warn = NULL, ...)
 mvn <- function(modelName, data, prior = NULL, warn = NULL, ...)
 {
   modelName <- switch(EXPR = modelName,
-                      E = "X",
-                      V = "X",
-                      X  =  "X",
-                      Spherical = "XII",
-                      EII  = "XII",
-                      VII = "XII",
-                      XII = "XII",
-                      Diagonal =  "XXI",
-                      EEI  = "XXI",
-                      VEI = "XXI",
-                      EVI = "XXI",
-                      VVI = "XXI",
-                      XXI = "XXI",
-                      Ellipsoidal = "XXX",
-                      EEE = "XXX",
-                      VEE = "XXX",
-                      EVE = "XXX",
-                      VVE = "XXX",
-                      EEV = "XXX",
-                      VEV = "XXX",
-                      VVV = "XXX",
-                      XXX = "XXX",
+                      "E" = "X",
+                      "V" = "X",
+                      "X"  =  "X",
+                      "Spherical" = "XII",
+                      "EII" = "XII",
+                      "VII" = "XII",
+                      "XII" = "XII",
+                      "Diagonal" = "XXI",
+                      "EEI" = "XXI",
+                      "VEI" = "XXI",
+                      "EVI" = "XXI",
+                      "VVI" = "XXI",
+                      "XXI" = "XXI",
+                      "Ellipsoidal" = "XXX",
+                      "EEE" = "XXX",
+                      "VEE" = "XXX",
+                      "EVE" = "XXX",
+                      "EVV" = "XXX",
+                      "VVE" = "XXX",
+                      "EEV" = "XXX",
+                      "VEV" = "XXX",
+                      "VVV" = "XXX",
+                      "XXX" = "XXX",
                       stop("invalid model name"))
-  
+
   funcName <- paste("mvn", modelName, sep = "")
   mc <- match.call()
   mc[[1]] <- as.name(funcName)
@@ -6088,35 +6068,57 @@ mvn <- function(modelName, data, prior = NULL, warn = NULL, ...)
   return(out)
 }
 
-nVarParams <- function(modelName, d, G)
+nVarParams <- function(modelName, d, G, ...)
 {
-  modelName <- switch(EXPR = modelName, 
+  modelName <- switch(EXPR = modelName,
+                      X = "E",
+                      XII = "EII",
+                      XXI = "EEI",
+                      XXX = "EEE",
+                      modelName)
+  # checkModelName(modelName)
+  switch(EXPR = modelName,
+         "E"   = 1,
+         "V"   = G,
+         "EII" = 1,
+         "VII" = G,
+         "EEI" = d,
+         "VEI" = G + (d-1),
+         "EVI" = 1 + G * (d-1),
+         "VVI" = G * d,
+         "EEE" = d*(d+1)/2,
+         "EVE" = 1 + G*(d-1) + d*(d-1)/2,
+         "VEE" = G + (d-1) + d*(d-1)/2,
+         "VVE" = G + G * (d-1) + d*(d-1)/2,
+         "EEV" = 1 + (d-1) + G * d*(d-1)/2,
+         "VEV" = G + (d-1) + G * d*(d-1)/2,
+         "EVV" = 1 - G + G * d*(d+1)/2,
+         "VVV" = G * d*(d+1)/2,
+         stop("invalid model name"))
+}
+
+nMclustParams <- function(modelName, d, G, noise = FALSE, equalPro = FALSE, ...)
+{
+  modelName <- switch(EXPR = modelName,
                       X = "E",
                       XII = "EII",
                       XXI = "EEI",
                       XXX = "EEE",
                       modelName)
   checkModelName(modelName)
-  
-  r <- (d*(d-1))/2
-  s <- (d*(d+1))/2 # s = r + d
-  switch(EXPR = modelName,
-         E = 1,
-         V = G,
-         EII = 1,
-         VII = G,
-         EEI = d,
-         VEI = G+(d-1),
-         EVI = 1 + G*(d-1),
-         VVI = G*d,
-         EEE = s,
-         VEE = G + (d-1) + r,
-         EVE = 1 + (d-1) + r,
-         VVE = G + G*(d-1) + r,
-         EEV = 1 + (d-1) + G*r,
-         VEV = G + (d-1) + G*r,
-         VVV = G * s,
-         stop("invalid model name"))
+  if(G == 0) 
+    { ## one noise cluster case
+      if(!noise) stop("undefined model")
+      nparams <- 1
+  }
+  else 
+    { nparams <- nVarParams(modelName, d = d, G = G) + G*d
+      if(!equalPro)
+        nparams <- nparams + (G - 1)
+      if(noise)
+        nparams <- nparams + 2
+  }
+  return(nparams)
 }
 
 sim <- function(modelName, parameters, n, seed = NULL, ...)
@@ -6137,7 +6139,7 @@ sim <- function(modelName, parameters, n, seed = NULL, ...)
 
 cdensVEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -6199,7 +6201,7 @@ emVEI <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepVEI <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -6269,7 +6271,7 @@ estepVEI <- function(data, parameters, warn = NULL, ...)
 meVEI <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -6292,8 +6294,8 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "VEI", d = p, G = G, 
                      scale = rep(NA,G), shape = rep(NA,p)) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="VEI", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -6410,7 +6412,7 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
   dimnames(sigma) <- list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
   variance <- list(modelName = "VEI", d = p, G = G, 
                    sigma = sigma, scale = scale, shape = shape)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "VEI", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -6419,7 +6421,7 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
 
 mstepVEI <- function(data, z, prior = NULL, warn = NULL, control = NULL,...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -6542,11 +6544,10 @@ simVEI <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "VEI"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "VEI"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -6565,13 +6566,13 @@ simVEI <- function(parameters, n, seed = NULL, ...)
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
                                   diag(rtscale[k] * rtshape), MARGIN = 2, STATS = mu[, k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "VEI")
 }
 
 cdensV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -6642,7 +6643,7 @@ emV <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepV <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -6670,7 +6671,7 @@ estepV <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")])))
      || any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(names(data), NULL)
     return(structure(list(modelName = "V", n=n, d=1, G=G, z=z,
@@ -6684,7 +6685,7 @@ estepV <- function(data, parameters, warn = NULL, ...)
     stop("sigma-squared is negative")
   if(any(!sigmasq)) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(names(data), NULL)
     return(structure(list(modelName = "V", n=n, d=1, G=G, z=z,
@@ -6705,11 +6706,11 @@ estepV <- function(data, parameters, warn = NULL, ...)
   loglik <- temp[[1]]
   z <- matrix(temp[[2]], n, K)
   WARNING <- NULL
-  if(loglik > signif(.Machine$double.xmax, 6)) {
-    WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
-    z[] <- loglik <- NA
-    ret <- -1
+  if(loglik > signif(.Machine$double.xmax, 6)) 
+    { WARNING <- "cannot compute E-step"
+      if(warn) warning(WARNING)
+      z[] <- loglik <- NA
+      ret <- -1
   }
   else ret <- 0
   dimnames(z) <- list(names(data),NULL)
@@ -6785,7 +6786,7 @@ emVEV <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepVEV <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -6859,7 +6860,7 @@ estepVEV <- function(data, parameters, warn = NULL, ...)
 meVEV <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7020,7 +7021,7 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
   ##  Sigma = scale * O %*% diag(shape) %*% t(O)
   variance <- list(modelName = "VEV", d = p, G = G, sigma = sigma, 
                    scale = scale, shape = shape, orientation = O)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv) 
   structure(list(modelName = "VEV", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -7029,7 +7030,7 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
 
 mstepVEV <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7177,11 +7178,10 @@ simVEV <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "VEV"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "VEV"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -7202,13 +7202,13 @@ simVEV <- function(parameters, n, seed = NULL, ...)
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
                                   cholSigma, MARGIN = 2, STATS = mu[, k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "VEV")
 }
 
 cdensVII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -7277,7 +7277,7 @@ emVII <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepVII <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -7357,7 +7357,7 @@ estepVII <- function(data, parameters, warn = NULL, ...)
 meVII <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -7379,8 +7379,8 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
     WARNING <- "z is missing"
     if (warn) warning(WARNING)
     variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="VII", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -7465,11 +7465,11 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
     sigma <- array(0, c(p, p, G))
     for(k in 1:G)
       sigma[,  , k] <- diag(rep(sigmasq[k], p))
-    if(its >= control$itmax[1]) {
-      warning("iteration limit reached")
-      WARNING <- "iteration limit reached"
-      its <-  - its
-      ret <- 1
+    if(its >= control$itmax[1]) 
+      { WARNING <- "iteration limit reached"
+        warning(WARNING)
+        its <-  - its
+        ret <- 1
     }
     else ret <- 0
   }
@@ -7480,7 +7480,7 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
                           NULL)
   variance <- list(modelName = "VII", d = p, G = G, 
                    sigma = sigma, sigmasq = sigmasq, scale = sigmasq)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "VII", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control, 
                  loglik = loglik), 
@@ -7490,7 +7490,7 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
 meVVI <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -7513,8 +7513,8 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "VVI", d = p, G = G, 
                      scale = rep(NA,G), shape = matrix(as.double(NA),p,G)) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="VVI", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -7614,7 +7614,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
                           NULL)
   variance <- list(modelName = "VVI", d = p, G = G, 
                    sigma = sigma, scale = scale, shape = shape)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -7623,7 +7623,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
 
 mstepVII <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -7712,11 +7712,10 @@ simVII <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d), modelName = "VII"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d), modelName = "VII"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -7730,14 +7729,14 @@ simVII <- function(parameters, n, seed = NULL, ...)
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
                                   diag(rep(sqrt(sigmasq[k]), d)), MARGIN = 2, STATS = mu[, k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "VII")
 }
 
 meV <- function(data, z, prior = NULL, control = emControl(), 
                 Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -7749,20 +7748,21 @@ meV <- function(data, z, prior = NULL, control = emControl(),
   if(dimz[1] != n)
     stop("row dimension of z should equal length of data")
   K <- dimz[2]
-  if (!is.null(Vinv)) {
-    G <- K - 1
-    if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
+  if(!is.null(Vinv)) 
+    { G <- K - 1
+      if (Vinv <= 0) Vinv <- hypvol(data, reciprocal = TRUE)
   }
   else G <- K
-  if(all(is.na(z))) {
-    WARNING <- "z is missing"
-    if (warn) warning(WARNING)
-    variance <- list(modelName = "V", d=1, G=G, sigmasq = rep(NA,G))
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), mean=rep(NA,G), 
-                       variance=variance)
-    return(structure(list(modelName="V", prior=prior, n=n, d=1, G=G,
-                          z=z, parameters=parameters, control=control, loglik=NA), 
-                     WARNING = WARNING, returnCode = 9))
+  if(all(is.na(z))) 
+    { WARNING <- "z is missing"
+      if (warn) warning(WARNING)
+      variance <- list(modelName = "V", d=1, G=G, sigmasq = rep(NA,G))
+      parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
+                         variance=variance, Vinv=Vinv)
+      return(structure(list(modelName="V", prior=prior, n=n, d=1, G=G,
+                            z=z, parameters=parameters, 
+                            control=control, loglik=NA), 
+                       WARNING = WARNING, returnCode = 9))
   }
   if(any(is.na(z)) || any(z < 0) || any(z > 1))
     stop("improper specification of z")
@@ -7816,12 +7816,12 @@ meV <- function(data, z, prior = NULL, control = emControl(),
   pro <- temp[[7]]
   ## logpost <- temp[[8]]
   WARNING <- NULL
-  if(loglik > signif(.Machine$double.xmax, 6) || any(sigmasq <= max(
-    control$eps, 0))) {
-    WARNING <- "sigma-squared falls below threshold"
-    if(warn) warning(WARNING)
-    mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
-    ret <- -1
+  if(loglik > signif(.Machine$double.xmax, 6) || 
+     any(sigmasq <= max(control$eps, 0))) 
+    { WARNING <- "sigma-squared falls below threshold"
+      if(warn) warning(WARNING)
+      mu[] <- pro[] <- sigmasq[] <- z[] <- loglik <- NA
+      ret <- -1
   }
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
@@ -7846,7 +7846,7 @@ meV <- function(data, z, prior = NULL, control = emControl(),
   dimnames(z) <- list(names(data),NULL)
   variance = list(modelName = "V", d = 1, G = G, 
                   sigmasq = sigmasq, scale = sigmasq)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "V", prior = prior, n = n, d = 1, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik),
@@ -7855,7 +7855,7 @@ meV <- function(data, z, prior = NULL, control = emControl(),
 
 mstepV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -7937,11 +7937,10 @@ mstepV <- function(data, z, prior = NULL, warn = NULL, ...)
 
 simV <- function(parameters, n, seed = NULL, ...)
 {
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, 2), modelName = "V"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, 2), modelName = "V"))
   }
   if(!is.null(seed))
     set.seed(seed)
@@ -7962,7 +7961,7 @@ simV <- function(parameters, n, seed = NULL, ...)
 
 cdensVVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -8024,7 +8023,7 @@ emVVI <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepVVI <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -8094,7 +8093,7 @@ estepVVI <- function(data, parameters, warn = NULL, ...)
 meVVI <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) > 2)
@@ -8117,8 +8116,8 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "VVI", d = p, G = G, 
                      scale = rep(NA,G), shape = matrix(as.double(NA),p,G)) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="VVI", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -8218,7 +8217,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
                           NULL)
   variance <- list(modelName = "VVI", d = p, G = G, 
                    sigma = sigma, scale = scale, shape = shape)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance)
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv)
   structure(list(modelName = "VVI", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -8227,7 +8226,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
 
 mstepVVI <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -8325,11 +8324,10 @@ simVVI <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(parameters[c(
-    "mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "VVI"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "VVI"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -8348,13 +8346,13 @@ simVVI <- function(parameters, n, seed = NULL, ...)
     x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% 
                                   diag(rtscale[k] * rtshape[, k]), MARGIN = 2, STATS = mu[, k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "VVI")
 }
 
 cdensVVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -8430,7 +8428,7 @@ emVVV <- function(data, parameters, prior = NULL, control = emControl(),
 
 estepVVV <- function(data, parameters, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   if(is.null(dimdat) || length(dimdat) != 2)
     stop("data must be a matrix")
@@ -8513,7 +8511,7 @@ estepVVV <- function(data, parameters, warn = NULL, ...)
 meVVV <- function(data, z, prior = NULL, control = emControl(), 
                   Vinv = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -8536,8 +8534,8 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
     if (warn) warning(WARNING)
     variance <- list(modelName = "VVV", d = p, G = G, 
                      sigma = array(NA, c(p,p,G)), cholsigma = array(NA, c(p,p,G))) 
-    parameters <- list(Vinv=Vinv, pro=rep(NA,G), 
-                       mean=matrix(as.double(NA),p,G), variance=variance)
+    parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
+                       variance=variance, Vinv=Vinv)
     return(structure(list(modelName="VVV", prior=prior, n=n, d=p, 
                           G=G, z=z, parameters=parameters, 
                           control=control, loglik=NA), 
@@ -8625,8 +8623,8 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
     sigma <- array(apply(cholsigma, 3, unchol, upper = TRUE), 
                    c(p,p,G))
     if(its >= control$itmax[1]) {
-      warning("iteration limit reached")
       WARNING <- "iteration limit reached"
+      warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -8639,7 +8637,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
     list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
   variance <- list(modelName = "VVV", d = p, G = G,
                    sigma = sigma, cholsigma = cholsigma)
-  parameters <- list(Vinv=Vinv, pro=pro, mean=mu, variance=variance) 
+  parameters <- list(pro=pro, mean=mu, variance=variance, Vinv=Vinv) 
   structure(list(modelName = "VVV", prior = prior, n = n, d = p, G = G, 
                  z = z, parameters = parameters, control = control,
                  loglik = loglik), 
@@ -8648,7 +8646,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
 
 mstepVVV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
-  if (is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD || length(dimdat) != 2)
@@ -8749,11 +8747,10 @@ simVVV <- function(parameters, n, seed = NULL, ...)
   mu <- as.matrix(parameters$mean)
   d <- nrow(mu)
   G <- ncol(mu)
-  if(any(is.na(parameters[c("mean", "variance")])) || any(is.null(
-    parameters[c("mean", "variance")]))) {
-    warn <- "parameters are missing"
-    warning("parameters are missing")
-    return(structure(matrix(as.double(NA), n, d + 1), modelName = "VVV"))
+  if(any(is.na(parameters[c("mean", "variance")])) || 
+     any(is.null(parameters[c("mean", "variance")]))) 
+    { warning("parameters are missing")
+      return(structure(matrix(as.double(NA), n, d + 1), modelName = "VVV"))
   }
   pro <- parameters$pro
   if(is.null(pro))
@@ -8773,81 +8770,20 @@ simVVV <- function(parameters, n, seed = NULL, ...)
   }
   if(dim(cholsigma)[3] != G)
     stop("variance incompatible with mean")
-  for(k in 1:G) {
-    m <- ctabel[k]
-    x[clabels == k,  ] <- sweep(matrix(rnorm(m * d), nrow = m,
-                                       ncol = d) %*% cholsigma[,,k], MARGIN = 2, STATS = mu[ k], FUN = "+")
+  for(k in 1:G) 
+     { m <- ctabel[k]
+       x[clabels == k,] <- sweep(matrix(rnorm(m * d), nrow = m, ncol = d) %*% cholsigma[,,k], 
+                                 MARGIN = 2, STATS = mu[,k], FUN = "+")
   }
-  dimnames(x) <- list(NULL, 1:d)
+  dimnames(x) <- list(NULL, paste0("x", 1:d))
   structure(cbind(group = clabels, x), modelName = "VVV")
 }
 
-mvnXII <- function(data, prior = NULL, warn = NULL, ...)
-{
-  if(is.null(warn)) warn <- .mclust$warn
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
-  if(oneD)
-    stop("for multidimensional data only")
-  if(length(dimdat) != 2)
-    stop("data must be a matrix")
-  data <- as.matrix(data)
-  n <- nrow(data)
-  p <- ncol(data)
-  if(is.null(prior)) {
-    temp <- .Fortran("mvnxii",
-                     as.double(data),
-                     as.integer(n),
-                     as.integer(p),
-                     double(p),
-                     double(1),
-                     double(1),
-                     PACKAGE = "mclust")[4:6]
-    logpost <- NULL
-  }
-  else {
-    priorParams <- do.call(prior$functionName, c(list(data = 
-                                                        data, G = 1, modelName = "XII"), prior[names(prior) !=
-                                                                                                 "functionName"]))
-    temp <- .Fortran("mnxiip",
-                     as.double(data),
-                     as.integer(n),
-                     as.integer(p),
-                     as.double(priorParams$shrinkage),
-                     as.double(priorParams$mean),
-                     as.double(priorParams$scale),
-                     as.double(priorParams$dof),
-                     double(p),
-                     double(1),
-                     double(1),
-                     PACKAGE = "mclust")[c(8:10, 7)]
-    logpost <- temp[[4]]
-  }
-  mu <- temp[[1]]
-  sigmasq <- temp[[2]]
-  loglik <- temp[[3]]
-  Sigma <- sigmasq * diag(p)
-  ret <- 0
-  WARNING <- NULL
-  if(loglik > signif(.Machine$double.xmax, 6)) {
-    WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
-    loglik <- NA
-    ret <- -1
-  }
-  variance <- list(modelName = "XII", d = p, G = 1,  
-                   sigmasq   = sigmasq, Sigma = Sigma, 
-                   sigma = array(Sigma, c(p, p, 1)), scale = sigmasq)
-  parameters <- list(pro = 1, mean = matrix(mu, ncol = 1), variance = variance) 
-  structure(list(modelName = "XII", prior = prior, n = n, d = p, G = 1, 
-                 parameters = parameters, loglik = loglik), 
-            WARNING = WARNING, returnCode = ret) 
-}
 
+# single component univariate case
 mvnX <- function(data, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(!oneD)
@@ -8899,9 +8835,27 @@ mvnX <- function(data, prior = NULL, warn = NULL, ...)
             WARNING = WARNING, returnCode = ret) 
 }
 
-mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
+cdensX <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  call <- match.call()
+  mc <- match.call(expand.dots = FALSE)
+  mc[[1]] <- as.name("cdensE")
+  z <- eval(mc, parent.frame())
+  attr(z, "modelName") <- "X"
+  return(z)
+}
+
+emX <- function(data, prior = NULL, warn = NULL, ...)
+{
+  mvnX(data, prior = prior, warn = warn, ...)
+}
+
+meX <- emX
+
+# single component multivariate case with diagonal common variance
+mvnXII <- function(data, prior = NULL, warn = NULL, ...)
+{
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD)
@@ -8911,36 +8865,119 @@ mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  if(is.null(prior)) {
-    temp <- .Fortran("mvnxxi",
-                     as.double(data),
-                     as.integer(n),
-                     as.integer(p),
-                     double(p),
-                     double(1),
-                     double(p),
-                     double(1),
-                     PACKAGE = "mclust")[4:7]
-    logpost <- NULL
+  if(is.null(prior)) 
+    { temp <- .Fortran("mvnxii",
+                       as.double(data),
+                       as.integer(n),
+                       as.integer(p),
+                       double(p),
+                       double(1),
+                       double(1),
+                       PACKAGE = "mclust")[4:6]
+      logpost <- NULL
   }
-  else {
-    priorParams <- do.call(prior$functionName, c(list(data = 
-                                                        data, G = 1, modelName = "XXI"), prior[names(prior) !=
-                                                                                                 "functionName"]))
-    temp <- .Fortran("mnxxip",
-                     as.double(data),
-                     as.integer(n),
-                     as.integer(p),
-                     as.double(priorParams$shrinkage),
-                     as.double(priorParams$mean),
-                     as.double(priorParams$scale),
-                     as.double(priorParams$dof),
-                     double(p),
-                     double(1),
-                     double(p),
-                     double(1),
-                     PACKAGE = "mclust")[c(8:11, 7)]
-    logpost <- temp[[5]]
+  else 
+    { priorParams <- do.call(prior$functionName, c(list(data = data, 
+                                                        G = 1, 
+                                                        modelName = "XII"),
+                                                   prior[names(prior) != "functionName"]))
+      temp <- .Fortran("mnxiip",
+                       as.double(data),
+                       as.integer(n),
+                       as.integer(p),
+                       as.double(priorParams$shrinkage),
+                       as.double(priorParams$mean),
+                       as.double(priorParams$scale),
+                       as.double(priorParams$dof),
+                       double(p),
+                       double(1),
+                       double(1),
+                       PACKAGE = "mclust")[c(8:10, 7)]
+      logpost <- temp[[4]]
+  }
+  mu <- temp[[1]]
+  sigmasq <- temp[[2]]
+  loglik <- temp[[3]]
+  Sigma <- sigmasq * diag(p)
+  ret <- 0
+  WARNING <- NULL
+  if(loglik > signif(.Machine$double.xmax, 6)) 
+    { WARNING <- "singular covariance"
+      if(warn)
+        warning(WARNING)
+      loglik <- NA
+      ret <- -1
+  }
+  variance <- list(modelName = "XII", d = p, G = 1,  
+                   sigmasq   = sigmasq, Sigma = Sigma, 
+                   sigma = array(Sigma, c(p, p, 1)), scale = sigmasq)
+  parameters <- list(pro = 1, mean = matrix(mu, ncol = 1), variance = variance) 
+  structure(list(modelName = "XII", prior = prior, n = n, d = p, G = 1, 
+                 parameters = parameters, loglik = loglik), 
+            WARNING = WARNING, returnCode = ret) 
+}
+
+cdensXII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+  call <- match.call()
+  mc <- match.call(expand.dots = FALSE)
+  mc[[1]] <- as.name("cdensEII")
+  z <- eval(mc, parent.frame())
+  attr(z, "modelName") <- "XII"
+  return(z)
+}
+
+emXII <- function(data, prior = NULL, warn = NULL, ...)
+{
+  mvnXII(data, prior = prior, warn = warn, ...)
+}
+
+meXII <- emXII
+
+# single component multivariate case with diagonal different variances
+mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
+{
+  if(is.null(warn)) warn <- mclust.options("warn")
+  dimdat <- dim(data)
+  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  if(oneD)
+    stop("for multidimensional data only")
+  if(length(dimdat) != 2)
+    stop("data must be a matrix")
+  data <- as.matrix(data)
+  n <- nrow(data)
+  p <- ncol(data)
+  if(is.null(prior)) 
+    { temp <- .Fortran("mvnxxi",
+                       as.double(data),
+                       as.integer(n),
+                       as.integer(p),
+                       double(p),
+                       double(1),
+                       double(p),
+                       double(1),
+                       PACKAGE = "mclust")[4:7]
+      logpost <- NULL
+  }
+  else 
+    { priorParams <- do.call(prior$functionName, c(list(data = data, 
+                                                        G = 1, 
+                                                        modelName = "XXI"),
+                                                   prior[names(prior) != "functionName"]))
+      temp <- .Fortran("mnxxip",
+                       as.double(data),
+                       as.integer(n),
+                       as.integer(p),
+                       as.double(priorParams$shrinkage),
+                       as.double(priorParams$mean),
+                       as.double(priorParams$scale),
+                       as.double(priorParams$dof),
+                       double(p),
+                       double(1),
+                       double(p),
+                       double(1),
+                       PACKAGE = "mclust")[c(8:11, 7)]
+      logpost <- temp[[5]]
   }
   mu <- temp[[1]]
   scale <- temp[[2]]
@@ -8949,12 +8986,12 @@ mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
   Sigma <- diag(scale * shape)
   ret <- 0
   WARNING <- NULL
-  if(loglik > signif(.Machine$double.xmax, 6)) {
-    WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
-    loglik <- NA
-    ret <- -1
+  if(loglik > signif(.Machine$double.xmax, 6)) 
+    { WARNING <- "singular covariance"
+      if(warn)
+        warning(WARNING)
+      loglik <- NA
+      ret <- -1
   }
   variance <- list(modelName = "XXI", d = p, G = 1, 
                    Sigma = Sigma, sigma = array(Sigma, c(p, p, 1)),
@@ -8966,9 +9003,27 @@ mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
             WARNING = WARNING, returnCode = ret) 
 }
 
+cdensXXI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+  call <- match.call()
+  mc <- match.call(expand.dots = FALSE)
+  mc[[1]] <- as.name("cdensEEI")
+  z <- eval(mc, parent.frame())
+  attr(z, "modelName") <- "XXI"
+  return(z)
+}
+
+emXXI <- function(data, prior = NULL, warn = NULL, ...)
+{
+  mvnXXI(data, prior = prior, warn = warn, ...)
+}
+
+meXXI <- emXXI
+
+# single component multivariate case with full covariance matrix
 mvnXXX <- function(data, prior = NULL, warn = NULL, ...)
 {
-  if(is.null(warn)) warn <- .mclust$warn
+  if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
   oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
   if(oneD)
@@ -8978,36 +9033,37 @@ mvnXXX <- function(data, prior = NULL, warn = NULL, ...)
   data <- as.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
-  if(is.null(prior)) {
-    temp <- .Fortran("mvnxxx",
-                     as.double(data),
-                     as.integer(n),
-                     as.integer(p),
-                     double(p),
-                     double(p * p),
-                     double(1),
-                     PACKAGE = "mclust")[c(4:6)]
-    logpost <- NULL
+  if(is.null(prior)) 
+    { temp <- .Fortran("mvnxxx",
+                       as.double(data),
+                       as.integer(n),
+                       as.integer(p),
+                       double(p),
+                       double(p * p),
+                       double(1),
+                       PACKAGE = "mclust")[c(4:6)]
+      logpost <- NULL
   }
-  else {
-    priorParams <- do.call(prior$functionName, c(list(data = 
-                                                        data, G = 1, modelName = "XXX"), prior[names(prior) !=
-                                                                                                 "functionName"]))
-    temp <- .Fortran("mnxxxp",
-                     as.double(data),
-                     as.integer(n),
-                     as.integer(p),
-                     double(p),
-                     as.double(priorParams$shrinkage),
-                     as.double(priorParams$mean),
-                     as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-                                                                      scale) else priorParams$scale),
-                     as.double(priorParams$dof),
-                     double(p),
-                     double(p * p),
-                     double(1),
-                     PACKAGE = "mclust")[c(9:11, 8)]
-    logpost <- temp[[4]]
+  else 
+    { priorParams <- do.call(prior$functionName, c(list(data = data, 
+                                                        G = 1, 
+                                                        modelName = "XXX"),
+                                                   prior[names(prior) != "functionName"]))
+      temp <- .Fortran("mnxxxp",
+                       as.double(data),
+                       as.integer(n),
+                       as.integer(p),
+                       double(p),
+                       as.double(priorParams$shrinkage),
+                       as.double(priorParams$mean),
+                       as.double(if(any(priorParams$scale != 0)) 
+                                   chol(priorParams$scale) else priorParams$scale),
+                       as.double(priorParams$dof),
+                       double(p),
+                       double(p * p),
+                       double(1),
+                       PACKAGE = "mclust")[c(9:11, 8)]
+      logpost <- temp[[4]]
   }
   mu <- temp[[1]]
   cholSigma <- matrix(temp[[2]], p, p)
@@ -9016,15 +9072,16 @@ mvnXXX <- function(data, prior = NULL, warn = NULL, ...)
   ## Sigma = t(cholSigma) %*% cholSigma
   ret <- 0
   WARNING <- NULL
-  if(loglik > signif(.Machine$double.xmax, 6)) {
-    WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
-    loglik <- NA
-    ret <- -1
+  if(loglik > signif(.Machine$double.xmax, 6)) 
+    { WARNING <- "singular covariance"
+      if(warn)
+        warning(WARNING)
+      loglik <- NA
+      ret <- -1
   }
   variance <- list(modelName = "XXX", d = p, G = 1,
                    Sigma = Sigma, cholSigma = cholSigma, 
+                   cholsigma = cholSigma,
                    sigma = array(Sigma, c(p, p, 1))) 
   parameters <- list(pro = 1, mean = matrix(mu, ncol = 1), 
                      variance = variance)
@@ -9032,3 +9089,20 @@ mvnXXX <- function(data, prior = NULL, warn = NULL, ...)
                  parameters = parameters, loglik = loglik), 
             WARNING = WARNING, returnCode = ret)
 }
+
+cdensXXX <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+{
+  call <- match.call()
+  mc <- match.call(expand.dots = FALSE)
+  mc[[1]] <- as.name("cdensEEE")
+  z <- eval(mc, parent.frame())
+  attr(z, "modelName") <- "XXX"
+  return(z)
+}
+
+emXXX <- function(data, prior = NULL, warn = NULL, ...)
+{
+  mvnXXX(data, prior = prior, warn = warn, ...)
+}
+
+meXXX <- emXXX

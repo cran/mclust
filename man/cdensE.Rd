@@ -1,6 +1,7 @@
 \name{cdensE}
 \alias{cdensE}
 \alias{cdensV}
+\alias{cdensX}
 \alias{cdensEII}
 \alias{cdensVII}
 \alias{cdensEEI}
@@ -11,6 +12,14 @@
 \alias{cdensEEV}
 \alias{cdensVEV}
 \alias{cdensVVV}
+\alias{cdensEVE}
+\alias{cdensEVV}
+\alias{cdensVEE}
+\alias{cdensVVE}
+\alias{cdensXII}
+\alias{cdensXXI}
+\alias{cdensXXX}
+
 \title{
   Component Density for a Parameterized MVN Mixture Model
 }
@@ -20,6 +29,7 @@
 \usage{
 cdensE(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensX(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensEII(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensVII(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensEEI(data, logarithm = FALSE, parameters, warn = NULL, \dots)
@@ -30,6 +40,13 @@ cdensEEE(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensEEV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensVEV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 cdensVVV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEVE(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensEVV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVEE(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensVVE(data, logarithm = FALSE, parameters, warn = NULL, \dots) 
+cdensXII(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensXXI(data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdensXXX(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -97,10 +114,10 @@ cdensVVV(data, logarithm = FALSE, parameters, warn = NULL, \dots)
 \seealso{
   \code{\link{cdens}},
   \code{\link{dens}},
-  \code{\link{mclustBIC}},
+  \code{\link{mclustVariance}},
   \code{\link{mstep}},
   \code{\link{mclust.options}},
-  \code{\link{do.call}}
+  \code{\link{do.call}}.
 }
 \examples{
 

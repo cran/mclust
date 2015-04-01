@@ -1,5 +1,5 @@
-\name{cv.MclustDA}
-\alias{cv.MclustDA}
+\name{cvMclustDA}
+\alias{cvMclustDA}
 
 \title{MclustDA cross-validation}
 
@@ -8,19 +8,19 @@ K-fold cross-validation for discriminant analysis based on Gaussian finite mixtu
 }
 
 \usage{
-cv.MclustDA(object, nfold = 10, verbose = TRUE, ...) 
+cvMclustDA(object, nfold = 10, verbose = TRUE, ...) 
 }
 
 \arguments{
   \item{object}{
-    An object of class \code{"MclustDA"} resulting from a call to \code{\link{MclustDA}}.
+    An object of class \code{'MclustDA'} resulting from a call to \code{\link{MclustDA}}.
   }
   \item{nfold}{
     An integer specifying the number of folds.
   }
     
  \item{verbose}{
-    A logical, if \code{TRUE} display the running algorithm.
+    A logical, if \code{TRUE} and the session is interactive a text progress bar is displayed during the algorithm.
   }
   
   \item{\dots }{Further arguments passed to or from other methods.}
@@ -65,18 +65,18 @@ Class <- iris[,5]
 
 # common EEE covariance structure (which is essentially equivalent to linear discriminant analysis)
 irisMclustDA <- MclustDA(X, Class, modelType = "EDDA", modelNames = "EEE")
-cv <- cv.MclustDA(irisMclustDA) # default 10-fold CV
+cv <- cvMclustDA(irisMclustDA) # default 10-fold CV
 cv[c("error", "se")]
 
-cv <- cv.MclustDA(irisMclustDA, nfold = length(Class)) # LOO-CV
+cv <- cvMclustDA(irisMclustDA, nfold = length(Class)) # LOO-CV
 cv[c("error", "se")] 
 # compare with 
 # cv1EMtrain(X, Class, "EEE")
 
 # general covariance structure selected by BIC
 irisMclustDA <- MclustDA(X, Class)
-cv <- cv.MclustDA(irisMclustDA) # default 10-fold CV
+cv <- cvMclustDA(irisMclustDA) # default 10-fold CV
 cv[c("error", "se")]
-
 }
+
 \keyword{multivariate}

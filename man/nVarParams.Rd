@@ -8,7 +8,7 @@
  Gaussian mixture model that are used in MCLUST. 
 }
 \usage{
-nVarParams(modelName, d, G)
+nVarParams(modelName, d, G, \dots)
 }
 \arguments{
   \item{modelName}{
@@ -22,6 +22,9 @@ nVarParams(modelName, d, G)
   \item{G}{
     The number of components in the Gaussian mixture model used to compute
     \code{loglik}.
+  }
+  \item{\dots }{
+   Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
 \value{
@@ -43,9 +46,9 @@ nVarParams(modelName, d, G)
   Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
-  \code{\link{bic}}
+  \code{\link{bic}}, \code{\link{nMclustParams}}.
 }
 \examples{
-sapply(mclust.options("emModelNames"), nVarParams, d = 2, G = 1)
+mapply(nVarParams, mclust.options("emModelNames"), d = 2, G = 3)
 }
 \keyword{cluster}

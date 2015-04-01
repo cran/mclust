@@ -11,7 +11,7 @@
 
 \arguments{
   
-  \item{object}{an object of class \code{"Mclust"} resulting from a call to \code{\link{Mclust}}.}
+  \item{object}{an object of class \code{'Mclust'} resulting from a call to \code{\link{Mclust}}.}
 
   \item{newdata}{a data frame or matrix giving the data. If missing the clustering data obtained from the call to \code{\link{Mclust}} are classified.}
 

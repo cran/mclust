@@ -8,11 +8,12 @@
 A dimension reduction method for visualizing the clustering or classification structure obtained from a finite mixture of Gaussian densities.
 }
 \usage{
-MclustDR(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(.Machine$double.eps))
+MclustDR(object, normalized = TRUE, Sigma, lambda = 0.5, 
+         tol = sqrt(.Machine$double.eps))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{object}{An object of class \code{Mclust} or \code{MclustDA} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.
+  \item{object}{An object of class \code{'Mclust'} or \code{'MclustDA'} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.
 }
 %  \item{data}{Data frame or matrix of observations. If not provided is obtained by evaluating \code{object} in the current environment.
 %}
@@ -40,7 +41,7 @@ This implementation doesn't provide a formal procedure for the selection of dime
 }
 
 \value{
-  An object of class \code{"MclustDR"} with the following components:
+  An object of class \code{'MclustDR'} with the following components:
 
   \item{call}{The matched call} 
 

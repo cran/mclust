@@ -13,7 +13,7 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
              what = c("classification", "density", "errors", "uncertainty"),
              symbols = NULL, colors = NULL, ngrid = length(data), 
              xlab = NULL, xlim = NULL, CEX = 1, 
-             identify = FALSE, \dots)
+             main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -102,9 +102,9 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
     An argument specifying the size of the plotting symbols. 
     The default value is 1.
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title
+    to the plot identifying the dimensions used.
   }
 \item{\dots}{
     Other graphics parameters.
@@ -140,16 +140,16 @@ yclass <- c(rep(1,n), rep(2,n), rep(3,n))
 yModel <- mclustModel(y, mclustBIC(y))
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
-             what = "classification", identify = TRUE)
+             what = "classification", main = TRUE)
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
-             truth = yclass, what = "errors", identify = TRUE)
+             truth = yclass, what = "errors", main = TRUE)
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
-             what = "density", identify = TRUE)
+             what = "density", main = TRUE)
 
 mclust1Dplot(y, z = yModel$z, parameters = yModel$parameters,
-            what = "uncertainty", identify = TRUE)
+            what = "uncertainty", main = TRUE)
 
 }
 \keyword{cluster}

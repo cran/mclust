@@ -12,7 +12,7 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
          classification=NULL, truth=NULL, uncertainty=NULL, 
          what = c("classification", "errors", "uncertainty"),
          quantiles = c(0.75, 0.95), symbols=NULL, colors=NULL, scale = FALSE, 
-         xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", identify = FALSE, \dots)
+         xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -111,9 +111,9 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title 
+    to the plot identifying the dimensions used.
   }
   \item{\dots}{
     Other graphics parameters.
@@ -146,11 +146,11 @@ est <- meVVV(iris[,-5], unmap(iris[,5]))
 \dontrun{
 par(pty = "s", mfrow = c(1,1))
 randProj(iris[,-5], seeds=1:3, parameters = est$parameters, z = est$z,
-          what = "classification", identify = TRUE) 
+          what = "classification", main = TRUE) 
 randProj(iris[,-5], seeds=1:3, parameters = est$parameters, z = est$z,
-          truth = iris[,5], what = "errors", identify = TRUE) 
+          truth = iris[,5], what = "errors", main = TRUE) 
 randProj(iris[,-5], seeds=1:3, parameters = est$parameters, z = est$z,
-          what = "uncertainty", identify = TRUE) 
+          what = "uncertainty", main = TRUE) 
 }
 }
 \keyword{cluster}

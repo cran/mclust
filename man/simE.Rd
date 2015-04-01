@@ -11,6 +11,11 @@
 \alias{simEEV}
 \alias{simVEV}
 \alias{simVVV}
+\alias{simEVE}
+\alias{simEVV}
+\alias{simVEE}
+\alias{simVVE}
+
 \title{
   Simulate from a Parameterized MVN Mixture Model
 }
@@ -30,6 +35,10 @@ simEEE(parameters, n, seed = NULL, \dots)
 simEEV(parameters, n, seed = NULL, \dots)
 simVEV(parameters, n, seed = NULL, \dots)
 simVVV(parameters, n, seed = NULL, \dots)
+simEVE(parameters, n, seed = NULL, \dots)
+simEVV(parameters, n, seed = NULL, \dots)
+simVEE(parameters, n, seed = NULL, \dots)
+simVVE(parameters, n, seed = NULL, \dots)
 }
 \arguments{
    \item{parameters}{
@@ -95,7 +104,7 @@ simVVV(parameters, n, seed = NULL, \dots)
   \code{\link{sim}},
   \code{\link{Mclust}},
   \code{\link{mstepE}},
-  \code{\link{do.call}}
+  \code{\link{mclustVariance}}.
 }
 \examples{
 d <- 2

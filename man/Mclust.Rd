@@ -10,8 +10,10 @@
 }
 \usage{
 Mclust(data, G = NULL, modelNames = NULL, 
-       prior = NULL, control = emControl(), 
-       initialization = NULL, warn = FALSE, \dots)
+       prior = NULL, 
+       control = emControl(), 
+       initialization = NULL, 
+       warn = mclust.options("warn"), \dots)
 }
 \arguments{
   \item{data}{
@@ -70,14 +72,14 @@ Mclust(data, G = NULL, modelNames = NULL,
  \item{warn}{
     A logical value indicating whether or not certain warnings 
     (usually related to singularity) should be issued.
-    The default is to suppress these warnings.
+    The default is controlled by \code{\link{mclust.options}}.
   }
   \item{\dots }{
     Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }
 \value{
- An object of class \code{"Mclust"} providing the optimal (according to BIC)
+ An object of class \code{'Mclust'} providing the optimal (according to BIC)
  mixture model estimation.
  
  The details of the output components are as follows:

@@ -8,10 +8,17 @@
   for Gaussian mixture models parameterized by eigenvalue decomposition.
 }
 \usage{
-hc(modelName = mclust.options("hcModelNames")[1], data, 
+hc(data,
+   modelName = mclust.options("hcModelNames")[1],  
    use = mclust.options("hcUse"), \dots)
 }
 \arguments{
+  \item{data}{
+    A numeric vector, matrix, or data frame of observations.
+    Categorical variables are not allowed.
+    If a matrix or data frame, rows correspond to observations and
+    columns correspond to variables.
+  }
   \item{modelName}{
     A character string indicating the model to be used.\cr
     Possible models are: \cr\cr 
@@ -23,12 +30,6 @@ hc(modelName = mclust.options("hcModelNames")[1], data,
     \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation.\cr\cr
     By default the first model listed in
     \code{mclust.options("hcModelNames")}, i.e. \code{"VVV"}, is used.
-  }
-  \item{data}{
-    A numeric vector, matrix, or data frame of observations.
-    Categorical variables are not allowed.
-    If a matrix or data frame, rows correspond to observations and
-    columns correspond to variables.
   }
   \item{use}{
     A character string specifying what type of data/transformation should be 

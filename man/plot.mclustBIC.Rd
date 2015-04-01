@@ -8,9 +8,11 @@ Plots the BIC values returned by the \code{\link{mclustBIC}} function.
 }
 
 \usage{
-\method{plot}{mclustBIC}(x, G = NULL, modelNames = NULL, symbols = NULL,
-     colors = NULL, xlab = NULL, ylab = "BIC", ylim = NULL,
-     legendArgs = list(x="bottomright", ncol=2, cex=1), \dots)
+\method{plot}{mclustBIC}(x, G = NULL, modelNames = NULL, 
+     symbols = NULL, colors = NULL, 
+     xlab = NULL, ylab = "BIC", ylim = NULL,
+     legendArgs = list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01), 
+     \dots)
 }
 \arguments{
   \item{x}{

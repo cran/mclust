@@ -209,7 +209,8 @@ print.summary.MclustDR <- function(x, digits = max(5, getOption("digits") - 3), 
   else stop("invalid model type")
   
   if(x$std) 
-  { cat("\nStandardized basis vectors using predictors \nscaled to have std.dev. equal to one:\n")
+  { cat("\nStandardized basis vectors",  "using predictors", "scaled to have", 
+        "std.dev. equal to one:\n", fill = TRUE)
     print(x$std.basis, digits = digits)
   }
   else 
@@ -229,8 +230,8 @@ print.summary.MclustDR <- function(x, digits = max(5, getOption("digits") - 3), 
 
 projpar.MclustDR <- function(object, dim, center = TRUE, raw = FALSE)
 {
-  # Transform estimated parameters to projection subspace given by 
-  # 'dim' directions 
+# Transform estimated parameters to projection subspace given by 
+# 'dim' directions 
   x <- object$x
   p <- ncol(x)
   n <- nrow(x)
@@ -332,17 +333,12 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   nclass <- length(table(class))
   dir <- object$dir
   numdir <- object$numdir
-  if(missing(dimens)) dimens <- seq(numdir)
-  
-  what <- match.arg(what)
-  if(what == "pairs")
-    { if(length(dimens) == 2) what <- "scatterplot" }  
-  if(length(dimens) == 1) 
-    { if(!(what == "density" | what == "evalues")) what <- "density" }
+  dimens <- if(missing(dimens)) seq(numdir)
+            else intersect(as.numeric(dimens), seq(numdir))
   
   if(missing(symbols)) 
-    { if(G <= length(.mclust$classPlotSymbols)) 
-        { symbols <- .mclust$classPlotSymbols }
+    { if(G <= length(mclust.options("classPlotSymbols"))) 
+        { symbols <- mclust.options("classPlotSymbols") }
       else if(G <= 26) 
              { symbols <- LETTERS }
     }
@@ -352,13 +348,31 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
       symbols <- rep(16, nclass) }
   
   if(missing(colors))
-    { colors <- .mclust$classPlotColors }
+    { colors <- mclust.options("classPlotColors") }
   if(length(colors) == 1) colors <- rep(colors,nclass)
   if(length(colors) < nclass) 
     { warning("more colors needed to show mixture components")
       colors <- rep("black", nclass) }
   
-  if(what == "scatterplot")
+  niceRange <- function (x, f = 0.04) 
+  { 
+    r <- range(x)
+    d <- diff(r)
+    out <- c(r[1] - d*f, r[2] + d*f)
+    return(out)
+  }
+
+  ####################################################################
+  what <- match.arg(what, several.ok = TRUE)
+  oldpar <- par(no.readonly = TRUE)
+  # on.exit(par(oldpar))
+  if(any(i <- (what == "pairs")) & (length(dimens) == 2))
+    { what[i] <- "scatterplot" }
+  if(length(dimens) == 1) 
+    { what[!(what == "density" | what == "evalues")] <- "density" }
+  what <- unique(what)
+  
+  plot.MclustDR.scatterplot <- function(...)
   { 
     dir <- dir[,dimens,drop=FALSE]
     plot(dir, col = colors[class], pch = symbols[class],
@@ -366,13 +380,13 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
          asp = asp, ...)
   }
   
-  if(what == "pairs")
+  plot.MclustDR.pairs <- function(...)
   { dir <- dir[,dimens,drop=FALSE]
     pairs(dir, col = colors[class], pch = symbols[class], 
-          gap = 0.25, asp = asp, ...)
+          gap = 0.2, asp = asp, ...)
   }
   
-  if(what == "density")
+  plot.MclustDR.density <- function(...)
   { dimens <- dimens[1]
     dir <- object$dir[,dimens,drop=FALSE]
     par <- projpar.MclustDR(object, dimens)
@@ -410,7 +424,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     axis(2, at = 1:nclass, labels = levels(object$class), tick = FALSE, cex = 0.8, las = 2)
   }
   
-  if(what == "contour") 
+  plot.MclustDR.contour <- function(...)
   { 
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
@@ -433,15 +447,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
-  niceRange <- function (x, f = 0.04) 
-  {
-    r <- range(x)
-    d <- diff(r)
-    out <- c(r[1] - d*f, r[2] + d*f)
-    return(out)
-  }
-
-  if(what == "classification" & object$type == "Mclust")
+  plot.MclustDR.classification.Mclust <- function(...)
   { dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
     pred <- predict2D.MclustDR(object, dimens, ngrid,
@@ -462,8 +468,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
-  if(what == "classification" & 
-       (object$type == "EDDA" | object$type == "MclustDA"))
+  plot.MclustDR.classification.MclustDA <- function(...)
   { 
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
@@ -485,7 +490,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
-  if(what == "boundaries" & object$type == "Mclust")
+  plot.MclustDR.boundaries.Mclust <- function(...)
   { dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
     pred <- predict2D.MclustDR(object, dimens, ngrid,
@@ -500,8 +505,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     points(dir, col = colors[class], pch = symbols[class], ...)                        
   }
   
-  if(what == "boundaries" & 
-       (object$type == "EDDA" | object$type == "MclustDA"))
+  plot.MclustDR.boundaries.MclustDA <- function(...)
   { 
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
@@ -518,10 +522,52 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
-  if(what=="evalues")
+  plot.MclustDR.evalues <- function(...)
   { plotEvalues.MclustDR(object, numdir = max(dimens), plot = TRUE) }
   
-  return(invisible())
+    if(interactive() & length(what) > 1)
+    { title <- "Dimension reduction for model-based clustering and classification plots:"
+      # present menu waiting user choice
+      choice <- menu(what, graphics = FALSE, title = title)
+      while(choice != 0)
+           { if(what[choice] == "scatterplot") plot.MclustDR.scatterplot(...)
+             if(what[choice] == "pairs")   plot.MclustDR.pairs(...)
+             if(what[choice] == "contour") plot.MclustDR.contour(...)
+             if(what[choice] == "classification" & object$type == "Mclust")
+                                           plot.MclustDR.classification.Mclust(...)
+             if(what[choice] == "classification" &
+                (object$type == "EDDA" | object$type == "MclustDA"))
+                                           plot.MclustDR.classification.MclustDA(...)
+             if(what[choice] == "boundaries" & object$type == "Mclust")
+                                           plot.MclustDR.boundaries.Mclust(...)
+             if(what[choice] == "boundaries" & 
+                (object$type == "EDDA" | object$type == "MclustDA"))
+                                           plot.MclustDR.boundaries.MclustDA(...)
+             if(what[choice] == "density") plot.MclustDR.density(...)
+             if(what[choice] == "evalues") plot.MclustDR.evalues(...)
+             # re-present menu waiting user choice
+             choice <- menu(what, graphics = FALSE, title = title)
+           }
+  }
+  else 
+    { if(what == "scatterplot") plot.MclustDR.scatterplot(...)
+      if(what == "pairs")       plot.MclustDR.pairs(...)
+      if(what == "contour")     plot.MclustDR.contour(...)
+      if(what == "classification" & object$type == "Mclust")
+                                plot.MclustDR.classification.Mclust(...)
+      if(what == "classification" &
+         (object$type == "EDDA" | object$type == "MclustDA"))
+                                plot.MclustDR.classification.MclustDA(...)
+      if(what == "boundaries" & object$type == "Mclust")
+                                        plot.MclustDR.boundaries.Mclust(...)
+      if(what == "boundaries" & 
+         (object$type == "EDDA" | object$type == "MclustDA"))
+                                        plot.MclustDR.boundaries.MclustDA(...)
+      if(what == "density")     plot.MclustDR.density(...)
+      if(what == "evalues")     plot.MclustDR.evalues(...)
+  }
+    
+  invisible()
 }
 
 plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, ...)

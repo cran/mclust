@@ -14,8 +14,8 @@ elliptical Gaussians.
 n <- 250 
 set.seed(0)
 cross <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),
-           matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
-cross <- cbind(c(rep(1,n),rep(2,n)), x)
+               matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9))[,2:1])
+cross <- cbind(c(rep(1,n),rep(2,n)), cross)
 }
 }
 

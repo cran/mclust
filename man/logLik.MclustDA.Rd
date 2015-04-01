@@ -12,16 +12,16 @@ Returns the log-likelihood for a \code{MclustDA} object.}
 
 \arguments{
   
-  \item{object}{an object of class \code{"MclustDA"} resulting from a call to \code{\link{MclustDA}}.}
+  \item{object}{an object of class \code{'MclustDA'} resulting from a call to \code{\link{MclustDA}}.}
 
-  \item{data}{the data for which the log-likelihood must be computed. If missing, the observed data from the \code{"MclustDA"} object is used.}
+  \item{data}{the data for which the log-likelihood must be computed. If missing, the observed data from the \code{'MclustDA'} object is used.}
 
   \item{\dots}{further arguments passed to or from other methods.}
 }
 
 % \details{}
 
-\value{Returns an object of class \code{logLik} with an element providing the maiximized log-likelihood, and further arguments giving the number of (estimated) parameters in the model (\code{"df"}) and the sample size (\code{"nobs"}).}
+\value{Returns an object of class \code{'logLik'} with an element providing the maximized log-likelihood, and further arguments giving the number of (estimated) parameters in the model (\code{"df"}) and the sample size (\code{"nobs"}).}
 
 \references{
   C. Fraley and A. E. Raftery (2002).

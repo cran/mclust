@@ -23,8 +23,6 @@ The data set contains six measurements made on 100 genuine and 100 counterfeit o
 
 }
 
-\source{
-Flury, B. and Riedwyl, H. (1988). \emph{Multivariate Statistics: A practical approach.} London: Chapman & Hall, Tables 1.1 and 1.2, pp. 5-8
-}
-% \examples{}
+\source{Flury, B. and Riedwyl, H. (1988). \emph{Multivariate Statistics: A practical approach.} London: Chapman & Hall, Tables 1.1 and 1.2, pp. 5-8.}
+
 \keyword{datasets}

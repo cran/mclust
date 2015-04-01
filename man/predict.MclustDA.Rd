@@ -11,7 +11,7 @@
 
 \arguments{
   
-  \item{object}{an object of class \code{"MclustDA"} resulting from a call to \code{\link{MclustDA}}.}
+  \item{object}{an object of class \code{'MclustDA'} resulting from a call to \code{\link{MclustDA}}.}
 
   \item{newdata}{a data frame or matrix giving the data. If missing the train data obtained from the call to \code{\link{MclustDA}} are classified.}
 

@@ -3,21 +3,11 @@
 \alias{mclust}
 \docType{package}
 
-\title{
-Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation
-}
-\description{
-Finite Gaussian mixture modeling fitted via EM algorithm for model-based clustering, classification, and density Estimation, including Bayesian regularization and dimension reduction.
-}
+\title{Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation}
 
-\details{Main functions to use:
-\tabular{ll}{
-  Clustering: \tab \code{\link{Mclust}} \cr
-  Classification: \tab \code{\link{MclustDA}} \cr
-  Density estimation: \tab \code{\link{densityMclust}} \cr
-  Dimension reduction: \tab \code{\link{MclustDR}} 
-  }
-}
+\description{Finite Gaussian mixture modeling fitted via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization and dimension reduction.}
+
+\details{For a quick introduction to \pkg{mclust} see the vignette \href{../doc/mclust.html}{A quick tour of mclust}.}
 
 \author{
 Chris Fraley, Adrian Raftery and Luca Scrucca.

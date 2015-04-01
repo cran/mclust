@@ -1,6 +1,7 @@
 \name{emE}
 \alias{emE}
 \alias{emV}
+\alias{emX}
 \alias{emEII}
 \alias{emVII}
 \alias{emEEI}
@@ -11,6 +12,14 @@
 \alias{emEEV}
 \alias{emVEV}
 \alias{emVVV}
+\alias{emEVE}
+\alias{emEVV}
+\alias{emVEE}
+\alias{emVVE}
+\alias{emXII}
+\alias{emXXI}
+\alias{emXXX}
+
 \title{
   EM algorithm starting with E-step for a parameterized Gaussian mixture model.
 }
@@ -19,18 +28,26 @@
   starting with the expectation step.
 }
 \usage{
-emE(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emEII(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emVII(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emEEI(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emVEI(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emEVI(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emVVI(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emEEE(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emEEV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emVEV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
-emVVV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
+emE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emX(data, prior = NULL, warn = NULL, \dots)
+emEII(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVII(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEEI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVEI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEVI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVVI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEEE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEEV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVEV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVVV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEVE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEVV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVEE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVVE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emXII(data, prior = NULL, warn = NULL, \dots)
+emXXI(data, prior = NULL, warn = NULL, \dots)
+emXXX(data, prior = NULL, warn = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -152,7 +169,8 @@ emVVV(data, parameters, prior=NULL, control=emControl(), warn=NULL, \dots)
 \seealso{
   \code{\link{me}},
   \code{\link{mstep}},
-  \code{\link{mclust.options}}
+  \code{\link{mclustVariance}},
+  \code{\link{mclust.options}}.
 }
 \examples{
 msEst <- mstepEEE(data = iris[,-5], z = unmap(iris[,5]))

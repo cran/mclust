@@ -10,7 +10,7 @@ Displays the Gaussian mixture model and number of components selected by Mclust/
 \method{print}{clustCombi}(x, \dots) 
 }
 \arguments{
-  \item{x}{An object of class clustCombi. Typically an output from the clustCombi function.}
+  \item{x}{An object of class \code{'clustCombi'}. Typically an output from the \code{clustCombi} function.}
 \item{\dots}{additional arguments.}
 }
 \references{

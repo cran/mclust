@@ -1,8 +1,12 @@
 citHeader("To cite package 'mclust' in publications use:")
-     
-desc <- packageDescription("mclust")
-year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", desc$Date)
-vers <- paste("R package version", desc$Version)
+
+# old
+# desc <- packageDescription("mclust")
+# year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", desc$Date)
+# vers <- paste("R package version", desc$Version)
+# new
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
+vers <- paste("R package version", meta$Version)
 
 citEntry(entry="Manual",
          title = "mclust Version 4 for R: Normal Mixture Modeling for

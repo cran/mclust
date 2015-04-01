@@ -15,7 +15,7 @@ mclustModel(data, BICvalues, G, modelNames, \dots)
     The matrix or vector of observations used to generate `object'.
   }
   \item{BICvalues}{
-    An \code{"mclustBIC"} object, 
+    An \code{'mclustBIC'} object, 
     which is the result of applying \code{mclustBIC} 
     to \code{data}.
   }

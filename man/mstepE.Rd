@@ -11,6 +11,11 @@
 \alias{mstepEEV}
 \alias{mstepVEV}
 \alias{mstepVVV}
+\alias{mstepEVE}
+\alias{mstepEVV}
+\alias{mstepVEE}
+\alias{mstepVVE}
+
 \title{
   M-step for a parameterized Gaussian mixture model.
 }
@@ -19,18 +24,22 @@
   mixture model.
 }
 \usage{
-mstepE( data, z, prior=NULL, warn=NULL, \dots)
-mstepV( data, z, prior=NULL,  warn=NULL, \dots)
-mstepEII( data, z, prior=NULL, warn=NULL, \dots)
-mstepVII( data, z, prior=NULL, warn=NULL, \dots)
-mstepEEI( data, z, prior=NULL,  warn=NULL, \dots)
-mstepVEI( data, z, prior=NULL, warn=NULL, control=NULL, \dots)
-mstepEVI( data, z, prior=NULL, warn=NULL, \dots)
-mstepVVI( data, z, prior=NULL, warn=NULL, \dots)
-mstepEEE( data, z, prior=NULL, warn=NULL, \dots)
-mstepEEV( data, z, prior=NULL, warn=NULL, \dots)
-mstepVEV( data, z, prior=NULL, warn=NULL, control=NULL,\dots)
-mstepVVV( data, z, prior=NULL, warn=NULL, \dots)
+mstepE( data, z, prior = NULL, warn = NULL, \dots)
+mstepV( data, z, prior = NULL, warn = NULL, \dots)
+mstepEII( data, z, prior = NULL, warn = NULL, \dots)
+mstepVII( data, z, prior = NULL, warn = NULL, \dots)
+mstepEEI( data, z, prior = NULL, warn = NULL, \dots)
+mstepVEI( data, z, prior = NULL, warn = NULL, control = NULL, \dots)
+mstepEVI( data, z, prior = NULL, warn = NULL, \dots)
+mstepVVI( data, z, prior = NULL, warn = NULL, \dots)
+mstepEEE( data, z, prior = NULL, warn = NULL, \dots)
+mstepEEV( data, z, prior = NULL, warn = NULL, \dots)
+mstepVEV( data, z, prior = NULL, warn = NULL, control = NULL,\dots)
+mstepVVV( data, z, prior = NULL, warn = NULL, \dots)
+mstepEVE( data, z, prior = NULL, warn = NULL, control = NULL, \dots)
+mstepEVV( data, z, prior = NULL, warn = NULL, \dots)
+mstepVEE( data, z, prior = NULL, warn = NULL, control = NULL, \dots)
+mstepVVE( data, z, prior = NULL, warn = NULL, control = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -56,7 +65,7 @@ mstepVVV( data, z, prior=NULL, warn=NULL, \dots)
     estimation fails. The default is given by \code{mclust.options("warn")}.
   }
   \item{control}{
-    Values controling termination for models \code{"VEI"} and \code{"VEV"} 
+    Values controlling termination for models \code{"VEI"} and \code{"VEV"} 
     that have an iterative M-step. This should be a list with components
     named \emph{itmax} and \emph{tol}. These components can be of length 1 
     or 2; in the latter case, \code{mstep} will use the second value, under 
@@ -64,7 +73,7 @@ mstepVVV( data, z, prior=NULL, warn=NULL, \dots)
     function \code{me}).
     The default uses the default values from the function \code{emControl},
     which sets no limit on  the number of iterations, and a relative tolerance 
-    of \code{sqrt(.Machine$double.eps)} on succesive iterates.
+    of \code{sqrt(.Machine$double.eps)} on successive iterates.
    }
   \item{\dots }{
     Catches unused arguments in indirect or list calls via \code{do.call}.
@@ -128,8 +137,9 @@ mstepVVV( data, z, prior=NULL, warn=NULL, \dots)
   \code{\link{mstep}},
   \code{\link{me}},
   \code{\link{estep}},
-  \code{\link{priorControl}}
-  \code{\link{emControl}}
+  \code{\link{mclustVariance}},
+  \code{\link{priorControl}},
+  \code{\link{emControl}}.
 }
 \examples{
 mstepVII(data = iris[,-5], z = unmap(iris[,5]))

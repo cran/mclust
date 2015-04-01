@@ -13,7 +13,7 @@ icl(object, \dots)
 
 \arguments{
   \item{object}{
-    An object of class \code{"Mclust"} resulting from a call to \code{\link{Mclust}}.
+    An object of class \code{'Mclust'} resulting from a call to \code{\link{Mclust}}.
   }
   \item{\dots}{Further arguments passed to or from other methods.}
 }

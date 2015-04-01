@@ -1,14 +1,14 @@
 \name{map}
 \alias{map}
-\title{
-  Classification given Probabilities 
-}
+
+\title{Classification given Probabilities}
+
 \description{
   Converts a matrix in which each row sums to \emph{1} 
   into the nearest matrix of \emph{(0,1)} indicator variables.
 }
 \usage{
-map(z, warn=TRUE, \dots)
+map(z, warn = mclust.options("warn"), \dots)
 }
 \arguments{
   \item{z}{
@@ -46,7 +46,7 @@ map(z, warn=TRUE, \dots)
   \code{\link{unmap}},
   \code{\link{estep}},
   \code{\link{em}},
-  \code{\link{me}}
+  \code{\link{me}}.
 }
 \examples{
 emEst <- me(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]))

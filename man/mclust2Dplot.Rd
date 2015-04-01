@@ -14,7 +14,7 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
              quantiles = c(0.75,0.95), symbols = NULL, colors = NULL, 
              xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
              scale = FALSE, CEX  = 1, PCH = ".",
-             identify = FALSE, swapAxes = FALSE, \dots) 
+             main = FALSE, swapAxes = FALSE, \dots) 
 }
 \arguments{
   \item{data}{
@@ -118,9 +118,9 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
     An argument specifying the symbol to be used when a classificatiion
     has not been specified for the data. The default value is a small dot ".".
   }
-  \item{identify}{
-    A logical variable indicating whether or not to add a title to the plot
-    identifying the dimensions used.
+  \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title 
+    to the plot identifying the dimensions used.
   }
   \item{swapAxes}{
     A logical variable indicating whether or not the axes should be swapped
@@ -154,10 +154,10 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
 faithfulModel <- mclustModel(faithful,mclustBIC(faithful))
 
 mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
-             z=faithfulModel$z, what = "classification", identify = TRUE)
+             z=faithfulModel$z, what = "classification", main = TRUE)
 
 mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
-             z=faithfulModel$z, what = "uncertainty", identify = TRUE)
+             z=faithfulModel$z, what = "uncertainty", main = TRUE)
 }
 \keyword{cluster}
 % docclass is function

@@ -8,7 +8,7 @@
   to a parameterization by eigenvalue decomposition.
 }
 \usage{
-sigma2decomp(sigma, G=NULL, tol=NULL, \dots)
+sigma2decomp(sigma, G = NULL, tol = sqrt(.Machine$double.eps), \dots)
 }
 \arguments{
   \item{sigma}{
@@ -24,8 +24,8 @@ sigma2decomp(sigma, G=NULL, tol=NULL, \dots)
   \item{tol}{
     Tolerance for determining whether or not the covariances have equal volume,
     shape, and or orientation. The default is the square root of the relative
-    machine precision, \code{sqrt(.Machine$double.eps)}, 
-    which is about \code{1.e-8}.
+    machine precision, \code{sqrt(.Machine$double.eps)}, which is about 
+    \code{1.e-8}.
   }
   \item{\dots}{
     Catches unused arguments from an indirect or list call via \code{do.call}.

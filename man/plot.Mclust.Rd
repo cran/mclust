@@ -10,9 +10,7 @@
 \usage{
 \method{plot}{Mclust}(x, what = c("BIC", "classification", "uncertainty", "density"), 
      dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,
-     addEllipses = TRUE, identify = TRUE, 
-     legendArgs = list(x = "bottomright", ncol = 2, cex = 1), 
-     \dots)
+     addEllipses = TRUE, main = TRUE, \dots)
 }
 \arguments{
   \item{x}{
@@ -43,13 +41,9 @@
     A logical indicating whether or not to add ellipses with axes corresponding 
     to the within-cluster covariances if \code{what = "classification"}. 
   }
- \item{identify}{
-    A logical indicating whether or not to add a title to the plot
-    identifying the dimensions used.
-  }
- \item{legendArgs}{
-    Arguments to pass to the \code{legend} function. Set to \code{NULL}
-    for no legend.
+ \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title 
+    to the plot identifying the dimensions used.
   }
   \item{\dots}{
     Other graphics parameters.
@@ -89,11 +83,13 @@
 
 \seealso{
   \code{\link{Mclust}},
+  \code{\link{plot.mclustBIC}},
+  \code{\link{plot.mclustICL}},
   \code{\link{mclust1Dplot}},
   \code{\link{mclust2Dplot}},
   \code{\link{surfacePlot}},
   \code{\link{coordProj}},
-  \code{\link{randProj}}
+  \code{\link{randProj}}.
 }
 \examples{
 precipMclust <- Mclust(precip)

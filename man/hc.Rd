@@ -1,8 +1,9 @@
 \name{hc}
 \alias{hc}
-\title{
-  Model-based Hierarchical Clustering
-}
+\alias{print.hc}
+
+\title{Model-based Hierarchical Clustering}
+
 \description{
   Agglomerative hierarchical clustering based on maximum likelihood criteria 
   for Gaussian mixture models parameterized by eigenvalue decomposition.

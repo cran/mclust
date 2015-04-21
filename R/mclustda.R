@@ -7,11 +7,15 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   call <- match.call()
   mc <- match.call(expand.dots = TRUE)
   #
+  if(missing(data))
+    stop("no training data provided!")
   data <- data.matrix(data)
   n <- nrow(data)
   p <- ncol(data)
   oneD <- if(p==1) TRUE else FALSE
   #
+  if(missing(class))
+    stop("class labels for training data must be provided!")
   class <- as.factor(class)
   classLabel <- levels(class)
   ncl <- nlevels(class)

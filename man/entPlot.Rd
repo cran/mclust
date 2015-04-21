@@ -7,7 +7,7 @@ Plot Entropy Plots
 Plot "entropy plots" to help select the number of classes from a hierarchy of combined clusterings.
 }
 \usage{
-entPlot(z, combiM, abc = c("standard", "normalized"), reg = c(2), ...)
+entPlot(z, combiM, abc = c("standard", "normalized"), reg = 2, ...)
 }
 \arguments{
   \item{z}{
@@ -20,7 +20,7 @@ entPlot(z, combiM, abc = c("standard", "normalized"), reg = c(2), ...)
 	Choose one or more of: "standard", "normalized", to specify whether the number of observations involved in each combining step should be taken into account to scale the plots or not.
 	}
   \item{reg}{
-	The number of parts of the piecewise linear regression for the entropy plots. Choose one or more of : 2 (for 1 change-point), 3 (for 2 change-points).
+	The number of parts of the piecewise linear regression for the entropy plots. Choose one or more of: 2 (for 1 change-point), 3 (for 2 change-points).
 	}
   \item{\dots}{
 	Other graphical arguments to be passed to the plot functions.

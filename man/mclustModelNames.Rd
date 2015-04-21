@@ -27,8 +27,12 @@ The following models are available in package \pkg{mclust}:
     \code{"EVI"} \tab = \tab diagonal, equal volume, varying shape \cr
     \code{"VVI"} \tab = \tab diagonal, varying volume and shape \cr
     \code{"EEE"} \tab = \tab ellipsoidal, equal volume, shape, and orientation \cr
+    \code{"EVE"} \tab = \tab ellipsoidal, equal volume and orientation (*)\cr
+    \code{"VEE"} \tab = \tab ellipsoidal, equal shape and orientation (*)\cr
+    \code{"VVE"} \tab = \tab ellipsoidal, equal orientation (*)\cr
     \code{"EEV"} \tab = \tab ellipsoidal, equal volume and equal shape\cr
     \code{"VEV"} \tab = \tab ellipsoidal, equal shape \cr
+    \code{"EVV"} \tab = \tab ellipsoidal, equal volume (*)\cr
     \code{"VVV"} \tab = \tab ellipsoidal, varying volume, shape, and orientation \cr
 \bold{single component}  \tab \tab \cr
     \code{"X"} \tab = \tab univariate normal \cr
@@ -36,6 +40,7 @@ The following models are available in package \pkg{mclust}:
     \code{"XXI"} \tab = \tab diagonal multivariate normal \cr
     \code{"XXX"} \tab = \tab ellipsoidal multivariate normal 
 }
+(*) new models in \pkg{mclust} version >= 5.0.0.
 }
 
 \value{Returns a list with the following components:

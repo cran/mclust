@@ -14711,7 +14711,7 @@ c------------------------------------------------------------------------------
           end do
         end do
         do j = 1, p
-          call dcopy( p, pscale(1,j), 1, S(1,j))
+          call dcopy( p, pscale(1,j), 1, S(1,j), 1 )
         end do
         sumz = zero
         call dcopy( p, zero, 0, mu(1,k), 1)

@@ -134,7 +134,8 @@ plot.clustCombi <- function(x, data = NULL, what = c("classification", "entropy"
 
 		}
 		
-	if (any(what == "entropy")) entPlot(z = output$MclustOutput$z, combiM = output$combiM, reg = reg, ...)
+	if(any(what == "entropy")) 
+	  entPlot(z = output$MclustOutput$z, combiM = output$combiM, reg = reg, ...)
 
 }
 
@@ -152,7 +153,7 @@ combiPlot <- function(data, z, combiM, ...)
 	}
 }
 
-entPlot <- function(z, combiM, abc = c("standard", "normalized"), reg = c(2), ...)
+entPlot <- function(z, combiM, abc = c("standard", "normalized"), reg = 2, ...)
 {
 	oldpar <- par(no.readonly = TRUE)
 	on.exit(par(oldpar))
@@ -180,7 +181,7 @@ entPlot <- function(z, combiM, abc = c("standard", "normalized"), reg = c(2), ..
 		
 	if (any(abc == "standard"))
 		{
-			par(mfrow=c(1,2), oma=c(0,0,4,0), mar = c(5,4,0,2)+0.1)
+			par(mfrow=c(1,2), oma=c(0,0,3,0), mar = c(4,4,0,1)+0.1)
 			plot(1:Kmax, ent, xlab = "Number of clusters", ylab = "Entropy", ...)
 			if (any(reg == 2)) 
 				{	
@@ -201,7 +202,7 @@ entPlot <- function(z, combiM, abc = c("standard", "normalized"), reg = c(2), ..
 		}
 	if (any(abc == "normalized"))
 		{
-			par(mfrow=c(1,2), oma=c(0,0,4,0), mar = c(5,4,0,2)+0.1)
+			par(mfrow=c(1,2), oma=c(0,0,3,0), mar = c(4,4,0,1)+0.1)
 			plot(cumsum(c(0,mergedn)), ent, xlab = "Cumul. count of merged obs.", ylab = "Entropy", ...)
 			if (any(reg == 2)) 
 				{	

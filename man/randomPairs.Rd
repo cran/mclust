@@ -1,9 +1,7 @@
 \name{randomPairs}
 \alias{randomPairs}
 
-\title{
-  Random projections of multidimensional data modeled by an MVN mixture.
-}
+\title{Random hierarchical structure}
 
 \description{Create a hierarchical structure using a random partition of the data.}
 

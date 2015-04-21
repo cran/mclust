@@ -1,6 +1,6 @@
 Package: mclust
-Version: 5.0.0
-Date: 2015-04-01
+Version: 5.0.1
+Date: 2015-04-21
 Authors@R: c(person("Chris", "Fraley", role = "aut"),
              person("Adrian E.", "Raftery", role = "aut"),
              person("Luca", "Scrucca", role = c("aut", "cre"),
@@ -18,12 +18,12 @@ VignetteBuilder: knitr
 Repository: CRAN
 ByteCompile: true
 LazyLoad: yes
-Packaged: 2015-04-09 07:06:38 UTC; luca
+NeedsCompilation: yes
+Packaged: 2015-04-21 16:56:03 UTC; luca
 Author: Chris Fraley [aut],
   Adrian E. Raftery [aut],
   Luca Scrucca [aut, cre],
   Thomas Brendan Murphy [ctb],
   Michael Fop [ctb]
 Maintainer: Luca Scrucca <luca@stat.unipg.it>
-NeedsCompilation: yes
-Date/Publication: 2015-04-09 12:12:16
+Date/Publication: 2015-04-22 12:27:51

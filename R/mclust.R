@@ -5882,15 +5882,12 @@ vecnorm <- function (x, p = 2)
   NextMethod("[")
 }
 
-
 bic <- function(modelName, loglik, n, d, G, noise = FALSE, equalPro = FALSE, ...)
 {
-  mc <- match.call(expand.dots = TRUE)
-  mc[[1]] <- as.name("nMclustParams")
-  nparams <- eval(mc, parent.frame())
+  nparams <- nMclustParams(modelName = modelName, d = d, G = G, 
+                           noise = noise, equalPro = equalPro)
   2 * loglik - nparams * log(n)
 }
-
 
 checkModelName <- function(modelName)
 {

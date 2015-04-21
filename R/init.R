@@ -2,25 +2,10 @@
 ## Initialization for d-dim data ############################################
 #############################################################################
 
-# old original (default)
-# hc <- function(modelName = mclust.options("hcModelNames")[1], data, ...)
-# {
-#   switch(EXPR = modelName,
-#          E = ,
-#          V = ,
-#          EII  = ,
-#          VII = ,
-#          EEE = ,
-#          VVV = TRUE,
-#          stop("invalid model name for hierarchical clustering"))
-#   funcName <- paste("hc", modelName, sep = "")
-#   mc <- match.call(expand.dots = TRUE)
-#   mc[[1]] <- as.name(funcName)
-#   mc[[2]] <- NULL
-#   eval(mc, parent.frame())
-# }
+# TODO: remove where 'change' appears (now it is commented) 
 
-# new version allowing transformation of the data
+# this new version allowing transformation of the data. 
+# By default it behaves as the old function
 hc <- function(data, modelName = mclust.options("hcModelNames")[1], 
                use = mclust.options("hcUse"), ...)
 {
@@ -44,45 +29,58 @@ hc <- function(data, modelName = mclust.options("hcModelNames")[1],
 
   use <- toupper(use)
   if(use == "RANDOM")
-    { return(randomPairs(data, ...)) }
-
-  switch(use,
-         "VARS" = { Z <- data },
-         "STD" = { Z <- scale(data, center = TRUE, scale = TRUE) 
-                   Z <- dropCols(Z) },
-         "PCR" = { data <- scale(data, center = TRUE, scale = TRUE)
-                   data <- dropCols(data)
-                   SVD <- svd(data, nu=0)
-                   # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
-                   Z <- data %*% SVD$v },
-         "PCS" = { data <- scale(data, center = TRUE, scale = FALSE)
-                   SVD <- svd(data, nu=0)
-                   # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
-                   Z <- data %*% SVD$v 
-                   Z <- dropCols(Z) },
-         "SPH" = { data <- scale(data, center = TRUE, scale = FALSE)
-                   n <- nrow(data); p <- ncol(data)
-                   Sigma <- var(data) * (n - 1)/n
-                   SVD <- svd(Sigma, nu = 0)
-                   Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) 
-                   Z <- dropCols(Z) },
-         "SVD" = { data <- scale(data, center = TRUE, scale = TRUE)
-                   data <- dropCols(data)
-                   n <- nrow(data); p <- ncol(data)
-                   SVD <- svd(data, nu=0)
-                   Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) },
-         stop("'use' argument not allowed. See help(mclust.options)")
-  )
-  # call the proper hc<funcName> function
-  mc$data <- Z 
-  mc[[1]] <- as.name(funcName)
-  eval(mc, parent.frame())
+    { out <- randomPairs(data, ...) }
+  else
+    { switch(use,
+             "VARS" = { Z <- data },
+             "STD" = { Z <- scale(data, center = TRUE, scale = TRUE) 
+                       Z <- dropCols(Z) },
+             "PCR" = { data <- scale(data, center = TRUE, scale = TRUE)
+                       data <- dropCols(data)
+                       SVD <- svd(data, nu=0)
+                       # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
+                       Z <- data %*% SVD$v },
+             "PCS" = { data <- scale(data, center = TRUE, scale = FALSE)
+                       SVD <- svd(data, nu=0)
+                       # evalues <- sqrt(SVD$d^2/(nrow(data)-1))
+                       Z <- data %*% SVD$v 
+                       Z <- dropCols(Z) },
+             "SPH" = { data <- scale(data, center = TRUE, scale = FALSE)
+                       n <- nrow(data); p <- ncol(data)
+                       Sigma <- var(data) * (n - 1)/n
+                       SVD <- svd(Sigma, nu = 0)
+                       Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) 
+                       Z <- dropCols(Z) },
+             "SVD" = { data <- scale(data, center = TRUE, scale = TRUE)
+                       data <- dropCols(data)
+                       n <- nrow(data); p <- ncol(data)
+                       SVD <- svd(data, nu=0)
+                       Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) },
+             stop("'use' argument not allowed. See help(mclust.options)")
+            )
+      # call the proper hc<funcName> function
+      mc$data <- Z 
+      mc[[1]] <- as.name(funcName)
+      out <- eval(mc, parent.frame())
+  }
+  
+  attr(out, "call") <- match.call()
+  class(out) <- "hc"
+  return(out)
 }
 
-# Create a hierarchical structure using a random partition of the data
-# See help(hc, package = "mclust")
-# Usage:
-# Mclust(data, initialization = list(hcPairs = randomPairs(data)))
+
+print.hc <- function(x, ...) 
+{
+  if(!is.null(attr(x, "call"))) 
+    cat("Call:\n", deparse(attr(x, "call")), "\n\n", sep = "")
+  cat("Model-Based Agglomerative Hierarchical Clustering:\n")
+  if(!is.null(attr(x, "modelName")))
+    cat("Model name        = ", attr(x, "modelName"), "\n")
+  if(!is.null(attr(x, "dimensions")))
+    cat("Number of objects = ", attr(x, "dimensions")[1], "\n")
+  invisible(x)
+}
 
 randomPairs <- function(data, seed, ...)
 {
@@ -101,7 +99,6 @@ randomPairs <- function(data, seed, ...)
   dimnames(tree) <- NULL
   structure(tree, initialPartition = 1:n, dimensions = c(n,2))
 }
-
 
 hclass <- function(hcPairs, G)
 {
@@ -182,9 +179,10 @@ hcEII <- function(data, partition, minclus = 1, ...)
                    PACKAGE = "mclust")[c(1, 9)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
-  change <- temp[[2]]
+  # change <- temp[[2]]
   structure(t(temp[[1]]), initialPartition = partition, 
             dimensions = dimdat, modelName = "EII", 
+            # change = change,
             call =  match.call())
 }
 
@@ -218,8 +216,7 @@ hcEEE <- function(data, partition, minclus = 1, ...)
   
   ## R 2.12.0: 32 bit Windows build fails due to compiler bug
   ## workaround: removal (hopefully temporary) of hc functionality for EEE
-  
-  # Luca: commente the next line and uncommented below
+  # Luca: commented the next line and uncommented below
   #  stop("hc for EEE model is not currently supported")
   
   temp <- .Fortran("hceee",
@@ -252,6 +249,7 @@ hcEEE <- function(data, partition, minclus = 1, ...)
   trace <- temp[[1]][, 2]
   structure(tree,  initialPartition = partition, 
             dimensions = dimdat, modelName = "EEE", 
+            # change = trace,
             call = match.call())
 }
 
@@ -300,9 +298,10 @@ hcVII <- function(data, partition, minclus = 1, alpha = 1, ...)
                    PACKAGE = "mclust")[c(1, 10)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
-  change <- temp[[2]]
+  # change <- temp[[2]]
   structure(t(temp[[1]]), initialPartition = partition, 
             dimensions = dimdat, modelName = "VII", 
+            # change = change,
             call = match.call())
 }
 
@@ -357,9 +356,10 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
                    PACKAGE = "mclust")[c(1, 14)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
-  change <- temp[[2]] 
+  # change <- temp[[2]] 
   structure(t(temp[[1]]), initialPartition = partition, 
             dimensions = dimdat, modelName = "VVV", 
+            # change = change,
             call = match.call())
 }
 
@@ -435,7 +435,7 @@ hcE <- function(data, partition, minclus = 1, ...)
   temp[[1]] <- temp[[1]][1:m]
   temp[[2]] <- temp[[2]][1:m]
   temp[[3]] <- temp[[3]][1:m]
-  change <- temp[[3]]
+  # change <- temp[[3]]
   structure(rbind(temp[[1]], temp[[2]]),   initialPartition = partition, 
             dimensions = n, modelName = "E",
             call = match.call())
@@ -480,7 +480,7 @@ hcV <- function(data, partition, minclus = 1, alpha = 1, ...)
   temp[[1]] <- temp[[1]][1:m]
   temp[[2]] <- temp[[2]][1:m]
   temp[[3]] <- temp[[3]][1:m]
-  change <- temp[[3]]
+  # change <- temp[[3]]
   structure(rbind(temp[[1]], temp[[2]]),   initialPartition = partition, 
             dimensions = n, modelName = "V",
             call = match.call())

@@ -9,8 +9,6 @@ import(stats, utils)
 # export(.mclust)
 export(mclust.options, emControl)
 
-export(hc, hcE, hcEEE, hcEII, hcV, hcVII, hcVVV)
-export(hclass, randomPairs)
 export(em, emE, emEEE, emEEI, emEEV, emEII, emEVI,
            emV, emVEI, emVEV, emVII, emVVI, emVVV,
            emEVV, emVEE, emEVE, emVVE,
@@ -50,6 +48,11 @@ export(clPairs, mclust1Dplot, mclust2Dplot, mvn2plot, surfacePlot, uncerPlot)
 export(coordProj, randProj)
 
 export(priorControl, defaultPrior, hypvol)
+
+export(hc, print.hc)
+S3method("print", "hc")
+export(hcE, hcEEE, hcEII, hcV, hcVII, hcVVV)
+export(hclass, randomPairs)
 
 export(mclustBIC, print.mclustBIC, summary.mclustBIC, 
        print.summary.Mclust, plot.mclustBIC,

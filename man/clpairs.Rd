@@ -1,16 +1,21 @@
 \name{clPairs}
 \alias{clPairs}
-\title{
-  Pairwise Scatter Plots showing Classification
-}
+\alias{clPairsLegend}
+
+\title{Pairwise Scatter Plots showing Classification}
+
 \description{
-  Creates a scatter plot for each pair of variables in given data.
-  Observations in different classes are represented by different symbols.
+Creates a scatter plot for each pair of variables in given data.
+Observations in different classes are represented by different colors and symbols.
 }
+
 \usage{
 clPairs(data, classification, symbols, colors, labels = dimnames(data)[[2]], 
         CEX = 1, gap = 0.2, \dots)
+
+clPairsLegend(x, y, class, col, pch, \dots)
 }
+
 \arguments{
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
@@ -46,15 +51,40 @@ clPairs(data, classification, symbols, colors, labels = dimnames(data)[[2]],
   \item{gap}{
     An argument specifying the distance between subplots (see \code{\link{pairs}}).
   }
-  \item{\dots}{
-    Additional arguments to be passed to the graphics device.
+  \item{x,y}{
+    The x and y co-ordinates with respect to a graphic device having 
+    plotting region coordinates \code{par("usr" = c(0,1,0,1))}.
   }
+  \item{class}{
+    The class labels.
+  }
+  \item{col, pch}{
+    The colors and plotting symbols appearing in the legend.
+  }
+  \item{\dots}{
+    For a \code{clPairs} call may be additional arguments to be passed to \code{\link{pairs}}. 
+    For a \code{clPairsLegend} call may be additional arguments to be passed to \code{\link{legend}}.
+    }
 }
-\section{Side Effects}{
-  Scatter plots for each combination of variables in \code{data} are
-  created on the current graphics device. Observations of different
-  classifications are labeled with different symbols. 
+
+\section{Details}{
+  The function \code{clPairs} draws scatter plots on the current graphics 
+  device for each combination of variables in \code{data}. Observations of 
+  different classifications are labeled with different symbols. 
+  
+  The function \code{clPairsLegend} can be used to add a legend. See examples
+  below.
 }
+
+\value{
+  The function \code{clPairs} invisibly returns a list with the following 
+  components:
+  \item{class}{A character vector of class labels.}
+  \item{col}{A vector of colors used for each class.}
+  \item{pch}{A vector of plotting symbols used for each class.}
+}
+
+
 \section{References}{
   C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
   mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
@@ -67,8 +97,12 @@ clPairs(data, classification, symbols, colors, labels = dimnames(data)[[2]],
   \code{\link{mclust.options}}
 }
 \examples{
-clPairs(iris[,-5], cl=iris[,5], symbols=as.character(1:3))
+clPairs(iris[,1:4], cl = iris$Species)
+
+clp <- clPairs(iris[,1:4], cl = iris$Species, lower.panel = NULL)
+clPairsLegend(0.1, 0.4, class = clp$class, 
+              col = clp$col, pch = clp$pch, 
+              title = "Iris data")
+
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

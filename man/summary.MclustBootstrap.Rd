@@ -4,7 +4,7 @@
 
 \title{Summary Function for Bootstrap Inference for Gaussian Finite Mixture Models}
 
-\description{Summary of boostrap distribution for the parameters of a Gaussian mixture model providing either standard errors or percentile boostrap confidence intervals.}
+\description{Summary of bootstrap distribution for the parameters of a Gaussian mixture model providing either standard errors or percentile bootstrap confidence intervals.}
 
 \usage{
 \method{summary}{MclustBootstrap}(object, what = c("se", "ci"), conf.level = 0.95, \dots)
@@ -17,7 +17,7 @@
   \item{\dots}{Further arguments passed to or from other methods.}
 }
 
-\details{For details about the procedure used to obtain the boostrap distribution see \code{\link{MclustBootstrap}}.}
+\details{For details about the procedure used to obtain the bootstrap distribution see \code{\link{MclustBootstrap}}.}
 
 %\value{}
 

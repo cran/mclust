@@ -87,9 +87,9 @@ plot.densityMclust <- function(x, data = NULL, what = c("density", "BIC", "diagn
            }
   } 
   else 
-    { if(what == "density")    plot.densityMclust.density(...)
-      if(what == "BIC")        plot.densityMclust.bic(...)
-      if(what == "diagnostic") plot.densityMclust.diagnostic(...)
+    { if(any(what == "density"))    plot.densityMclust.density(...)
+      if(any(what == "BIC"))        plot.densityMclust.bic(...)
+      if(any(what == "diagnostic")) plot.densityMclust.diagnostic(...)
   }
  
   invisible()

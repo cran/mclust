@@ -15,17 +15,15 @@ MclustDR(object, normalized = TRUE, Sigma, lambda = 0.5,
 \arguments{
   \item{object}{An object of class \code{'Mclust'} or \code{'MclustDA'} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.
 }
-%  \item{data}{Data frame or matrix of observations. If not provided is obtained by evaluating \code{object} in the current environment.
-%}
-%  \item{class}{A vector giving the class labels for the observations. If not provided is obtained by evaluating \code{object} in the current environment.
-%}
   \item{normalized}{Logical. If \code{TRUE} directions are normalized to unit norm.
 }
   \item{Sigma}{Marginal covariance matrix of data. If not provided is estimated by the MLE of observed data.
 }
-
-  \item{lambda}{a tuning parameter in the range [0,1] described in Scrucca (2013).}
-
+  \item{lambda}{A tuning parameter in the range [0,1] described in Scrucca (2014). 
+  The default 0.5 gives equal importance to differences in means and covariances 
+  among clusters/classes. To recover the directions that mostly separate the estimated
+  clusters or classes set this parameter to 1. 
+}
   \item{tol}{A tolerance value.}
 }
 \details{
@@ -104,10 +102,23 @@ This implementation doesn't provide a formal procedure for the selection of dime
 }
 
 \examples{
-mod = Mclust(iris[,1:4])
+# clustering
+data(diabetes)
+mod = Mclust(diabetes[,-1])
+summary(mod)
+
 dr = MclustDR(mod)
 summary(dr)
+plot(dr, what = "scatterplot")
+plot(dr, what = "evalues")
 
+# adjust the tuning parameter to show the most separating directions
+dr1 = MclustDR(mod, lambda = 1) 
+summary(dr1)
+plot(dr1, what = "scatterplot")
+plot(dr1, what = "evalues")
+
+# classification
 data(banknote)
 
 da = MclustDA(banknote[,2:7], banknote$Status, modelType = "EDDA")

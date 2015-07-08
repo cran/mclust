@@ -47,14 +47,13 @@ Available options are:
     Possible values are:\cr
     \code{"VARS"} = original variables (default);\cr
     \code{"STD"} = standardized variables;\cr
-    \code{"PCR"} = principal components computed using SVD on standardized 
-    (center and scaled) variables (i.e. using the correlation matrix);\cr
-    \code{"PCS"} = principal components computed using SVD on centered 
-    variables (i.e. using the covariance matrix);\cr
     \code{"SPH"} = sphered variables (centered, scaled, uncorrelated)  
     computed using SVD;\cr
-    \code{"SVD"} = scaled SVD transformation;\cr
-    \code{"RANDOM"} = random partition.
+    \code{"PCS"} = principal components computed using SVD on centered 
+    variables (i.e. using the covariance matrix);\cr
+    \code{"PCR"} = principal components computed using SVD on standardized 
+    (center and scaled) variables (i.e. using the correlation matrix);\cr
+    \code{"SVD"} = scaled SVD transformation.
   }
   \item{\code{bicPlotSymbols}}{
     A vector whose entries correspond to graphics symbols for plotting the 

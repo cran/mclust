@@ -116,7 +116,7 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
                           niterout = integer(1),
                           errout = double(1),
                           lwork = as.integer(lwork),
-                          info = FALSE,
+                          info = as.integer(0),
                           package = "mclust")
     } else {
         # with prior
@@ -152,6 +152,10 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
     errout <- temp$errout
     lapackSVDinfo <- temp$info
     WARNING <- NULL
+    if(!is.finite(loglik) | any(is.nan(scale)) |
+       any(is.nan(shape)) | any(is.nan(O)))
+      { loglik <- .Machine$double.xmax }
+    
     #
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
@@ -160,16 +164,15 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
         else {
             WARNING <- "input error for LAPACK DGESVD"
         }
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- O[] <- shape[] <- NA
         scale <- loglik <- NA
         sigma <- array(NA, c(p, p, G))
         ret <- -9
         #
-    } else if( loglik > signif(.Machine$double.xmax, 6) ||
-                   any(!c(scale, shape)) ) {
+    } else if( loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "singular covariance"
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         shape[] <- NA
         mu[] <- pro[] <- z[] <- loglik <- NA
         sigma <- array(NA, c(p, p, G))
@@ -177,10 +180,10 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
     } else if(loglik <  - signif(.Machine$double.xmax, 6)) {
         if(control$equalPro) {
             WARNING <- "a z column sum fell below threshold"
-            if ( warn ) warning(WARNING)
+            if(warn) warning(WARNING)
         } else {
             WARNING <- "mixing proportion fell below threshold"
-            if ( warn ) warning(WARNING)
+            if(warn) warning(WARNING)
         }
         mu[] <- pro[] <- z[] <- loglik <- NA
         sigma <- array(NA, c(p, p, G))
@@ -260,7 +263,7 @@ mstepEVV <- function(data, z, prior = NULL, warn = NULL, ...)
                           shape = double(p*G),
                           pro = double(G),
                           lwork = as.integer(lwork),
-                          info = FALSE,
+                          info = as.integer(0),
                           eps = as.double(.Machine$double.eps),
                           package = "mclust")
     } else {
@@ -297,15 +300,13 @@ mstepEVV <- function(data, z, prior = NULL, warn = NULL, ...)
             WARNING <- "input error for LAPACK DGESVD"
             ret <- -5
         }
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         O[] <- shape[] <- scale[] <- NA
         sigma <- array(NA, c(p, p, G))
         #
-    } else if( any(c(abs(scale), shape) > signif(.Machine$double.xmax, 6)) ||
-                   # check singularity
-                   any(!c(scale, shape)) ) {
+    } else if( any(abs(c(scale, shape)) > signif(.Machine$double.xmax, 6)) ) {
         WARNING <- "cannot compute M-step"
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         mu[] <- pro[] <- scale <- shape[] <- O[] <- NA
         sigma <- array(NA, c(p, p, G))
         ret <- -1
@@ -396,7 +397,7 @@ estepEVV <- function(data, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "singular covariance"
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- loglik <- NA
         ret <- -1
     }
@@ -590,7 +591,7 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
                          niterout = integer(1),
                          errout = double(1),
                          lwork = as.integer(lwork),
-                         info = FALSE,
+                         info = as.integer(0),
                          package = "mclust")
         #
     } else {
@@ -631,6 +632,9 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
     O <- svd(shape.o, nu = 0)$v
     pro <- temp$pro
     WARNING <- NULL
+    if(!is.finite(loglik) | any(is.nan(scale)) |
+       any(is.nan(shape)) | any(is.nan(O)))
+      { loglik <- .Machine$double.xmax }
     #
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
@@ -754,7 +758,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                           scale = as.double( rep(1,G) ),
                           pro = double(G),
                           lwork = as.integer(lwork),
-                          info = FALSE,
+                          info = as.integer(0),
                           itmax = as.integer(itmax),
                           tol = as.double(tol),
                           niterin = integer(1),
@@ -797,13 +801,12 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
         } else {
             WARNING <- "input error for LAPACK DPOTRF, DSYEV or DPOTRI"
         }
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         O[] <- shape[] <- scale[] <- NA
         sigma <- array(NA, c(p, p, G))
         ret <- -9
         #
-    } else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) ||
-                  any(!c(scale, shape))) {
+    } else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6))) {
         WARNING <- "cannot compute M-step"
         if(warn) warning(WARNING)
         mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
@@ -1098,7 +1101,7 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
                          niterout = integer(1),
                          errout = double(1),
                          lwork = as.integer(lwork),
-                         info = FALSE,
+                         info = as.integer(0),
                          package = "mclust")
         #
     } else {
@@ -1138,6 +1141,9 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
     O <- t( matrix(temp$O, p,p) )
     pro <- temp$pro
     WARNING <- NULL
+    if(!is.finite(loglik) | any(is.nan(scale)) |
+       any(is.nan(shape)) | any(is.nan(O)))
+      { loglik <- .Machine$double.xmax }
     #
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
@@ -1262,7 +1268,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          shape = as.double( matrix(1, p,G) ),
                          pro = double(G),
                          lwork = as.integer(lwork),
-                         info = FALSE,
+                         info = as.integer(0),
                          itmax = as.integer(itmax),
                          tol = as.double(tol),
                          niterin = integer(1),
@@ -1303,13 +1309,12 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
         } else {
             WARNING <- "input error for LAPACK DSYEV or DGESVD"
         }
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         O[] <- shape[] <- scale[] <- NA
         sigma <- array(NA, c(p, p, G))
         ret <- -9
         #
-    } else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) ||
-                  any(!c(scale, shape))) {
+    } else if( any(c(scale, shape) > signif(.Machine$double.xmax, 6)) ) {
         WARNING <- "cannot compute M-step"
         if(warn) warning(WARNING)
         mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
@@ -1604,7 +1609,7 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
                          niterout = integer(1),
                          errout = double(1),
                          lwork = as.integer(lwork),
-                         info = FALSE,
+                         info = as.integer(0),
                          package = "mclust")
         #
     } 
@@ -1648,9 +1653,9 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
     if( !is.finite(loglik) | 
         any(scale > signif(.Machine$double.xmax, 6)) |
         any(shape > signif(.Machine$double.xmax, 6)) |
-        any(O > signif(.Machine$double.xmax, 6)) )
-      loglik <- .Machine$double.xmax
-
+        any(O > signif(.Machine$double.xmax, 6)) |
+        any(is.nan(scale)) | any(is.nan(shape)) | any(is.nan(O)) )
+      { loglik <- .Machine$double.xmax }
     WARNING <- NULL
     #
     if(lapackSVDinfo) {
@@ -1777,7 +1782,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          shape = as.double( matrix(1, p,G) ),
                          pro = double(G),
                          lwork = as.integer(lwork),
-                         info = FALSE,
+                         info = as.integer(0),
                          itmax = as.integer(itmax),
                          tol = as.double(tol),
                          niterin = integer(1),
@@ -1818,13 +1823,12 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
         } else {
             WARNING <- "input error for LAPACK DSYEV or DGESVD"
         }
-        if ( warn ) warning(WARNING)
+        if(warn) warning(WARNING)
         O[] <- shape[] <- scale[] <- NA
         sigma <- array(NA, c(p, p, G))
         ret <- -9
         #
-    } else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) ||
-                  any(!c(scale, shape))) {
+    } else if(any(c(scale, shape) > signif(.Machine$double.xmax, 6))) {
         WARNING <- "cannot compute M-step"
         if(warn) warning(WARNING)
         mu[] <- pro[] <- O[] <- shape[] <- scale[] <- NA
@@ -1939,7 +1943,7 @@ estepVVE <- function(data, parameters, warn = NULL, ...)
 ####
 cdensVVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
-    if (is.null(warn)) warn <- mclust.options("warn")
+    if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
     if(is.null(dimdat) || length(dimdat) != 2)
         stop("data must be a matrix")

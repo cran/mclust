@@ -89,9 +89,9 @@ print.mclustBootstrapLRT <- function(x, ...)
   print(df, ...)
 }
 
-plot.mclustBootstrapLRT <- function(x, G = 1, col = "lightgrey", border = "white", breaks = "scott", main = NULL, ...) 
+plot.mclustBootstrapLRT <- function(x, G = 1, hist.col = "grey", hist.border = "lightgrey", breaks = "Scott", col = "forestgreen", lwd = 2, lty = 3, main = NULL, ...) 
 {
-  if(G > x$G) 
+  if(!any(G == x$G))
     { warning(paste("bootstrap LRT not available for G =", G)) 
       return() }
   G <- as.numeric(G)[1]
@@ -99,8 +99,8 @@ plot.mclustBootstrapLRT <- function(x, G = 1, col = "lightgrey", border = "white
   xlim <- range(h$breaks, x$boot[,G], x$obs[G]*1.1, na.rm = TRUE)
   xlim <- c(xlim[1] - diff(xlim) * 0.1, xlim[2] + diff(xlim) * 0.1)
   plot(h, xlab = "LRTS", freq = FALSE, xlim = xlim,
-       col = col, border = border, main = NULL)
-  abline(v = x$obs[G], lty = 3, lwd = 2, col = "forestgreen")
+       col = hist.col, border = hist.border, main = NULL)
+  abline(v = x$obs[G], lty = lty, lwd = lwd, col = col)
   if(is.null(main) | is.character(main))
     { if(is.null(main)) main <- paste("Bootstrap LRT for model", x$modelName, 
                                       "with", G, "vs", G+1, "components")
@@ -112,8 +112,9 @@ plot.mclustBootstrapLRT <- function(x, G = 1, col = "lightgrey", border = "white
 # Bootstrap inference (standard errors and percentile confidence intervals) 
 #
 
-MclustBootstrap <- function(object, nboot = 999, verbose = TRUE, ...)
+MclustBootstrap <- function(object, nboot = 999, type = c("nonpara", "wlb"), verbose = TRUE, ...)
 {
+  type <- match.arg(type, c("nonpara", "wlb"))
   data <- object$data
   n <- object$n
   d <- object$d
@@ -134,17 +135,22 @@ MclustBootstrap <- function(object, nboot = 999, verbose = TRUE, ...)
   b <- 0
   while(b < nboot)
   { b <- b + 1
-    idx <- sample(seq_len(n), size = n, replace = TRUE)
-#    w <- tabulate(idx, nbins = n)
-#    w <- w/max(w)
-#     mod.boot <- try(do.call("me.weighted", 
-#                              c(list(weights = w, warn = FALSE), object)),
-#                      silent = TRUE)
     obj <- object
-    obj$data <- object$data[idx,]
-    obj$z <- obj$z[idx,]
-    obj$warn <- FALSE
-    mod.boot <- try(do.call("me", obj), silent = TRUE)
+    if(type == "wlb")
+      { w <- rexp(n)
+        # w <- w/mean(w)
+        w <- w/max(w)
+        mod.boot <- try(do.call("me.weighted", 
+                                c(list(weights = w, warn = FALSE), obj)),
+                        silent = TRUE)
+    }
+    else 
+      { idx <- sample(seq_len(n), size = n, replace = TRUE)
+        obj$data <- object$data[idx,]
+        obj$z <- obj$z[idx,]
+        obj$warn <- FALSE
+        mod.boot <- try(do.call("me", obj), silent = TRUE)
+    }
     # check model convergence
     if(inherits(mod.boot, "try-error"))
       { b <- b - 1; next() }
@@ -158,9 +164,14 @@ MclustBootstrap <- function(object, nboot = 999, verbose = TRUE, ...)
   }
   if(verbose & interactive()) close(pbar)
   
-  out <- list(G = G, modelName = object$modelName, 
-              nboot = nboot, pro = pro.boot, 
-              mean = mean.boot, variance = var.boot)
+  out <- list(G = G, 
+              modelName = object$modelName, 
+              parameters = summary(object)[c("pro", "mean", "variance")],
+              nboot = nboot, 
+              type = type,
+              pro = pro.boot, 
+              mean = mean.boot, 
+              variance = var.boot)
   class(out) <- "MclustBootstrap"
   return(out)
 }
@@ -197,7 +208,8 @@ summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0
      out$variance <- v
   }
   
-  obj <- append(object[c("modelName", "G", "nboot")], list(d = d, what = what))
+  obj <- append(object[c("modelName", "G", "nboot", "type")], 
+                list(d = d, what = what))
   if(what == "ci") obj$conf.level <- conf.level
   obj <- append(obj, out)
   class(obj) <- "summary.MclustBootstrap"
@@ -206,31 +218,27 @@ summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0
 
 print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
 {
+  cat(rep("-", 58),"\n",sep="")
   if(x$what == "se")
     cat("Bootstrap standard errors\n")
   else  
     cat("Bootstrap confidence intervals\n")
-  cat(rep("-", 40),"\n",sep="")
-  cat(formatC("Model", flag = "-", width = 28), "=", x$modelName, "\n")
-  cat(formatC("Num. of mixture components", flag = "-", width = 28), 
+  cat(rep("-", 58),"\n",sep="")
+  cat(formatC("Model", flag = "-", width = 26), "=", x$modelName, "\n")
+  cat(formatC("Num. of mixture components", flag = "-", width = 26), 
       "=", x$G, "\n")
-  cat(formatC("Replications", flag = "-", width = 28), "=", x$nboot, "\n")
+  cat(formatC("Replications", flag = "-", width = 26), "=", x$nboot, "\n")
+  cat(formatC("Type", flag = "-", width = 26), "=", 
+      ifelse(x$type == "nonpara", "nonparametric bootstrap",
+                                  "weighted likelihood bootstrap"), "\n")
   if(x$what == "ci")
-    cat(formatC("Confidence level", flag = "-", width = 28), 
+    cat(formatC("Confidence level", flag = "-", width = 26), 
         "=", x$conf.level, "\n")
 
   cat("\nMixing probabilities:\n")
   print(x$pro, digits = digits)
   #
   cat("\nMeans:\n")
-#   if(x$what == "se") 
-#     { if(dim(x$mean)[1] == 1) print(x$mean[1,], digits = digits)
-#       else print(x$mean, digits = digits) }
-#   else
-#     { for(g in seq.int(x$G))
-#          { cat("[,,", g, "]\n", sep = "")
-#            print(x$mean[,,g], digits = digits) }
-#   }
   if(x$d == 1) 
     { if(x$what == "se") print(x$mean[1,], digits = digits)
       else               print(x$mean[,1,], digits = digits) 
@@ -253,4 +261,54 @@ print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
   invisible(x)
 }
 
+plot.MclustBootstrap <- function(x, what = c("pro", "mean", "var"), hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", col = "forestgreen", lwd = 2, lty = 3, xlab = NULL, xlim = NULL, ylim = NULL, ...)
+{
+  object <- x # Argh.  Really want to use object anyway
+  what <- match.arg(what, choices = eval(formals(plot.MclustBootstrap)$what))
+  par <- x$parameters
+  p <- nrow(par$mean)
+  varnames <- rownames(par$mean)
+  
+  histBoot <- function(boot, stat, breaks, xlim, ylim, xlab, ...)
+  { hist(boot, breaks = breaks, xlim = xlim, ylim = ylim,
+         main = "", xlab = xlab, ylab = "",
+         border = hist.border, col = hist.col)
+    abline(v = stat, col = col, lwd = lwd, lty = lty)
+  }
+  
+  switch(what, 
+         "pro" = { xlim <- range(if(is.null(xlim)) pretty(object$pro) else xlim)
+                   for(k in 1:object$G) 
+                       histBoot(object$pro[,k], par$pro[k], breaks, 
+                                xlim = xlim, ylim = ylim,
+                                xlab = paste(ifelse(is.null(xlab), 
+                                                    "Mix. prop. for comp.", xlab), k)) 
+         },
+         "mean" = { isNull_xlim <- is.null(xlim)
+                    for(j in 1:p)
+                       { xlim <- range(if(isNull_xlim) pretty(object$mean[,j,]) 
+                                       else xlim)
+                         for(k in 1:object$G)
+                            histBoot(object$mean[,j,k], par$mean[j,k], breaks, 
+                                     xlim = xlim, ylim = ylim,
+                                     xlab = paste(varnames[j], 
+                                                  ifelse(is.null(xlab), 
+                                                         "mean for comp.", xlab), k))
+                       }
+         },
+         "var" = { isNull_xlim <- is.null(xlim)
+                   for(j in 1:p)
+                      { xlim <- range(if(isNull_xlim) pretty(object$variance[,j,j,]) 
+                                       else xlim)
+                        for(k in 1:object$G)
+                            histBoot(object$variance[,j,j,k], par$variance[j,j,k], 
+                                     breaks, xlim = xlim, ylim = ylim,
+                                     xlab = paste(varnames[j], 
+                                                  ifelse(is.null(xlab), 
+                                                         "var for comp.", xlab), k))
+                       }
+         }
+        )  
+  invisible()
+}
 

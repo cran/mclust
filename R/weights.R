@@ -2,7 +2,7 @@
 ## Weights for MCLUST
 ##
 ## Written by Thomas Brendan Murphy
-## Bug fixes by Luca Scrucca
+## Bugs fix by Luca Scrucca
 #############################################################################
 
 me.weighted <- function(modelName, data, z, weights = NULL, prior = NULL, 
@@ -10,6 +10,7 @@ me.weighted <- function(modelName, data, z, weights = NULL, prior = NULL,
 {
   data <- as.matrix(data)
   N <- nrow(data)
+  if(is.null(warn)) warn <- mclust.options("warn")
   if(is.null(weights))
     { weights <- rep(1,N) }
   if(any(weights<0)|any(!is.finite(weights)))

@@ -13,8 +13,8 @@ mclustBootstrapLRT(data, modelName = NULL, nboot = 999,
                    
 \method{print}{mclustBootstrapLRT}(x, \dots)
 
-\method{plot}{mclustBootstrapLRT}(x, G = 1, col = "lightgrey", border = "white", 
-     breaks = "scott", main = NULL, \dots) 
+\method{plot}{mclustBootstrapLRT}(x, G = 1, hist.col = "grey", hist.border = "lightgrey", breaks = "Scott", 
+    col = "forestgreen", lwd = 2, lty = 3, main = NULL, \dots) 
 }
 
 \arguments{
@@ -31,11 +31,12 @@ mclustBootstrapLRT(data, modelName = NULL, nboot = 999,
   \item{\dots}{Further arguments passed to or from other methods.}
   
   \item{x}{An \code{'mclustBootstrapLRT'} object.}
-  \item{G}{A value specifying the number of components fow which to plot the 
+  \item{G}{A value specifying the number of components for which to plot the 
            bootstrap distribution.}
-  \item{col}{The colour to be used to fill the bars of the histogram.}
-  \item{border}{The color of the border around the bars of the histogram.}
+  \item{hist.col}{The colour to be used to fill the bars of the histogram.}
+  \item{hist.border}{The color of the border around the bars of the histogram.}
   \item{breaks}{See the argument in function \code{\link[graphics]{hist}}.}
+  \item{col, lwd, lty}{The color, line width and line type to be used to represent the observed LRT statistic.}
   \item{main}{The title for the graph.}
 }
 

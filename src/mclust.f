@@ -843,8 +843,8 @@ c     double precision   T(abs(n), abs(n))
 
        integer            i, j, k
 
-       external           ddot
        double precision   ddot
+       external           ddot
 
 c------------------------------------------------------------------------------
 
@@ -1437,6 +1437,7 @@ c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -1991,8 +1992,8 @@ c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -2189,8 +2190,8 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -2429,8 +2430,8 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot, dlngam
       double precision        ddot, dlngam
+      external                ddot, dlngam
 
 c------------------------------------------------------------------------------
 
@@ -2916,7 +2917,6 @@ c------------------------------------------------------------------------------
       end do
 
       const = dble(p)*(pi2log+log(scale)) 
-
 
       do k = 1, G
 c       prok = pro(k)
@@ -3750,8 +3750,8 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -3894,8 +3894,8 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -4202,8 +4202,8 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -4475,6 +4475,7 @@ c     w(1)  = rc
 
       return
       end
+
       subroutine mseev ( x, z, n, p, G, w, lwork, 
      *                   mu, scale, shape, O, pro)
 
@@ -4660,9 +4661,6 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G)
 
       double precision   SMALOG
       parameter         (SMALOG = -708.d0)
-
-      external           ddot
-      double precision   ddot
 
 c------------------------------------------------------------------------------
 
@@ -6856,6 +6854,9 @@ c     double precision    x(n), ALPHA, d(ng*(ng-1)/2)
 
       double precision    EPSMAX
       parameter          (EPSMAX = 2.2204460492503131d-16)
+
+      double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -9181,8 +9182,8 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -9337,8 +9338,8 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
      
@@ -9888,8 +9889,8 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -12936,8 +12937,8 @@ c     double precision   mu(p,G), Sigma(p,p,G), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -13098,8 +13099,8 @@ c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision   rthalf
       parameter         (rthalf = .7071067811865476d0)
 
-      external           ddot, vvvtij
       double precision   ddot, vvvtij
+      external           ddot, vvvtij
 
       double precision   BETA0, ALPHA0, ABLOG
       common /VVVMCL/    BETA0, ALPHA0, ABLOG
@@ -13945,8 +13946,8 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision           zero, one
       parameter                 (zero = 0.d0, one = 1.d0)
 
-      external                   det2mc
       double precision           det2mc
+      external                   det2mc
 
       double precision           BETA, ALPHA, ABLOG
       common /VVVMCL/            BETA, ALPHA, ABLOG
@@ -14059,8 +14060,8 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot
       double precision        ddot
+      external                ddot
 
 c------------------------------------------------------------------------------
 
@@ -14325,8 +14326,8 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      external                ddot, dlngam
       double precision        ddot, dlngam
+      external                ddot, dlngam
 
 c------------------------------------------------------------------------------
 
@@ -15605,8 +15606,8 @@ c  u,r      double  (scratch) (p,p)
       double precision        zero, one
       parameter              (zero = 0.d0, one = 1.d0)
 
-      external                ddot, detmc2
       double precision        ddot, detmc2
+      external                ddot, detmc2
 
       double precision    FLMAX
       parameter          (FLMAX = 1.7976931348623157d308)

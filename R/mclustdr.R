@@ -440,7 +440,8 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
                          mean = t(par$mean[i,,drop=FALSE]), 
                          variance = list(G = length(i), d = 2, 
                                          sigma = par$variance[,,i,drop=FALSE]))
-      surfacePlot(dir, parameters, col = col.contour, nlevels = nlevels,
+      surfacePlot(dir, parameters, col = col.contour, 
+                  nlevels = nlevels, grid = ngrid,
                   xlim = par("usr")[1:2], ylim = par("usr")[3:4], 
                   asp = asp, add = TRUE)
     }
@@ -525,7 +526,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   plot.MclustDR.evalues <- function(...)
   { plotEvalues.MclustDR(object, numdir = max(dimens), plot = TRUE) }
   
-    if(interactive() & length(what) > 1)
+  if(interactive() & length(what) > 1)
     { title <- "Dimension reduction for model-based clustering and classification plots:"
       # present menu waiting user choice
       choice <- menu(what, graphics = FALSE, title = title)
@@ -550,21 +551,21 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
            }
   }
   else 
-    { if(what == "scatterplot") plot.MclustDR.scatterplot(...)
-      if(what == "pairs")       plot.MclustDR.pairs(...)
-      if(what == "contour")     plot.MclustDR.contour(...)
-      if(what == "classification" & object$type == "Mclust")
-                                plot.MclustDR.classification.Mclust(...)
-      if(what == "classification" &
-         (object$type == "EDDA" | object$type == "MclustDA"))
-                                plot.MclustDR.classification.MclustDA(...)
-      if(what == "boundaries" & object$type == "Mclust")
-                                        plot.MclustDR.boundaries.Mclust(...)
-      if(what == "boundaries" & 
-         (object$type == "EDDA" | object$type == "MclustDA"))
-                                        plot.MclustDR.boundaries.MclustDA(...)
-      if(what == "density")     plot.MclustDR.density(...)
-      if(what == "evalues")     plot.MclustDR.evalues(...)
+    { if(any(what == "scatterplot")) plot.MclustDR.scatterplot(...)
+      if(any(what == "pairs"))       plot.MclustDR.pairs(...)
+      if(any(what == "contour"))     plot.MclustDR.contour(...)
+      if(any(what == "classification" & object$type == "Mclust"))
+                                     plot.MclustDR.classification.Mclust(...)
+      if(any(what == "classification" &
+             (object$type == "EDDA" | object$type == "MclustDA")))
+                                     plot.MclustDR.classification.MclustDA(...)
+      if(any(what == "boundaries" & object$type == "Mclust"))
+                                     plot.MclustDR.boundaries.Mclust(...)
+      if(any(what == "boundaries" & 
+             (object$type == "EDDA" | object$type == "MclustDA")))
+                                     plot.MclustDR.boundaries.MclustDA(...)
+      if(any(what == "density"))     plot.MclustDR.density(...)
+      if(any(what == "evalues"))     plot.MclustDR.evalues(...)
   }
     
   invisible()

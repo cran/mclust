@@ -40,7 +40,7 @@ plotDensityMclustd(x, data = NULL, col = grey(0.6), nlevels = 11,
     }
   }
   
-  \item{hist.col}{The colour to be used to fill the bars of the histogram.}
+  \item{hist.col}{The color to be used to fill the bars of the histogram.}
 
   \item{hist.border}{The color of the border around the bars of the histogram.}
   

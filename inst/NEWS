@@ -1,3 +1,12 @@
+Version 5.0.2 (2015-07)
+    o add option to MclustBootstrap for using weighted likelihood bootstrap.
+    o add a plot method to MclustBootstrap.
+    o add errorBars function.
+    o add clPairsLegend function.
+    o add covw function.
+    o fix rescaling of mixing probabilities in new models.
+    o bug fixes.
+
 Version 5.0.1 (2015-04)
     o bug fixes. 
     o add print method to hc.

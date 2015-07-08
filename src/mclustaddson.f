@@ -29,57 +29,53 @@
       call DGEMM('T', 'N', p, q, n, 1.d0, X, n, Y, n, 0.d0, XTY, p)
       end
 
+* ======================================================================
+      subroutine covw ( X, Z, n, p, G, M, S, W )
+*
+*	  Given data matrix X(n x p) and weight matrix Z(n x G) computes
+*	  weighted means M(p x G), weighted covariance matrices S(p x p x G)
+*   and weighted scattering matrices W(p x p x G)
+*
+* ======================================================================
 
-* ======================================================================
-      subroutine covwt ( x, z, n, p, G, mu, S )
-*
-*	  Given data matrix X(n x p) and weight matrix z(n x G) computes
-*	  weighted means mu(p x G) and weighted scattering 
-*     matrices S(p x p x G)
-*
-* ======================================================================
       implicit none
-	  
+
       integer :: n, p, G
-      double precision :: x(n,p), z(n,G)
-      
-      double precision :: mu(p,G), S(p,p,G)
-      
+      double precision :: X(n,p), Z(n,G)
+
+      double precision :: M(p,G), S(p,p,G), W(p,p,G)
+
       integer :: j, k
-      double precision :: sumz(G), temp1(n), temp2(n,p), w(n,p)
-      
-        
-* 	  compute x'z using BLAS       
-      call dgemm('T', 'N', p, G, n, 1.d0, x, n, z, n, 0.d0, mu, p)
-      
-*     compute row sums of z
-      sumz = sum(z, DIM = 1)
-      
+      double precision :: sumZ(G), temp(n,p)
+
+*     compute X'Z using BLAS
+      call dgemm('T', 'N', p, G, n, 1.d0, X, n, Z, n, 0.d0, M, p)
+
+*     compute row sums of Z
+      sumZ = sum(Z, DIM = 1)
+
       do k = 1,G
-      
+
 *         compute means
-          call dscal(p, (1.d0/sumz(k)), mu(:,k), 1)     
-              
-              do j = 1,p
-*                 copy vectors
-                  call dcopy(n, mu(j,k), 0, temp1, 1)
-                  call dcopy(n, 0.d0, 0, temp2(:,j), 1)
-                  call dcopy(n, x(:,j), 1, w(:,j), 1)
-                  
-*                 compute sqrt(z) * (x - mu)
-                  call daxpy(n, -1.d0, temp1, 1, w(:,j), 1)
-                  call daxpy(n, 1.d0, sqrt(z(:,k))*w(:,j), 1,
-     *                       temp2(:,j), 1)
+          call dscal(p, (1.d0/sumZ(k)), M(:,k), 1)     
+        
+              do j = 1,p                  
+*                 compute sqrt(Z) * (X - M)
+                  temp(:,j) = sqrt(Z(:,k)) * (X(:,j) - M(j,k))
               end do
-              
+        
 *         compute scattering matrix    
-          call dgemm('T', 'N', p, p, n, 1.d0, temp2, n, temp2, n,
-     *               0.d0, S(:,:,k), p)
-        end do
-        
-        return 
-        end
-        
+          call dgemm('T', 'N', p, p, n, 1.d0, temp, n, temp, n,
+     *               0.d0, W(:,:,k), p)
+
+*         compute covariance matrix
+          S(:,:,k) = W(:,:,k)/sumZ(k)
+
+      end do
+  
+      return 
+      end
+
 ************************************************************************
 **** EVV model
 ************************************************************************        
@@ -316,6 +312,11 @@
       
       const = (-dble(p)/2.d0)*log2pi
       
+*       WHILE loop using goto statement
+100   continue
+      
+      niterout = niterout + 1
+
       sumz = sum(z, dim = 1)
       if ( eqpro ) then
         if ( Vinv .gt. 0 ) then
@@ -329,12 +330,6 @@
       else
         pro = sumz / dble(n)
       end if
-      
-      
-*       WHILE loop using goto statement
-100   continue
-
-      niterout = niterout + 1
       
 *       re-initialise U      
       call dcopy(p*p*G, 0.d0, 0, U, 1)
@@ -440,20 +435,20 @@
       lkprev = loglik
 *      temp(niterout) = loglik
 
-
-      sumz = sum(z, dim = 1)
-      if ( eqpro ) then
-        if ( Vinv .gt. 0 ) then
-            pro(Gnoise) = sumz(Gnoise) / dble(n)
-            pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
-            sumz = pro * dble(n)
-        else 
-            pro = 1 / dble(G)
-            sumz = pro * dble(n)
-        end if
-      else
-        pro = sumz / dble(n)
-      end if
+* Chris F (June 2015): pro should not be computed in the E-step
+*     sumz = sum(z, dim = 1)
+*     if ( eqpro ) then
+*       if ( Vinv .gt. 0 ) then
+*           pro(Gnoise) = sumz(Gnoise) / dble(n)
+*           pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
+*           sumz = pro * dble(n)
+*       else 
+*           pro = 1 / dble(G)
+*           sumz = pro * dble(n)
+*       end if
+*     else
+*       pro = sumz / dble(n)
+*     end if
       
 *       check if empty components
 *      if ( minval(pro) .lt. rteps ) then
@@ -765,6 +760,11 @@
       
       const = (-dble(p)/2.d0)*log2pi
       
+*       WHILE loop for EM algorithm
+100   continue
+    
+      niterout = niterout + 1
+      
       sumz = sum(z, dim = 1)
       if ( eqpro ) then
         if ( Vinv .gt. 0 ) then
@@ -778,11 +778,6 @@
       else
         pro = sumz / dble(n)
       end if
-      
-*       WHILE loop for EM algorithm
-100   continue
-    
-      niterout = niterout + 1
       
 *       re-initialise U      
       call dcopy(p*p*G, 0.d0, 0, U, 1)
@@ -961,20 +956,21 @@
 *      errout = abs(loglik - lkprev)
       lkprev = loglik
 *      temp(niterout) = loglik
-      
-      sumz = sum(z, dim = 1)
-      if ( eqpro ) then
-        if ( Vinv .gt. 0 ) then
-            pro(Gnoise) = sumz(Gnoise) / dble(n)
-            pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
-            sumz = pro * dble(n)
-        else 
-            pro = 1 / dble(G)
-            sumz = pro * dble(n)
-        end if
-      else
-        pro = sumz / dble(n)
-      end if
+
+* Chris F (June 2015): pro should not be computed in the E-step
+*     sumz = sum(z, dim = 1)
+*     if ( eqpro ) then
+*       if ( Vinv .gt. 0 ) then
+*           pro(Gnoise) = sumz(Gnoise) / dble(n)
+*           pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
+*           sumz = pro * dble(n)
+*       else 
+*           pro = 1 / dble(G)
+*           sumz = pro * dble(n)
+*       end if
+*     else
+*       pro = sumz / dble(n)
+*     end if
       
 *       check if empty components
       if ( minval(sumz) .lt. rteps ) then
@@ -1307,6 +1303,11 @@
       
       const = (-dble(p)/2.d0)*log2pi
       
+*       WHILE loop for EM algorithm  
+100   continue
+    
+      niterout = niterout + 1
+      
       sumz = sum(z, dim = 1)
       if ( eqpro ) then
         if ( Vinv .gt. 0 ) then
@@ -1320,11 +1321,6 @@
       else
         pro = sumz / dble(n)
       end if
-      
-*       WHILE loop for EM algorithm  
-100   continue
-    
-      niterout = niterout + 1
       
 *       re-initialise U      
       call dcopy(p*p*G, 0.d0, 0, U, 1)
@@ -1515,20 +1511,21 @@
 
       errout = abs(loglik - lkprev)/(1.d0 + abs(loglik))
       lkprev = loglik
-      
-      sumz = sum(z, dim = 1)
-      if ( eqpro ) then
-        if ( Vinv .gt. 0 ) then
-            pro(Gnoise) = sumz(Gnoise) / dble(n)
-            pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
-            sumz = pro * dble(n)
-        else 
-            pro = 1 / dble(G)
-            sumz = pro * dble(n)
-        end if
-      else
-        pro = sumz / dble(n)
-      end if
+
+* Chris F (June 2015): pro should not be computed in the E-step
+*     sumz = sum(z, dim = 1)
+*     if ( eqpro ) then
+*       if ( Vinv .gt. 0 ) then
+*           pro(Gnoise) = sumz(Gnoise) / dble(n)
+*           pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
+*           sumz = pro * dble(n)
+*       else 
+*           pro = 1 / dble(G)
+*           sumz = pro * dble(n)
+*       end if
+*     else
+*       pro = sumz / dble(n)
+*     end if
       
 *       check if empty components
       if ( minval(sumz) .lt. rteps ) then
@@ -1864,6 +1861,11 @@
       
       const = (-dble(p)/2.d0)*log2pi
       
+*       WHILE loop for EM algorithm  
+100   continue
+    
+      niterout = niterout + 1
+      
       sumz = sum(z, dim = 1)
       if ( eqpro ) then
         if ( Vinv .gt. 0 ) then
@@ -1877,11 +1879,6 @@
       else
         pro = sumz / dble(n)
       end if
-      
-*       WHILE loop for EM algorithm  
-100   continue
-    
-      niterout = niterout + 1
       
 *       re-initialise U      
       call dcopy(p*p*G, 0.d0, 0, U, 1)
@@ -2080,20 +2077,21 @@
 
       errout = abs(loglik - lkprev)/(1.d0 + abs(loglik))
       lkprev = loglik
-      
-      sumz = sum(z, dim = 1)
-      if ( eqpro ) then
-        if ( Vinv .gt. 0 ) then
-            pro(Gnoise) = sumz(Gnoise) / dble(n)
-            pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
-            sumz = pro * dble(n)
-        else 
-            pro = 1 / dble(G)
-            sumz = pro * dble(n)
-        end if
-      else
-        pro = sumz / dble(n)
-      end if
+
+* Chris F (June 2015): pro should not be computed in the E-step
+*     sumz = sum(z, dim = 1)
+*     if ( eqpro ) then
+*       if ( Vinv .gt. 0 ) then
+*           pro(Gnoise) = sumz(Gnoise) / dble(n)
+*           pro(1:G) = ( 1 - pro(Gnoise) ) / dble(G)
+*           sumz = pro * dble(n)
+*       else 
+*           pro = 1 / dble(G)
+*           sumz = pro * dble(n)
+*       end if
+*     else
+*       pro = sumz / dble(n)
+*     end if
       
 *       check if empty components
       if ( minval(sumz) .lt. rteps ) then

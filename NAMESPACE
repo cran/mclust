@@ -4,7 +4,7 @@ useDynLib(mclust)
 # exportPattern(".")
 
 # Import all packages listed as Imports or Depends
-import(stats, utils)
+import("stats", "utils", "graphics", "grDevices")
 
 # export(.mclust)
 export(mclust.options, emControl)
@@ -34,7 +34,7 @@ export(cdens, cdensE, cdensEEE, cdensEEI, cdensEEV, cdensEII, cdensEVI,
 
 export(bic, pickBIC, nVarParams, nMclustParams)
 
-export(map, unmap, partconv, partuniq)
+export(map, unmap, partconv, partuniq, errorBars)
 
 export(mclustModel, mclustModelNames, checkModelName, mclustVariance)
 
@@ -44,8 +44,8 @@ export(imputeData, imputePairs)
 
 export(mapClass, classError, adjustedRandIndex)
 
-export(clPairs, mclust1Dplot, mclust2Dplot, mvn2plot, surfacePlot, uncerPlot)
-export(coordProj, randProj)
+export(mclust1Dplot, mclust2Dplot, mvn2plot, surfacePlot, uncerPlot)
+export(clPairs, clPairsLegend, coordProj, randProj)
 
 export(priorControl, defaultPrior, hypvol)
 
@@ -100,7 +100,7 @@ export(clustCombi, print.clustCombi, plot.clustCombi, combiPlot, entPlot, combMa
 S3method("plot", "clustCombi")
 S3method("print", "clustCombi")
 
-export(me.weighted)
+export(me.weighted, covw)
 
 export(icl, mclustICL, print.mclustICL, 
        summary.mclustICL, print.summary.mclustICL, 
@@ -117,10 +117,12 @@ S3method( "print", "mclustBootstrapLRT")
 S3method( "plot", "mclustBootstrapLRT")
 
 export(MclustBootstrap, print.MclustBootstrap, 
-       summary.MclustBootstrap, print.summary.MclustBootstrap)
+       summary.MclustBootstrap, print.summary.MclustBootstrap,
+       plot.MclustBootstrap)
 S3method( "print", "MclustBootstrap")
 S3method( "summary", "MclustBootstrap")
 S3method( "print", "summary.MclustBootstrap")
+S3method( "plot", "MclustBootstrap")
 
 # deprecated functions
 export(cv.MclustDA, cv1EMtrain, bicEMtrain)

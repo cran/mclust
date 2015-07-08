@@ -22,9 +22,8 @@ opts_chunk$set(fig.align="center",
 
 `mclust` is a contributed R package for model-based clustering, classification, and density estimation based on finite normal mixture modelling. It provides functions for parameter estimation via the EM algorithm for normal mixture models with a variety of covariance structures, and functions for simulation from these models. Also included are functions that combine model-based hierarchical clustering, EM for mixture estimation and the Bayesian Information Criterion (BIC) in comprehensive strategies for clustering, density estimation and discriminant analysis. Additional functionalities are available for displaying and visualizing fitted models along with clustering, classification, and density estimation results.
 
-This document gives a quick tour of `mclust` functionalities. It was written in R Markdown, using the `knitr` package for production. 
-It corresponds to `mclust` version `r packageVersion("mclust")`.
-See the help pages for further details and references provided by `citation("mclust")`.
+This document gives a quick tour of `mclust` (version `r packageVersion("mclust")`) functionalities. It was written in R Markdown, using the [knitr](http://cran.r-project.org/package=knitr) package for production. 
+See `help(package="mclust")` for further details and references provided by `citation("mclust")`.
 
 ```{r}
 library(mclust)

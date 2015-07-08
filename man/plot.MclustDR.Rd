@@ -92,11 +92,11 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 \seealso{\link{MclustDR}}
 
 \examples{
-mod = Mclust(iris[,1:4], G = 1:5)
+mod = Mclust(iris[,1:4], G = 3)
 dr = MclustDR(mod)
 plot(dr, what = "evalues")
-plot(dr, what = "scatterplot", dimens = c(1,3))
 plot(dr, what = "pairs")
+plot(dr, what = "scatterplot", dimens = c(1,3))
 plot(dr, what = "contour")
 plot(dr, what = "classification", ngrid = 200)
 plot(dr, what = "boundaries", ngrid = 200)

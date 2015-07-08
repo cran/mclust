@@ -703,10 +703,10 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
            }
   }
   else 
-    { if(what == "scatterplot")    plot.MclustDA.scatterplot(...)
-      if(what == "classification") plot.MclustDA.classification(...)
-      if(what == "train&test")     plot.MclustDA.traintest(...) 
-      if(what == "error")          plot.MclustDA.error(...)
+    { if(any(what == "scatterplot"))    plot.MclustDA.scatterplot(...)
+      if(any(what == "classification")) plot.MclustDA.classification(...)
+      if(any(what == "train&test"))     plot.MclustDA.traintest(...) 
+      if(any(what == "error"))          plot.MclustDA.error(...)
   }
     
   invisible()
@@ -1001,4 +1001,11 @@ cv.MclustDA <- function(...)
 {
   .Deprecated("cvMclustDA", package = "mclust")
   cvMclustDA(...)
+}
+
+"[.mclustDAtest" <- function (x, i, j, drop = FALSE) 
+{
+  clx <- oldClass(x)
+  oldClass(x) <- NULL
+  NextMethod("[")
 }

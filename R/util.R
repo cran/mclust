@@ -954,9 +954,9 @@ surfacePlot <- function(data, parameters,
   
   dnames <- dimnames(data)[[2]]
   if(is.null(xlab)) 
-  { xlab <- if(is.null(dnames)) "" else dnames[1] }
+    { xlab <- if(is.null(dnames)) "" else dnames[1] }
   if(is.null(ylab)) 
-  { ylab <- if(is.null(dnames)) "" else dnames[2] }
+    { ylab <- if(is.null(dnames)) "" else dnames[2] }
   
   if(length(grid) == 1) 
     grid <- c(grid, grid)
@@ -998,7 +998,6 @@ surfacePlot <- function(data, parameters,
          }, 
          image = {
            title3 <- "Image"
-           # browser()
            if(length(col) == 1)
              { if(!is.null(levels)) 
                  nlevels <- length(levels)

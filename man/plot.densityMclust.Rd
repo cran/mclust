@@ -14,17 +14,17 @@
 }
 
 \usage{
-\method{plot}{densityMclust}(x, data = NULL, what = c("density", "BIC", "diagnostic"), \dots)
+\method{plot}{densityMclust}(x, data = NULL, what = c("BIC", "density", "diagnostic"), \dots)
 
 plotDensityMclust1(x, data = NULL, hist.col = "lightgrey", 
                    hist.border = "white",  breaks = "Sturges", \dots)
 
-plotDensityMclust2(x, data = NULL, col = grey(0.6), nlevels = 11, 
-                   levels = NULL, points.col = 1, pch = 1, \dots)
+plotDensityMclust2(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6),
+                   points.pch = 1, points.col = 1, points.cex = 0.8, \dots)
 
-plotDensityMclustd(x, data = NULL, col = grey(0.6), nlevels = 11, 
-                  levels = NULL, points.col = 1, pch = 1, gap = 0.2, \dots) 
-
+plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), 
+                   points.pch = 1, points.col = 1, points.cex = 0.8,
+                   gap = 0.2, \dots)
 }
 
 \arguments{
@@ -46,15 +46,13 @@ plotDensityMclustd(x, data = NULL, col = grey(0.6), nlevels = 11,
   
   \item{breaks}{See the argument in function \code{\link[graphics]{hist}}.}
 
-  \item{points.col}{The color to be used for plotting \code{data} points.}
+  \item{points.pch, points.col, points.cex}{The character symbols, colors, and magnification to be used for plotting \code{data} points.}
 
-  \item{pch}{An integer, a symbol or a single character to be used for plotting \code{data} points.}
-
-  \item{col}{Color for the contour lines drawn.} 
-  
   \item{nlevels}{An integer, the number of levels to be used in plotting contour densities.}
   
   \item{levels}{A vector of density levels at which to draw the contour lines.}
+  
+  \item{col}{Color to be used for drawing the contour lines, the perspective plot, or the image density. In the latter case can be also a vector of color values.}
   
   \item{gap}{Distance between subplots, in margin lines, for the matrix of pairwise scatterplots.}
 
@@ -116,21 +114,23 @@ dens = densityMclust(x)
 summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens)
-plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE, pch = 20,
+plot(dens, x, what = "density", col = "steelblue", drawlabels = FALSE, pch = 20,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, x, what = "density", col = "grey", 
-     points.col = dens$classification+1, pch = dens$classification)
+plot(dens, x, what = "density", points.pch = dens$classification, 
+     points.col = dens$classification+1)
+plot(dens, what = "density", type = "image", col = "steelblue")
 plot(dens, what = "density", type = "image", col = terrain.colors(50))
 plot(dens, what = "density", type = "persp")
+plot(dens, what = "density", type = "persp", col = adjustcolor("steelblue", alpha.f = 0.5))
 
 x = iris[,1:4]
 dens = densityMclust(x)
 summary(dens, parameters = TRUE)
-plot(dens)
-plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE,
+plot(dens, what = "BIC")
+plot(dens, x, what = "density", col = "steelblue", drawlabels = FALSE,
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, what = "density", type = "image", col = topo.colors(50))
-plot(dens, what = "density", type = "persp", border = NA)
+plot(dens, what = "density", type = "image", col = "steelblue")
+plot(dens, what = "density", type = "persp", border = adjustcolor(grey(0.1), alpha.f = 0.5))
 }
 
 \keyword{cluster}

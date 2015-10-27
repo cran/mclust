@@ -1,3 +1,9 @@
+Version 5.1 (2015-10) 
+    o fix slow convergence for VVE and EVE models.
+    o fix a bug in orientation for model VEE.
+    o add an extra M-step and parameters update in Mclust call via
+      summaryMclustBIC.
+
 Version 5.0.2 (2015-07)
     o add option to MclustBootstrap for using weighted likelihood bootstrap.
     o add a plot method to MclustBootstrap.

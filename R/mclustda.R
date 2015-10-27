@@ -434,16 +434,16 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   p <- ncol(data)
   
   if(missing(newdata))
-  { newdata <- matrix(as.double(NA), 0, p) }
+    { newdata <- matrix(as.double(NA), 0, p) }
   else
-  { newdata <- as.matrix(newdata) }
+    { newdata <- as.matrix(newdata) }
   if(ncol(newdata) != p)
     stop("incompatible newdata dimensionality")
   if(missing(newclass))
-  { newclass <- vector(length = 0) }
+    { newclass <- vector(length = 0) }
   else
-  { if(nrow(newdata) != length(newclass))
-    stop("incompatible newdata and newclass") }
+    { if(nrow(newdata) != length(newclass))
+      stop("incompatible newdata and newclass") }
   
   models <- object$models
   M <- length(models)
@@ -519,101 +519,101 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
       })
       plot(data[,dimens], type = "n", ...)
       for(l in 1:nclass) 
-      { I <- m[[l]]$observations
-        points(data[I,dimens[1]], data[I,dimens[2]], 
-               pch = symbols[l], col = colors[l])
-        for(k in 1:(m[[l]]$G))
-        { mvn2plot(mu = m[[l]]$parameters$mean[,k], 
-                   sigma = m[[l]]$parameters$variance$sigma[,,k], 
-                   k = 15) }
-      }
+         { I <- m[[l]]$observations
+           points(data[I,dimens[1]], data[I,dimens[2]], 
+                  pch = symbols[l], col = colors[l])
+           for(k in 1:(m[[l]]$G))
+              { mvn2plot(mu = m[[l]]$parameters$mean[,k], 
+                         sigma = m[[l]]$parameters$variance$sigma[,,k], 
+                         k = 15) }
+         }
     }
     
     if(length(dimens) == 2) 
-    { scatellipses(data, dimens, nclass, symbols, colors, ...) }
+      { scatellipses(data, dimens, nclass, symbols, colors, ...) }
     
     if(length(dimens) > 2)
-    { gap <- 0.2
-      on.exit(par(oldpar))
-      par(mfrow = c(p, p), 
-          mar = rep(c(gap,gap/2),each=2), 
-          oma = c(4, 4, 4, 4))
-      for(i in seq(p))
-      { for(j in seq(p)) 
-      { if(i == j) 
-      { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-        text(0,0, dataNames[i], cex=1.5, adj=0.5)
-        box()
-      } 
-      else 
-      { scatellipses(data, c(j,i), nclass, symbols, colors, 
-                     xaxt = "n", yaxt = "n") }
-      if(i == 1 && (!(j%%2))) axis(3)
-      if(i == p && (j%%2))   axis(1)
-      if(j == 1 && (!(i%%2))) axis(2)
-      if(j == p && (i%%2))   axis(4)
+      { gap <- 0.2
+        on.exit(par(oldpar))
+        par(mfrow = c(p, p), 
+            mar = rep(c(gap,gap/2),each=2), 
+            oma = c(4, 4, 4, 4))
+        for(i in seq(p))
+           { for(j in seq(p)) 
+                { if(i == j) 
+                    { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
+                      text(0,0, dataNames[i], cex=1.5, adj=0.5)
+                      box()
+                    } 
+                  else 
+                    { scatellipses(data, c(j,i), nclass, symbols, colors, 
+                                   xaxt = "n", yaxt = "n") }
+                  if(i == 1 && (!(j%%2))) axis(3)
+                  if(i == p && (j%%2))   axis(1)
+                  if(j == 1 && (!(i%%2))) axis(2)
+                  if(j == p && (i%%2))   axis(4)
+                }
+           }      
       }
-      }      
-    }
   }        
   
   plot.MclustDA.classification <- function(...)
   { 
     if(nrow(newdata) == 0 & length(dimens) == 1)
-    { mclust1Dplot(data = data[,dimens], what = "classification",
-                   classification = predClass[1:n], 
-                   colors = colors[1:nclass],
-                   xlab = dataNames[dimens],
-                   main = FALSE)          
-      title("Training data: known classification", cex.main = oldpar$cex.lab)
+      { mclust1Dplot(data = data[,dimens], what = "classification",
+                     classification = predClass[1:n], 
+                     colors = colors[1:nclass],
+                     xlab = dataNames[dimens],
+                     main = FALSE)          
+        title("Training data: known classification", cex.main = oldpar$cex.lab)
     }
     
     if(nrow(newdata) == 0 & length(dimens) == 2)
-    { coordProj(data = data[,dimens], what = "classification",
-                classification = predClass[1:n], 
-                main = FALSE, 
-                colors = colors[1:nclass], 
-                symbols = symbols[1:nclass])
-      title("Training data: known classification", cex.main = oldpar$cex.lab)
+      { coordProj(data = data[,dimens], what = "classification",
+                  classification = predClass[1:n], 
+                  main = FALSE, 
+                  colors = colors[1:nclass], 
+                  symbols = symbols[1:nclass])
+        title("Training data: known classification", cex.main = oldpar$cex.lab)
     }
     
     if(nrow(newdata) == 0 & length(dimens) > 2)
-    { clPairs(data[,dimens], 
-              classification = predClass[1:n],
-              colors = colors[1:nclass], 
-              symbols = symbols[1:nclass],
-              gap = 0.2, cex.labels = 1.5,
-              main = "Training data: known classification",
-              cex.main = oldpar$cex.lab)
+      { clPairs(data[,dimens], 
+                classification = predClass[1:n],
+                colors = colors[1:nclass], 
+                symbols = symbols[1:nclass],
+                gap = 0.2, cex.labels = 1.5,
+                main = "Training data: known classification",
+                cex.main = oldpar$cex.lab)
     }
     
     if(nrow(newdata) > 0 & length(dimens) == 1)
-    { mclust1Dplot(data = newdata[,dimens], what = "classification",
-                   classification = predClass[-(1:n)], 
-                   main = FALSE, 
-                   xlab = dataNames[dimens])
-      title("Test data: MclustDA classification", cex.main = oldpar$cex.lab)
+      { mclust1Dplot(data = newdata[,dimens], what = "classification",
+                     classification = predClass[-(1:n)], 
+                     main = FALSE, 
+                     xlab = dataNames[dimens])
+        title("Test data: MclustDA classification", cex.main = oldpar$cex.lab)
     }
     
     if(nrow(newdata) > 0 & length(dimens) == 2)
-    { coordProj(data = newdata[,dimens], what ="classification",
-                classification = predClass[-(1:n)], 
-                main = FALSE, 
-                colors = colors[1:nclass], 
-                symbols = symbols[1:nclass])
-      title("Test data: MclustDA classification", cex.main = oldpar$cex.lab)
+      { coordProj(data = newdata[,dimens], what ="classification",
+                  classification = predClass[-(1:n)], 
+                  main = FALSE, 
+                  colors = colors[1:nclass], 
+                  symbols = symbols[1:nclass])
+        title("Test data: MclustDA classification", cex.main = oldpar$cex.lab)
     }
     
     if(nrow(newdata) > 0 & length(dimens) > 2)
-    { on.exit(par(oldpar))
-      par(oma = c(0,0,10,0))      
-      clPairs(data = newdata[,dimens], 
-              classification = predClass[-(1:n)], 
-              colors = colors[1:nclass], 
-              symbols = symbols[1:nclass],
-              gap = 0.2, cex.labels = 1.5, 
-              main = "Test data: MclustDA classification",
-              cex.main = oldpar$cex.lab)
+      { on.exit(par(oldpar))
+        par(oma = c(0,0,10,0))      
+        clPairs(data = newdata[,dimens], 
+                classification = predClass[-(1:n)], 
+                colors = colors[1:nclass], 
+                symbols = symbols[1:nclass],
+                gap = 0.2, cex.labels = 1.5, 
+                main = "Test data: MclustDA classification",
+                cex.main = oldpar$cex.lab)
     }
   }
 

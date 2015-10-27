@@ -14,7 +14,7 @@ clustCombi(data, MclustOutput = NULL, ...)
 		A numeric vector, matrix, or data frame of observations. Categorical variables are not allowed. If a matrix or data frame, rows correspond to observations and columns correspond to variables.
 	}
   \item{MclustOutput}{
-		A list giving the optimal (according to BIC) parameters, conditional probabilities z, and loglikelihood, together with the associated classification and its uncertainty, as returned by Mclust. Please see Mclust documentation for the details of the components. Default value is \code{NULL}, in which case Mclust is called to get this output.
+		A list giving the optimal (according to BIC) parameters, conditional probabilities z, and log-likelihood, together with the associated classification and its uncertainty, as returned by Mclust. Please see Mclust documentation for the details of the components. Default value is \code{NULL}, in which case Mclust is called to get this output.
 	}
   \item{\dots}{
 		Optional arguments to be passed to called functions. Notably, any option (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm...) to be passed to Mclust in case \code{MclustOutput} is \code{NULL}. Please see the \code{\link{Mclust}} documentation for more details.

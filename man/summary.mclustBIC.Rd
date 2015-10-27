@@ -47,7 +47,7 @@
 }
 \value{
  A list giving the optimal (according to BIC) parameters,
-  conditional probabilities \code{z}, and loglikelihood,
+  conditional probabilities \code{z}, and log-likelihood,
   together with the associated classification and its uncertainty.
 
   The details of the output components are as follows:
@@ -69,7 +69,7 @@
     The optimal BIC value.
   }
   \item{loglik}{
-    The loglikelihood corresponding to the optimal BIC.
+    The log-likelihood corresponding to the optimal BIC.
   }
   \item{parameters}{
      A list with the following components:

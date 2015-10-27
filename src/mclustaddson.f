@@ -158,7 +158,8 @@
       end do
       
 *       check very small eigenvalues (singular covariance) 
-      if ( minval(shape) .le. eps .or. minval(scale) .le. eps ) then
+      if (minval(shape) .le. sqrt(eps) .or. 
+     *          minval(scale) .le. sqrt(eps)) then
         shape = FLMAX
         scale = FLMAX
         return
@@ -204,7 +205,7 @@
 *-----------------------------------------------------------------------
       
 *       check very small eigenvalues (singular covariance) 
-      if ( minval(shape) .le. eps .or. scale .le. eps ) then
+      if (minval(shape) .le. sqrt(eps) .or. scale .le. sqrt(eps)) then
         loglik = FLMAX
         return
       end if
@@ -357,6 +358,7 @@
 *       check if dgesvd converged (info == 0)
         if (info .ne. 0) then            
             l = info
+            return
         else
            scale(k) = exp( sum( log(shape(:,k)) ) )**(1.d0/dble(p))
            call dscal(p*p, 1.d0/scale(k), U(:,:,k), 1)
@@ -376,7 +378,7 @@
 *       ................................................................
             
 *       check very small eigenvalues (singular covariance) 
-      if ( minval(shape) .le. eps .or. minval(scale) .le. eps ) then
+      if (minval(shape) .le. rteps .or. minval(scale) .le. rteps) then
         loglik = FLMAX
         return
       end if
@@ -653,7 +655,8 @@
 *-----------------------------------------------------------------------
       
 *       check very small eigenvalues (cannot compute E step) 
-      if ( minval(shape) .le. eps .or. minval(scale) .le. eps ) then
+      if ( minval(shape) .le. sqrt(eps) .or. 
+     *                  minval(scale) .le. sqrt(eps) ) then
         loglik = FLMAX
         return
       end if
@@ -900,7 +903,7 @@
       shape = temp1 / temp3
       
 *       check very small eigenvalues (singular covariance)     
-      if ( minval(shape) .le. eps .or. minval(scale) .le. eps ) then
+      if (minval(shape) .le. rteps .or. minval(scale) .le. rteps) then
         loglik = FLMAX
         return
       end if
@@ -1049,7 +1052,7 @@
         if ( info .ne. 0 ) then
             return
         else
-            if ( minval(temp1(:,1)) .lt. eps ) then
+            if ( minval(temp1(:,1)) .lt. sqrt(eps) ) then
                 info = 0
                 scale = FLMAX
                 return
@@ -1065,8 +1068,10 @@
       errin = FLMAX
       trgt = FLMAX
       trgtprev = FLMAX/2
+      
 *       covariance matrix components estimation
-*       we consider algorithm MM 1 of Browne, McNicholas 2013
+*       we consider algorithm MM 1 and MM 2 of Browne, McNicholas 2013
+*       with a modification in computing the orientation matrix in the MM 2 step
 
 *      shape (matrix A) and orientation (matrix D) initialised in R        
 *      shape = matrix(1, p,G)
@@ -1078,11 +1083,11 @@
 *       ### NOTE: O is transposed
 
       niterin = niterin + 1
-
       temp2 = 0.d0
       temp3 = 0.d0
 *       temp3 will contain matrix F      
       
+*       Algorithm MM 1 ......................................
       do k = 1,G
         
         do j = 1,p
@@ -1110,10 +1115,57 @@
 *       check if dgesvd converged
       if ( info .ne. 0 ) return
       
-*       NOTE: t(P %*% t(R)) = R %*% t(P)      
+*       NOTE: t(O) = t( R %*% t(P) ) = P %*% t(R)      
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
 *       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
+
+*       Algorithm MM 2 ......................................
+*      call dgemm( 'T','T', p,p,p, 1.d0, temp2,p, temp1,p, 
+*     *              0.d0, O,p )
+	  O = TRANSPOSE(O)
+*       O contains matrix D of Browne, McNicholas
+  
+*       Algorithm MM 2
+      temp1 = 0.d0
+      temp3 = 0.d0
+      do k = 1,G
+        
+      call dgemm( 'N','N', p,p,p, 1.d0, U(:,:,k),p, O,p, 
+     *            0.d0, temp1,p )
+*       temp1 contains W %*% D
+        
+        do j = 1,p
+            temp2(:,j) = temp1(:,j) / shape(j,k)
+        end do
+*       temp2 contains W %*% D %*% inv(A)
+        
+        temp1 = temp2 - maxval( 1/shape(:,k) )*temp1
+        temp3 = temp3 + temp1
+*       temp3 contains the matrix F          
+        
+      end do
+
+*       compute matrices P and R where svd(F) = P %*% B %*% t(R)
+      call dgesvd('A','A', p,p, temp3,p, temp4, temp1,p, temp2,p,
+     *              wrk, lwork, info)
+*       now temp1 contains matrix P, temp2 contains matrix t(R)
+*       temp4 contains the singular values
+
+*       check if dgesvd converged
+      if ( info .ne. 0 ) return
+
+*       NOTE: t(O) = R %*% t(P)      
+*      call dgemm( 'T','T', p,p,p, 1.d0, temp2,p, temp1,p, 
+*     *              0.d0, O,p )
+      O = 0.d0
+      call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
+     *              0.d0, O,p )
+*       NOTE: we compute the TRANSPOSED of the matrix in the output in the paper
+      O = TRANSPOSE(O)
+*       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
 
 *       compute shape (matrix A) and target function
       trgt = 0.d0
@@ -1131,7 +1183,7 @@
 *       now shape contains matrix A of Celeux, Govaert pag. 785
 
 *       check positive values
-        if ( minval(shape(:,k)) .lt. eps ) then
+        if ( minval(shape(:,k)) .lt. sqrt(eps) ) then
             info = 0
             shape = FLMAX
             return
@@ -1195,7 +1247,7 @@
 *-----------------------------------------------------------------------
       
 *       check very small eigenvalues (singular covariance) 
-      if ( minval(shape) .le. eps .or. scale .le. eps ) then
+      if (minval(shape) .le. sqrt(eps) .or. scale .le. sqrt(eps)) then
         loglik = FLMAX
         return
       end if
@@ -1348,7 +1400,7 @@
         if ( info .ne. 0 ) then
             return
         else
-            if ( minval(temp1(:,1)) .lt. eps ) then
+            if ( minval(temp1(:,1)) .lt. rteps ) then
                 info = 0
                 scale = FLMAX
                 return
@@ -1365,8 +1417,10 @@
       errin = FLMAX
       trgt = FLMAX
       trgtprev = FLMAX/2
+      
 *       covariance matrix components estimation
-*       we consider algorithm MM 1 of Browne, McNicholas 2013
+*       we consider algorithm MM 1 and MM 2 of Browne, McNicholas 2013
+*       with a modification in computing the orientation matrix in the MM 2 step
 
 *       shape (matrix A) and orientation (matrix D) initialised in R        
 *       shape = matrix(1, p,G)
@@ -1385,6 +1439,7 @@
       temp3 = 0.d0
 *       temp3 will contain matrix F      
       
+*       Algorithm MM 1 ......................................
       do k = 1,G
         
         do j = 1,p
@@ -1412,10 +1467,57 @@
 *       check if dgesvd converged
       if ( info .ne. 0 ) return
       
-*       NOTE: t(P %*% t(R)) = R %*% t(P)      
+*       NOTE: t(O) = t( R %*% t(P) ) = P %*% t(R)      
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
-*       O contains TRANSPOSED orientation (matrix D of Browne, McNicholas)
+*       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
+
+*       Algorithm MM 2 ......................................
+*      call dgemm( 'T','T', p,p,p, 1.d0, temp2,p, temp1,p, 
+*     *              0.d0, O,p )
+	  O = TRANSPOSE(O)
+*       O contains matrix D of Browne, McNicholas
+  
+*       Algorithm MM 2
+      temp1 = 0.d0
+      temp3 = 0.d0
+      do k = 1,G
+        
+      call dgemm( 'N','N', p,p,p, 1.d0, U(:,:,k),p, O,p, 
+     *            0.d0, temp1,p )
+*       temp1 contains W %*% D
+        
+        do j = 1,p
+            temp2(:,j) = temp1(:,j) / shape(j,k)
+        end do
+*       temp2 contains W %*% D %*% inv(A)
+        
+        temp1 = temp2 - maxval( 1/shape(:,k) )*temp1
+        temp3 = temp3 + temp1
+*       temp3 contains the matrix F          
+        
+      end do
+
+*       compute matrices P and R where svd(F) = P %*% B %*% t(R)
+      call dgesvd('A','A', p,p, temp3,p, temp4, temp1,p, temp2,p,
+     *              wrk, lwork, info)
+*       now temp1 contains matrix P, temp2 contains matrix t(R)
+*       temp4 contains the singular values
+
+*       check if dgesvd converged
+      if ( info .ne. 0 ) return
+
+*       NOTE: t(O) = R %*% t(P)      
+*      call dgemm( 'T','T', p,p,p, 1.d0, temp2,p, temp1,p, 
+*     *              0.d0, O,p )
+      O = 0.d0
+*       NOTE: we compute the TRANSPOSED of the matrix in the output in the paper
+      call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
+     *              0.d0, O,p )
+      O = TRANSPOSE(O)
+*       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
 
 *       compute shape (matrix A) and target function
       trgt = 0.d0
@@ -1433,7 +1535,7 @@
 *       now shape contains matrix A of Celeux, Govaert pag. 785
 
 *       check positive values
-        if ( minval(shape(:,k)) .lt. eps ) then
+        if ( minval(shape(:,k)) .lt. rteps ) then
             info = 0
             loglik = FLMAX
             return
@@ -1604,7 +1706,7 @@
         if ( info .ne. 0 ) then
             return
         else
-            if ( minval(temp1(:,1)) .lt. eps ) then
+            if ( minval(temp1(:,1)) .lt. sqrt(eps) ) then
                 info = 0
                 scale = FLMAX
                 return
@@ -1620,8 +1722,10 @@
       errin = FLMAX
       trgt = FLMAX
       trgtprev = FLMAX/2
+
 *       covariance matrix components estimation
-*       we consider algorithm MM 1 of Browne, McNicholas 2013
+*       we consider algorithm MM 1 and MM 2 of Browne, McNicholas 2013
+*       with a modification in computing the orientation matrix in the MM 2 step
 
 *      shape (matrix A) and orientation (matrix D) initialised in R        
 *      shape = matrix(1, p,G)
@@ -1638,6 +1742,7 @@
       temp3 = 0.d0
 *       temp3 will contain matrix F      
       
+*       Algorithm MM 1 ......................................      
       do k = 1,G
         
         do j = 1,p
@@ -1669,6 +1774,48 @@
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
 *       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
+
+*       Algorithm MM 2 ......................................
+	  O = TRANSPOSE(O)
+*       O contains matrix D of Browne, McNicholas
+  
+*       Algorithm MM 2
+      temp1 = 0.d0
+      temp3 = 0.d0
+      do k = 1,G
+        
+      call dgemm( 'N','N', p,p,p, 1.d0, U(:,:,k),p, O,p, 
+     *            0.d0, temp1,p )
+*       temp1 contains W %*% D
+        
+        do j = 1,p
+            temp2(:,j) = temp1(:,j) / shape(j,k)
+        end do
+*       temp2 contains W %*% D %*% inv(A)
+        
+        temp1 = temp2 - maxval( 1/shape(:,k) )*temp1
+        temp3 = temp3 + temp1
+*       temp3 contains the matrix F          
+        
+      end do
+
+*       compute matrices P and R where svd(F) = P %*% B %*% t(R)
+      call dgesvd('A','A', p,p, temp3,p, temp4, temp1,p, temp2,p,
+     *              wrk, lwork, info)
+*       now temp1 contains matrix P, temp2 contains matrix t(R)
+*       temp4 contains the singular values
+
+*       check if dgesvd converged
+      if ( info .ne. 0 ) return
+
+*       NOTE: t(O) = R %*% t(P)      
+      O = 0.d0
+      call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
+     *              0.d0, O,p )
+      O = TRANSPOSE(O)
+*       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
 
 *       compute shape (matrix A) and target function
       trgt = 0.d0
@@ -1691,7 +1838,7 @@
         shape(:,k) = shape(:,k)/scale(k)
 
 *       check positive values
-        if ( minval(shape(:,k)) .lt. eps ) then
+        if ( minval(shape(:,k)) .lt. sqrt(eps) ) then
             info = 0
             shape = FLMAX
             return
@@ -1753,7 +1900,8 @@
 *-----------------------------------------------------------------------
       
 *       check very small eigenvalues (singular covariance) 
-      if ( minval(shape) .le. eps .or. minval(scale) .le. eps ) then
+      if ( minval(shape) .le. sqrt(eps) .or. 
+     *               minval(scale) .le. sqrt(eps) ) then
         loglik = FLMAX
         return
       end if
@@ -1906,7 +2054,7 @@
         if ( info .ne. 0 ) then
             return
         else
-            if ( minval(temp1(:,1)) .lt. eps ) then
+            if ( minval(temp1(:,1)) .lt. rteps ) then
                 info = 0
                 scale = FLMAX
                 return
@@ -1923,8 +2071,10 @@
       errin = FLMAX
       trgt = FLMAX
       trgtprev = FLMAX/2
+      
 *       covariance matrix components estimation
-*       we consider algorithm MM 1 of Browne, McNicholas 2013
+*       we consider algorithm MM 1 and MM 2 of Browne, McNicholas 2013
+*       with a modification in computing the orientation matrix in the MM 2 step
 
 *       shape (matrix A) and orientation (matrix D) initialised in R        
 *       shape = matrix(1, p,G)
@@ -1943,6 +2093,7 @@
       temp3 = 0.d0
 *       temp3 will contain matrix F      
       
+*       Algorithm MM 1 ......................................      
       do k = 1,G
         
         do j = 1,p
@@ -1974,6 +2125,48 @@
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
 *       O contains TRANSPOSED orientation (matrix D of Browne, McNicholas)
+*       .....................................................
+
+*       Algorithm MM 2 ......................................
+	  O = TRANSPOSE(O)
+*       O contains matrix D of Browne, McNicholas
+  
+*       Algorithm MM 2
+      temp1 = 0.d0
+      temp3 = 0.d0
+      do k = 1,G
+        
+      call dgemm( 'N','N', p,p,p, 1.d0, U(:,:,k),p, O,p, 
+     *            0.d0, temp1,p )
+*       temp1 contains W %*% D
+        
+        do j = 1,p
+            temp2(:,j) = temp1(:,j) / shape(j,k)
+        end do
+*       temp2 contains W %*% D %*% inv(A)
+        
+        temp1 = temp2 - maxval( 1/shape(:,k) )*temp1
+        temp3 = temp3 + temp1
+*       temp3 contains the matrix F          
+        
+      end do
+
+*       compute matrices P and R where svd(F) = P %*% B %*% t(R)
+      call dgesvd('A','A', p,p, temp3,p, temp4, temp1,p, temp2,p,
+     *              wrk, lwork, info)
+*       now temp1 contains matrix P, temp2 contains matrix t(R)
+*       temp4 contains the singular values
+
+*       check if dgesvd converged
+      if ( info .ne. 0 ) return
+
+*       NOTE: t(O) = R %*% t(P)      
+      O = 0.d0
+      call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
+     *              0.d0, O,p )
+      O = TRANSPOSE(O)
+*       O contains TRANSPOSED matrix D of Browne, McNicholas
+*       .....................................................
 
 *       compute shape (matrix A) and target function
       trgt = 0.d0
@@ -1996,7 +2189,8 @@
         shape(:,k) = shape(:,k)/scale(k)
 
 *       check positive values
-        if ( minval(shape(:,k)) .lt. eps .or. scale(k) .lt. eps ) then
+        if (minval(shape(:,k)) .lt. rteps .or.
+     *                      scale(k) .lt. rteps) then
             info = 0
             loglik = FLMAX
             return

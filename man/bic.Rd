@@ -17,7 +17,7 @@ bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
     \code{\link{mclustModelNames}} describes the available models.
   }
   \item{loglik}{
-    The loglikelihood for a data set with respect to the Gaussian mixture model
+    The log-likelihood for a data set with respect to the Gaussian mixture model
     specified in the \code{modelName} argument.
   }
   \item{n}{

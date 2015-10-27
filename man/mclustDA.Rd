@@ -105,6 +105,8 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
   
   \item{class}{The input class labels.} 
     
+  \item{type}{A character string specifying the \code{modelType} estimated.}
+    
   \item{models}{A list of \code{\link{Mclust}} objects containing information
   on fitted model for each class.} 
     
@@ -112,7 +114,7 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
 
   \item{d}{The dimension of the data.}
 
-  \item{BIC}{All BIC values.}
+  % \item{BIC}{All BIC values.}
   
   \item{bic}{Optimal BIC value.}
     

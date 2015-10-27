@@ -458,9 +458,8 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     #
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:G], alpha.f = 0.1),
-          xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE, asp = asp)
+          xaxs = "i", yaxs = "i", asp = asp)
     for(j in 1:G)         
        { z <- ifelse(pred$classification == j, 1, -1)
          contour(pred$x, pred$y, z, col = col.sep,
@@ -480,9 +479,8 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     #
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:nclass], alpha.f = 0.1),
-          xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE, asp = asp)
+          xaxs = "i", yaxs = "i", asp = asp)
     for(j in 1:nclass)
        { z <- ifelse(pred$classification == j, 1, -1)
          contour(pred$x, pred$y, z, col = col.sep,
@@ -500,9 +498,8 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     image(pred$x, pred$y, pred$uncertainty, 
           col = rev(gray.colors(10, start = 0, end = 1)),
           breaks = seq(0, 1-1/nclass, length = 11),
-          xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE, asp = asp)
+          xaxs = "i", yaxs = "i", asp = asp)
     points(dir, col = colors[class], pch = symbols[class], ...)                        
   }
   
@@ -517,9 +514,8 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     col <- rev(gray.colors(10, start = 0, end = 1))
     image(pred$x, pred$y, pred$uncertainty,
           col = col, breaks = levels,
-          xaxs = "i", yaxs = "i",
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
-          useRaster = TRUE, asp = asp)
+          xaxs = "i", yaxs = "i", asp = asp)
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   

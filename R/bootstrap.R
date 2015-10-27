@@ -151,15 +151,17 @@ MclustBootstrap <- function(object, nboot = 999, type = c("nonpara", "wlb"), ver
         obj$warn <- FALSE
         mod.boot <- try(do.call("me", obj), silent = TRUE)
     }
+    
     # check model convergence
     if(inherits(mod.boot, "try-error"))
       { b <- b - 1; next() }
     if(is.na(mod.boot$loglik))
       { b <- b - 1; next() }
-    #
+    
     pro.boot[b,]   <- mod.boot$parameters$pro
     mean.boot[b,,] <- mod.boot$parameters$mean
     var.boot[b,,,] <- mod.boot$parameters$variance$sigma
+    
     if(verbose & interactive()) setTxtProgressBar(pbar, b)
   }
   if(verbose & interactive()) close(pbar)

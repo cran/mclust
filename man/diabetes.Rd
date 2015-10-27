@@ -4,7 +4,7 @@
 
 \title{Diabetes data}
 
-\description{The data set contains three measurements made on 145 diabetic patients classified into three groups.}
+\description{The data set contains three measurements made on 145 non-obese adult patients classified into three groups.}
 
 \usage{data(diabetes)}
 

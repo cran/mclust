@@ -73,7 +73,7 @@
     The input parameters.
   }
   \item{loglik}{
-    The loglikelihood for the data in the mixture model. 
+    The log-likelihood for the data in the mixture model. 
   }
   \item{Attributes}{
       \code{"WARNING"}: an appropriate warning if problems are

@@ -73,7 +73,7 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
     #
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "EVV", d = p, G = G,
                          scale = NA, shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G), 
@@ -193,7 +193,7 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
         sigma <- scale * shape.o
         if(niterout >= control$itmax[1]) {
             WARNING <- "iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterout <-  - niterout
             ret <- 1
         }
@@ -233,7 +233,7 @@ mstepEVV <- function(data, z, prior = NULL, warn = NULL, ...)
     G <- dimz[2]
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "EVV", d = p, G = G,
                          scale = NA, shape = rep(NA,p), orientation=array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -361,7 +361,7 @@ estepEVV <- function(data, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,K)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(list(modelName = "EVV", n=n, d=p, G=G, z=z,
@@ -430,7 +430,7 @@ cdensEVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,G)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(z, logarithm = logarithm, modelName = "EVV",
@@ -463,7 +463,7 @@ cdensEVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "singular covariance"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- NA
         ret <- -1
     } else {
@@ -546,7 +546,7 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
     } else G <- K
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "VEE", d = p, G = G,
                          scale=rep(NA,G), shape=rep(NA,p), orientation=array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -629,7 +629,8 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
     scale <- temp$scale
     shape <- temp$shape
     shape.o <- matrix(temp$C, p,p)
-    O <- svd(shape.o, nu = 0)$v
+    O <- if(any(is.nan(shape.o))) shape.o else
+         svd(shape.o, nu = 0)$v
     pro <- temp$pro
     WARNING <- NULL
     if(!is.finite(loglik) | any(is.nan(scale)) |
@@ -671,12 +672,12 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
         sigma <- sweep( array(shape.o, c(p,p,G)), 3, FUN = "*", STATS = scale )
         if(niterin >= control$itmax[2]) {
             WARNING <- "inner iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterin <-  - niterin
             ret <- 2
         } else if(niterout >= control$itmax[1]) {
             WARNING <- "iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterout <-  - niterout
             ret <- 1
         } else ret <- 0
@@ -717,7 +718,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     G <- dimz[2]
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "VEE", d = p, G = G,
                          scale = rep(NA,G), shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -728,7 +729,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          WARNING = WARNING, returnCode = 9))
         
         WARNING <- "z is missing"
-        warning(WARNING)
+        if(warn) warning(WARNING)
         return(structure(list(
             n = n, d = p, G = G, mu = matrix(NA,p, G), sigma = array(NA, c(p, p, G)),
             decomp = list(d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
@@ -816,7 +817,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
         sigma <- sweep( array(shape.o, c(p,p,G)), 3, FUN = "*", STATS = scale )
         if(niterin >= itmax) {
             WARNING <- "inner iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterin <-  - niterin
         }
         ret <- 2
@@ -866,7 +867,7 @@ estepVEE <- function(data, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,K)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(list(modelName = "VEE", n=n, d=p, G=G, z=z,
@@ -902,7 +903,7 @@ estepVEE <- function(data, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "cannot compute E-step"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- loglik <- NA
         ret <- -1
     }
@@ -936,7 +937,7 @@ cdensVEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,G)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(z, logarithm = logarithm, modelName = "VEE",
@@ -971,7 +972,7 @@ cdensVEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "cannot compute E-step"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- NA
         ret <- -1
     } else {
@@ -1056,7 +1057,7 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
     } else G <- K
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "EVE", d = p, G = G,
                          scale=rep(NA,G), shape=rep(NA,p), orientation=array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -1070,6 +1071,7 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
         stop("improper specification of z")
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     storage.mode(z) <- "double"
+    
     #
     # MICHAEL from here-------------------------------------------------------
     #
@@ -1180,12 +1182,12 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
         sigma <- array( apply(shape, 2, function(sh) scale * O%*%diag(sh)%*%t(O)), c(p,p,G) )
         if(niterin >= control$itmax[2]) {
             WARNING <- "inner iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterin <-  - niterin
             ret <- 2
         } else if(niterout >= control$itmax[1]) {
             WARNING <- "iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterout <-  - niterout
             ret <- 1
         } else ret <- 0
@@ -1227,7 +1229,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     G <- dimz[2]
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "EVE", d = p, G = G,
                          scale = rep(NA,G), shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -1238,7 +1240,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          WARNING = WARNING, returnCode = 9))
         
         WARNING <- "z is missing"
-        warning(WARNING)
+        if(warn) warning(WARNING)
         return(structure(list(
             n = n, d = p, G = G, mu = matrix(NA,p, G), sigma = array(NA, c(p, p, G)),
             decomp = list(d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
@@ -1250,6 +1252,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     itmax <- if(length(control$itmax) == 1) control$itmax else control$itmax[2]
     tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
+    
     #
     # MICHAEL from here-------------------------------------------------------
     #
@@ -1274,6 +1277,8 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          niterin = integer(1),
                          errin = double(1),
                          eps = as.double(.Machine$double.eps),
+                         # d = 100000,
+                         # trgtvec = as.double(100000),
                          package = "mclust")
     } else {
         # with prior
@@ -1324,7 +1329,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
         sigma <- array( apply(shape, 2, function(sh) scale * O%*%diag(sh)%*%t(O)), c(p,p,G) )
         if(niterin >= itmax) {
             WARNING <- "inner iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterin <-  - niterin
         }
         ret <- 2
@@ -1376,7 +1381,7 @@ estepEVE <- function(data, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,K)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(list(modelName = "EVE", n=n, d=p, G=G, z=z,
@@ -1412,7 +1417,7 @@ estepEVE <- function(data, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "cannot compute E-step"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- loglik <- NA
         ret <- -1
     }
@@ -1446,7 +1451,7 @@ cdensEVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,G)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(z, logarithm = logarithm, modelName = "EVE",
@@ -1481,7 +1486,7 @@ cdensEVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "cannot compute E-step"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- NA
         ret <- -1
     } else {
@@ -1564,7 +1569,7 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
     } else G <- K
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "VVE", d = p, G = G,
                          scale=rep(NA,G), shape=rep(NA,p), orientation=array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -1578,7 +1583,7 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
         stop("improper specification of z")
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     storage.mode(z) <- "double"
-    #
+
     # MICHAEL from here-------------------------------------------------------
     #
     # without prior specification
@@ -1694,12 +1699,12 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
         for ( g in 1:G ) sigma[,,g] <- scale[g] * O %*% diag(shape[,g]) %*% t(O)
         if(niterin >= control$itmax[2]) {
             WARNING <- "inner iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterin <-  - niterin
             ret <- 2
         } else if(niterout >= control$itmax[1]) {
             WARNING <- "iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterout <-  - niterout
             ret <- 1
         } else ret <- 0
@@ -1741,7 +1746,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     G <- dimz[2]
     if(all(is.na(z))) {
         WARNING <- "z is missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         variance <- list(modelName = "VVE", d = p, G = G,
                          scale = rep(NA,G), shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
         parameters <- list(pro=rep(NA,G), mean=matrix(NA,p,G),
@@ -1752,7 +1757,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          WARNING = WARNING, returnCode = 9))
         
         WARNING <- "z is missing"
-        warning(WARNING)
+        if(warn) warning(WARNING)
         return(structure(list(
             n = n, d = p, G = G, mu = matrix(NA,p, G), sigma = array(NA, c(p, p, G)),
             decomp = list(d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
@@ -1764,6 +1769,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     itmax <- if(length(control$itmax) == 1) control$itmax else control$itmax[2]
     tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
+    
     #
     # MICHAEL from here-------------------------------------------------------
     #
@@ -1840,7 +1846,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
         for ( g in 1:G ) sigma[,,g] <- scale[g] * O %*% diag(shape[,g]) %*% t(O)
         if(niterin >= itmax) {
             WARNING <- "inner iteration limit reached"
-            warning(WARNING)
+            if(warn) warning(WARNING)
             niterin <-  - niterin
         }
         ret <- 2
@@ -1892,7 +1898,7 @@ estepVVE <- function(data, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,K)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(list(modelName = "VVE", n=n, d=p, G=G, z=z,
@@ -1928,7 +1934,7 @@ estepVVE <- function(data, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "cannot compute E-step"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- loglik <- NA
         ret <- -1
     }
@@ -1962,7 +1968,7 @@ cdensVVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
            any(is.null(parameters[c("pro", "mean", "variance")]))) {
         WARNING <- "parameters are missing"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z <- matrix(NA,n,G)
         dimnames(z) <- list(dimnames(data)[[1]], NULL)
         return(structure(z, logarithm = logarithm, modelName = "VVE",
@@ -1997,7 +2003,7 @@ cdensVVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
         WARNING <- "cannot compute E-step"
-        if (warn) warning(WARNING)
+        if(warn) warning(WARNING)
         z[] <- NA
         ret <- -1
     } else {

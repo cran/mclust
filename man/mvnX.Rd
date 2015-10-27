@@ -7,7 +7,7 @@
   Univariate or Multivariate Normal Fit
 }
 \description{
-  Computes the mean, covariance, and loglikelihood from fitting a single
+  Computes the mean, covariance, and log-likelihood from fitting a single
   Gaussian (univariate or multivariate normal).
 }
 \usage{

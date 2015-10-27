@@ -1,6 +1,6 @@
 Package: mclust
-Version: 5.0.2
-Date: 2015-07-08
+Version: 5.1
+Date: 2015-10-24
 Authors@R: c(person("Chris", "Fraley", role = "aut"),
              person("Adrian E.", "Raftery", role = "aut"),
              person("Luca", "Scrucca", role = c("aut", "cre"),
@@ -12,7 +12,7 @@ Title: Normal Mixture Modelling for Model-Based Clustering,
 Description: Normal Mixture Modelling fitted via EM algorithm for Model-Based Clustering, Classification, and Density Estimation, including Bayesian regularization.
 Depends: R (>= 3.0)
 Imports: stats, utils, graphics, grDevices
-Suggests: knitr (>= 1.8), markdown (>= 0.7), mix
+Suggests: knitr (>= 1.8), rmarkdown (>= 0.6), mix
 License: GPL (>= 2)
 URL: http://www.stat.washington.edu/mclust/
 VignetteBuilder: knitr
@@ -20,11 +20,11 @@ Repository: CRAN
 ByteCompile: true
 LazyLoad: yes
 NeedsCompilation: yes
-Packaged: 2015-07-08 06:47:52 UTC; luca
+Packaged: 2015-10-26 17:30:30 UTC; luca
 Author: Chris Fraley [aut],
   Adrian E. Raftery [aut],
   Luca Scrucca [aut, cre],
   Thomas Brendan Murphy [ctb],
   Michael Fop [ctb]
 Maintainer: Luca Scrucca <luca@stat.unipg.it>
-Date/Publication: 2015-07-08 13:49:59
+Date/Publication: 2015-10-27 08:10:04

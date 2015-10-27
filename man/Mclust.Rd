@@ -107,7 +107,7 @@ Mclust(data, G = NULL, modelNames = NULL,
     Optimal BIC value.
   }
   \item{loglik}{
-    The loglikelihood corresponding to the optimal BIC.
+    The log-likelihood corresponding to the optimal BIC.
   }
   \item{df}{
     The number of estimated parameters.

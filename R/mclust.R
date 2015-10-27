@@ -1,4 +1,4 @@
-Mclust <- function (data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = NULL, warn = mclust.options("warn"), ...) 
+Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = NULL, warn = mclust.options("warn"), ...) 
 {
   call <- match.call()
   data <- data.matrix(data)
@@ -30,6 +30,7 @@ Mclust <- function (data, G = NULL, modelNames = NULL, prior = NULL, control = e
         else with(Sumry, nMclustParams(modelName, d, G, 
                                        noise = (!is.na(hypvol)),
                                        equalPro = attr(Sumry, "control")$equalPro))
+
   ans <- c(list(call = call, data = data, BIC = Bic, df = df), Sumry)
   orderedNames <- c("call", "data", "modelName", 
                     "n", "d", "G", 
@@ -114,7 +115,11 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   print(tab, digits = digits)
   #
   cat("\nClustering table:")
-  print(table(x$classification), digits = digits)
+  print(table(factor(x$classification, 
+                     levels = { l <- seq(x$G)
+                                if(is.numeric(x$noise)) l <- c(l,0) 
+                                l })),
+        digits = digits)
   #
   if(x$printParameters)
   { cat("\nMixing probabilities:\n")
@@ -130,7 +135,7 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
     else print(x$variance, digits = digits)
     if(x$noise)
       { cat("\nHypervolume of noise component:\n")
-        print(x$noise, digits = digits) }
+        cat(signif(x$noise, digits = digits), "\n") }
   }
   if(x$printClassification)
   { cat("\nClassification:\n")
@@ -712,12 +717,14 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         z <- unmap(cl, groups = 1:max(cl))
         if(any(apply( z, 2, max) == 0) & warn) 
           { #  missing groups
-            warning("there are missing groups")    
+            if(warn) warning("there are missing groups")
             small <- sqrt(.Machine$double.neg.eps)
             z[z < small] <- small
             z <-  t(apply( z, 1, function(x) x/sum(x)))
         }
-        for (modelName in modelNames[BIC[g,] == EMPTY]) {
+#       for(modelName in modelNames[BIC[g,] == EMPTY]) {
+#       LS:
+        for(modelName in na.omit(modelNames[BIC[g,] == EMPTY])) {  
           out <- me(modelName = modelName, data = data, z = z, 
                     prior = prior, control = control, warn = warn)
           BIC[g, modelName] <- bic(modelName = modelName, 
@@ -848,7 +855,9 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       }
       z[noise, k+1] <- 1
       K <- 1:(k+1) 
-      for (modelName in modelNames[BIC[g,] == EMPTY]) {
+#     for (modelName in modelNames[BIC[g,] == EMPTY]) {
+#     LS:
+      for (modelName in na.omit(modelNames[BIC[g,] == EMPTY])) {  
         out <- me(modelName = modelName, data = data, z = z[, K], 
                   prior = prior, control = control, Vinv = Vinv, warn = warn)
         BIC[g, modelName] <- bic(modelName = modelName, loglik = out$loglik, 
@@ -1012,7 +1021,7 @@ summary.mclustBIC <- function(object, data, G, modelNames, ...)
     if(length(Glabels) != 1 && (!missing(G) && length(G) > 1)) 
       { Grange <- range(as.numeric(Glabels))
         if(match(ans$G, Grange, nomatch = 0) & warn)
-          warning("best model occurs at the min or max # of components considered")
+          warning("best model occurs at the min or max of number of components considered!")
     }
   }
   ans
@@ -1082,6 +1091,13 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
       { z <- unmap(qclass(data, G), groups = 1:G) }
     out <- me(modelName = bestModel, data = data, z = z, 
               prior = prior, control = control, warn = warn)
+    if(sum((out$parameters$pro - colMeans(out$z))^2) > 
+           sqrt(.Machine$double.eps))
+      { # perform extra M-step and update parameters
+        out$parameters <- mstep(modelName = bestModel, data = data, 
+                                z = out$z, prior = prior, 
+                                warn = warn)$parameters 
+    }
   }
   else 
   {
@@ -1095,6 +1111,10 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
     es <- do.call("estep", c(list(data = data), ms))
     out <- me(modelName = bestModel, data = data, z = es$z, 
               prior = prior, control = control, warn = warn)
+    # perform extra M-step and update parameters
+    out$parameters <- mstep(modelName = bestModel, data = data, 
+                            z = out$z, prior = prior, 
+                            warn = warn)$parameters
   }
   obsNames <- if (is.null(dim(data))) names(data) else dimnames(data)[[1]]
   classification <- map(out$z, warn = warn)

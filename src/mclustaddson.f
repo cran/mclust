@@ -1,20 +1,24 @@
 *  =====================================================================
-      subroutine transpose(X, n, p, XT)
+      subroutine transpose(X, p)
 *
 *  Compute transpose of a matrix 
 *
 *  =====================================================================
       implicit NONE
-      integer             n, p, i, j
-      double precision    X(n,p), XT(p,n)
-      do i = 1, n
-        do j = 1, p
-          XT(j,i) = X(i,j)
+      integer :: p, i, j
+      double precision :: X(p,p), temp
+      
+      do j = 2, p
+        do i = 1, j-1
+            temp = X(i,j)
+            X(i,j) = X(j,i)
+            X(j,i) = temp
         end do
       end do
+      
+      return
       end
 
-      
 *  =====================================================================
       subroutine crossprod(X, Y, n, p, q, XTY)
 *
@@ -32,8 +36,8 @@
 * ======================================================================
       subroutine covw ( X, Z, n, p, G, M, S, W )
 *
-*	  Given data matrix X(n x p) and weight matrix Z(n x G) computes
-*	  weighted means M(p x G), weighted covariance matrices S(p x p x G)
+*   Given data matrix X(n x p) and weight matrix Z(n x G) computes
+*   weighted means M(p x G), weighted covariance matrices S(p x p x G)
 *   and weighted scattering matrices W(p x p x G)
 *
 * ======================================================================
@@ -1124,7 +1128,7 @@
 *       Algorithm MM 2 ......................................
 *      call dgemm( 'T','T', p,p,p, 1.d0, temp2,p, temp1,p, 
 *     *              0.d0, O,p )
-	  O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains matrix D of Browne, McNicholas
   
 *       Algorithm MM 2
@@ -1163,7 +1167,7 @@
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
 *       NOTE: we compute the TRANSPOSED of the matrix in the output in the paper
-      O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains TRANSPOSED matrix D of Browne, McNicholas
 *       .....................................................
 
@@ -1476,7 +1480,7 @@
 *       Algorithm MM 2 ......................................
 *      call dgemm( 'T','T', p,p,p, 1.d0, temp2,p, temp1,p, 
 *     *              0.d0, O,p )
-	  O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains matrix D of Browne, McNicholas
   
 *       Algorithm MM 2
@@ -1515,7 +1519,7 @@
 *       NOTE: we compute the TRANSPOSED of the matrix in the output in the paper
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
-      O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains TRANSPOSED matrix D of Browne, McNicholas
 *       .....................................................
 
@@ -1777,7 +1781,7 @@
 *       .....................................................
 
 *       Algorithm MM 2 ......................................
-	  O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains matrix D of Browne, McNicholas
   
 *       Algorithm MM 2
@@ -1813,7 +1817,7 @@
       O = 0.d0
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
-      O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains TRANSPOSED matrix D of Browne, McNicholas
 *       .....................................................
 
@@ -2128,7 +2132,7 @@
 *       .....................................................
 
 *       Algorithm MM 2 ......................................
-	  O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains matrix D of Browne, McNicholas
   
 *       Algorithm MM 2
@@ -2164,7 +2168,7 @@
       O = 0.d0
       call dgemm( 'N','N', p,p,p, 1.d0, temp1,p, temp2,p, 
      *              0.d0, O,p )
-      O = TRANSPOSE(O)
+      call transpose(O, p)
 *       O contains TRANSPOSED matrix D of Browne, McNicholas
 *       .....................................................
 

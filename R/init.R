@@ -350,20 +350,24 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
 ## Initialization for 1-dim data ############################################
 
 # This version is bugged when a quantile is equal to the following
-# qclass <- function (x, k) 
+# qclass <- function (x, k)
 # {
 #   q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
 #   cl <- rep(0, length(x))
 #   q[1] <- q[1] - 1
-#   for(i in 1:k) 
+#   for(i in 1:k)
 #     cl[x > q[i] & x <= q[i+1]] <- i
 #   return(cl)
 # }
+
 # This should correct the above bug
 qclass <- function (x, k) 
 {
   x <- as.vector(x)
-  eps <- sqrt(.Machine$double.eps)
+  # eps <- sqrt(.Machine$double.eps) 
+  # numerical accuracy problem if scale of x is large, so make tolerance
+  # scale dependent
+  eps <- sd(x)*sqrt(.Machine$double.eps)
   q <- NA
   n <- k
   while(length(q) < (k+1))
@@ -379,7 +383,7 @@ qclass <- function (x, k)
   q[length(q)] <- max(x) + eps
   cl <- rep(0, length(x))
   for(i in 1:k) 
-  { cl[ x >= q[i] & x < q[i+1] ] <- i }
+     { cl[ x >= q[i] & x < q[i+1] ] <- i }
   return(cl)
 }
 

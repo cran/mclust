@@ -76,7 +76,7 @@ c
 c compute gamma(x) for -xbnd .le. x .le. xbnd.  reduce interval and find
 c gamma(1+y) for 0.0 .le. y .lt. 1.0 first of all.
 c
-      n = x
+      n = int(x)
       if (x.lt.0.d0) n = n - 1
       y = x - dble(float(n))
       n = n - 1
@@ -3869,7 +3869,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
 
       integer            n, p, G, maxi, lwork
 
-      double precision	 Vinv, eps, tol, scale
+      double precision   Vinv, eps, tol, scale
 
       double precision   x(n,*), z(n,  *  ), w(  *  ), s(*)
 

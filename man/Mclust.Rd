@@ -13,7 +13,8 @@ Mclust(data, G = NULL, modelNames = NULL,
        prior = NULL, 
        control = emControl(), 
        initialization = NULL, 
-       warn = mclust.options("warn"), \dots)
+       warn = mclust.options("warn"), 
+       x =  NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -39,7 +40,10 @@ Mclust(data, G = NULL, modelNames = NULL,
   \item{prior}{
     The default assumes no prior, but this argument allows specification of a 
     conjugate prior on the means and variances through the function 
-    \code{priorControl}.
+    \code{\link{priorControl}}. \cr
+    Note that, as described in \code{\link{defaultPrior}}, in the multivariate 
+    case only 10 out of 14 models may be used in conjunction with a prior, i.e.
+    those available in \emph{MCLUST} up to version 4.4.
     }
   \item{control}{
     A list of control parameters for EM. The defaults are set by the call
@@ -73,6 +77,15 @@ Mclust(data, G = NULL, modelNames = NULL,
     A logical value indicating whether or not certain warnings 
     (usually related to singularity) should be issued.
     The default is controlled by \code{\link{mclust.options}}.
+  }
+  \item{x}{
+     An object of class \code{'mclustBIC'}. If supplied, BIC values for models 
+     that have already been computed and are available in \code{x} are not 
+     recomputed. 
+     All arguments, with the exception of \code{data}, \code{G} and 
+     \code{modelName}, are ignored and their values are set as specified in the
+     attributes of \code{x}. Defaults for \code{G} and \code{modelNames}
+     are taken from \code{x}.
   }
   \item{\dots }{
     Catches unused arguments in indirect or list calls via \code{do.call}.

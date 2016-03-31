@@ -101,36 +101,24 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6),
 }
 
 \examples{
-x = faithful$waiting
-dens = densityMclust(x)
-summary(dens)
-summary(dens, parameters = TRUE)
-plot(dens)
-plot(dens, x, what = "density")
-plot(dens, what = "BIC")
+dens = densityMclust(faithful$waiting)
+plot(dens, what = "density")
+plot(dens, what = "density", data = faithful$waiting)
 
-x = as.matrix(faithful)
-dens = densityMclust(x)
-summary(dens)
-summary(dens, parameters = TRUE)
-plot(dens)
-plot(dens, x, what = "density", col = "steelblue", drawlabels = FALSE, pch = 20,
-     levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, x, what = "density", points.pch = dens$classification, 
-     points.col = dens$classification+1)
+dens = densityMclust(faithful)
+plot(dens, what = "density")
 plot(dens, what = "density", type = "image", col = "steelblue")
-plot(dens, what = "density", type = "image", col = terrain.colors(50))
-plot(dens, what = "density", type = "persp")
 plot(dens, what = "density", type = "persp", col = adjustcolor("steelblue", alpha.f = 0.5))
 
 x = iris[,1:4]
 dens = densityMclust(x)
-summary(dens, parameters = TRUE)
-plot(dens, what = "BIC")
-plot(dens, x, what = "density", col = "steelblue", drawlabels = FALSE,
-     levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, what = "density", type = "image", col = "steelblue")
-plot(dens, what = "density", type = "persp", border = adjustcolor(grey(0.1), alpha.f = 0.5))
+plot(dens, what = "density", nlevels = 7)
+\dontrun{
+  plot(dens, x, what = "density", drawlabels = FALSE,
+       levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
+  plot(dens, what = "density", type = "image", col = "steelblue")
+  plot(dens, what = "density", type = "persp", border = adjustcolor(grey(0.1), alpha.f = 0.5))
+}
 }
 
 \keyword{cluster}

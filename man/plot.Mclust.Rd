@@ -39,10 +39,11 @@
   }
  \item{addEllipses}{
     A logical indicating whether or not to add ellipses with axes corresponding 
-    to the within-cluster covariances if \code{what = "classification"}. 
+    to the within-cluster covariances in case of \code{"classification"} or
+    \code{"uncertainty"} plots. 
   }
  \item{main}{
-    A logical variable or \code{NULL} indicating whether or not to add a title 
+    A logical or \code{NULL} indicating whether or not to add a title 
     to the plot identifying the dimensions used.
   }
   \item{\dots}{

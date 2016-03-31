@@ -54,8 +54,7 @@ uncerPlot(z, truth, \dots)
   \code{\link{mapClass}}
 }
 \examples{
-irisBIC <- mclustBIC(iris[,-5])
-irisModel3 <-  mclustModel(iris[,-5], irisBIC, G = 3)
+irisModel3 <-  Mclust(iris[,-5], G = 3)
 
 uncerPlot(z = irisModel3$z)
  

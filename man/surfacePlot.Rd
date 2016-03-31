@@ -12,7 +12,7 @@ surfacePlot(data, parameters,
             type = c("contour", "image", "persp"), 
             what = c("density", "uncertainty"), 
             transformation = c("none", "log", "sqrt"),          
-            grid = 50, nlevels = 11, levels = NULL, col = grey(0.6),
+            grid = 100, nlevels = 11, levels = NULL, col = grey(0.6),
             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
             scale = FALSE, main = FALSE, swapAxes = FALSE, 
             verbose = FALSE, \dots)
@@ -59,7 +59,7 @@ surfacePlot(data, parameters,
     The number of grid points (evenly spaced on each axis). 
     The mixture density and uncertainty is computed at 
     \code{grid x grid} points to produce the surface plot.
-    Default: \code{50}.
+    Default: \code{100}.
   }
   \item{nlevels}{
     The number of levels to use for a contour plot.
@@ -129,12 +129,13 @@ surfacePlot(data, parameters,
   \code{\link{mclust2Dplot}}
 }
 \examples{
-faithfulModel <- mclustModel(faithful,mclustBIC(faithful))
+faithfulModel <- Mclust(faithful)
 surfacePlot(faithful, parameters = faithfulModel$parameters,
             type = "contour", what = "density", transformation = "none",
             drawlabels = FALSE)
-
+surfacePlot(faithful, parameters = faithfulModel$parameters,
+            type = "persp", what = "density", transformation = "log")
+surfacePlot(faithful, parameters = faithfulModel$parameters,
+            type = "contour", what = "uncertainty", transformation = "log")
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

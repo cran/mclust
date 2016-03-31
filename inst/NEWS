@@ -1,3 +1,21 @@
+Version 5.2 (2016-03)
+    o added argument 'x' to Mclust() to use BIC values from previous 
+      computations to avoid recomputing for the same models. The same argument
+      and functionality was already available in mclustBIC().
+    o added argument 'x' to mclustICL() to use ICL values from previous 
+      computations to avoid recomputing for the same models.
+    o corrected a bug on plot.MclustBootstrap for the "mean" and "var" in the 
+      univariate case.
+    o modified uncertainty plots.
+    o introduction of as.Mclust and as.densityMclust to convert object to 
+      specific mclust classes.
+    o solved a numerical accuracy problem in qclass when the scale of x is 
+      (very) large by making the tolerance eps scale dependent.
+    o use transpose subroutine instead of non-Fortran 77 TRANSPOSE function in
+      mclustaddson.f 
+    o predict.Mclust and predict.MclustDR implement a more efficient and 
+      accurate algorithm for computing the densities.
+  
 Version 5.1 (2015-10) 
     o fix slow convergence for VVE and EVE models.
     o fix a bug in orientation for model VEE.

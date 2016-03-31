@@ -19,7 +19,7 @@ defaultPrior(data, G, modelName, \dots)
     The number of mixture components.
   }
   \item{modelName}{
-    A character string indicating the model: \cr
+    A character string indicating the model: \cr\cr
     \code{"E"}: equal variance  (univariate) \cr
     \code{"V"}: variable variance (univariate)\cr 
     \code{"EII"}: spherical, equal volume \cr
@@ -31,7 +31,11 @@ defaultPrior(data, G, modelName, \dots)
     \code{"EEE"}: ellipsoidal, equal volume, shape, and orientation \cr
     \code{"EEV"}: ellipsoidal, equal volume and equal shape\cr
     \code{"VEV"}: ellipsoidal, equal shape \cr
-    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation 
+    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation. \cr\cr
+    A description of the models above is provided in the help of 
+    \code{\link{mclustModelNames}}. Note that in the multivariate case 
+    only 10 out of 14 models may be used in conjunction with a prior, i.e.
+    those available in \emph{MCLUST} up to version 4.4.
   }
   \item{\dots}{
      One or more of the following:
@@ -63,9 +67,9 @@ defaultPrior(data, G, modelName, \dots)
 }
 \details{
   \code{defaultPrior} is a function whose default is to output the
-  default prior specification for EM within \emph{MCLUST}.
-  \code{defaultPrior} can be used to specify alternative prior
-  parameters for a conjugate prior.
+  default prior specification for EM within \emph{MCLUST}.\cr
+  Furthermore, \code{defaultPrior} can be used as a template to specify 
+  alternative parameters for a conjugate prior.
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).

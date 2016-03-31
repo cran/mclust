@@ -11,7 +11,7 @@
 mclust2Dplot(data, parameters = NULL, z = NULL,
              classification = NULL, truth = NULL, uncertainty = NULL,
              what = c("classification","uncertainty","errors"), 
-             quantiles = c(0.75,0.95), symbols = NULL, colors = NULL, 
+             addEllipses = TRUE, symbols = NULL, colors = NULL, 
              xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
              scale = FALSE, CEX  = 1, PCH = ".",
              main = FALSE, swapAxes = FALSE, \dots) 
@@ -75,13 +75,9 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
     Choose from one of the following three options: \code{"classification"}
     (default), \code{"errors"}, \code{"uncertainty"}. 
   }
-  \item{quantiles}{
-    A vector of length 2 giving quantiles used in plotting uncertainty.
-    The smallest symbols correspond to the smallest quantile (lowest 
-    uncertainty), medium-sized (open) symbols to points falling between 
-    the given quantiles, and large (filled) symbols to those in the largest 
-    quantile (highest uncertainty).
-    The default is \emph{(0.75,0.95)}.
+  \item{addEllipses}{
+    A logical indicating whether or not to add ellipses with axes corresponding 
+    to the within-cluster covariances.
   }
   \item{symbols}{
     Either an integer or character vector assigning a plotting symbol to each
@@ -151,7 +147,7 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
   \code{\link{mclust.options}}
 }
 \examples{
-faithfulModel <- mclustModel(faithful,mclustBIC(faithful))
+faithfulModel <- Mclust(faithful)
 
 mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
              z=faithfulModel$z, what = "classification", main = TRUE)
@@ -160,5 +156,3 @@ mclust2Dplot(faithful, parameters=faithfulModel$parameters,
              z=faithfulModel$z, what = "uncertainty", main = TRUE)
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

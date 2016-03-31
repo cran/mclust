@@ -1,16 +1,11 @@
 densityMclust <- function(data, ...) 
 {
   mc <- match.call()
-  if(length(dim(data)) > 1) varname <- colnames(data)
-  else                      varname <- deparse(substitute(data))
   obj <- Mclust(data, ...)
   obj$call <- mc
   d <- dens(modelName = obj$modelName, data = data, 
             parameters = obj$parameters, logarithm = FALSE)
-  obj <- c(obj,
-           list(varname = varname,
-                range = if(obj$d > 1) apply(data, 2, range) else range(data),
-                density = d))
+  obj$density <- d
   class(obj) <- c("densityMclust", "Mclust")
   return(obj)
 }
@@ -103,12 +98,12 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
   mc$x <- mc$data <- mc$hist.col <- mc$hist.border <- mc$breaks <- NULL
   xlab <- mc$xlab
   if(is.null(xlab)) 
-    xlab <- object$varname[1]
+    xlab <- deparse(object$call$data)
   ylab <- mc$ylab
   if(is.null(ylab)) 
     ylab <- "Density"
   #
-  xrange <- extendrange(r = object$range, f = 0.1)
+  xrange <- extendrange(object$data, f = 0.1)
   xlim <- eval(mc$xlim, parent.frame())
   if(!is.null(xlim)) 
     xrange <- range(xlim)
@@ -145,7 +140,8 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
   invisible()
 }
 
-plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), points.pch = 1, points.col = 1, points.cex = 0.8, ...) 
+plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), 
+                               points.pch = 1, points.col = 1, points.cex = 0.8, ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
   object <- x # Argh.  Really want to use object anyway
@@ -156,8 +152,8 @@ plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
   
   if(is.null(data)) 
     { addPoints <- FALSE
-      mc$data <- object$data
-  } else
+      mc$data <- object$data } 
+  else
     { addPoints <- TRUE }
   
   # set mixture parameters
@@ -179,7 +175,8 @@ plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
   invisible(out)
 }
 
-plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), points.pch = 1, points.col = 1, points.cex = 0.8, gap = 0.2, ...) 
+plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), 
+                               points.pch = 1, points.col = 1, points.cex = 0.8, gap = 0.2, ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
   
@@ -190,13 +187,11 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
   mc$col <- col
   
   if(is.null(data)) 
-  { addPoints <- FALSE
-    mc$data <- object$range }
+    { data <- mc$data <- object$data
+      addPoints <- FALSE }
   else
-  { data <- as.matrix(data)
-    addPoints <- TRUE 
-    object$range <- apply(data, 2, range) 
-    object$varname <- colnames(data) }
+    { data <- as.matrix(data)
+      addPoints <- TRUE  }
   
   nc <- object$d
   oldpar <- par(mfrow = c(nc, nc), 
@@ -204,12 +199,12 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
                 oma = c(4, 4, 4, 4),
                 no.readonly = TRUE)
   on.exit(par(oldpar))
-  
+
   for(i in seq(nc))
      { for(j in seq(nc)) 
           { if(i == j) 
               { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-                text(0,0, object$varname[i], cex=1.5, adj=0.5)
+                text(0,0, colnames(data)[i], cex=1.5, adj=0.5)
                 box()
             } 
             else 
@@ -227,14 +222,14 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
                 par$variance$cholSigma <- NULL
                 par$variance$cholsigma <- NULL
                 mc$parameters <- par
-                mc$data <- object$range[,c(j,i)]
+                mc$data <- object$data[,c(j,i)]
                 mc$axes <- FALSE
                 mc[[1]] <- as.name("surfacePlot")
                 out <- eval(mc, parent.frame())
                 box()
                 if(addPoints)
                   points(data[,c(j,i)], pch = points.pch, 
-                         col = points.col, cex = points.cex, ...)
+                         col = points.col, cex = points.cex)
               }
               if(i == 1 && (!(j%%2))) axis(3)
               if(i == nc && (j%%2))   axis(1)
@@ -272,6 +267,7 @@ dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ..
       }
       cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
   }
+  # logsumexp
   maxlog <- apply(cden, 1, max)
   cden <- sweep(cden, 1, FUN = "-", STATS = maxlog)
   den <- logb(apply(exp(cden), 1, sum)) + maxlog
@@ -339,7 +335,7 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
     empcdf <- ecdf(data)
     plot(empcdf, do.points = FALSE, 
          col = col[2], lwd = lwd[2], lty = lty[2],
-         xlab = object$varname, 
+         xlab = deparse(object$call$data), 
          ylab = "Cumulative Distribution Function",
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
          main = NULL, ...)
@@ -393,9 +389,8 @@ cdfMclust <- function(object, data, ngrid = 100, ...)
     { stop("first argument must be an object of class 'densityMclust'") }
   
   if(missing(data))
-    { eval.points <- seq(min(object$range) - diff(object$range)/10,
-                         max(object$range) + diff(object$range)/10, 
-                         length = ngrid) }
+    { eval.points <- extendrange(object$data, f = 0.1)
+      eval.points <- seq(eval.points[1], eval.points[2], length.out = ngrid) }
   else
     { eval.points <- sort(as.vector(data))
       ngrid <- length(eval.points) }
@@ -428,9 +423,8 @@ quantileMclust <- function(object, p, ...)
   if(!any(class(object) == "densityMclust"))
     { stop("first argument must be an object of class 'densityMclust'") }
   
-  eval.points <- seq(min(object$range) - diff(object$range),
-                     max(object$range) + diff(object$range), 
-                     length = 10000)
+  eval.points <- extendrange(object$data, f = 1)
+  eval.points <- seq(eval.points[1], eval.points[2], length.out = 10000) 
   cdf <- cdfMclust(object, data = eval.points)
   q <- spline(cdf$y, cdf$x, method = "fmm", xmin = 0, xmax = 1, xout = p)$y
   q[ p < 0 | p > 1] <- NaN

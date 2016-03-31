@@ -8,11 +8,11 @@
   and parameters of an MVN mixture model for the data.
 }
 \usage{
-coordProj(data, dimens=c(1,2), parameters=NULL, z=NULL,
-          classification=NULL, truth=NULL, uncertainty=NULL, 
+coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
+          classification = NULL, truth = NULL, uncertainty = NULL, 
           what = c("classification", "errors", "uncertainty"),
-          quantiles = c(0.75, 0.95), symbols=NULL, colors=NULL, scale = FALSE, 
-          xlim=NULL, ylim=NULL, CEX = 1, PCH = ".", main = FALSE, \dots)
+          addEllipses = TRUE, symbols = NULL, colors = NULL, scale = FALSE, 
+          xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -72,13 +72,10 @@ coordProj(data, dimens=c(1,2), parameters=NULL, z=NULL,
     Choose from one of the following three options: \code{"classification"}
     (default), \code{"errors"}, \code{"uncertainty"}. 
   }
-  \item{quantiles}{
-    A vector of length 2 giving quantiles used in plotting
-    uncertainty. The smallest symbols correspond to the smallest
-    quantile (lowest uncertainty), medium-sized (open) symbols to points
-    falling between the given quantiles, and large (filled) symbols to
-    those in the largest quantile (highest uncertainty). The default is
-    \emph{(0.75,0.95)}. 
+  \item{addEllipses}{
+    A logical indicating whether or not to add ellipses with axes corresponding 
+    to the within-cluster covariances in case of \code{"classification"} or
+    \code{"uncertainty"} plots. 
   }
   \item{symbols}{
     Either an integer or character vector assigning a plotting symbol to each
@@ -155,5 +152,3 @@ coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -408,12 +408,10 @@ predict.MclustDA <- function(object, newdata, prior, ...)
   # compute on log scale for stability
   densfun <- function(mod, data)
   { do.call("dens", c(list(data = data, logarithm = TRUE), mod)) }
-  
   z <- as.matrix(data.frame(lapply(models, densfun, data = newdata)))
-  z <- exp(sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, max)))
-  z <- sweep(z, MARGIN = 2, FUN = "*", STATS = prior/sum(prior))
-  z <- sweep(z, MARGIN = 1, STATS = apply(z, 1, sum), FUN = "/")
-  
+  z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prior/sum(prior)))
+  z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
+  z <- exp(z)
   cl <- apply(z, 1, which.max)
   class <- factor(names(models)[cl], levels = names(models))
   

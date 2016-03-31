@@ -137,7 +137,7 @@ set.seed(1)
 y <- c(rnorm(n,-5), rnorm(n,0), rnorm(n,5))
 yclass <- c(rep(1,n), rep(2,n), rep(3,n))
 
-yModel <- mclustModel(y, mclustBIC(y))
+yModel <- Mclust(y)
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
              what = "classification", main = TRUE)
@@ -153,6 +153,4 @@ mclust1Dplot(y, z = yModel$z, parameters = yModel$parameters,
 
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.
 

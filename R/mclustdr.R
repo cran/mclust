@@ -15,7 +15,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   # normalized = normalize direction coefs to have unit norm
   
   call <- match.call()
-  if(!any(class(object) == c("Mclust", "MclustDA")))
+  if(!any(class(object) %in% c("Mclust", "MclustDA")))
     stop("object must be of class 'Mclust' or 'MclustDA'")
   
   normalize <- function(x) 
@@ -31,7 +31,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   mu <- colMeans(x)
   if(missing(Sigma)) Sigma <- var(x)*(n-1)/n
   # within-cluster parameters based on fitted mixture model
-  if(class(object) == "Mclust")
+  if(inherits(object, "Mclust"))
   {
     type <- "Mclust"
     G <- object$G
@@ -50,7 +50,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
     else     
     { Sigma.G <- par$variance$sigma }
   }
-  else if(class(object) == "MclustDA")
+  else if(inherits(object, "MclustDA"))
   { 
     type <- object$type
     modelName <- sapply(object$models, function(m) m$modelName)
@@ -258,14 +258,13 @@ predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points
 {  
   dim <- dim[dim <= object$numdir]
   if(missing(newdata) & missing(eval.points))
-  { dir <- object$dir[,dim,drop=FALSE] }
-  else if(!missing(newdata))
-  { newdata <- as.matrix(newdata) 
-    newdata <- scale(newdata, center = colMeans(object$x), scale = FALSE)
-    dir <- newdata %*% object$basis[,dim,drop=FALSE]
-  }
-  else if(!missing(eval.points))
-  { dir <- as.matrix(eval.points) }
+    { dir <- object$dir[,dim,drop=FALSE] 
+  } else if(!missing(newdata))
+    { newdata <- as.matrix(newdata) 
+      newdata <- scale(newdata, center = colMeans(object$x), scale = FALSE)
+      dir <- newdata %*% object$basis[,dim,drop=FALSE]
+  } else if(!missing(eval.points))
+    { dir <- as.matrix(eval.points) }
   
   n <- nrow(dir)
   G <- object$G # num. components
@@ -274,23 +273,33 @@ predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points
   Mu <- par$mean
   Sigma <- par$variance
   
-  cden <- array(NA, c(n, G))
+  # old version
+  # cden <- array(NA, c(n, G))
+  # for(j in 1:G)
+  #    { cden[,j] <- mvdnorm(dir, Mu[j,], Sigma[,,j], log = FALSE) }
+  # z <- sweep(cden, 2, FUN = "*", STATS = object$pro)  
+  # den <- apply(z, 1, sum)
+  # z <- sweep(z, 1, FUN = "/", STATS = den)
+  # new version: more efficient and accurate
+  z <- array(NA, c(n, G))
   for(j in 1:G)
-  { cden[,j] <- mvdnorm(dir, Mu[j,], Sigma[,,j], log = FALSE) }
-  z <- sweep(cden, 2, FUN = "*", STATS = object$pro)  
-  den <- apply(z, 1, sum)
-  z <- sweep(z, 1, FUN = "/", STATS = den)
+     { z[,j] <- mvdnorm(dir, Mu[j,], Sigma[,,j], log = TRUE) }
+  z <- sweep(z, 2, FUN = "+", STATS = log(object$pro))
+  logden <- apply(z, 1, logsumexp)
+  z <- sweep(z, 1, FUN = "-", STATS = logden)
+  z <- exp(z)
+  #
   zz <- matrix(0, n, nclass)
   for(j in seq(nclass))
-  { zz[,j] <- rowSums(z[,object$class2mixcomp == j,drop=FALSE]) }
+     { zz[,j] <- rowSums(z[,object$class2mixcomp == j,drop=FALSE]) }
   z <- zz; rm(zz)
-  
+
   class <- factor(apply(z,1,which.max), 
                   levels = 1:nclass, 
                   labels = levels(object$class))
   
   out <- list(dir = dir,
-              density = den,
+              density = exp(logden),
               z = z,
               uncertainty = 1 - apply(z,1,max),
               classification = class)
@@ -585,11 +594,12 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, .
   l1 <- 2*lambda*diag(crossprod(M1))
   #
   S <- matrix(0, d, d)
-  for(j in seq(G)) S <- S + f[j]*Sigma.G[,,j]
+  for(j in seq(G)) 
+    S <- S + f[j]*Sigma.G[,,j]
   M2 <- matrix(0, d, d)
   for(j in 1:G)
-  { C <- (Sigma.G[,,j]-S)
-    M2 <- M2 + f[j] * C %*% t(C) }
+     { C <- (Sigma.G[,,j]-S)
+       M2 <- M2 + f[j] * tcrossprod(C) }
   l2 <- 2*(1-lambda)*diag(M2)
   # 
   l <- object$evalues[dim]
@@ -601,8 +611,7 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, .
          xlab = "MclustDR directions", ylab = "Eigenvalues",
          panel.first = { abline(v = dim, col = "lightgray", lty = "dotted")
                          abline(h = axTicks(2,par("yaxp")), 
-                                col = "lightgray", lty = "dotted") 
-         })
+                                col = "lightgray", lty = "dotted") } )
     axis(1, at = dim, labels = dim)
     lines(dim, l1, type="b", lty = 2, pch = 22, cex = 1.5)
     lines(dim, l2, type="b", lty = 2, pch = 2, cex = 1.5)

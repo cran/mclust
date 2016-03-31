@@ -25,6 +25,11 @@
 \alias{eigen.decomp}
 \alias{dmvnorm}
 \alias{getParameters.MclustDA}
+\alias{as.Mclust}
+\alias{as.Mclust.default}
+\alias{as.densityMclust}
+\alias{as.densityMclust.default}
+\alias{as.densityMclust.Mclust}
 
 \description{
   Internal functions not intended to be called directly by users.

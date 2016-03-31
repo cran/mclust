@@ -29,14 +29,9 @@ densityMclust(data, \dots)
 
 \value{
   An object of class \code{densityMclust}, which inherits from 
-  \code{Mclust}, is returned with the following slots added:
-  \item{varname}{
-    A character string denoting the variables names.}
-  \item{range}{
-     The range of the input data (used as a default for plotting).}
-  \item{density}{
-    The density of the input data \code{x} according to the estimated 
-    model.}
+  \code{Mclust}, is returned with the following slot added:
+  \item{density}{The density evaluated at the input \code{data}
+    computed from the estimated model.}
 }
 
 %\details{}
@@ -63,35 +58,30 @@ densityMclust(data, \dots)
 }
 
 \examples{
-x = faithful$waiting
-dens = densityMclust(x)
+dens = densityMclust(faithful$waiting)
 summary(dens)
 summary(dens, parameters = TRUE)
-plot(dens, what = "BIC")
-plot(dens)
-plot(dens, x)
+plot(dens, what = "BIC", legendArgs = list(x = "topright"))
+plot(dens, what = "density", data = faithful$waiting)
 
-x = as.matrix(faithful)
-dens = densityMclust(x)
+dens = densityMclust(faithful)
 summary(dens)
 summary(dens, parameters = TRUE)
-plot(dens)
-plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE, pch = 20,
+plot(dens, what = "density", data = faithful)
+plot(dens, what = "density", data = faithful,
+     drawlabels = FALSE, points.pch = 20, col = "grey", 
      levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, x, what = "density", col = "grey", 
-     points.col = mclust.options("classPlotColors")[dens$classification], 
-     pch = dens$classification)
 plot(dens, what = "density", type = "image", col = topo.colors(50))
 plot(dens, what = "density", type = "persp")
 
-x = iris[,1:4]
-dens = densityMclust(x)
+dens = densityMclust(iris[,1:4])
 summary(dens, parameters = TRUE)
-plot(dens)
-plot(dens, x, what = "density", col = "cadetblue", drawlabels = FALSE,
-     levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-plot(dens, what = "density", type = "image", col = gray.colors(50))
-plot(dens, what = "density", type = "persp", col = gray(0.5))
+plot(dens, what = "density", data = iris[,1:4], 
+     col = "slategrey", drawlabels = FALSE, nlevels = 7)
+\dontrun{
+  plot(dens, what = "density", type = "image", col = "slategrey")
+  plot(dens, what = "density", type = "persp", col = grey(0.9))
+}
 }
 
 \keyword{cluster}

@@ -4,10 +4,15 @@ opts_chunk$set(fig.align="center",
                fig.width=5, fig.height=4.5,
                dev.args=list(pointsize=8))
 
+knit_hooks$set(par = function(before, options, envir)
+  { if(before && options$fig.show != "none") 
+       par(mar=c(4.1,4.1,1.1,1.1), mgp=c(3,1,0), tcl=-0.5)
+})
+
 ## ------------------------------------------------------------------------
 library(mclust)
 
-## ------------------------------------------------------------------------
+## ---- par=TRUE-----------------------------------------------------------
 data(diabetes)
 class = diabetes$class
 table(class)
@@ -19,10 +24,17 @@ BIC = mclustBIC(X)
 plot(BIC)
 summary(BIC)
 
-mod1 = Mclust(X)
+mod1 = Mclust(X, x = BIC)
 summary(mod1, parameters = TRUE)
+
 plot(mod1, what = "classification")
 table(class, mod1$classification)
+
+par(mfrow = c(2,2))
+plot(mod1, what = "uncertainty", dimens = c(2,1), main = "")
+plot(mod1, what = "uncertainty", dimens = c(3,1), main = "")
+plot(mod1, what = "uncertainty", dimens = c(2,3), main = "")
+par(mfrow = c(1,1))
 
 ICL = mclustICL(X)
 summary(ICL)
@@ -72,16 +84,15 @@ mod5 = densityMclust(faithful)
 summary(mod5)
 plot(mod5, what = "BIC")
 plot(mod5, what = "density")
-plot(mod5, what = "density", type = "image", 
-     col = "dodgerblue3", grid = 100)
+plot(mod5, what = "density", type = "image", col = "dodgerblue3", grid = 100)
 plot(mod5, what = "density", type = "persp")
 
 ## ------------------------------------------------------------------------
-boot1 = MclustBootstrap(mod1)
+boot1 = MclustBootstrap(mod1, nboot = 999, type = "bs")
 summary(boot1, what = "se")
 summary(boot1, what = "ci")
 
-boot4 = MclustBootstrap(mod4)
+boot4 = MclustBootstrap(mod4, nboot = 999, type = "bs")
 summary(boot4, what = "se")
 summary(boot4, what = "ci")
 

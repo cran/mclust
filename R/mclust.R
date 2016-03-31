@@ -1,7 +1,12 @@
-Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = NULL, warn = mclust.options("warn"), ...) 
+Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, 
+                   control = emControl(), initialization = NULL, 
+                   warn = mclust.options("warn"), x = NULL, ...) 
 {
   call <- match.call()
   data <- data.matrix(data)
+  if(!is.null(x))
+    if(!inherits(x, "mclustBIC"))
+      stop("If provided, argument x must be an object of class 'mclustBIC'.")
   mc <- match.call(expand.dots = TRUE)
   mc[[1]] <- as.name("mclustBIC")
   mc[[2]] <- data
@@ -12,14 +17,13 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = em
   if(length(Sumry)==0) return()
   if(!(length(G) == 1)) 
     { bestG <- length(tabulate(Sumry$cl))
-      if(bestG == max(G) & warn) 
-        warning("optimal number of clusters occurs at max choice")
-      else if(bestG == min(G) & warn) 
-        warning("optimal number of clusters occurs at min choice")
+      if(warn) 
+        { if(bestG == max(G) & warn) 
+             warning("optimal number of clusters occurs at max choice")
+          else if(bestG == min(G) & warn) 
+               warning("optimal number of clusters occurs at min choice")
+        }
   }
-  attr(Bic, "n") <- attr(Bic, "warn") <- NULL
-  attr(Bic, "initialization") <- NULL
-  attr(Bic, "d") <- attr(Bic, "returnCodes") <- NULL 
   oldClass(Sumry) <- NULL
   
   Sumry$bic <- Sumry$bic[1]
@@ -180,88 +184,31 @@ logLik.Mclust <- function(object, ...)
   return(l)
 }
 
+predict.Mclust <- function(object, newdata, ...)
+{
+  if(!inherits(object, "Mclust")) 
+    stop("object not of class \"Mclust\"")
+  if(missing(newdata))
+    { newdata <- object$data }
+  prior <- object$parameters$pro
+  object$data <- newdata
+  # old
+  # z <- do.call("cdens", object)
+  # z <- sweep(z, MARGIN = 1, FUN = "/", STATS = apply(z, 1, max))
+  # z <- sweep(z, MARGIN = 2, FUN = "*", STATS = prior/sum(prior))
+  # z <- sweep(z, MARGIN = 1, STATS = apply(z, 1, sum), FUN = "/")
+  # new: more efficient and accurate
+  z <- do.call("cdens", c(object, list(logarithm = TRUE)))
+  z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prior/sum(prior)))
+  z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
+  z <- exp(z)
+  #
+  cl <- apply(z, 1, which.max)
+  out <- list(classification = cl, z = z)
+  return(out) 
+}
+
 #############################################################################
-
-adjustedRandIndex <- function (x, y) 
-{
-  x <- as.vector(x)
-  y <- as.vector(y)
-  if(length(x) != length(y)) 
-    stop("arguments must be vectors of the same length")
-  tab <- table(x,y)
-  if(all(dim(tab)==c(1,1))) return(1)
-  a <- sum(choose(tab, 2))
-  b <- sum(choose(rowSums(tab), 2)) - a
-  c <- sum(choose(colSums(tab), 2)) - a
-  d <- choose(sum(tab), 2) - a - b - c
-  ARI <- (a - (a + b) * (a + c)/(a + b + c + d)) /
-    ((a + b + a + c)/2 - (a + b) * (a + c)/(a + b + c + d))
-  return(ARI)
-}
-
-classError <- function(classification, truth)
-{
-  q <- function(map, len, x)
-  {
-    x <- as.character(x)
-    map <- lapply(map, as.character)
-    y <- sapply(map, function(x)
-      x[1])
-    best <- y != x
-    if(all(len) == 1)
-      return(best)
-    errmin <- sum(as.numeric(best))
-    z <- sapply(map, function(x)
-      x[length(x)])
-    mask <- len != 1
-    counter <- rep(0, length(len))
-    k <- sum(as.numeric(mask))
-    j <- 0
-    while(y != z) {
-      i <- k - j
-      m <- mask[i]
-      counter[m] <- (counter[m] %% len[m]) + 1
-      y[x == names(map)[m]] <- map[[m]][counter[m]]
-      temp <- y != x
-      err <- sum(as.numeric(temp))
-      if(err < errmin) {
-        errmin <- err
-        best <- temp
-      }
-      j <- (j + 1) %% k
-    }
-    best
-  }
-  if (any(isNA <- is.na(classification))) {
-    classification <- as.character(classification)
-    nachar <- paste(unique(classification[!isNA]),collapse="")
-    classification[isNA] <- nachar
-  }
-  MAP <- mapClass(classification, truth)
-  len <- sapply(MAP[[1]], length)
-  if(all(len) == 1) {
-    CtoT <- unlist(MAP[[1]])
-    I <- match(as.character(classification), names(CtoT), nomatch= 0)               
-    one <- CtoT[I] != truth
-  }
-  else {
-    one <- q(MAP[[1]], len, truth)
-  }
-  len <- sapply(MAP[[2]], length)
-  if(all(len) == 1) {
-    TtoC <- unlist(MAP[[2]])
-    I <- match(as.character(truth), names(TtoC), nomatch = 0)
-    two <- TtoC[I] != classification
-  }
-  else {
-    two <- q(MAP[[2]], len, classification)
-  }
-  err <- if(sum(as.numeric(one)) > sum(as.numeric(two)))
-    as.vector(one)
-  else as.vector(two)
-  bad <- seq(along = classification)[err]
-  list(misclassified = bad, errorRate = length(bad)/length(truth))
-}
 
 EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL), Vinv = NULL, warn = FALSE, x = NULL, ...)
 {
@@ -544,6 +491,7 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
 }
 
 # EMclust <- function(...) .Defunct("mclustBIC", PACKAGE = "mclust")
+#############################################################################
 
 mclustBIC <- function(data, G = NULL, modelNames = NULL, 
                       prior = NULL, control = emControl(), 
@@ -624,16 +572,20 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
   else {
     Glabels <- dimnames(x)[[1]]
     Mlabels <- dimnames(x)[[2]]
-    if (is.null(G)) G <- Glabels
-    if (is.null(modelNames)) modelNames <- Mlabels
+    if(is.null(G)) G <- Glabels
+    if(is.null(modelNames)) modelNames <- Mlabels
     Gmatch <- match(as.character(G), Glabels, nomatch = 0)
     Mmatch <- match(modelNames, Mlabels, nomatch = 0)
-    if (all(Gmatch) && all(Mmatch)) {
-      attr( x, "G") <- as.numeric(G)
-      attr( x, "modelNames") <- modelNames
-      attr( x, "returnCodes") <- 
-        attr(x, "returnCodes")[as.character(G),modelNames,drop=FALSE]
-      return(x[as.character(G),modelNames,drop=FALSE])
+    if(all(Gmatch) && all(Mmatch)) 
+      { out <- x[as.character(G),modelNames,drop=FALSE]
+        mostattributes(out) <- attributes(x)
+        attr(out, "dim") <- c(length(G), length(modelNames))
+        attr(out, "dimnames") <- list(G, modelNames)
+        attr(out, "G") <- as.numeric(G)
+        attr(out, "modelNames") <- modelNames
+        attr(out, "returnCodes") <- 
+          attr(x, "returnCodes")[as.character(G),modelNames,drop=FALSE]
+        return(out)
     }
     Gall <- sort(as.numeric(unique(c(as.character(G), Glabels))))
     Mall <- unique(c(modelNames, Mlabels))
@@ -770,7 +722,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         z <- unmap(cl, groups = 1:max(cl))
         if(any(apply( z, 2, max) == 0) & warn) 
           { #  missing groups
-            warning("there are missing groups")         
+            if(warn) warning("there are missing groups")
             small <- sqrt(.Machine$double.neg.eps)
             z[z < small] <- small
             z <-  t(apply( z, 1, function(x) x/sum(x)))
@@ -849,7 +801,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       z[!noise,1:k] <- unmap(cl, groups = 1:max(cl))
       if(any(apply( z[!noise,1:k,drop=FALSE], 2, max) == 0) & warn) 
         { #           missing groups
-          warning("there are missing groups")         
+          if(warn) warning("there are missing groups")         
           z[!noise,1:k] <- max( z[!noise,1:k], sqrt(.Machine$double.neg.eps))
           z[!noise,1:k] <- apply( z[!noise,1:k,drop=FALSE], 1, function(z) z/sum(z))
       }
@@ -880,48 +832,6 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
             Vinv = Vinv, warn = warn, n = n, d = d, oneD = oneD,
             criterion = "BIC", returnCodes = RET, 
             class = "mclustBIC")
-}
-
-mclustModel <- function(data, BICvalues, G=NULL, modelNames=NULL, ...)
-{
-  mc <- match.call(expand.dots = FALSE)
-  if (is.null(attr(BICvalues,"initialization")$noise)) {
-    mc[[1]] <- as.name("summaryMclustBIC")
-  }
-  else {
-    mc[[1]] <- as.name("summaryMclustBICn")
-  }
-  nm <- names(mc)
-  mc[1:3] <- mc[c(1,3,2)]
-  nm[1:3] <- nm[c(1,3,2)]
-  nm[nm == "BICvalues"] <- "object" 
-  names(mc) <- nm
-  ans <- eval(mc, parent.frame())
-  ans$classification <- ans$uncertainty <- NULL
-  attr( ans, "bestBICvalues") <- NULL
-  attr( ans, "prior") <- NULL
-  attr( ans, "control") <- NULL
-  attr( ans, "initialization") <- NULL
-  oldClass(ans) <- "mclustModel"
-  ans
-}
-
-predict.Mclust <- function(object, newdata, ...)
-{
-  if(!inherits(object, "Mclust")) 
-    stop("object not of class \"Mclust\"")
-  if(missing(newdata))
-    { newdata <- object$data }
-  prior <- object$parameters$pro
-  object$data <- newdata
-  z <- do.call("cdens", object)
-  # z <- do.call("cdens", c(list(data = newdata), object))
-  z <- sweep(z, MARGIN = 1, FUN = "/", STATS = apply(z, 1, max))
-  z <- sweep(z, MARGIN = 2, FUN = "*", STATS = prior/sum(prior))
-  z <- sweep(z, MARGIN = 1, STATS = apply(z, 1, sum), FUN = "/")
-  cl <- apply(z, 1, which.max)
-  out <- list(classification = cl, z = z)
-  return(out) 
 }
 
 pickBIC <- function(x, k = 3)
@@ -957,6 +867,7 @@ print.mclustBIC <- function(x, pick = 3, ...)
 {
   subset <- !is.null(attr(x, "subset"))
   oldClass(x) <- attr(x, "args") <- NULL
+  attr(x, "criterion") <- NULL
   attr(x, "control") <- attr(x, "initialization") <- NULL
   attr(x, "oneD") <- attr(x, "warn") <- attr(x, "Vinv") <- NULL
   attr(x, "prior") <- attr(x, "G") <- attr(x, "modelNames") <- NULL
@@ -971,6 +882,30 @@ print.mclustBIC <- function(x, pick = 3, ...)
   cat("Top", pick, "models based on the BIC criterion:\n")
   print(pickBIC(x, pick), ...)
   invisible()
+}
+
+mclustModel <- function(data, BICvalues, G=NULL, modelNames=NULL, ...)
+{
+  mc <- match.call(expand.dots = FALSE)
+  if (is.null(attr(BICvalues,"initialization")$noise)) {
+    mc[[1]] <- as.name("summaryMclustBIC")
+  }
+  else {
+    mc[[1]] <- as.name("summaryMclustBICn")
+  }
+  nm <- names(mc)
+  mc[1:3] <- mc[c(1,3,2)]
+  nm[1:3] <- nm[c(1,3,2)]
+  nm[nm == "BICvalues"] <- "object" 
+  names(mc) <- nm
+  ans <- eval(mc, parent.frame())
+  ans$classification <- ans$uncertainty <- NULL
+  attr( ans, "bestBICvalues") <- NULL
+  attr( ans, "prior") <- NULL
+  attr( ans, "control") <- NULL
+  attr( ans, "initialization") <- NULL
+  oldClass(ans) <- "mclustModel"
+  ans
 }
 
 mclustModelNames <- function(model)
@@ -1385,7 +1320,7 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) 
   { WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "EEE", 
@@ -1414,18 +1349,18 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(lapackCholInfo) {
     if(lapackCholInfo > 0) {
       WARNING <- "sigma is not positive definite"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "input error for LAPACK DPOTRF"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     z[] <- NA
     ret <- -9 
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -1476,7 +1411,7 @@ estepEEE <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "EEE", n=n, d=p, G=G, z=z,
@@ -1518,7 +1453,7 @@ estepEEE <- function(data, parameters, warn = NULL, ...)
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -1552,7 +1487,7 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EEE", d = p, G = G, 
                      Sigma = matrix(as.double(NA), p, p), cholSigma = matrix(as.double(NA), p, p)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -1620,8 +1555,7 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
     Sigma <- matrix( NA, p, p)
@@ -1630,13 +1564,11 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "z column sum fell below threshold"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
     }
     mu[] <- pro[] <- z[] <- loglik <- logprior <- NA
     sigma <- array(NA, c(p, p, G))
@@ -1650,7 +1582,7 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
       sigma[,  , k] <- Sigma
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -1690,7 +1622,7 @@ mstepEEE <- function(data, z, prior = NULL,  warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EEE", d = p, G = G, 
                      sigma <- array(NA, c(p,p, G)), 
                      Sigma = matrix(as.double(NA), p, p), cholSigma = matrix(as.double(NA), p, p)) 
@@ -1813,7 +1745,7 @@ cdensEEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "EEI", 
@@ -1840,7 +1772,7 @@ cdensEEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1 
   }
@@ -1853,8 +1785,7 @@ cdensEEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             WARNING = WARNING, returnCode = ret)
 }
 
-cdensEII <-
-  function(data, logarithm = FALSE, parameters, warn = NULL, ...)
+cdensEII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
@@ -1868,7 +1799,7 @@ cdensEII <-
     if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
          any(is.null(parameters[c("pro", "mean", "variance")]))) {
       WARNING <- "parameters are missing"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
       z <- matrix(as.double(NA),n,G)
       dimnames(z) <- list(dimnames(data)[[1]], NULL)
       return(structure(z, logarithm = logarithm, modelName = "EII", 
@@ -1879,7 +1810,7 @@ cdensEII <-
       stop("sigma-squared is negative")
     if(!sigmasq) {
       WARNING <- "sigma-squared vanishes"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
       z <- matrix(as.double(NA),n,G)
       dimnames(z) <- list(dimnames(data)[[1]], NULL)
       return(structure(z, logarithm = logarithm, modelName = "EII", 
@@ -1902,7 +1833,7 @@ cdensEII <-
     WARNING <- NULL
     if(loglik > signif(.Machine$double.xmax, 6)) {
       WARNING <- "sigma-squared falls below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
       z[] <- NA
       ret <- -1
     }
@@ -1953,7 +1884,7 @@ estepEEI <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "EEI", n=n, d=p, G=G, z=z,
@@ -1981,7 +1912,7 @@ estepEEI <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -2015,7 +1946,7 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EEI", d = p, G = G, 
                      scale = NA, shape = rep(NA,p)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -2083,8 +2014,7 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     sigma <- array(NA, c(p, p, G))
     Sigma <- matrix(as.double(NA), p, p)
     mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
@@ -2093,13 +2023,11 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "z column sum fell below threshold"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
     }
     sigma <- array(NA, c(p, p, G))
     Sigma <- matrix(as.double(NA), p, p)
@@ -2113,7 +2041,7 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
       sigma[,  , k] <- Sigma
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -2152,7 +2080,7 @@ mstepEEI <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EEI", d = p, G = G, 
                      scale = NA, shape = rep(NA,p)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -2207,8 +2135,7 @@ mstepEEI <- function(data, z, prior = NULL, warn = NULL, ...)
   if(any(c(shape, scale) > signif(.Machine$double.xmax, 6)) || any(!c(
     scale, shape))) {
     WARNING <- "cannot compute M-step"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- scale <- shape[] <- NA
     sigma <- Sigma <- array(NA, c(p, p, G))
     ret <- -1
@@ -2279,7 +2206,7 @@ cdensE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("mean", "variance")]))) ||
        any(is.null(parameters[c("mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(names(data), NULL)
     return(structure(z, logarithm = logarithm, modelName = "E",
@@ -2289,12 +2216,12 @@ cdensE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(is.null(sigmasq))
     stop("variance parameters are missing")
   if(length(sigmasq) > 1)
-    warning("more than one sigma-squared given")
+    if(warn) warning("more than one sigma-squared given")
   if(sigmasq < 0)
     stop("sigma-squared is negative")
   if(!sigmasq) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(names(data), NULL)
     return(structure(z, logarithm = logarithm, modelName = "E",
@@ -2316,7 +2243,7 @@ cdensE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -2368,7 +2295,7 @@ estepE <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(names(data), NULL)
     return(structure(list(modelName = "E", n=n, d=1, G=G, z=z,
@@ -2379,12 +2306,12 @@ estepE <- function(data, parameters, warn = NULL, ...)
   if(is.null(sigmasq))
     stop("variance parameters are missing")
   if(length(sigmasq) > 1)
-    warning("more than one sigma-squared specified")
+    if(warn) warning("more than one sigma-squared specified")
   if(sigmasq < 0)
     stop("sigma-squared is negative")
   if(!sigmasq) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(names(data), NULL)
     return(structure(list(modelName = "E", n=n, d=1, G=G, z=z,
@@ -2407,7 +2334,7 @@ estepE <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -2431,7 +2358,7 @@ cdensEEV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "EEV", 
@@ -2462,7 +2389,7 @@ cdensEEV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -2513,7 +2440,7 @@ estepEEV <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "EEV", n=n, d=p, G=G, z=z,
@@ -2545,7 +2472,7 @@ estepEEV <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1 
   }
@@ -2579,7 +2506,7 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EEV", d = p, G = G, 
                      scale = NA, shape = rep(NA,p), orientation = array(NA,c(p,p,G)))
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -2672,8 +2599,7 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     shape[] <- NA
     mu[] <- pro[] <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
@@ -2682,13 +2608,11 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "a z column sum fell below threshold"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
     }
     mu[] <- pro[] <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
@@ -2698,7 +2622,7 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
     sigma <- scale * shapeO(shape, O, transpose = FALSE)
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -2737,7 +2661,7 @@ mstepEEV <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EEV", d = p, G = G, 
                      scale = NA, shape = rep(NA,p), orientation=array(NA,c(p,p,G))) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -2802,12 +2726,12 @@ mstepEEV <- function(data, z, prior = NULL, warn = NULL, ...)
   if(lapackSVDinfo) {
     if(lapackSVDinfo > 0) {
       WARNING <- "LAPACK DGESVD fails to converge"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       ret <- -4
     }
     else {
       WARNING <- "input error for LAPACK DGESVD"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       ret <- -5
     }
     O[] <- shape[] <- scale <- NA
@@ -2815,8 +2739,7 @@ mstepEEV <- function(data, z, prior = NULL, warn = NULL, ...)
   }
   else if(any(c(abs(scale), shape) > signif(.Machine$double.xmax, 6))) {
     WARNING <- "cannot compute M-step"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- scale <- O[] <- shape[] <- NA
     sigma <- array(NA, c(p, p, G))
     ret <- -1
@@ -2907,7 +2830,7 @@ estepEII <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "EII", n=n, d=p, G=G, z=z,
@@ -2916,12 +2839,12 @@ estepEII <- function(data, parameters, warn = NULL, ...)
   }
   sigmasq <- parameters$variance$sigmasq
   if(is.null(sigmasq))
-    warning("variance parameters are missing")
+    if(warn) warning("variance parameters are missing")
   if(sigmasq < 0)
     stop("sigma-squared is negative")
   if(!sigmasq) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "EII", n=n, d=p, G=G, z=z,
@@ -2945,7 +2868,7 @@ estepEII <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -2980,7 +2903,7 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
                        variance=variance, Vinv=Vinv)
@@ -3046,7 +2969,7 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
   if(loglik > signif(.Machine$double.xmax, 6) || 
        sigmasq <= max(control$eps,0)) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
     ret <- -1
@@ -3054,11 +2977,11 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "z column sum fell below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
@@ -3070,7 +2993,7 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
       sigma[,  , k] <- Sigma
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -3108,7 +3031,7 @@ mstepEII <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EII", d = p, G = G, sigmasq = NA)
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
                        variance=variance)
@@ -3229,7 +3152,7 @@ meE <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "E", d = 1, G = G, sigmasq = NA)
     parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
                        variance=variance, Vinv=Vinv)
@@ -3310,7 +3233,7 @@ meE <- function(data, z, prior = NULL, control = emControl(),
   }
   else if(its >= control$itmax[1]) {
     WARNING <- "iteration limit reached"
-    warning(WARNING)
+    if(warn) warning(WARNING)
     its <-  - its
     ret <- 1
   }
@@ -3345,7 +3268,7 @@ mstepE <- function(data, z, prior = NULL, warn = NULL, ...)
   ##
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName="E", d=1, G=G, sigmasq=NA)
     parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
                        variance=variance)
@@ -3444,7 +3367,7 @@ cdensEVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "EVI", 
@@ -3471,7 +3394,7 @@ cdensEVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -3522,7 +3445,7 @@ estepEVI <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "EVI", n=n, d=p, G=G, z=z,
@@ -3550,7 +3473,7 @@ estepEVI <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -3584,7 +3507,7 @@ meEVI <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EVI", d = p, G = G, 
                      scale = NA, shape = matrix(as.double(NA),p,G)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -3674,7 +3597,7 @@ meEVI <- function(data, z, prior = NULL, control = emControl(),
     sigma <- array(apply(scale * shape, 2, diag), c(p, p, G))
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -3711,7 +3634,7 @@ mstepEVI <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "EVI", d = p, G = G, 
                      scale = NA, shape = matrix(as.double(NA),p,G)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -3764,8 +3687,7 @@ mstepEVI <- function(data, z, prior = NULL, warn = NULL, ...)
   if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!c(
     scale, shape))) {
     WARNING <- "cannot compute M-step"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- scale <- shape[] <- NA
     sigma <- array(NA, c(p, p, G))
     ret <- -1 
@@ -3986,12 +3908,24 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
            }
          },
          "uncertainty" = 
-         { x <- grid1(n = ngrid, range = xlim, edge = TRUE)
-           lx <- length(x)
-           Z <- densNuncer(data = x, parameters = parameters)
-           plot(x, Z$uncertainty, xlab = xlab, ylab = "uncertainty", 
-                xlim = xlim, ylim = c(0,1), type = "l", main = "", ...)
-           if(main)  title("Uncertainty")
+         { # x <- grid1(n = ngrid, range = xlim, edge = TRUE)
+           # lx <- length(x)
+           # Z <- densNuncer(data = x, parameters = parameters)
+           # plot(x, Z$uncertainty, xlab = xlab, ylab = "uncertainty", 
+           #      xlim = xlim, ylim = c(0,1), type = "l", main = "", ...)
+           u <- (uncertainty - min(uncertainty))/
+                (max(uncertainty) - min(uncertainty))
+           b <- bubble(u, cex = CEX*c(0.3, 2), alpha = c(0.3, 1))
+           cl <- sapply(classification, function(cl) which(cl == U))
+           plot(data, uncertainty, type = "h", 
+                xlab = xlab, ylab = "Uncertainty",
+                xlim = xlim, ylim = c(0,1), main = "", 
+                col = mapply(adjustcolor, 
+                             col = colors[cl], 
+                             alpha.f = b$alpha),
+                ...)
+           rug(data, lwd = 1, col = adjustcolor(par("fg"), alpha.f = 0.8))
+           if(main) title("Uncertainty")
          },
          "density" = 
          { if(is.null(parameters$pro) && parameters$variance$G != 1) 
@@ -4013,13 +3947,15 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
   invisible()
 }
 
-mclust2Dplot <- function (data, parameters = NULL, z = NULL,
-                          classification = NULL, truth = NULL, uncertainty = NULL, 
-                          what = c("classification", "uncertainty", "errors"), 
-                          quantiles = c(0.75, 0.95), symbols = NULL, colors = NULL, 
-                          xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
-                          scale = FALSE, CEX = 1, PCH = ".", 
-                          main = FALSE, swapAxes = FALSE, ...) 
+mclust2Dplot <- function(data, parameters = NULL, z = NULL,
+                         classification = NULL, truth = NULL, 
+                         uncertainty = NULL, 
+                         what = c("classification", "uncertainty", "errors"), 
+                         addEllipses = TRUE,
+                         symbols = NULL, colors = NULL, 
+                         xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
+                         scale = FALSE, CEX = 1, PCH = ".", 
+                         main = FALSE, swapAxes = FALSE, ...) 
 {
   if(dim(data)[2] != 2)
     stop("data must be two dimensional")
@@ -4028,11 +3964,11 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
   if(is.null(uncertainty) && !is.null(z))
     uncertainty <- 1 - apply(z, 1, max)
   if(!is.null(parameters)) 
-  { mu <- parameters$mean
-    L <- ncol(mu)
-    sigma <- parameters$variance$sigma
-    haveParams <- !is.null(mu) && !is.null(sigma) && 
-      !any(is.na(mu)) && !any(is.na(sigma)) 
+    { mu <- parameters$mean
+      L <- ncol(mu)
+      sigma <- parameters$variance$sigma
+      haveParams <- !is.null(mu) && !is.null(sigma) && 
+                    !any(is.na(mu)) && !any(is.na(sigma)) 
   }
   else haveParams <- FALSE
   
@@ -4042,50 +3978,52 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
   if(is.null(ylim))
     ylim <- range(data[, 2])
   if(scale) 
-  { par(pty = "s")
-    d <- diff(xlim) - diff(ylim)
-    if(d > 0) { ylim <- c(ylim[1] - d/2, ylim[2] + d/2.) }
-    else      { xlim <- c(xlim[1] + d/2, xlim[2] - d/2) }
+    { par(pty = "s")
+      d <- diff(xlim) - diff(ylim)
+      if(d > 0) { ylim <- c(ylim[1] - d/2, ylim[2] + d/2.) }
+      else      { xlim <- c(xlim[1] + d/2, xlim[2] - d/2) }
   }
   
   dnames <- dimnames(data)[[2]]
   if(is.null(xlab)) 
-  { xlab <- if(is.null(dnames)) "" else dnames[1] }
+    { xlab <- if(is.null(dnames)) "" else dnames[1] }
   if(is.null(ylab)) 
-  { ylab <- if(is.null(dnames)) "" else dnames[2] }
+    { ylab <- if(is.null(dnames)) "" else dnames[2] }
   
   if(haveParams) 
-  { G <- ncol(mu)
-    dimpar <- dim(sigma)
-    if(length(dimpar) != 3) 
-    { haveParams <- FALSE
-      warning("covariance must be a 3D matrix")
+    { G <- ncol(mu)
+      dimpar <- dim(sigma)
+      if(length(dimpar) != 3) 
+        { haveParams <- FALSE
+          warning("covariance must be a 3D matrix")
+      }
+      if(G != dimpar[3])
+        { haveParams <- FALSE
+          warning("means and variance parameters are incompatible")
+      }
+      mu <- array(mu, c(2, G))
+      sigma <- array(sigma, c(2, 2, G))
     }
-    if(G != dimpar[3])
-    { haveParams <- FALSE
-      warning("means and variance parameters are incompatible")
-    }
-    mu <- array(mu, c(2, G))
-    sigma <- array(sigma, c(2, 2, G))
-  }
   
   if(swapAxes)
-  { if(haveParams) 
-  { mu <- mu[2:1,]
-    sigma <- sigma[2:1, 2:1,]
-  }
-  data <- data[, 2:1]
+    { if(haveParams) 
+        { mu <- mu[2:1,]
+          sigma <- sigma[2:1, 2:1,]
+      }
+    data <- data[, 2:1]
   }
   
   if(!is.null(truth)) 
-  { if(is.null(classification)) 
-  { classification <- truth
-    truth <- NULL
-  }
-  else { if(length(unique(truth)) != 
-              length(unique(classification))) truth <- NULL
-         else truth <- as.character(truth)
-  }
+    { if(is.null(classification)) 
+        { classification <- truth
+          truth <- NULL
+      }
+      else 
+        { if(length(unique(truth)) != 
+             length(unique(classification))) 
+                truth <- NULL
+           else truth <- as.character(truth)
+      }
   }
   
   if(charmatch("classification", what, nomatch = 0) && 
@@ -4093,64 +4031,64 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
     { classification <- map(z) }
   
   if(!is.null(classification)) 
-  { classification <- as.character(classification)
-    U <- sort(unique(classification))
-    L <- length(U)
-    noise <- (U[1] == "0")
-    if(is.null(symbols))
-    { if(L <= length(mclust.options("classPlotSymbols"))) 
-    { symbols <- mclust.options("classPlotSymbols")[1:L]
-      if(noise)
-      { symbols <- c(16,symbols)[1:L] }
-    }
-    else if(L <= 9)
-    { symbols <- as.character(1:9) }
-    else if(L <= 26) { symbols <- LETTERS }
-    }
-    if(is.null(colors)) 
-    { if(L <= length(mclust.options("classPlotColors"))) 
-    { colors <- mclust.options("classPlotColors")[1:L]
-      if(noise) 
-      { colors <- unique(c("black", colors))[1:L] }
-    }
-    }
-    else if(length(colors) == 1) colors <- rep(colors, L)
-    if(length(symbols) < L) 
-    { warning("more symbols needed to show classification ")
-      symbols <- rep(16,L)
-    }
-    if(length(colors) < L) 
-    { warning("more colors needed to show classification ")
-      colors <- rep("black",L)
-    }
+    { classification <- as.character(classification)
+      U <- sort(unique(classification))
+      L <- length(U)
+      noise <- (U[1] == "0")
+      if(is.null(symbols))
+      { if(L <= length(mclust.options("classPlotSymbols"))) 
+      { symbols <- mclust.options("classPlotSymbols")[1:L]
+        if(noise)
+        { symbols <- c(16,symbols)[1:L] }
+      }
+      else if(L <= 9)
+      { symbols <- as.character(1:9) }
+      else if(L <= 26) { symbols <- LETTERS }
+      }
+      if(is.null(colors)) 
+      { if(L <= length(mclust.options("classPlotColors"))) 
+      { colors <- mclust.options("classPlotColors")[1:L]
+        if(noise) 
+        { colors <- unique(c("black", colors))[1:L] }
+      }
+      }
+      else if(length(colors) == 1) colors <- rep(colors, L)
+      if(length(symbols) < L) 
+      { warning("more symbols needed to show classification ")
+        symbols <- rep(16,L)
+      }
+      if(length(colors) < L) 
+      { warning("more colors needed to show classification ")
+        colors <- rep("black",L)
+      }
   }
   
   if(length(what) > 1) what <- what[1]
   choices <- c("classification", "errors", "uncertainty")
   m <- charmatch(what, choices, nomatch = 0)
   if(m) 
-  { what <- choices[m] 
-    bad <- what == "classification" && is.null(classification)
-    bad <- bad || (what == "uncertainty" && is.null(uncertainty))
-    bad <- bad || (what == "errors" && 
-                     (is.null(classification) || is.null(truth)))
-    if(bad) warning("insufficient input for specified plot")
-  }
-  else 
-  { bad <- !m
-    warning("what improperly specified")
+    { what <- choices[m] 
+      bad <- what == "classification" && is.null(classification)
+      bad <- bad || (what == "uncertainty" && is.null(uncertainty))
+      bad <- bad || (what == "errors" && 
+                       (is.null(classification) || is.null(truth)))
+      if(bad) warning("insufficient input for specified plot")
+    }
+    else 
+    { bad <- !m
+      warning("what improperly specified")
   }
   if(bad) what <- "bad"
   
   switch(EXPR = what,
-         "classification"= {
+         "classification" = {
            plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
                 ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
            if(main) title("Classification")
            for(k in 1:L) 
-           { I <- classification == U[k]
-             points(data[I, 1], data[I, 2], pch = symbols[k], 
-                    col = colors[k], cex = if(U[k] == "0") CEX/4 else CEX)
+              { I <- classification == U[k]
+                points(data[I, 1], data[I, 2], pch = symbols[k], 
+                       col = colors[k], cex = if(U[k] == "0") CEX/4 else CEX)
            }
          },
          "errors" = {
@@ -4181,38 +4119,39 @@ mclust2Dplot <- function (data, parameters = NULL, z = NULL,
            }
            }
          },
-         "uncertainty" = {
-           plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
-                ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
-           if(main) title("Classification Uncertainty")
-           breaks <- quantile(uncertainty, probs = sort(quantiles))
-           I <- uncertainty < breaks[1]
-           points(data[I, 1], data[I, 2], pch = 16, col = "gray75",
-                  cex = 0.5 * CEX)
-           I <- uncertainty < breaks[2] & !I
-           points(data[I, 1], data[I, 2], pch = 16, col = "gray50",
-                  cex = 1 * CEX)
-           I <- uncertainty >= breaks[2]
-           points(data[I, 1], data[I, 2], pch = 16, col = "black",
-                  cex = 1.5 * CEX)
+         "uncertainty" = { 
+           u <- (uncertainty - min(uncertainty))/
+                (max(uncertainty) - min(uncertainty))
+           b <- bubble(u, cex = CEX*c(0.3, 2), alpha = c(0.3, 0.9))
+           cl <- sapply(classification, function(cl) which(cl == U))
+           plot(data[, 1], data[, 2], pch = 19, 
+                xlab = xlab, ylab = ylab, 
+                xlim = xlim, ylim = ylim, main = "", 
+                cex = b$cex, 
+                col = mapply(adjustcolor, 
+                             col = colors[cl], 
+                             alpha.f = b$alpha),
+                ...)
+           if(main) title("Uncertainty")
          },
-         {  plot(data[, 1], data[, 2], type = "n", xlab = xlab, 
-                 ylab = ylab, xlim = xlim, ylim = ylim, main = "", ...)
+         {  plot(data[, 1], data[, 2], type = "n", 
+                 xlab = xlab, ylab = ylab, 
+                 xlim = xlim, ylim = ylim, main = "", ...)
             if(main) title("Point Plot")
             points(data[, 1], data[, 2], pch = PCH, cex = CEX)
          }
   )
-  if(haveParams) 
+  if(haveParams && addEllipses) 
     { ## plot ellipsoids
       for(k in 1:G) 
-        mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+        mvn2plot(mu = mu[,k], sigma = sigma[,,k], k = 15)
   }
 
   invisible()
 }
 
 mvn2plot <- function(mu, sigma, k = 15, alone = FALSE, 
-                     col = rep("grey20",3), pch = 8, lty = c(1,2), lwd = c(1,1)) 
+                     col = rep("grey30",3), pch = 8, lty = c(1,2), lwd = c(1,1)) 
 {
   p <- length(mu)
   if (p != 2) 
@@ -4311,7 +4250,7 @@ plot.Mclust <- function(x,
                       parameters = object$parameters, z = object$z, 
                       dimens = dimens, main = main, ...) 
         }
-      else
+        else
           { mclust2Dplot(data = data[,dimens], what = "classification", 
                          classification = object$classification,
                          # z = object$z, 
@@ -4372,13 +4311,14 @@ plot.Mclust <- function(x,
                      z = object$z, what = "uncertainty", 
                      xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                      ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
-                     main = main, ...)
+                     addEllipses = addEllipses, main = main, ...)
     }
     if(p > 2) 
       { if(d == 2)
           { coordProj(data = data, parameters = object$parameters, 
                       z = object$z, what = "uncertainty", 
-                      dimens = dimens, main = main, ...) }
+                      dimens = dimens, main = main, 
+                      addEllipses = addEllipses, ...) }
         else
           { on.exit(par(oldpar))
             par(mfrow = c(d, d), 
@@ -4399,6 +4339,7 @@ plot.Mclust <- function(x,
                                 z = object$z,
                                 dimens = dimens[c(j,i)], 
                                 main = FALSE, 
+                                addEllipses = addEllipses,
                                 xaxt = "n", yaxt = "n", ...)
                     }
                     if(i == 1 && (!(j%%2))) axis(3)
@@ -5156,7 +5097,7 @@ cdensVEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "VEI", 
@@ -5183,7 +5124,7 @@ cdensVEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -5234,7 +5175,7 @@ estepVEI <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VEI", n=n, d=p, G=G, z=z,
@@ -5262,7 +5203,7 @@ estepVEI <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -5296,7 +5237,7 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VEI", d = p, G = G, 
                      scale = rep(NA,G), shape = rep(NA,p)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -5373,8 +5314,7 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     sigma <- array(NA, c(p, p, G))
     mu[] <- pro[] <- z[] <- loglik <- shape[] <- NA
     ret <- -1
@@ -5398,13 +5338,13 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
       sigma[,  , k] <- diag(scale[k] * shape)
     if(inner >= control$itmax[2]) {
       WARNING <- "inner iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       inner <-  - inner
       ret <- 2
     }
     else if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -5441,7 +5381,7 @@ mstepVEI <- function(data, z, prior = NULL, warn = NULL, control = NULL,...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VEI", d = p, G = G, 
                      scale = rep(NA,G), shape = rep(NA,p)) 
     parameters <- list(pro=rep(NA,G), 
@@ -5512,8 +5452,7 @@ mstepVEI <- function(data, z, prior = NULL, warn = NULL, control = NULL,...)
   if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!
                                                                      c(scale, shape))) {
     WARNING <- "cannot compute M-step"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- shape <- scale[] <- NA
     sigma <- array(NA, c(p, p, G))
     ret <- -1
@@ -5525,7 +5464,7 @@ mstepVEI <- function(data, z, prior = NULL, warn = NULL, control = NULL,...)
       sigma[,  , k] <- diag(scale[k] * shape)
     if(inner >= itmax) {
       WARNING <- "inner iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       inner <-  - inner
     }
   }
@@ -5589,7 +5528,7 @@ cdensV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")])))
      || any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(names(data), NULL)
     return(structure(z, logarithm = logarithm, modelName = "V", 
@@ -5602,7 +5541,7 @@ cdensV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     stop("sigma-squared is negative")
   if(any(!sigmasq)) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(names(data), NULL)
     return(structure(z, logarithm = logarithm, modelName = "V", 
@@ -5625,7 +5564,7 @@ cdensV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -5737,7 +5676,7 @@ cdensVEV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "VEV", 
@@ -5768,7 +5707,7 @@ cdensVEV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -5818,7 +5757,7 @@ estepVEV <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VEV", n=n, d=p, G=G, z=z,
@@ -5850,7 +5789,7 @@ estepVEV <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1  
   }
@@ -5885,7 +5824,7 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VEV", d = p, G = G, 
                      scale=rep(NA,G), shape=rep(NA,p), orientation=array(NA,c(p,p,G))) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -5972,7 +5911,7 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
     else {
       WARNING <- "input error for LAPACK DGESVD"
     }
-    warning(WARNING)
+    if(warn) warning(WARNING)
     O[] <- shape[] <- scale[] <- NA
     mu[] <- pro[] <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
@@ -5980,8 +5919,7 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "singular covariance"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     O[] <- shape[] <- scale[] <- NA
     mu[] <- pro[] <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
@@ -6005,13 +5943,13 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
     sigma <- sweep(sigma, MARGIN = 3, STATS = scale, FUN = "*")
     if(inner >= control$itmax[2]) {
       WARNING <- "inner iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       inner <-  - inner
       ret <- 2
     }
     else if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -6051,7 +5989,7 @@ mstepVEV <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VEV", d = p, G = G, 
                      scale = rep(NA,G), shape = rep(NA,p), orientation = array(NA,c(p,p,G))) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -6062,7 +6000,7 @@ mstepVEV <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                      WARNING = WARNING, returnCode = 9))
     
     WARNING <- "z is missing"
-    warning(WARNING)
+    if(warn) warning(WARNING)
     return(structure(list(n = n, d = p, G = G, mu = matrix(as.double(NA),
                                                            p, G), sigma = array(NA, c(p, p, G)), decomp = list(
                                                              d = p, G = G, scale = rep(NA, G), shape = rep(NA, p),
@@ -6135,11 +6073,11 @@ mstepVEV <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
   if(lapackSVDinfo) {
     if(lapackSVDinfo > 0) {
       WARNING <- "LAPACK DGESVD fails to converge"
-      warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "input error for LAPACK DGESVD"
-      warning(WARNING)
+      if(warn) warning(WARNING)
     }
     O[] <- shape[] <- scale[] <- NA
     sigma <- array(NA, c(p, p, G))
@@ -6158,7 +6096,7 @@ mstepVEV <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                    STATS = scale, FUN = "*")
     if(inner >= itmax) {
       WARNING <- "inner iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       inner <-  - inner
     }
     ret <- 2
@@ -6225,7 +6163,7 @@ cdensVII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "VII", 
@@ -6236,7 +6174,7 @@ cdensVII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
     stop("sigma-squared is negative")
   if(any(!sigmasq)) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "VII", 
@@ -6259,7 +6197,7 @@ cdensVII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -6310,7 +6248,7 @@ estepVII <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VII", n=n, d=p, G=G, z=z,
@@ -6324,7 +6262,7 @@ estepVII <- function(data, parameters, warn = NULL, ...)
     stop("sigma-squared is negative")
   if(any(!sigmasq)) {
     WARNING <- "sigma-squared vanishes"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VII", n=n, d=p, G=G, z=z,
@@ -6348,7 +6286,7 @@ estepVII <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -6382,7 +6320,7 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
                        variance=variance, Vinv=Vinv)
@@ -6448,7 +6386,7 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
   if(loglik > signif(.Machine$double.xmax, 6) || 
        any(sigmasq <= max(control$eps, 0))) {
     WARNING <- "sigma-squared falls below threshold"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
     ret <- -1
@@ -6456,11 +6394,11 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "z column sum fell below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     mu[] <- pro[] <- sigmasq <- z[] <- loglik <- NA
     sigma <- array(NA, c(p, p, G))
@@ -6472,7 +6410,7 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
       sigma[,  , k] <- diag(rep(sigmasq[k], p))
     if(its >= control$itmax[1]) 
       { WARNING <- "iteration limit reached"
-        warning(WARNING)
+        if(warn) warning(WARNING)
         its <-  - its
         ret <- 1
     }
@@ -6515,7 +6453,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VVI", d = p, G = G, 
                      scale = rep(NA,G), shape = matrix(as.double(NA),p,G)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -6591,7 +6529,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "z column sum fell below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
@@ -6606,7 +6544,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
                                FUN = "*"), 2, diag), c(p, p, G))
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -6643,7 +6581,7 @@ mstepVII <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
                        variance=variance)
@@ -6760,7 +6698,7 @@ meV <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) 
     { WARNING <- "z is missing"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
       variance <- list(modelName = "V", d=1, G=G, sigmasq = rep(NA,G))
       parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
                          variance=variance, Vinv=Vinv)
@@ -6842,7 +6780,7 @@ meV <- function(data, z, prior = NULL, control = emControl(),
   }
   else if(its >= control$itmax[1]) {
     WARNING <- "iteration limit reached"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     its <-  - its
     ret <- 1
   }
@@ -6877,7 +6815,7 @@ mstepV <- function(data, z, prior = NULL, warn = NULL, ...)
   ##
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "V", d=1, G=G, sigmasq=rep(NA,G))
     parameters <- list(pro=rep(NA,G), mean=rep(NA,G), 
                        variance=variance)
@@ -6978,7 +6916,7 @@ cdensVVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mu", "variance")]))) ||
        any(is.null(parameters[c("pro", "mu", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(z, logarithm = logarithm, modelName = "VVI", 
@@ -7005,7 +6943,7 @@ cdensVVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -7056,7 +6994,7 @@ estepVVI <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mu", "variance")]))) ||
        any(is.null(parameters[c("pro", "mu", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VVI", n=n, d=p, G=G, z=z,
@@ -7084,7 +7022,7 @@ estepVVI <- function(data, parameters, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -7118,7 +7056,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VVI", d = p, G = G, 
                      scale = rep(NA,G), shape = matrix(as.double(NA),p,G)) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -7194,7 +7132,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
   else if(loglik <  - signif(.Machine$double.xmax, 6)) {
     if(control$equalPro) {
       WARNING <- "z column sum fell below threshold"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "mixing proportion fell below threshold"
@@ -7209,7 +7147,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
                                FUN = "*"), 2, diag), c(p, p, G))
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -7246,7 +7184,7 @@ mstepVVI <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VII", d=p, G=G, sigmasq=rep(NA,G))
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
                        variance=variance)
@@ -7299,8 +7237,7 @@ mstepVVI <- function(data, z, prior = NULL, warn = NULL, ...)
   if(any(c(scale, shape) > signif(.Machine$double.xmax, 6)) || any(!
                                                                      c(scale, shape))) {
     WARNING <- "cannot compute M-step"
-    if(warn)
-      warning(WARNING)
+    if(warn) warning(WARNING)
     mu[] <- pro[] <- shape <- scale[] <- NA
     sigma <- array(NA, c(p, p, G))
     ret <- -1
@@ -7369,7 +7306,7 @@ cdensVVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,G)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
@@ -7399,18 +7336,18 @@ cdensVVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   if(lapackCholInfo) {
     if(lapackCholInfo > 0) {
       WARNING <- "sigma is not positive definite"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "input error for LAPACK DPOTRF"
-      if (warn) warning(WARNING)
+      if(warn) warning(WARNING)
     }
     z[] <- NA
     ret <- -9
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- NA
     ret <- -1
   }
@@ -7461,7 +7398,7 @@ estepVVV <- function(data, parameters, warn = NULL, ...)
   if(any(is.na(unlist(parameters[c("pro", "mean", "variance")]))) ||
        any(is.null(parameters[c("pro", "mean", "variance")]))) {
     WARNING <- "parameters are missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z <- matrix(as.double(NA),n,K)
     dimnames(z) <- list(dimnames(data)[[1]], NULL)
     return(structure(list(modelName = "VVV", n=n, d=p, G=G, z=z,
@@ -7491,18 +7428,18 @@ estepVVV <- function(data, parameters, warn = NULL, ...)
   if(lapackCholInfo) {
     if(lapackCholInfo > 0) {
       WARNING <- "sigma is not positive definite"
-      warning(WARNING)
+      if(warn) warning(WARNING)
     }
     else {
       WARNING <- "input error for LAPACK DPOTRF"
-      warning(WARNING)
+      if(warn) warning(WARNING)
     }
     z[] <- loglik <- NA
     ret <- -9
   }
   else if(loglik > signif(.Machine$double.xmax, 6)) {
     WARNING <- "cannot compute E-step"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     z[] <- loglik <- NA
     ret <- -1
   }
@@ -7536,7 +7473,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
   else G <- K
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VVV", d = p, G = G, 
                      sigma = array(NA, c(p,p,G)), cholsigma = array(NA, c(p,p,G))) 
     parameters <- list(pro=rep(NA,G), mean=matrix(as.double(NA),p,G), 
@@ -7629,7 +7566,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
                    c(p,p,G))
     if(its >= control$itmax[1]) {
       WARNING <- "iteration limit reached"
-      warning(WARNING)
+      if(warn) warning(WARNING)
       its <-  - its
       ret <- 1
     }
@@ -7666,7 +7603,7 @@ mstepVVV <- function(data, z, prior = NULL, warn = NULL, ...)
   G <- dimz[2]
   if(all(is.na(z))) {
     WARNING <- "z is missing"
-    if (warn) warning(WARNING)
+    if(warn) warning(WARNING)
     variance <- list(modelName = "VVV", d = p, G = G, 
                      sigma <- array(NA, c(p,p, G)), 
                      cholsigma = array(NA, c(p,p,G))) 
@@ -7908,8 +7845,7 @@ mvnXII <- function(data, prior = NULL, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) 
     { WARNING <- "singular covariance"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
       loglik <- NA
       ret <- -1
   }
@@ -7993,8 +7929,7 @@ mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) 
     { WARNING <- "singular covariance"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
       loglik <- NA
       ret <- -1
   }
@@ -8079,8 +8014,7 @@ mvnXXX <- function(data, prior = NULL, warn = NULL, ...)
   WARNING <- NULL
   if(loglik > signif(.Machine$double.xmax, 6)) 
     { WARNING <- "singular covariance"
-      if(warn)
-        warning(WARNING)
+      if(warn) warning(WARNING)
       loglik <- NA
       ret <- -1
   }

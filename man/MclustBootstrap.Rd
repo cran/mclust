@@ -2,33 +2,37 @@
 \alias{MclustBootstrap}
 \alias{print.MclustBootstrap}
 
-\title{Bootstrap Inference for Gaussian finite mixture models}
+\title{Resampling-based Inference for Gaussian finite mixture models}
 
-\description{Bootstrap estimation of standard errors and percentile bootstrap confidence intervals for the parameters of a Gaussian mixture model.}
+\description{Bootstrap or jackknife estimation of standard errors and percentile bootstrap confidence intervals for the parameters of a Gaussian mixture model.}
 
 \usage{
-MclustBootstrap(object, nboot = 999, type = c("nonpara", "wlb"), 
+MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "jk"),
                 verbose = TRUE, \dots)
 }
 
 \arguments{
   \item{object}{An object of class \code{'Mclust'} or \code{'densityMclust'} providing an estimated Gaussian mixture model.}
   \item{nboot}{The number of bootstrap replications.}
-  \item{type}{A character string specifying the type of bootstrap to use: 
+  \item{type}{A character string specifying the type of resampling to use: 
   \tabular{ll}{
-    \code{"nonpara"} \tab = nonparametric bootstrap \cr
-    \code{"wlb"} \tab = weighted likelihood bootstrap
+    \code{"bs"} \tab = nonparametric bootstrap \cr
+    \code{"wlbs"} \tab = weighted likelihood bootstrap \cr
+    \code{"jk"} \tab = jackknife \cr
     }
   }
   \item{verbose}{A logical, if \code{TRUE} and the session is interactive a text progress bar is displayed during the bootstrap procedure.}
   \item{\dots}{Further arguments passed to or from other methods.}
 }
 
-\details{Nonparametric bootstrap is used to compute the bootstrap distribution of mixture parameters. For a fitted mixture model given by the first argument of the function call with \code{object$G} mixture components and covariances parameterisation model \code{object$modelName}, the bootstrap procedure generates \code{nboot} bootstrap samples of the same size as the original data by re-sampling with replacement from the observed data.
-The resulting bootstrap distribution can then be used to obtain standard errors and percentile confidence intervals by the use of \code{\link{summary.MclustBootstrap}} function.}
+\details{For a fitted Gaussian mixture model with \code{object$G} mixture components and covariances parameterisation \code{object$modelName}, this function returns either the boostrap distribution or the jackknife distribution of mixture parameters. In the former case, the nonparametric bootstrap or the weighted likelihood bootstrap approach could be used, so the the bootstrap procedure generates \code{nboot} bootstrap samples of the same size as the original data by resampling with replacement from the observed data. In the jackknife case, the procedure considers all the samples obtained by omitting one observation at time.
+
+The resulting resampling distribution can then be used to obtain standard errors and percentile confidence intervals by the use of \code{\link{summary.MclustBootstrap}} function.}
 
 \value{An object of class \code{'MclustBootstrap'} with the following components:
 
+  \item{n}{The number of observations in the data.}
+  \item{d}{The dimension of the data.}
   \item{G}{A value specifying the number of mixture components.} 
   \item{modelName}{A character string specifying the mixture model covariances 
     parameterisation (see \code{\link{mclustModelNames}}).}
@@ -39,8 +43,9 @@ The resulting bootstrap distribution can then be used to obtain standard errors 
      \item{\code{variance}}{an array of covariance matrices for each component.}
      }
   }
-  \item{nboot}{The number of bootstrap replications.}
-  \item{type}{The type of bootstrap computation employed.}
+  \item{nboot}{The number of bootstrap replications if \code{type = "bs"} or \code{type = "wlbs"}. The sample size if \code{type = "jk"}.}
+  \item{type}{The type of resampling approach used.}
+  \item{nonfit}{The number of resamples that did not convergence during the procedure.}
   \item{pro}{A matrix of dimension (\code{nboot} x \code{G}) containing the 
     bootstrap distribution for the mixing proportion.}
   \item{mean}{An array of dimension (\code{nboot} x \code{d} x \code{G}), 
@@ -55,6 +60,8 @@ The resulting bootstrap distribution can then be used to obtain standard errors 
 Davison, A. and Hinkley, D. (1997) \emph{Bootstrap Methods and Their Applications}. Cambridge University Press.
 
 McLachlan, G.J. and Peel, D. (2000) \emph{Finite Mixture Models}. Wiley.
+
+O'Hagan A., Murphy T. B., Gormley I. C. and Scrucca L. (2015) On Estimation of Parameter Uncertainty in Model-Based Clustering. Submitted to \emph{Computational Statistics}. 
 }
 
 \seealso{\code{\link{summary.MclustBootstrap}}, \code{\link{plot.MclustBootstrap}}, \code{\link{Mclust}}, \code{\link{densityMclust}}.}

@@ -73,19 +73,15 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
   \code{\link{do.call}}
 }
 \examples{
-faithfulBIC <- mclustBIC(faithful) 
-faithfulModel <- mclustModel(faithful, faithfulBIC) ## best parameter estimates
-names(faithfulModel)
-
+faithfulModel <- Mclust(faithful)
 Dens <- dens(modelName = faithfulModel$modelName, data = faithful,
-                parameters = faithfulModel$parameters)
+             parameters = faithfulModel$parameters)
 Dens
 
 \dontrun{
-  ## alternative call
-oddDens <- do.call("dens", c(list(data = faithful), faithfulModel))  
+## alternative call
+do.call("dens", faithfulModel)
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.
+

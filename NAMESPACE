@@ -124,5 +124,13 @@ S3method( "summary", "MclustBootstrap")
 S3method( "print", "summary.MclustBootstrap")
 S3method( "plot", "MclustBootstrap")
 
+export(as.Mclust, as.Mclust.default)
+S3method("as.Mclust", "default")
+export(as.densityMclust, as.densityMclust.default,
+       as.densityMclust.Mclust)
+S3method("as.densityMclust", "default")
+S3method("as.densityMclust", "Mclust")
+
+
 # deprecated functions
 export(cv.MclustDA, cv1EMtrain, bicEMtrain)

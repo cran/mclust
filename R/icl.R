@@ -1,10 +1,6 @@
-# Example
-#
-# library(mclust)
-# data(faithful)
-# out = mclustCriteria(faithful)
-# print(out)
-# plot(out)
+##
+## Integrated Complete-data Likelihood (ICL) Criterion
+##
 
 icl <- function(object, ...) UseMethod("icl")
 
@@ -34,63 +30,57 @@ icl.MclustDA <- function(object, ...)
 
 mclustICL <- function(data, G = NULL, modelNames = NULL, 
                       initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),  
-                      ...)
+                      x = NULL, ...)
 {
+  call <- match.call()
   data <- data.matrix(data)
   n <- nrow(data)
   d <- ncol(data)
-  
-  if(is.null(modelNames))
-    { if(d == 1)
-        { modelNames <- c("E", "V") }
-      else
-        { modelNames <- mclust.options("emModelNames") }
+  mc <- match.call(expand.dots = TRUE)
+  mc[[1]] <- as.name("mclustBIC")
+  mc[[2]] <- data
+  BIC <- eval(mc, parent.frame())
+  # browser()
+  class(BIC) <- "mclustBIC"
+  G <- attr(BIC, "G")
+  modelNames <- attr(BIC, "modelNames")
+  ICL <- matrix(NA, nrow = length(G), ncol = length(modelNames))
+  mostattributes(ICL) <- attributes(BIC)
+  if(!is.null(x))
+    { 
+      r <- match(as.character(G), rownames(x), nomatch = 0)
+      c <- match(modelNames, colnames(x), nomatch = 0)
+      ICL[r,c] <- BIC[r,c]
   }
-  if(n <= d) 
-    { # select only spherical and diagonal models
-      m <- match(modelNames, c("EII", "VII", "EEI", "VEI", "EVI", "VVI"),
-                 nomatch = 0)
-      modelNames <- modelNames[m]
-  }
-  
-  if(is.null(G)) 
-    { G <- if(is.null(initialization$noise)) 1:9 else 0:9 }
-  else 
-    { G <- sort(as.integer(G)) }
-  
-  if(is.null(initialization$hcPairs) & (d > 1))
-    { if(n > d)
-        { initialization$hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
-                                       data = data) }
-      else 
-    { initialization$hcPairs <- hc(modelName = "EII", data = data) }
-  }
-  
-  ICL <- matrix(as.double(NA), nrow = length(G), ncol = length(modelNames), 
-                dimnames = list(as.character(G), as.character(modelNames)))
-  warn <- getOption("warn")
-  on.exit(options("warn" = warn))
-  options("warn" = -1)
   for(i in 1:nrow(ICL))
      { for(j in 1:ncol(ICL))
-          { mod <- try(Mclust(data, G = G[i], modelNames = modelNames[j], 
-                              initialization = initialization, ...),
-                       silent = TRUE)
-            if(class(mod) == "try-error") next()
-            if(all(is.na(mod$BIC))) next()
-            ICL[i,j] <- icl(mod)
+          { if(is.na(BIC[i,j])) next() # not fitted
+            if(!is.na(ICL[i,j])) next() # already available
+            Sumry <- summary(BIC, data, G = G[i], modelNames = modelNames[j])
+            ICL[i,j] <- icl.Mclust(Sumry)
        }
   }
-  ICL <- structure(ICL, criterion = "ICL", 
-                   class = "mclustICL")
+  class(ICL) <- "mclustICL" # "mclustBIC"
+  attr(ICL, "criterion") <- "ICL"
   return(ICL)
 }
 
 print.mclustICL <- function (x, pick = 3, ...) 
 {
+  subset <- !is.null(attr(x, "subset"))
   oldClass(x) <- attr(x, "args") <- NULL
-  cat("Integrated Complete Likelihood (ICL) criterion:\n")
-  NextMethod("print")
+  attr(x, "criterion") <- NULL
+  attr(x, "control") <- attr(x, "initialization") <- NULL
+  attr(x, "oneD") <- attr(x, "warn") <- attr(x, "Vinv") <- NULL
+  attr(x, "prior") <- attr(x, "G") <- attr(x, "modelNames") <- NULL
+  ret <- attr(x, "returnCodes") == -3
+  n <- attr(x, "n")
+  d <- attr(x, "d")
+  attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
+  
+  oldClass(x) <- attr(x, "args") <- attr(x, "criterion") <- NULL 
+  cat("Integrated Complete-data Likelihood (ICL) criterion:\n")
+  print(x)
   cat("\n")
   cat("Top", pick, "models based on the ICL criterion:\n")
   print(pickBIC(x, pick), ...)

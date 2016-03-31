@@ -1,3 +1,85 @@
+
+adjustedRandIndex <- function (x, y) 
+{
+  x <- as.vector(x)
+  y <- as.vector(y)
+  if(length(x) != length(y)) 
+    stop("arguments must be vectors of the same length")
+  tab <- table(x,y)
+  if(all(dim(tab)==c(1,1))) return(1)
+  a <- sum(choose(tab, 2))
+  b <- sum(choose(rowSums(tab), 2)) - a
+  c <- sum(choose(colSums(tab), 2)) - a
+  d <- choose(sum(tab), 2) - a - b - c
+  ARI <- (a - (a + b) * (a + c)/(a + b + c + d)) /
+    ((a + b + a + c)/2 - (a + b) * (a + c)/(a + b + c + d))
+  return(ARI)
+}
+
+classError <- function(classification, truth)
+{
+  q <- function(map, len, x)
+  {
+    x <- as.character(x)
+    map <- lapply(map, as.character)
+    y <- sapply(map, function(x)
+      x[1])
+    best <- y != x
+    if(all(len) == 1)
+      return(best)
+    errmin <- sum(as.numeric(best))
+    z <- sapply(map, function(x)
+      x[length(x)])
+    mask <- len != 1
+    counter <- rep(0, length(len))
+    k <- sum(as.numeric(mask))
+    j <- 0
+    while(y != z) {
+      i <- k - j
+      m <- mask[i]
+      counter[m] <- (counter[m] %% len[m]) + 1
+      y[x == names(map)[m]] <- map[[m]][counter[m]]
+      temp <- y != x
+      err <- sum(as.numeric(temp))
+      if(err < errmin) {
+        errmin <- err
+        best <- temp
+      }
+      j <- (j + 1) %% k
+    }
+    best
+  }
+  if (any(isNA <- is.na(classification))) {
+    classification <- as.character(classification)
+    nachar <- paste(unique(classification[!isNA]),collapse="")
+    classification[isNA] <- nachar
+  }
+  MAP <- mapClass(classification, truth)
+  len <- sapply(MAP[[1]], length)
+  if(all(len) == 1) {
+    CtoT <- unlist(MAP[[1]])
+    I <- match(as.character(classification), names(CtoT), nomatch= 0)               
+    one <- CtoT[I] != truth
+  }
+  else {
+    one <- q(MAP[[1]], len, truth)
+  }
+  len <- sapply(MAP[[2]], length)
+  if(all(len) == 1) {
+    TtoC <- unlist(MAP[[2]])
+    I <- match(as.character(truth), names(TtoC), nomatch = 0)
+    two <- TtoC[I] != classification
+  }
+  else {
+    two <- q(MAP[[2]], len, classification)
+  }
+  err <- if(sum(as.numeric(one)) > sum(as.numeric(two)))
+    as.vector(one)
+  else as.vector(two)
+  bad <- seq(along = classification)[err]
+  list(misclassified = bad, errorRate = length(bad)/length(truth))
+}
+
 map <- function(z, warn = mclust.options("warn"), ...)
 {
   nrowz <- nrow(z)
@@ -60,6 +142,13 @@ orth2 <- function (n)
   Q <- cbind(u, v - sum(u * v) * u)
   dimnames(Q) <- NULL
   Q
+}
+
+logsumexp <- function(x)
+{ 
+# Numerically efficient implementation of log(sum(exp(x)))
+  max <- max(x)
+  max + log(sum(exp(x-max)))
 }
 
 partconv <- function(x, consec = TRUE)
@@ -298,7 +387,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
                       z = NULL, classification = NULL, 
                       truth = NULL, uncertainty = NULL, 
                       what = c("classification", "errors", "uncertainty"), 
-                      quantiles = c(0.75, 0.95), symbols = NULL, 
+                      addEllipses = TRUE, symbols = NULL, 
                       colors = NULL, scale = FALSE, xlim = NULL, ylim = NULL, 
                       CEX = 1, PCH = ".", main = FALSE, ...)
 {
@@ -424,12 +513,12 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     bad <- !m
     warning("what improperly specified")
   }
-  if(bad)
-    what <- "bad"
+  if(bad) what <- "bad"
+  
   switch(EXPR = what,
-         classification = {
-           plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
-                  xlim, ylim = ylim, main = "", ...)
+         "classification" = {
+           plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, 
+                xlim = xlim, ylim = ylim, main = "", ...)
            if(main) {
              TITLE <- paste(paste(dimens, collapse = ","), 
                             "Coordinate Projection showing Classification")
@@ -437,14 +526,14 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
            }
            for(k in 1:L) {
              I <- classification == U[k]
-             points(data[I, 1], data[I, 2], pch = symbols[k], col = colors[k], cex
-                    = if(U[k] == "0") CEX/4 else CEX)
+             points(data[I, 1], data[I, 2], pch = symbols[k], col = colors[k], 
+                    cex = if(U[k] == "0") CEX/4 else CEX)
            }
          },
-         errors = {
+         "errors" = {
            ERRORS <- classError(classification, truth)$misclassified
-           plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
-                  xlim, ylim = ylim, main = "", ...)
+           plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, 
+                xlim = xlim, ylim = ylim, main = "", ...)
            if(main) {
              TITLE <- paste(paste(dimens, collapse = ","), 
                             "Coordinate Projection showing Errors")
@@ -472,21 +561,22 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
              }
            }
          },
-         uncertainty = {
-           plot(data[, 1], data[, 2], type = "n", xlab = xlab, ylab = ylab, xlim = 
-                  xlim, ylim = ylim, main = "", ...)
-           if(main) {
-             TITLE <- paste(paste(dimens, collapse = ","), 
-                            "Coordinate Projection showing Uncertainty")
-             title(main = TITLE)
+         "uncertainty" = { 
+           u <- (uncertainty - min(uncertainty)) /
+                (max(uncertainty) - min(uncertainty))
+           b <- bubble(u, cex = CEX * c(0.3, 2), alpha = c(0.3, 0.9))
+           cl <- sapply(classification, function(cl) which(cl == U))
+           plot(data[, 1], data[, 2], pch = 19, main = "", 
+                xlab = xlab, ylab = ylab, 
+                xlim = xlim, ylim = ylim,
+                cex = b$cex, 
+                col = mapply(adjustcolor, col = colors[cl], alpha.f = b$alpha), 
+                ...)
+           if(main) 
+             { TITLE <- paste(paste(dimens, collapse = ","), 
+                              "Coordinate Projection showing Uncertainty")
+               title(main = TITLE)
            }
-           breaks <- quantile(uncertainty, probs = sort(quantiles))
-           I <- uncertainty <= breaks[1]
-           points(data[I, 1], data[I, 2], pch = 16, col = "gray75", cex = 0.5 * CEX)
-           I <- uncertainty <= breaks[2] & !I
-           points(data[I, 1], data[I, 2], pch = 16, col = "gray50", cex = 1 * CEX)
-           I <- uncertainty > breaks[2] & !I
-           points(data[I, 1], data[I, 2], pch = 16, col = "black", cex = 1.5 * CEX)
          },
          { plot(data[, 1], data[, 2], type = "n", 
                 xlab = xlab, ylab = ylab, 
@@ -497,10 +587,10 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
            points(data[, 1], data[, 2], pch = PCH, cex = CEX)
          }
   )
-  if(haveParams) 
+  if(haveParams && addEllipses)
     { ## plot ellipsoids
       for(k in 1:G)
-        mvn2plot(mu = mu[, k], sigma = sigma[,  , k], k = 15)
+        mvn2plot(mu = mu[,k], sigma = sigma[,,k], k = 15)
   }
 
   invisible()
@@ -858,7 +948,7 @@ surfacePlot <- function(data, parameters,
                         type = c("contour", "image", "persp"), 
                         what = c("density", "uncertainty"), 
                         transformation = c("none", "log", "sqrt"), 
-                        grid = 50, nlevels = 11, levels = NULL, col = grey(0.6),
+                        grid = 100, nlevels = 11, levels = NULL, col = grey(0.6),
                         xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
                         scale = FALSE, main = FALSE, swapAxes = FALSE,
                         verbose = FALSE,  ...) 
@@ -902,12 +992,14 @@ surfacePlot <- function(data, parameters,
       for(k in 1:G) 
         parameters$variance$cholsigma[,,k] <- chol(parameters$variance$sigma[,,k])
     }
-    cden <- cdensVVV(data = data, parameters = parameters)
+    cden <- cdensVVV(data = data, parameters = parameters, logarithm = TRUE)
     pro <- if(is.null(parameters$Vinv)) parameters$pro else  parameters$pro[-1]
-    z <- sweep(cden, MARGIN = 2, FUN = "*", STATS = pro)
-    den <- apply(z, 1, sum)
-    z <- sweep(z, MARGIN = 1, FUN = "/", STATS = den)
-    data.frame(density = den, uncertainty = 1 - apply(z, 1, max))
+    z <- sweep(cden, MARGIN = 2, FUN = "+", STATS = log(pro))
+    logden <- apply(z, 1, logsumexp)
+    z <- sweep(z, MARGIN = 1, FUN = "-", STATS = logden)
+    z <- exp(z)
+    data.frame(density = exp(logden),
+               uncertainty = 1 - apply(z, 1, max))
   }
   pro <- parameters$pro
   mu <- parameters$mean
@@ -1051,4 +1143,52 @@ uncerPlot <- function (z, truth=NULL, ...)
     }
   }
   invisible()
+}
+
+bubble <- function(x, cex = c(0.2, 3), alpha = c(0.1, 1)) 
+{
+  x <- as.vector(x)
+  cex <- cex[!is.na(cex)]
+  alpha <- alpha[!is.na(alpha)]
+  x <- (x - min(x))/(max(x) - min(x))
+  n <- length(x)
+  r <- sqrt(x/pi)
+  r <- (r - min(r, na.rm = TRUE))/
+       (max(r, na.rm = TRUE) - min(r, na.rm = TRUE))
+  cex <- r * diff(range(cex)) + min(cex)
+  alpha <- x * diff(range(alpha)) + min(alpha)
+  return(list(cex = cex, alpha = alpha))
+}
+
+#############################################################################
+## Convert to a from classes 'Mclust' and 'densityMclust'
+
+as.Mclust <- function(x, ...)
+{ 
+  UseMethod("as.Mclust")
+}
+
+as.Mclust.default <- function(x, ...)
+{ 
+  if(inherits(x, "Mclust")) x
+  else stop("argument 'x' cannot be coerced to class 'Mclust'")
+}
+
+as.densityMclust <- function(x, ...)
+{ 
+  UseMethod("as.densityMclust")
+}
+
+as.densityMclust.default <- function(x, ...)
+{ 
+  if(inherits(x, "densityMclust")) x
+  else stop("argument 'x' cannot be coerced to class 'densityMclust'")
+}
+
+as.densityMclust.Mclust <- function(x, ...)
+{ 
+  class(x) <- c("densityMclust", class(x))
+  x$density <- dens(modelName = x$modelName, data = x$data, 
+                    parameters = x$parameters, logarithm = FALSE)
+  return(x)
 }

@@ -28,7 +28,7 @@ mclustBootstrapLRT(data, modelName = NULL, nboot = 999,
   \item{maxG}{The maximum number of mixture components \eqn{G} to test. If not provided
   the procedure is stopped when a test is not significant at the specified \code{level}.}
   \item{verbose}{A logical, if \code{TRUE} and the session is interactive a text progress bar is displayed during the bootstrap procedure.}
-  \item{\dots}{Further arguments passed to or from other methods.}
+  \item{\dots}{Further arguments passed to or from other methods. In particular, see the optional arguments in  \code{\link{mclustBIC}}.}
   
   \item{x}{An \code{'mclustBootstrapLRT'} object.}
   \item{G}{A value specifying the number of components for which to plot the 

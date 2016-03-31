@@ -12,8 +12,8 @@ priorControl(functionName = "defaultPrior", \dots)
 \arguments{
   \item{functionName}{
     The name of the function specifying the conjugate prior.
-    The default function is \code{defaultPrior}, which can be
-    used a template for alternative specification.  
+    By default the function \code{\link{defaultPrior}} is used, and this 
+    can also be used as a template for alternative specification.  
   }
   \item{\dots}{
      Optional named arguments to the function specified in \code{functionName}
@@ -26,8 +26,11 @@ priorControl(functionName = "defaultPrior", \dots)
   with assigned values.
 }
 \details{
-  \code{priorControl} is used to specify a conjugate prior  
-  for EM within \emph{MCLUST}.
+  The function \code{priorControl} is used to specify a conjugate prior  
+  for EM within \emph{MCLUST}.\cr
+  Note that, as described in \code{\link{defaultPrior}}, in the multivariate 
+  case only 10 out of 14 models may be used in conjunction with a prior, i.e.
+  those available in \emph{MCLUST} up to version 4.4.
 }
 \section{References}{
   C. Fraley and A. E. Raftery (2002).

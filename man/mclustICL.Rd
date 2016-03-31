@@ -15,7 +15,7 @@ mclustICL(data, G = NULL, modelNames = NULL,
           initialization = list(hcPairs = NULL, 
                                 subset = NULL, 
                                 noise = NULL), 
-          \dots)
+          x = NULL, \dots)
 
 \method{summary}{mclustICL}(object, G, modelNames, \dots)
 }
@@ -63,7 +63,17 @@ mclustICL(data, G = NULL, modelNames = NULL,
   }
   }
   }
-  
+  \item{x}{
+     An object of class \code{'mclustICL'}. If supplied, \code{mclustICL}
+     will use the settings in \code{x} to produce another object of
+     class \code{'mclustICL'}, but with \code{G} and \code{modelNames}
+     as specified in the arguments. Models that have already been computed
+     in \code{x} are not recomputed. All arguments to \code{mclustICL} 
+     except \code{data}, \code{G} and \code{modelName} are
+     ignored and their values are set as specified in the attributes of
+     \code{x}. 
+     Defaults for \code{G} and \code{modelNames} are taken from \code{x}.
+  }
   \item{\dots}{
     Futher arguments used in the call to \code{\link{Mclust}}. 
     See also \code{\link{mclustBIC}}.

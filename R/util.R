@@ -16,6 +16,131 @@ adjustedRandIndex <- function (x, y)
   return(ARI)
 }
 
+RARI <- function(x, y, dist_x = NULL, dist_y = NULL)
+  {
+    if (all(is.null(dist_x), is.null(dist_y))) {
+      return(mclust::adjustedRandIndex(x, y))
+    }
+    if (xor(is.null(dist_x), is.null(dist_y))) {
+      stop("if specifying distance matrices, both dist_x and dist_y need non-NULL arguments")
+    }
+    x <- as.vector(x)
+    y <- as.vector(y)
+    if (length(x) != length(y)) {
+      stop("arguments must be vectors of the same length")
+    }
+    #-------------------------------------------------------------------------------
+    # Finding which objects in x and y belong to which cluster. This is needed to
+    # compute pairwise inter-cluster distances.
+    #-------------------------------------------------------------------------------
+    x <- as.numeric(factor(x))
+    y <- as.numeric(factor(y))
+    names(x) <- 1:length(x)
+    names(y) <- 1:length(y)
+    
+    clustIndexX <- lapply(sort(unique(x)), function(i){names(x[x %in% i])})
+    clustIndexY <- lapply(sort(unique(y)), function(i){names(y[y %in% i])})
+    #-------------------------------------------------------------------------------
+    # Coercing dist_x and dist_y into matrices for easier indexing. Setting the
+    # diagonal to NA to remove bias from the intra-cluster distance calculation.
+    #-------------------------------------------------------------------------------
+    dist_x <- as.matrix(dist_x)
+    dist_y <- as.matrix(dist_y)
+    rownames(dist_x) <- 1:length(x)
+    colnames(dist_x) <- 1:length(x)
+    rownames(dist_y) <- 1:length(y)
+    colnames(dist_y) <- 1:length(y)
+    diag(dist_x) <- NA
+    diag(dist_y) <- NA
+    #-------------------------------------------------------------------------------
+    # Separately for each cluster solution--x and y--, loop through each cluster and
+    # compute the average distance from each of the N objects to all objects in that
+    # cluster.
+    #-------------------------------------------------------------------------------
+    temp <- vector("numeric", length(x))
+    avgClustDistX <- vector("list", length(clustIndexX))
+    for (i in seq_along(clustIndexX)) {
+      for (j in seq_along(x)) {
+        temp[j] <- mean(dist_x[j, clustIndexX[[i]]], na.rm = TRUE)
+      }
+      avgClustDistX[[i]] <- temp
+    }
+    temp <- vector("numeric", length(y))
+    avgClustDistY <- vector("list", length(clustIndexY))
+    for (i in seq_along(clustIndexY)) {
+      for (j in seq_along(y)) {
+        temp[j] <- mean(dist_y[j, clustIndexY[[i]]], na.rm = TRUE)
+      }
+      avgClustDistY[[i]] <- temp
+    }
+    avgClustDistX <- data.frame(do.call(cbind, avgClustDistX))
+    avgClustDistY <- data.frame(do.call(cbind, avgClustDistY))
+    avgClustDistX$x <- x
+    avgClustDistY$y <- y
+    #-------------------------------------------------------------------------------
+    # Computing the matrix of average intra/inter distances between clusters, then
+    # ranking these distances. If two or more clusters are equidistant from a third
+    # cluster, the "min" rank method will collapse these clusters in the rank mismatch
+    # matrix as described on page 4 in Pinto et al. (2007).
+    #-------------------------------------------------------------------------------
+    clustDistMatX <- do.call(rbind, lapply(1:length(clustIndexX), function(i){tapply(avgClustDistX[, i], avgClustDistX$x, mean)}))
+    clustDistMatY <- do.call(rbind, lapply(1:length(clustIndexY), function(i){tapply(avgClustDistY[, i], avgClustDistY$y, mean)}))
+    clustDistMatX <- apply(clustDistMatX, 2, rank, ties.method = "min") - 1  # subtracting 1 for easier indexing.
+    clustDistMatY <- apply(clustDistMatY, 2, rank, ties.method = "min") - 1  # subtracting 1 for easier indexing.
+    #-------------------------------------------------------------------------------
+    # Computing all object-level pairwise differences in cluster distance ranks and
+    # setting the resulting N by N diagonal to NA to remove the bias in calculating
+    # an object's distance from itself.
+    #-------------------------------------------------------------------------------
+    clustDistRankX <- sapply(1:length(x), function(i){sapply(1:length(x), function(j){clustDistMatX[x[i], x[j]]})})
+    clustDistRankY <- sapply(1:length(y), function(i){sapply(1:length(y), function(j){clustDistMatY[y[i], y[j]]})})
+    diag(clustDistRankX) <- NA
+    diag(clustDistRankY) <- NA
+    #-------------------------------------------------------------------------------
+    # rmm is the rank mismatch matrix in Table 3 of Pinto et al. (2007) indexed
+    # from 0 to number of clusters - 1.
+    #-------------------------------------------------------------------------------
+    clustDistRankX <- as.vector(clustDistRankX)  # collapsing the data for the table function.
+    clustDistRankY <- as.vector(clustDistRankY)  # collapsing the data for the table function.
+    
+    rmm <- table(clustDistRankX, clustDistRankY)
+    #-------------------------------------------------------------------------------
+    # mdd is the mean diagonal deviance from eqn. 5 in Pinto et al. (2007). The 'for'
+    # loop calculates the numerator of this eqn. Note: The Rand index = 1 - mdd.
+    #-------------------------------------------------------------------------------
+    temp <- vector("numeric", ncol(rmm))
+    mddNum <- vector("list", nrow(rmm))
+    for (i in 1:nrow(rmm)) {
+      for (j in 1:ncol(rmm)) {
+        temp[j] <- rmm[i, j] * abs(i / nrow(rmm) - j / ncol(rmm))
+      }
+      mddNum[[i]] <- temp
+    }
+    mdd <- sum(unlist(mddNum)) / (length(x)^2 - length(x))
+    #-------------------------------------------------------------------------------
+    # rmmi is the expected value of the rank mismatch matrix under independence:
+    # eqn. 6 in Pinto et al. (2007).
+    #-------------------------------------------------------------------------------
+    rmmi <- suppressWarnings(chisq.test(x = matrix(rmm, nrow = length(rownames(rmm))), correct = FALSE)$expected)
+    #-------------------------------------------------------------------------------
+    # mddi is the mean diagonal deviance under independence (eqn. 5). RARI is the
+    # ranked adjusted Rand index: eqn. 7 in Pinto et al. (2007).
+    #-------------------------------------------------------------------------------
+    temp <- vector("numeric", ncol(rmmi))
+    mddNum <- vector("list", nrow(rmmi))
+    for (i in 1:nrow(rmmi)) {
+      for (j in 1:ncol(rmmi)) {
+        temp[j] <- rmmi[i, j] * abs(i / nrow(rmmi) - j / ncol(rmmi))
+      }
+      mddNum[[i]] <- temp
+    }
+    mddi <- sum(unlist(mddNum)) / (length(x)^2 - length(x))
+    
+    RARI <- (mddi - mdd) / mddi
+    
+    return(RARI)
+}
+
 classError <- function(classification, truth)
 {
   q <- function(map, len, x)

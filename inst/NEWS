@@ -1,3 +1,6 @@
+Version 5.2.1 (2017-01)
+    o replaced "structure(NULL, *)" with "structure(list(), *)"
+    
 Version 5.2 (2016-03)
     o added argument 'x' to Mclust() to use BIC values from previous 
       computations to avoid recomputing for the same models. The same argument

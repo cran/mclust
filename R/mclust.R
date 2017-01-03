@@ -996,7 +996,7 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
     modelNames <- dimnames(object)[[2]]
   bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
   if(all(is.na(bestBICs))) 
-    { return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
+    { return(structure(list(), bestBICvalues = bestBICs, prior = prior, 
                        control = control, initialization = initialization, 
                        class = "summary.mclustBIC")) 
   }
@@ -1103,7 +1103,7 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
   if (is.null(modelNames)) modelNames <- dimnames(object)[[2]]
   bestBICs <- pickBIC(object[as.character(G), modelNames, drop = FALSE], k = 3)
   if(all(is.na(bestBICs))) 
-    { return(structure(NULL, bestBICvalues = bestBICs, prior = prior, 
+    { return(structure(list(), bestBICvalues = bestBICs, prior = prior, 
                        control = control, initialization = initialization, 
                        class = "summary.mclustBIC"))
   }

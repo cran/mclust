@@ -7,11 +7,12 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <meta name="author" content="Luca Scrucca" />
 
-<meta name="date" content="2016-03-31" />
+<meta name="date" content="2017-01-03" />
 
 <title>A quick tour of mclust</title>
 
@@ -57,6 +58,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </style>
 
 
+
 <link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
 
 </head>
@@ -65,14 +67,11 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 
-<div class="fluid-row" id="header">
 
-
-<h1 class="title">A quick tour of <strong>mclust</strong></h1>
+<h1 class="title toc-ignore">A quick tour of <strong>mclust</strong></h1>
 <h4 class="author"><em>Luca Scrucca</em></h4>
-<h4 class="date"><em>31 Mar 2016</em></h4>
+<h4 class="date"><em>03 Jan 2017</em></h4>
 
-</div>
 
 <div id="TOC">
 <ul>
@@ -98,9 +97,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <p><code>mclust</code> is a contributed R package for model-based clustering, classification, and density estimation based on finite normal mixture modelling. It provides functions for parameter estimation via the EM algorithm for normal mixture models with a variety of covariance structures, and functions for simulation from these models. Also included are functions that combine model-based hierarchical clustering, EM for mixture estimation and the Bayesian Information Criterion (BIC) in comprehensive strategies for clustering, density estimation and discriminant analysis. Additional functionalities are available for displaying and visualizing fitted models along with clustering, classification, and density estimation results.</p>
-<p>This document gives a quick tour of <code>mclust</code> (version 5.2) functionalities. It was written in R Markdown, using the <a href="http://cran.r-project.org/package=knitr">knitr</a> package for production. See <code>help(package=&quot;mclust&quot;)</code> for further details and references provided by <code>citation(&quot;mclust&quot;)</code>.</p>
+<p>This document gives a quick tour of <code>mclust</code> (version 5.2.1) functionalities. It was written in R Markdown, using the <a href="https://cran.r-project.org/package=knitr">knitr</a> package for production. See <code>help(package=&quot;mclust&quot;)</code> for further details and references provided by <code>citation(&quot;mclust&quot;)</code>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(mclust)</code></pre></div>
-<pre><code>## Package 'mclust' version 5.2</code></pre>
+<pre><code>## Package 'mclust' version 5.2.1</code></pre>
 <pre><code>## Type 'citation(&quot;mclust&quot;)' for citing this R package in publications.</code></pre>
 </div>
 <div id="clustering" class="section level2">
@@ -202,7 +201,7 @@ LRT</code></pre></div>
 ##                LRTS bootstrap p-value
 ## 1 vs 2   361.186445             0.001
 ## 2 vs 3   114.703559             0.001
-## 3 vs 4     7.437806             0.937</code></pre>
+## 3 vs 4     7.437806             0.952</code></pre>
 </div>
 <div id="classification" class="section level2">
 <h2>Classification</h2>
@@ -301,11 +300,11 @@ class =<span class="st"> </span>banknote$Status
 <div id="cross-validation-error" class="section level3">
 <h3>Cross-validation error</h3>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">unlist</span>(<span class="kw">cvMclustDA</span>(mod2, <span class="dt">nfold =</span> <span class="dv">10</span>)[<span class="dv">2</span>:<span class="dv">3</span>])</code></pre></div>
-<pre><code>##     error        se 
-## 0.0200000 0.0101835</code></pre>
+<pre><code>##      error         se 
+## 0.02666667 0.01474055</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">unlist</span>(<span class="kw">cvMclustDA</span>(mod3, <span class="dt">nfold =</span> <span class="dv">10</span>)[<span class="dv">2</span>:<span class="dv">3</span>])</code></pre></div>
 <pre><code>## error    se 
-##     0     0</code></pre>
+## 0.005 0.005</code></pre>
 </div>
 </div>
 <div id="density-estimation" class="section level2">
@@ -377,30 +376,30 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## 
 ## Mixing probabilities:
 ##          1          2          3 
-## 0.05044120 0.04609791 0.03861612 
+## 0.05116218 0.04592106 0.03803424 
 ## 
 ## Means:
 ##                 1         2        3
-## glucose 0.9814553  3.810418 17.52635
-## insulin 7.2242640 26.377341 77.14079
-## sspg    7.2672391 33.470876 18.01375
+## glucose 0.9774528  3.445706 17.94718
+## insulin 7.2092932 24.560417 78.09118
+## sspg    7.0780164 31.936078 17.15968
 ## 
 ## Variances:
 ## [,,1]
 ##          glucose   insulin      sspg
-## glucose 11.18394  51.25614  54.12083
-## insulin 51.25614 474.26446 360.32711
-## sspg    54.12083 360.32711 593.38836
+## glucose 11.15727  51.28469  53.42913
+## insulin 51.28469 482.15045 342.88148
+## sspg    53.42913 342.88148 547.17571
 ## [,,2]
 ##           glucose   insulin      sspg
-## glucose  68.04309  505.0524  510.2231
-## insulin 505.05239 3832.2323 3531.4074
-## sspg    510.22312 3531.4074 7313.1560
+## glucose  65.48859  488.9782  483.4748
+## insulin 488.97823 3611.3503 3291.7694
+## sspg    483.47477 3291.7694 6942.5789
 ## [,,3]
 ##          glucose   insulin      sspg
-## glucose 1124.859  5998.939  1757.518
-## insulin 5998.939 37341.597 10916.903
-## sspg    1757.518 10916.903  3156.220</code></pre>
+## glucose 1167.087  6133.139  1762.224
+## insulin 6133.139 37645.661 10848.697
+## sspg    1762.224 10848.697  3157.391</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(boot1, <span class="dt">what =</span> <span class="st">&quot;ci&quot;</span>)</code></pre></div>
 <pre><code>## ----------------------------------------------------------
 ## Resampling confidence intervals 
@@ -413,36 +412,36 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## 
 ## Mixing probabilities:
 ##               1         2         3
-## 2.5%  0.4553951 0.1432279 0.1392891
-## 97.5% 0.6500130 0.3280024 0.2941657
+## 2.5%  0.4537319 0.1440579 0.1405924
+## 97.5% 0.6641562 0.3234382 0.2926133
 ## 
 ## Means:
 ## [,,1]
 ##        glucose  insulin     sspg
-## 2.5%  89.54115 345.4198 152.5297
-## 97.5% 93.28483 373.3272 180.6123
+## 2.5%  89.50880 344.2717 152.2050
+## 97.5% 93.34017 372.9172 179.8751
 ## [,,2]
 ##         glucose  insulin     sspg
-## 2.5%   98.75531 473.2203 256.6425
-## 97.5% 114.04552 581.5940 389.0336
+## 2.5%   99.20293 474.9743 261.6890
+## 97.5% 113.08305 578.5967 388.8899
 ## [,,3]
-##        glucose   insulin     sspg
-## 2.5%  184.7340  896.6154  66.0608
-## 97.5% 255.4083 1194.7110 135.6818
+##        glucose   insulin      sspg
+## 2.5%  186.7803  893.3016  67.38561
+## 97.5% 256.8114 1195.3024 131.66191
 ## 
 ## Variances:
 ## [,,1]
 ##        glucose  insulin     sspg
-## 2.5%  40.23261 1182.801 1651.989
-## 97.5% 83.38416 2992.432 3962.934
+## 2.5%  40.03615 1216.706 1627.270
+## 97.5% 84.15354 3069.064 3832.972
 ## [,,2]
 ##         glucose   insulin     sspg
-## 2.5%   64.34646  2130.144 13122.82
-## 97.5% 357.79201 18440.141 41237.96
+## 2.5%   63.94119  1802.896 12353.26
+## 97.5% 343.06984 17433.366 39355.24
 ## [,,3]
 ##        glucose   insulin      sspg
-## 2.5%  3735.010  53033.88  1488.352
-## 97.5% 8152.571 194695.18 12332.496</code></pre>
+## 2.5%  3782.714  53488.03  1559.226
+## 97.5% 8292.854 191007.65 12106.536</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">boot4 =<span class="st"> </span><span class="kw">MclustBootstrap</span>(mod4, <span class="dt">nboot =</span> <span class="dv">999</span>, <span class="dt">type =</span> <span class="st">&quot;bs&quot;</span>)
 <span class="kw">summary</span>(boot4, <span class="dt">what =</span> <span class="st">&quot;se&quot;</span>)</code></pre></div>
 <pre><code>## ----------------------------------------------------------
@@ -454,16 +453,16 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## Type                       = nonparametric bootstrap 
 ## 
 ## Mixing probabilities:
-##          1          2 
-## 0.04118511 0.04118511 
+##         1         2 
+## 0.0406242 0.0406242 
 ## 
 ## Means:
 ##          1          2 
-## 0.04591982 0.06642681 
+## 0.04542322 0.06671234 
 ## 
 ## Variances:
 ##          1          2 
-## 0.02387204 0.02387204</code></pre>
+## 0.02438392 0.02438392</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(boot4, <span class="dt">what =</span> <span class="st">&quot;ci&quot;</span>)</code></pre></div>
 <pre><code>## ----------------------------------------------------------
 ## Resampling confidence intervals 
@@ -476,18 +475,18 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## 
 ## Mixing probabilities:
 ##               1         2
-## 2.5%  0.5438347 0.2983043
-## 97.5% 0.7016957 0.4561653
+## 2.5%  0.5467334 0.2975207
+## 97.5% 0.7024793 0.4532666
 ## 
 ## Means:
 ##              1        2
-## 2.5%  4.286159 6.185099
-## 97.5% 4.461763 6.450079
+## 2.5%  4.283075 6.184421
+## 97.5% 4.458164 6.450119
 ## 
 ## Variances:
 ##               1         2
-## 2.5%  0.1432436 0.1432436
-## 97.5% 0.2366966 0.2366966</code></pre>
+## 2.5%  0.1423952 0.1423952
+## 97.5% 0.2345527 0.2345527</code></pre>
 </div>
 <div id="dimension-reduction" class="section level2">
 <h2>Dimension reduction</h2>

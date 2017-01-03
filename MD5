@@ -1,11 +1,11 @@
-b9888c55a079cd00f1a7190d378ba3ee *DESCRIPTION
+8a619193e6f52c0654d335f5c350e75e *DESCRIPTION
 f42feab311fe365ffd856495b4739a5e *NAMESPACE
 7225d4641d8cbf37d34d964e75d9fba0 *R/bootstrap.R
 ebcc04efd2a4cb7a8690fc44e4c4bcba *R/clustCombi.R
 b3e46cd11952fb799762c2350f9f305c *R/densityMclust.R
 e710c3f315cb58c617dc679e0892aceb *R/icl.R
 3676da1194b29ae935088de5de09ead1 *R/init.R
-7d0e6c4e0fda12b3478a03005be02e3a *R/mclust.R
+35652b65da5aacc51499c8cfdb5d6558 *R/mclust.R
 13d68de53efb7700150563444a021705 *R/mclustaddson.R
 809058473938bbab493b051b9d59568b *R/mclustda.R
 fe3255b491bffa91075f2dca2d854c7d *R/mclustdr.R
@@ -13,7 +13,7 @@ fe3255b491bffa91075f2dca2d854c7d *R/mclustdr.R
 17c9274be52380e6383097b495ed1fc5 *R/util.R
 f4e0dc159cb386c756eeb3d91e833a4d *R/weights.R
 a1731d5f2556524592b549d97385d005 *R/zzz.R
-4e83eed4fdded81b9f4388c8050286b4 *build/vignette.rds
+66d4e772ff8018583bf99319153f478d *build/vignette.rds
 d71df11b1969468f5534624d1eaf39cb *data/Baudry_etal_2010_JCGS_examples.rda
 abf9a4dc9ea8d524ae0110ab77c044a5 *data/GvHD.rda
 1b75a610be5fa05ee4bc86522e96cae2 *data/acidity.rda
@@ -24,12 +24,12 @@ a7c2f1483533ae3b27cfab88043e12b6 *data/banknote.txt.gz
 63da188d8393fe95f176fa40cfe134c6 *data/thyroid.rda
 bc903d4803898793954937957fc3087f *data/wreath.rda
 b6cf6244b129b972c486d71010664252 *inst/CITATION
-b5c41be21ac987937069e8a8619768f0 *inst/NEWS
+2c2bbf13cda3c63d7783af51fb1b2167 *inst/NEWS
 996ee41e6dc41dab2235263a6f0b660b *inst/doc/index.html
 a1a974ca9f10ed1f7274c5e04c88ede5 *inst/doc/mclust-weights.pdf
 9aa3345bea8dc9736672d6c89d5acaf1 *inst/doc/mclust.R
-d0b29793a9a48d76c215a40b7b11be61 *inst/doc/mclust.Rmd
-24bebc878810ca4c3d768226e7a27735 *inst/doc/mclust.html
+30ac6c829b5b6c974aad8d63d73dd7f2 *inst/doc/mclust.Rmd
+23234b45904da7aadc5791c4ef505f88 *inst/doc/mclust.html
 10c3091ccfcec7dd4311e8f6c48a5849 *inst/doc/mclust4.pdf
 b6a4dc645c8081f7edf4dacb25086895 *man/Baudry_etal_2010_JCGS_examples.Rd
 9557e1a95dee2fb443e0b870d50e3a9a *man/GvHD.Rd
@@ -134,4 +134,4 @@ dc86b6c6bf1b732d5732465f44604ca8 *man/unmap.Rd
 7ab4aae0ebff42ce151372d97076416b *src/Makevars
 a6ce43365ae627bc82b38c7adef3384d *src/mclust.f
 ef157196d8123a823105a9150b5786e6 *src/mclustaddson.f
-d0b29793a9a48d76c215a40b7b11be61 *vignettes/mclust.Rmd
+30ac6c829b5b6c974aad8d63d73dd7f2 *vignettes/mclust.Rmd

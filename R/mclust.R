@@ -1029,9 +1029,11 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
     if(sum((out$parameters$pro - colMeans(out$z))^2) > 
            sqrt(.Machine$double.eps))
       { # perform extra M-step and update parameters
-        out$parameters <- mstep(modelName = bestModel, data = data, 
-                                z = out$z, prior = prior, 
-                                warn = warn)$parameters 
+        ms <- mstep(modelName = bestModel, data = data, 
+                    z = out$z, prior = prior, 
+                    warn = warn)
+        if(attr(ms, "returnCode") == 0)
+          out$parameters <- ms$parameters
     }
   }
   else 
@@ -1047,9 +1049,11 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
     out <- me(modelName = bestModel, data = data, z = es$z, 
               prior = prior, control = control, warn = warn)
     # perform extra M-step and update parameters
-    out$parameters <- mstep(modelName = bestModel, data = data, 
-                            z = out$z, prior = prior, 
-                            warn = warn)$parameters
+    ms <- mstep(modelName = bestModel, data = data, 
+                z = out$z, prior = prior, 
+                warn = warn)
+    if(attr(ms, "returnCode") == 0)
+      out$parameters <- ms$parameters
   }
   obsNames <- if (is.null(dim(data))) names(data) else dimnames(data)[[1]]
   classification <- map(out$z, warn = warn)

@@ -12,7 +12,7 @@
 
 <meta name="author" content="Luca Scrucca" />
 
-<meta name="date" content="2017-01-03" />
+<meta name="date" content="2017-01-20" />
 
 <title>A quick tour of mclust</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">A quick tour of <strong>mclust</strong></h1>
 <h4 class="author"><em>Luca Scrucca</em></h4>
-<h4 class="date"><em>03 Jan 2017</em></h4>
+<h4 class="date"><em>20 Jan 2017</em></h4>
 
 
 <div id="TOC">
@@ -97,9 +97,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <p><code>mclust</code> is a contributed R package for model-based clustering, classification, and density estimation based on finite normal mixture modelling. It provides functions for parameter estimation via the EM algorithm for normal mixture models with a variety of covariance structures, and functions for simulation from these models. Also included are functions that combine model-based hierarchical clustering, EM for mixture estimation and the Bayesian Information Criterion (BIC) in comprehensive strategies for clustering, density estimation and discriminant analysis. Additional functionalities are available for displaying and visualizing fitted models along with clustering, classification, and density estimation results.</p>
-<p>This document gives a quick tour of <code>mclust</code> (version 5.2.1) functionalities. It was written in R Markdown, using the <a href="https://cran.r-project.org/package=knitr">knitr</a> package for production. See <code>help(package=&quot;mclust&quot;)</code> for further details and references provided by <code>citation(&quot;mclust&quot;)</code>.</p>
+<p>This document gives a quick tour of <code>mclust</code> (version 5.2.2) functionalities. It was written in R Markdown, using the <a href="https://cran.r-project.org/package=knitr">knitr</a> package for production. See <code>help(package=&quot;mclust&quot;)</code> for further details and references provided by <code>citation(&quot;mclust&quot;)</code>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(mclust)</code></pre></div>
-<pre><code>## Package 'mclust' version 5.2.1</code></pre>
+<pre><code>## Package 'mclust' version 5.2.2</code></pre>
 <pre><code>## Type 'citation(&quot;mclust&quot;)' for citing this R package in publications.</code></pre>
 </div>
 <div id="clustering" class="section level2">
@@ -201,7 +201,7 @@ LRT</code></pre></div>
 ##                LRTS bootstrap p-value
 ## 1 vs 2   361.186445             0.001
 ## 2 vs 3   114.703559             0.001
-## 3 vs 4     7.437806             0.952</code></pre>
+## 3 vs 4     7.437806             0.949</code></pre>
 </div>
 <div id="classification" class="section level2">
 <h2>Classification</h2>
@@ -301,10 +301,10 @@ class =<span class="st"> </span>banknote$Status
 <h3>Cross-validation error</h3>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">unlist</span>(<span class="kw">cvMclustDA</span>(mod2, <span class="dt">nfold =</span> <span class="dv">10</span>)[<span class="dv">2</span>:<span class="dv">3</span>])</code></pre></div>
 <pre><code>##      error         se 
-## 0.02666667 0.01474055</code></pre>
+## 0.02000000 0.01422916</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">unlist</span>(<span class="kw">cvMclustDA</span>(mod3, <span class="dt">nfold =</span> <span class="dv">10</span>)[<span class="dv">2</span>:<span class="dv">3</span>])</code></pre></div>
 <pre><code>## error    se 
-## 0.005 0.005</code></pre>
+##     0     0</code></pre>
 </div>
 </div>
 <div id="density-estimation" class="section level2">
@@ -376,30 +376,30 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## 
 ## Mixing probabilities:
 ##          1          2          3 
-## 0.05116218 0.04592106 0.03803424 
+## 0.05102386 0.04496594 0.03845737 
 ## 
 ## Means:
-##                 1         2        3
-## glucose 0.9774528  3.445706 17.94718
-## insulin 7.2092932 24.560417 78.09118
-## sspg    7.0780164 31.936078 17.15968
+##                1         2        3
+## glucose 1.010982  3.593004 17.66879
+## insulin 7.096809 25.821106 76.51611
+## sspg    7.287973 33.683088 17.38803
 ## 
 ## Variances:
 ## [,,1]
 ##          glucose   insulin      sspg
-## glucose 11.15727  51.28469  53.42913
-## insulin 51.28469 482.15045 342.88148
-## sspg    53.42913 342.88148 547.17571
+## glucose 11.18237  50.24017  52.89064
+## insulin 50.24017 471.04816 344.31006
+## sspg    52.89064 344.31006 538.77053
 ## [,,2]
-##           glucose   insulin      sspg
-## glucose  65.48859  488.9782  483.4748
-## insulin 488.97823 3611.3503 3291.7694
-## sspg    483.47477 3291.7694 6942.5789
+##           glucose  insulin      sspg
+## glucose  68.26909  512.317  492.0601
+## insulin 512.31699 3863.114 3488.0661
+## sspg    492.06008 3488.066 7080.8828
 ## [,,3]
-##          glucose   insulin      sspg
-## glucose 1167.087  6133.139  1762.224
-## insulin 6133.139 37645.661 10848.697
-## sspg    1762.224 10848.697  3157.391</code></pre>
+##          glucose  insulin      sspg
+## glucose 1128.046  6071.06  1795.550
+## insulin 6071.060 38301.72 11222.865
+## sspg    1795.550 11222.87  3251.302</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(boot1, <span class="dt">what =</span> <span class="st">&quot;ci&quot;</span>)</code></pre></div>
 <pre><code>## ----------------------------------------------------------
 ## Resampling confidence intervals 
@@ -412,36 +412,36 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## 
 ## Mixing probabilities:
 ##               1         2         3
-## 2.5%  0.4537319 0.1440579 0.1405924
-## 97.5% 0.6641562 0.3234382 0.2926133
+## 2.5%  0.4645613 0.1423399 0.1427335
+## 97.5% 0.6594747 0.3206742 0.2911989
 ## 
 ## Means:
 ## [,,1]
-##        glucose  insulin     sspg
-## 2.5%  89.50880 344.2717 152.2050
-## 97.5% 93.34017 372.9172 179.8751
+##        glucose  insulin    sspg
+## 2.5%  89.32221 344.8416 152.452
+## 97.5% 93.49057 371.8961 182.519
 ## [,,2]
 ##         glucose  insulin     sspg
-## 2.5%   99.20293 474.9743 261.6890
-## 97.5% 113.08305 578.5967 388.8899
+## 2.5%   99.32398 474.4882 254.9461
+## 97.5% 114.16576 585.6604 390.9073
 ## [,,3]
 ##        glucose   insulin      sspg
-## 2.5%  186.7803  893.3016  67.38561
-## 97.5% 256.8114 1195.3024 131.66191
+## 2.5%  186.7694  899.5266  67.23241
+## 97.5% 259.0817 1194.0774 132.92073
 ## 
 ## Variances:
 ## [,,1]
 ##        glucose  insulin     sspg
-## 2.5%  40.03615 1216.706 1627.270
-## 97.5% 84.15354 3069.064 3832.972
+## 2.5%  40.54956 1237.822 1684.985
+## 97.5% 83.99202 3021.035 3867.211
 ## [,,2]
 ##         glucose   insulin     sspg
-## 2.5%   63.94119  1802.896 12353.26
-## 97.5% 343.06984 17433.366 39355.24
+## 2.5%   64.92173  2148.504 12667.61
+## 97.5% 359.03199 18705.313 40043.75
 ## [,,3]
 ##        glucose   insulin      sspg
-## 2.5%  3782.714  53488.03  1559.226
-## 97.5% 8292.854 191007.65 12106.536</code></pre>
+## 2.5%  3907.581  55081.73  1548.502
+## 97.5% 8170.624 196995.19 12712.059</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">boot4 =<span class="st"> </span><span class="kw">MclustBootstrap</span>(mod4, <span class="dt">nboot =</span> <span class="dv">999</span>, <span class="dt">type =</span> <span class="st">&quot;bs&quot;</span>)
 <span class="kw">summary</span>(boot4, <span class="dt">what =</span> <span class="st">&quot;se&quot;</span>)</code></pre></div>
 <pre><code>## ----------------------------------------------------------
@@ -453,16 +453,16 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## Type                       = nonparametric bootstrap 
 ## 
 ## Mixing probabilities:
-##         1         2 
-## 0.0406242 0.0406242 
+##          1          2 
+## 0.03929136 0.03929136 
 ## 
 ## Means:
 ##          1          2 
-## 0.04542322 0.06671234 
+## 0.04637595 0.06784880 
 ## 
 ## Variances:
 ##          1          2 
-## 0.02438392 0.02438392</code></pre>
+## 0.02390473 0.02390473</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(boot4, <span class="dt">what =</span> <span class="st">&quot;ci&quot;</span>)</code></pre></div>
 <pre><code>## ----------------------------------------------------------
 ## Resampling confidence intervals 
@@ -475,18 +475,18 @@ mod5 =<span class="st"> </span><span class="kw">densityMclust</span>(faithful)
 ## 
 ## Mixing probabilities:
 ##               1         2
-## 2.5%  0.5467334 0.2975207
-## 97.5% 0.7024793 0.4532666
+## 2.5%  0.5500662 0.2970760
+## 97.5% 0.7029240 0.4499338
 ## 
 ## Means:
 ##              1        2
-## 2.5%  4.283075 6.184421
-## 97.5% 4.458164 6.450119
+## 2.5%  4.284893 6.187829
+## 97.5% 4.474834 6.446708
 ## 
 ## Variances:
 ##               1         2
-## 2.5%  0.1423952 0.1423952
-## 97.5% 0.2345527 0.2345527</code></pre>
+## 2.5%  0.1394434 0.1394434
+## 97.5% 0.2348289 0.2348289</code></pre>
 </div>
 <div id="dimension-reduction" class="section level2">
 <h2>Dimension reduction</h2>

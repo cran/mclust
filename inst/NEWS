@@ -1,3 +1,7 @@
+Version 5.2.3 (2017-03)
+    o added native routine registration for Fortran code.
+    o fix lowercase argument PACKAGE in .Fortran() calls.
+
 Version 5.2.2 (2017-01)
     o fix a bug in rare case when performing an extra M step at the end of 
       EM algorithm.

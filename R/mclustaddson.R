@@ -1,43 +1,3 @@
-# some simple R wrapper functions
-
-crossprodF <- function(X, Y, ...)
-{
-  X <- as.matrix(X)
-  Y <- as.matrix(Y)
-  out <- .Fortran("crossprod",
-                  X = X,
-                  Y = Y,
-                  n = as.integer(nrow(X)),
-                  p = as.integer(ncol(X)),
-                  q = as.integer(ncol(Y)),
-                  XTY = matrix(0, ncol(X), ncol(Y)) )
-  return(out$XTY)
-}
-
-
-cov.wtF <- function(X, Z, ...)
-{
-    X <- as.matrix(X)
-    Z <- as.matrix(Z)
-    n <- nrow(X)
-    p <- ncol(X)
-    nz <- nrow(Z)
-    G <- ncol(Z)
-    if ( n != nz ) stop("X and Z must have same number of rows")
-
-    tmp <- .Fortran("covwt",
-                    x = as.double(X),
-                    z = as.double(Z),
-                    n = as.integer(n),
-                    p = as.integer(p),
-                    G = as.integer(G),
-                    mu = double(p*G),
-                    W = double(p*p*G) )
-    out <- list( mu = matrix(tmp$mu, p,G), W = array(tmp$W, c(p,p,G)) )
-    return(out)
-}
-
-
 ##############################################################################
 ###                               EVV model                               ####
 ##############################################################################
@@ -117,7 +77,7 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
                           errout = double(1),
                           lwork = as.integer(lwork),
                           info = as.integer(0),
-                          package = "mclust")
+                          PACKAGE = "mclust")
     } else {
         # with prior
         priorParams <- do.call(prior$functionName,
@@ -265,7 +225,7 @@ mstepEVV <- function(data, z, prior = NULL, warn = NULL, ...)
                           lwork = as.integer(lwork),
                           info = as.integer(0),
                           eps = as.double(.Machine$double.eps),
-                          package = "mclust")
+                          PACKAGE = "mclust")
     } else {
         # with prior
         priorParams <- do.call(prior$functionName,
@@ -390,7 +350,7 @@ estepEVV <- function(data, parameters, warn = NULL, ...)
                       Vinv = as.double( if (is.null(Vinv)) -1 else Vinv ),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,K)
@@ -456,7 +416,7 @@ cdensEVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 		      Vinv = as.double(-1),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,G)
@@ -592,7 +552,7 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
                          errout = double(1),
                          lwork = as.integer(lwork),
                          info = as.integer(0),
-                         package = "mclust")
+                         PACKAGE = "mclust")
         #
     } else {
         # with prior
@@ -765,7 +725,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                           niterin = integer(1),
                           errin = double(1),
                           eps = as.double(.Machine$double.eps),
-                          package = "mclust")
+                          PACKAGE = "mclust")
     } else {
         # with prior
         priorParams <- do.call(prior$functionName,
@@ -896,7 +856,7 @@ estepVEE <- function(data, parameters, warn = NULL, ...)
 		      Vinv = as.double( if (is.null(Vinv)) -1 else Vinv ),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,K)
@@ -965,7 +925,7 @@ cdensVEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 		      Vinv = as.double(-1),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,G)
@@ -1104,7 +1064,7 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
                          errout = double(1),
                          lwork = as.integer(lwork),
                          info = as.integer(0),
-                         package = "mclust")
+                         PACKAGE = "mclust")
         #
     } else {
         # with prior
@@ -1279,7 +1239,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          eps = as.double(.Machine$double.eps),
                          # d = 100000,
                          # trgtvec = as.double(100000),
-                         package = "mclust")
+                         PACKAGE = "mclust")
     } else {
         # with prior
         priorParams <- do.call(prior$functionName,
@@ -1410,7 +1370,7 @@ estepEVE <- function(data, parameters, warn = NULL, ...)
                       Vinv = as.double( if (is.null(Vinv)) -1 else Vinv ),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,K)
@@ -1479,7 +1439,7 @@ cdensEVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
                       Vinv = as.double(-1),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,G)
@@ -1615,7 +1575,7 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
                          errout = double(1),
                          lwork = as.integer(lwork),
                          info = as.integer(0),
-                         package = "mclust")
+                         PACKAGE = "mclust")
         #
     } 
     else {
@@ -1794,7 +1754,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                          niterin = integer(1),
                          errin = double(1),
                          eps = as.double(.Machine$double.eps),
-                         package = "mclust")
+                         PACKAGE = "mclust")
     } else {
         # with prior
         priorParams <- do.call(prior$functionName,
@@ -1927,7 +1887,7 @@ estepVVE <- function(data, parameters, warn = NULL, ...)
                       Vinv = as.double( if (is.null(Vinv)) -1 else Vinv ),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,K)
@@ -1996,7 +1956,7 @@ cdensVVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
                       Vinv = as.double(-1),
                       loglik = double(1),
                       eps = as.double(.Machine$double.eps),
-                      package = "mclust")
+                      PACKAGE = "mclust")
     #
     loglik <- temp$loglik
     z <- matrix(temp$z, n,G)
@@ -2052,3 +2012,22 @@ simVVE <- function(parameters, n, seed = NULL, ...)
     dimnames(x) <- list(NULL, 1:d)
     structure(cbind(group = clabels, x), modelName = "VVE")
 }
+
+
+
+#############################################################################
+# Examples of some simple R wrapper functions
+
+fcrossprod <- function(X, Y, ...)
+{
+  out <- .Fortran("crossprodf",
+                  X = as.matrix(X),
+                  Y = as.matrix(Y),
+                  n = as.integer(nrow(X)),
+                  p = as.integer(ncol(X)),
+                  q = as.integer(ncol(Y)),
+                  XTY = matrix(0, ncol(X), ncol(Y)),
+                  PACKAGE = "mclust")
+  return(out$XTY)
+}
+

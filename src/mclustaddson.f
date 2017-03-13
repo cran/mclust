@@ -20,7 +20,7 @@
       end
 
 *  =====================================================================
-      subroutine crossprod(X, Y, n, p, q, XTY)
+      subroutine crossprodf(X, Y, n, p, q, XTY)
 *
 *  Given matrices X and Y of dimension (n x p) and (n x q) computes 
 *  the matrix of cross-product, i.e. X' Y
@@ -34,7 +34,7 @@
       end
 
 * ======================================================================
-      subroutine covw ( X, Z, n, p, G, M, S, W )
+      subroutine covwf ( X, Z, n, p, G, M, S, W )
 *
 *   Given data matrix X(n x p) and weight matrix Z(n x G) computes
 *   weighted means M(p x G), weighted covariance matrices S(p x p x G)

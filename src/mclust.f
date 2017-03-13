@@ -825,7 +825,7 @@ c------------------------------------------------------------------------------
       return
       end
 
-      subroutine unchol ( UPPER, T, l, n, info)
+      subroutine uncholf ( UPPER, T, l, n, info)
 
 c This function is part of the MCLUST software described at
 c       http://www.stat.washington.edu/mclust

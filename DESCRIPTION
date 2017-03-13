@@ -1,6 +1,6 @@
 Package: mclust
-Version: 5.2.2
-Date: 2017-01-20
+Version: 5.2.3
+Date: 2017-03-05
 Authors@R: c(person("Chris", "Fraley", role = "aut"),
              person("Adrian E.", "Raftery", role = "aut"),
              person("Luca", "Scrucca", role = c("aut", "cre"),
@@ -20,11 +20,11 @@ Repository: CRAN
 ByteCompile: true
 LazyLoad: yes
 NeedsCompilation: yes
-Packaged: 2017-01-20 10:56:00 UTC; luca
+Packaged: 2017-03-05 10:34:16 UTC; luca
 Author: Chris Fraley [aut],
   Adrian E. Raftery [aut],
   Luca Scrucca [aut, cre],
   Thomas Brendan Murphy [ctb],
   Michael Fop [ctb]
 Maintainer: Luca Scrucca <luca.scrucca@unipg.it>
-Date/Publication: 2017-01-22 12:38:37
+Date/Publication: 2017-03-13 13:18:28

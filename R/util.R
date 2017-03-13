@@ -245,7 +245,7 @@ unchol <- function(x, upper = NULL)
   }
   dimx <- dim(x)
   storage.mode(x) <- "double"
-  .Fortran("unchol",
+  .Fortran("uncholf",
            as.logical(upper),
            x,
            as.integer(nrow(x)),
@@ -314,7 +314,7 @@ covw <- function(X, Z, normalize = TRUE)
     if(normalize)
       Z <- apply(Z, 1, function(z) z/sum(z))
     
-    tmp <- .Fortran("covw",
+    tmp <- .Fortran("covwf",
                     X = as.double(X),
                     Z = as.double(Z),
                     n = as.integer(n),
@@ -322,7 +322,8 @@ covw <- function(X, Z, normalize = TRUE)
                     G = as.integer(G),
                     mean = double(p*G),
                     S = double(p*p*G),
-                    W = double(p*p*G) )
+                    W = double(p*p*G),
+                    PACKAGE = "mclust")
     
     out <- list(mean = matrix(tmp$mean, p,G), 
                 S = array(tmp$S, c(p,p,G)),

@@ -1,6 +1,7 @@
 Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, 
                    control = emControl(), initialization = NULL, 
-                   warn = mclust.options("warn"), x = NULL, ...) 
+                   warn = mclust.options("warn"), x = NULL, 
+                   verbose = interactive(), ...) 
 {
   call <- match.call()
   data <- data.matrix(data)
@@ -48,11 +49,13 @@ print.Mclust <- function(x, digits = getOption("digits"), ...)
 {
   cat("\'", class(x)[1], "\' model object:\n", sep = "")
   G <- x$G
-  if(G == 0 & !is.null(attr(x$BIC, "Vinv")))
-  { cat(" best model: single noise component\n")
-    return(invisible()) }
-  M <- mclustModelNames(x$modelName)$type
-  cat(" best model: ", M, " (", x$model, ") with ", G, " components\n", sep = "")
+  noise <- !is.null(attr(x$BIC, "Vinv"))
+  if(G == 0 & noise)
+    { cat(" best model: single noise component\n") }
+  else
+    { M <- mclustModelNames(x$modelName)$type
+     cat(" best model: ", M, " (", x$model, ") with ", G, " components\n", 
+         if(noise) " and a noise term\n", sep = "") }
   invisible()
 }
 
@@ -95,8 +98,8 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   cat(x$title, "\n")
   cat(rep("-", nchar(x$title)),"\n",sep="")
   #
-  if(is.null(x$modelName))
-    { cat("\nMclust model with only a noise component") }
+  if(x$G == 0)
+    { cat("\nMclust model with only a noise component:\n\n") }
   else
     { cat("\nMclust ", x$modelName, " (", 
           mclustModelNames(x$modelName)$type, ") model with ", 
@@ -120,7 +123,7 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   #
   cat("\nClustering table:")
   print(table(factor(x$classification, 
-                     levels = { l <- seq(x$G)
+                     levels = { l <- seq_len(x$G)
                                 if(is.numeric(x$noise)) l <- c(l,0) 
                                 l })),
         digits = digits)
@@ -190,8 +193,12 @@ predict.Mclust <- function(object, newdata, ...)
     stop("object not of class \"Mclust\"")
   if(missing(newdata))
     { newdata <- object$data }
-  prior <- object$parameters$pro
+  newdata <- as.matrix(newdata)
+  if(ncol(object$data) != ncol(newdata))
+    { stop("newdata must match ncol of object data") }
   object$data <- newdata
+  prior <- object$parameters$pro
+  noise <- (!is.na(object$hypvol))
   # old
   # z <- do.call("cdens", object)
   # z <- sweep(z, MARGIN = 1, FUN = "/", STATS = apply(z, 1, max))
@@ -199,16 +206,18 @@ predict.Mclust <- function(object, newdata, ...)
   # z <- sweep(z, MARGIN = 1, STATS = apply(z, 1, sum), FUN = "/")
   # new: more efficient and accurate
   z <- do.call("cdens", c(object, list(logarithm = TRUE)))
+  if(noise)
+    z <- cbind(z, log(object$parameters$Vinv))
   z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prior/sum(prior)))
   z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
   z <- exp(z)
   #
-  cl <- apply(z, 1, which.max)
+  cl <- c(seq(object$G), if(noise) 0)
+  colnames(z) <- cl
+  cl <- cl[apply(z, 1, which.max)]
   out <- list(classification = cl, z = z)
   return(out) 
 }
-
-#############################################################################
 
 EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = emControl(), initialization = list(hcPairs=NULL, subset=NULL, noise=NULL), Vinv = NULL, warn = FALSE, x = NULL, ...)
 {
@@ -429,8 +438,8 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
     if (!is.logical(noise))
       noise <- as.logical(match(1:n, noise, nomatch = 0))
     if (!G[1]) {
-      hood <- n * logb(Vinv)
-      BIC["0",  ] <- 2 * hood - logb(n)
+      hood <- n * log(Vinv)
+      BIC["0",  ] <- 2 * hood - log(n)
       if (l == 1) {
         return(structure(BIC, G = G, modelNames = modelNames, prior = prior, 
                          control = control, 
@@ -491,13 +500,12 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
 }
 
 # EMclust <- function(...) .Defunct("mclustBIC", PACKAGE = "mclust")
-#############################################################################
 
 mclustBIC <- function(data, G = NULL, modelNames = NULL, 
                       prior = NULL, control = emControl(), 
                       initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),  
                       Vinv = NULL, warn = mclust.options("warn"), 
-                      x = NULL, ...)
+                      x = NULL, verbose = interactive(), ...)
 {
   if(!is.null(x)) 
     { if(!missing(prior) || !missing(control) || 
@@ -537,58 +545,62 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
                   modelNames <- modelNames[m]
                 }
           }
-    }
-    if(!is.null(prior))
-      { # remove models not available with prior
-        modelNames <- setdiff(modelNames, c("EVE","VEE","VVE","EVV"))
-    }
-    if(is.null(G)) 
-      { G <- if (is.null(initialization$noise)) 1:9 else 0:9 }
-    else {
-        G <- sort(as.integer(unique(G)))
-    }
-    if(is.null(initialization$noise)) 
-      { if (any(G > n)) G <- G[G <= n] }
-    else {
-        noise <- initialization$noise
-        if(!is.logical(noise)) 
-          { if(any(match(noise, 1:n, nomatch = 0) == 0))
-               stop("numeric noise must correspond to row indexes of data")
-            noise <- as.logical(match(1:n, noise, nomatch = 0))
+      }
+    
+      if(!is.null(prior))
+        { # remove models not available with prior
+          modelNames <- setdiff(modelNames, c("EVE","VEE","VVE","EVV"))
+      }
+    
+      if(is.null(G)) 
+        { G <- if (is.null(initialization$noise)) 1:9 else 0:9 }
+      else 
+        { G <- sort(as.integer(unique(G))) }
+    
+      if(is.null(initialization$noise)) 
+        { if (any(G > n)) G <- G[G <= n] }
+      else 
+        {
+          noise <- initialization$noise
+          if(!is.logical(noise)) 
+            { if(any(match(noise, 1:n, nomatch = 0) == 0))
+                stop("numeric noise must correspond to row indexes of data")
+              noise <- as.logical(match(1:n, noise, nomatch = 0))
+          }
+          initialization$noise <- noise
+          nnoise <- sum(as.numeric(noise))
+          if(any(G > (n-nnoise))) G <- G[G <= n-nnoise]
         }
-        initialization$noise <- noise
-        nnoise <- sum(as.numeric(noise))
-        if(any(G > (n-nnoise))) G <- G[G <= n-nnoise]
+    
+      if(!is.null(initialization$subset)) 
+        { subset <- initialization$subset
+          if(is.logical(subset)) subset <- which(subset)
+          if(any(G > n)) G <- G[G <= n]
+      }
+      Gall <- G
+      Mall <- modelNames
     }
-    if(!is.null(initialization$subset)) 
-      { subset <- initialization$subset
-        if(is.logical(subset)) subset <- which(subset)
-        n <- length(subset)
-        if(any(G > n)) G <- G[G <= n]
-    }
-    Gall <- G
-    Mall <- modelNames
-  }
-  else {
-    Glabels <- dimnames(x)[[1]]
-    Mlabels <- dimnames(x)[[2]]
-    if(is.null(G)) G <- Glabels
-    if(is.null(modelNames)) modelNames <- Mlabels
-    Gmatch <- match(as.character(G), Glabels, nomatch = 0)
-    Mmatch <- match(modelNames, Mlabels, nomatch = 0)
-    if(all(Gmatch) && all(Mmatch)) 
-      { out <- x[as.character(G),modelNames,drop=FALSE]
-        mostattributes(out) <- attributes(x)
-        attr(out, "dim") <- c(length(G), length(modelNames))
-        attr(out, "dimnames") <- list(G, modelNames)
-        attr(out, "G") <- as.numeric(G)
-        attr(out, "modelNames") <- modelNames
-        attr(out, "returnCodes") <- 
+  else 
+    {
+      Glabels <- dimnames(x)[[1]]
+      Mlabels <- dimnames(x)[[2]]
+      if(is.null(G)) G <- Glabels
+      if(is.null(modelNames)) modelNames <- Mlabels
+      Gmatch <- match(as.character(G), Glabels, nomatch = 0)
+      Mmatch <- match(modelNames, Mlabels, nomatch = 0)
+      if(all(Gmatch) && all(Mmatch)) 
+        { out <- x[as.character(G),modelNames,drop=FALSE]
+          mostattributes(out) <- attributes(x)
+          attr(out, "dim") <- c(length(G), length(modelNames))
+          attr(out, "dimnames") <- list(G, modelNames)
+          attr(out, "G") <- as.numeric(G)
+          attr(out, "modelNames") <- modelNames
+          attr(out, "returnCodes") <- 
           attr(x, "returnCodes")[as.character(G),modelNames,drop=FALSE]
-        return(out)
-    }
-    Gall <- sort(as.numeric(unique(c(as.character(G), Glabels))))
-    Mall <- unique(c(modelNames, Mlabels))
+          return(out)
+      }
+      Gall <- sort(as.numeric(unique(c(as.character(G), Glabels))))
+      Mall <- unique(c(modelNames, Mlabels))
   }
   
   if(any(as.logical(as.numeric(G))) < 0) 
@@ -608,6 +620,13 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
   }
   l <- length(Gall)
   m <- length(Mall)
+  if(verbose) 
+    { cat("fitting ...\n")
+      flush.console()
+      pbar <- txtProgressBar(min = 0, max = l*m+1, style = 3)
+      on.exit(close(pbar))
+      ipbar <- 0
+  }
   EMPTY <- -.Machine$double.xmax
   BIC <- RET <- matrix(EMPTY, nrow = l, ncol = m, 
                        dimnames = list(as.character(Gall), as.character(Mall)))
@@ -620,16 +639,24 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
   G <- as.numeric(G)
   Glabels <- as.character(G)
   Gout <- G
-  if (is.null(initialization$noise)) {
-    if (G[1] == 1) {
-      for (mdl in modelNames[BIC["1",] == EMPTY]) {
+  if(is.null(initialization$noise)) 
+  {
+    ## standard case ----
+    if (G[1] == 1) 
+    {
+      for(mdl in modelNames[BIC["1",] == EMPTY]) 
+      {
         out <- mvn(modelName = mdl, data = data, prior = prior)
         BIC["1", mdl] <- bic(modelName = mdl, loglik = out$loglik, 
                              n = n, d = d, G = 1, equalPro = FALSE)
         RET["1", mdl] <- attr(out, "returnCode")
+        if(verbose) 
+          { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
       }
       if (l == 1) {
         BIC[BIC == EMPTY] <- NA
+        if(verbose) 
+          { ipbar <- l*m+1; setTxtProgressBar(pbar, ipbar) }
         return(structure(BIC, G = G, modelNames = modelNames, prior = prior, 
                          control = control, initialization = initialization, 
                          warn = warn, n = n, d = d, oneD = oneD,
@@ -638,10 +665,9 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       G <- G[-1]
       Glabels <- Glabels[-1]
     }
-    if (is.null(initialization$subset)) {
-      #######################################################
-      # all data in initial hierarchical clustering phase
-      #######################################################
+    if (is.null(initialization$subset)) 
+    {
+      ## all data in initial hierarchical clustering phase (no subset) ----
       if (is.null(initialization$hcPairs)) { 
         if (d != 1) {
           if (n > d) {
@@ -666,6 +692,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         else {
           cl <- qclass( data, as.numeric(g))
         }
+        if(verbose) 
+          { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
         z <- unmap(cl, groups = 1:max(cl))
         if(any(apply( z, 2, max) == 0) & warn) 
           { #  missing groups
@@ -674,9 +702,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
             z[z < small] <- small
             z <-  t(apply( z, 1, function(x) x/sum(x)))
         }
-#       for(modelName in modelNames[BIC[g,] == EMPTY]) {
-#       LS:
-        for(modelName in na.omit(modelNames[BIC[g,] == EMPTY])) {  
+        for(modelName in na.omit(modelNames[BIC[g,] == EMPTY])) 
+        {  
           out <- me(modelName = modelName, data = data, z = z, 
                     prior = prior, control = control, warn = warn)
           BIC[g, modelName] <- bic(modelName = modelName, 
@@ -684,15 +711,16 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
                                    n = n, d = d, G = as.numeric(g), 
                                    equalPro = control$equalPro)
           RET[g, modelName] <- attr(out, "returnCode")
+          if(verbose) 
+            { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
         }
       }
     }
-    else {
+    else 
+    {
+      ## initial hierarchical clustering phase on a subset ----
       subset <- initialization$subset
       if (is.logical(subset)) subset <- which(subset)
-      ######################################################
-      # initial hierarchical clustering phase on a subset
-      ######################################################
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
@@ -705,9 +733,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
           }
         }
         else {
-          hcPairs <- NULL
-          #    hcPairs <- hc(modelName = "E", 
-          #                  data = data[subset])
+            hcPairs <- NULL
+            # hcPairs <- hc(modelName = "E", data = data[subset])
         }
       }
       else hcPairs <- initialization$hcPairs
@@ -719,6 +746,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         else {
           cl <- qclass(data[subset], as.numeric(g))
         }
+        if(verbose) 
+          { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
         z <- unmap(cl, groups = 1:max(cl))
         if(any(apply( z, 2, max) == 0) & warn) 
           { #  missing groups
@@ -729,7 +758,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         }
         for (modelName in modelNames[!is.na(BIC[g,])]) {
           ms <- mstep(modelName = modelName, z = z, 
-                      data = as.matrix(data)[initialization$subset,  ],
+                      data = as.matrix(data)[initialization$subset,],
                       prior = prior, control = control, warn = warn)
           #
           #  ctrl <- control
@@ -745,96 +774,207 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
                                    n = n, d = d, G = as.numeric(g), 
                                    equalPro = control$equalPro)
           RET[g, modelName] <- attr(out, "returnCode")
+          if(verbose) 
+            { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
         }
       }
     }
   }
-  else {
-    ######################################################
-    # noise case
-    ######################################################
+  else 
+  { 
+    ## noise case ----
     noise <- initialization$noise
-    if (!is.null(initialization$subset)) 
-      stop("subset option not implemented with noise")
     if (is.null(Vinv) || Vinv <= 0)
       Vinv <- hypvol(data, reciprocal = TRUE)
-    if (!G[1]) {
-      hood <- n * logb(Vinv)
-      BIC["0",  ] <- 2 * hood - logb(n)
-      if (l == 1) {
-        return(structure(BIC, G = G, modelNames = modelNames, prior = prior, 
-                         control = control, 
-                         initialization = list(hcPairs = hcPairs, subset = initialization$subset), 
-                         warn = warn, n = n, d = d, oneD = oneD,
-                         returnCodes = RET, class =  "mclustBIC"))
+    
+    if (is.null(initialization$subset)) 
+    {
+      ## all data in initial hierarchical clustering phase (no subset) ----
+      if (!G[1]) 
+      {
+        hood <- n * log(Vinv)
+        BIC["0",] <- 2 * hood - log(n)
+        if (l == 1) 
+        { return(structure(BIC, G = G, modelNames = modelNames, 
+                           prior = prior, control = control, 
+                           initialization = list(hcPairs = hcPairs, 
+                                                 subset = initialization$subset), 
+                           warn = warn, n = n, d = d, oneD = oneD,
+                           returnCodes = RET, class =  "mclustBIC"))
+        }
+        G <- G[-1]
+        Glabels <- Glabels[-1]
       }
-      G <- G[-1]
-      Glabels <- Glabels[-1]
-    }
-    if (is.null(initialization$hcPairs)) {
-      if (d != 1) {
-        if (n > d) {
-          hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
-                        data = data[!noise,  ])
+      if (is.null(initialization$hcPairs)) 
+      {
+        if (d != 1) {
+          if (n > d) {
+            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
+                          data = data[!noise,  ])
+          }
+          else {
+            hcPairs <- hc(modelName = "EII", data = data[!noise,  ])
+          }
         }
         else {
-          hcPairs <- hc(modelName = "EII", data = data[!noise,  ])
+          hcPairs <- NULL 
+          #    hcPairs <- hc(modelName = "E", data = data[!noise])
         }
       }
-      else {
-        hcPairs <- NULL 
-        #    hcPairs <- hc(modelName = "E", data = data[!noise])
-      }
-    }
-    else hcPairs <- initialization$hcPairs
-    if (d > 1 || !is.null(hcPairs)) clss <- hclass(hcPairs, G)
-    z <- matrix(0, n, max(G) + 1)
-    for (g in Glabels) {
-      z[] <- 0
-      k <- as.numeric(g)
-      if (d > 1 || !is.null(hcPairs)) {
-        cl <- clss[, g]
-      }
-      else {
-        cl <- qclass(data[!noise], k = k)
-      }
-      z[!noise,1:k] <- unmap(cl, groups = 1:max(cl))
-      if(any(apply( z[!noise,1:k,drop=FALSE], 2, max) == 0) & warn) 
-        { #           missing groups
-          if(warn) warning("there are missing groups")         
+      else hcPairs <- initialization$hcPairs
+      if (d > 1 || !is.null(hcPairs)) clss <- hclass(hcPairs, G)
+      if(verbose) 
+        { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
+
+      z <- matrix(0, n, max(G) + 1)
+      for (g in Glabels) 
+      {
+        z[] <- 0
+        k <- as.numeric(g)
+        if(d > 1 || !is.null(hcPairs)) { 
+          cl <- clss[,g]
+        }
+        else {
+          cl <- qclass(data[!noise], k = k)
+        }
+        z[!noise,1:k] <- unmap(cl, groups = 1:max(cl))
+        if(any(apply( z[!noise,1:k,drop=FALSE], 2, max) == 0) & warn) 
+        { # missing groups
+          if(warn) warning("there are missing groups")
+          # todo: should be pmax(...) qui sotto??
           z[!noise,1:k] <- max( z[!noise,1:k], sqrt(.Machine$double.neg.eps))
+          # todo: should be t(...) qui sotto??
           z[!noise,1:k] <- apply( z[!noise,1:k,drop=FALSE], 1, function(z) z/sum(z))
+        }
+        z[noise, k+1] <- 1
+        K <- 1:(k+1) 
+        for (modelName in na.omit(modelNames[BIC[g,] == EMPTY])) 
+        {  
+          out <- me(modelName = modelName, data = data, z = z[, K], 
+                    prior = prior, Vinv = Vinv, 
+                    control = control, warn = warn)
+          BIC[g, modelName] <- bic(modelName = modelName, 
+                                   loglik = out$loglik, 
+                                   n = n, d = d, G = k, 
+                                   noise = TRUE, 
+                                   equalPro = control$equalPro)
+          RET[g, modelName] <- attr(out, "returnCode")
+          if(verbose) 
+            { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
+        }
       }
-      z[noise, k+1] <- 1
-      K <- 1:(k+1) 
-#     for (modelName in modelNames[BIC[g,] == EMPTY]) {
-#     LS:
-      for (modelName in na.omit(modelNames[BIC[g,] == EMPTY])) {  
-        out <- me(modelName = modelName, data = data, z = z[, K], 
-                  prior = prior, control = control, Vinv = Vinv, warn = warn)
-        BIC[g, modelName] <- bic(modelName = modelName, loglik = out$loglik, 
-                                 n = n, d = d, G = k, 
-                                 noise = TRUE, 
-                                 equalPro = control$equalPro)
-        RET[g, modelName] <- attr(out, "returnCode")
+    } 
+    else
+    { 
+      ## initial hierarchical clustering phase on a subset ----
+      subset <- initialization$subset
+      if (is.logical(subset)) subset <- which(subset)
+      if (is.logical(noise))  noise  <- which(noise)
+      subset <- setdiff(subset, noise) # set subset among those obs not noise
+      
+      if (!G[1]) 
+      {
+        hood <- n * log(Vinv)
+        BIC["0",] <- 2 * hood - log(n)
+        if (l == 1) 
+        { return(structure(BIC, G = G, modelNames = modelNames, 
+                           prior = prior, control = control, 
+                           initialization = list(hcPairs = hcPairs, 
+                                                 subset = initialization$subset), 
+                           warn = warn, n = n, d = d, oneD = oneD,
+                           returnCodes = RET, class =  "mclustBIC"))
+        }
+        G <- G[-1]
+        Glabels <- Glabels[-1]
+      }
+      
+      if (is.null(initialization$hcPairs)) 
+      {
+        if (d != 1) {
+          if (n > d) {
+            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
+                          data = data[subset,])
+          }
+          else {
+            hcPairs <- hc(modelName = "EII", 
+                          data = data[subset,])
+          }
+        }
+        else {
+            hcPairs <- NULL
+            # hcPairs <- hc(modelName = "E",  data = data[subset])
+        }
+      }
+      else hcPairs <- initialization$hcPairs
+      if (d > 1 || !is.null(hcPairs)) clss <- hclass(hcPairs, G)
+      if(verbose) 
+        { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
+      for (g in Glabels) 
+      {
+        k <- as.numeric(g)
+        if (d > 1 || !is.null(hcPairs)) {
+          cl <- clss[, g]
+        }
+        else {
+          cl <- qclass(data[subset], k = k)
+        }
+        z <- unmap(cl, groups = 1:max(cl))
+        if(any(apply(z, 2, max) == 0) & warn)
+          { #  missing groups
+            if(warn) warning("there are missing groups")
+            small <- sqrt(.Machine$double.neg.eps)
+            z[z < small] <- small
+            z <- t(apply( z, 1, function(x) x/sum(x)))
+        }
+        for (modelName in na.omit(modelNames[BIC[g,] == EMPTY]))
+        {
+          ms <- mstep(modelName = modelName, z = z, 
+                      data = as.matrix(data)[subset,],
+                      prior = prior, control = control, warn = warn)
+          es <- do.call("estep", c(list(data = data, warn = warn), ms))
+          
+          if(is.na(es$loglik))
+          {  BIC[g, modelName] <- NA
+             RET[g, modelName] <- attr(es, "returnCode") }
+          else 
+          {
+            es$z <- cbind(es$z, 0)
+            es$z[noise,] <- matrix(c(rep(0,k),1), byrow = TRUE,
+                                   nrow = length(noise), ncol = k+1)
+            out <- me(modelName = modelName, data = data, z = es$z,
+                      prior = prior, Vinv = Vinv, 
+                      control = control, warn = warn)
+            BIC[g, modelName] <- bic(modelName = modelName, 
+                                     loglik = out$loglik,
+                                     n = n, d = d, G = k, 
+                                     noise = TRUE,
+                                     equalPro = control$equalPro)
+            RET[g, modelName] <- attr(out, "returnCode")
+          }
+          if(verbose) 
+            { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
+        }
       }
     }
   }
   
+  if(verbose) 
+    { ipbar <- l*m+1; setTxtProgressBar(pbar, ipbar) }
+
   if(!is.null(prior) & any(is.na(BIC)))
     warning("The presence of BIC values equal to NA is likely due to one or more of the mixture proportions being estimated as zero, so that the model estimated reduces to one with a smaller number of components.")  
   
-  structure(BIC, G = Gout, modelNames = modelNames, prior = prior, 
-            control = control, 
+  structure(BIC, G = Gout, modelNames = modelNames, 
+            prior = prior, Vinv = Vinv, control = control, 
             initialization = list(hcPairs = hcPairs, 
                                   subset = initialization$subset,
                                   noise = initialization$noise), 
-            Vinv = Vinv, warn = warn, n = n, d = d, oneD = oneD,
+            warn = warn, n = n, d = d, oneD = oneD,
             criterion = "BIC", returnCodes = RET, 
             class = "mclustBIC")
 }
 
-pickBIC <- function(x, k = 3)
+pickBIC <- function(x, k = 3, ...)
 {
   if(!is.matrix(x))
     { warning("sorry, the pickBIC function cannot be applied to the provided argument!")
@@ -952,6 +1092,7 @@ summary.mclustBIC <- function(object, data, G, modelNames, ...)
       { mc[[1]] <- as.name("summaryMclustBICn") }
     warn <- attr(object, "warn")
     ans <- eval(mc, parent.frame())
+    if(length(ans) == 0) return(ans) 
     Glabels <- dimnames(object)[[1]]
     if(length(Glabels) != 1 && (!missing(G) && length(G) > 1)) 
       { Grange <- range(as.numeric(Glabels))
@@ -1029,7 +1170,7 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
     if(sum((out$parameters$pro - colMeans(out$z))^2) > 
            sqrt(.Machine$double.eps))
       { # perform extra M-step and update parameters
-        ms <- mstep(modelName = bestModel, data = data, 
+        ms <- mstep(modelName = bestModel, data = data,
                     z = out$z, prior = prior, 
                     warn = warn)
         if(attr(ms, "returnCode") == 0)
@@ -1091,6 +1232,7 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
   }
   initialization <- attr(object, "initialization")
   hcPairs <- initialization$hcPairs
+  subset <- initialization$subset
   noise <- initialization$noise
   if(!is.logical(noise))
     noise <- as.logical(match(1:n, noise, nomatch = 0))
@@ -1121,24 +1263,49 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
                   uncertainty = rep(0, n), 
                   n = n, d = ncol(data), 
                   modelName = bestModel, G = 0, 
-                  loglik = n * logb(Vinv), 
-                  Vinv = Vinv)
+                  loglik = n * log(Vinv), 
+                  Vinv = Vinv,
+                  parameters = NULL)
       orderedNames <- c("modelName", "n", "d", "G", "bic", "loglik", "Vinv", 
-                        "z", "classification", "uncertainty")
+                        "parameters", "z", "classification", "uncertainty")
      return(structure(ans[orderedNames], bestBICvalues = bestBICs, 
                       prior = prior, control = control, 
                       initialization = initialization, 
                       class = "summary.mclustBIC"))
   }
   G1 <- G + 1
-  z <- matrix(0, n, G1)
-  if(d > 1 || !is.null(hcPairs))
-    { z[!noise, 1:G] <- unmap(hclass(hcPairs, G)) }
-  else 
-    { z[!noise, 1:G] <- unmap(qclass(data[!noise], G)) }
-  z[noise, G1] <- 1
-  out <- me(modelName = bestModel, data = data, z = z, prior = prior, 
-            control = control, warn = warn, Vinv = Vinv)
+  
+  if(is.null(subset)) 
+  {
+    z <- matrix(0, n, G1)
+    if(d > 1 || !is.null(hcPairs))
+      { z[!noise, 1:G] <- unmap(hclass(hcPairs, G)) }
+    else 
+      { z[!noise, 1:G] <- unmap(qclass(data[!noise], G)) }
+    z[noise, G1] <- 1
+    out <- me(modelName = bestModel, data = data, z = z, 
+              prior = prior, Vinv = Vinv,
+              control = control, warn = warn)
+  }
+  else
+  { if (is.logical(subset)) subset <- which(subset)
+    if (is.logical(noise))  noise  <- which(noise)
+    subset <- setdiff(subset, noise) # set subset among those obs not noise
+    if(d > 1 || !is.null(hcPairs))
+      { z <- unmap(hclass(hcPairs, G)) }
+    else 
+      { z <- unmap(qclass(data[!noise], G)) }
+    ms <- mstep(modelName = bestModel, data = as.matrix(data)[subset,], z = z, 
+                prior = prior, control = control, warn = warn)
+    es <- do.call("estep", c(list(data = data, warn = warn), ms))
+    es$z <- cbind(es$z, 0)
+    es$z[noise,] <- matrix(c(rep(0,G),1), byrow = TRUE,
+                           nrow = length(noise), ncol = G+1)
+    out <- me(modelName = bestModel, data = data, z = es$z,
+              prior = prior, Vinv = Vinv, 
+              control = control, warn = warn)
+  }
+
   obsNames <- if(is.null(dim(data))) 
                 names(data) else dimnames(data)[[1]]
   classification <- map(out$z, warn = warn)
@@ -1176,7 +1343,7 @@ print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
   }
   else {
     cat("Best BIC values:\n")
-    x <- drop(as.matrix(x))
+    x <- if(length(x) == 0) attr(x,"bestBICvalues") else drop(as.matrix(x))
     x <- rbind(BIC = x, "BIC diff" = x - max(x))
     print(x, digits = digits)
   }
@@ -1227,7 +1394,7 @@ defaultPrior <- function(data, G, modelName, ...)
            list(shrinkage = shrinkage, mean = mean, dof = dof,
                 scale = scale)
          },
-         ##############################################################
+         ##
          EII = ,
          VII = ,
          XII = ,
@@ -1250,7 +1417,7 @@ defaultPrior <- function(data, G, modelName, ...)
            list(shrinkage = shrinkage, mean = mean, dof = dof,
                 scale = scale)
          },
-         ##############################################################
+         ##
          EEE = ,
          EVE = ,
          VEE = ,
@@ -4740,14 +4907,10 @@ hypvol <- function (data, reciprocal = FALSE)
 {
   dimdat <- dim(data)
   oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
-  if (oneD) {
+  if (oneD) 
+  {
     n <- length(as.vector(data))
-    if (reciprocal) {
-      ans <- 1/diff(range(data))
-    }
-    else {
-      ans <- diff(range(data))
-    }
+    ans <- if (reciprocal) 1/diff(range(data)) else diff(range(data))
     return(ans)
   }
   if (length(dimdat) != 2) 
@@ -4760,11 +4923,13 @@ hypvol <- function (data, reciprocal = FALSE)
   bdvolog <- sumlogdifcol(data)
   pcvolog <- sumlogdifcol(princomp(data)$scores)
   
-  volog <- min(bdvolog,pcvolog)
+  volog <- min(bdvolog, pcvolog)
   
-  if (reciprocal) {
+  if(reciprocal) 
+  {
     minlog <- log(.Machine$double.xmin)
-    if (-volog < minlog) {
+    if (-volog < minlog) 
+    {
       warning("hypervolume smaller than smallest machine representable positive number")
       ans <- 0
     }
@@ -4772,52 +4937,15 @@ hypvol <- function (data, reciprocal = FALSE)
   }
   else {
     maxlog <- log(.Machine$double.xmax)
-    if (volog > maxlog) {
+    if (volog > maxlog) 
+    {
       warning("hypervolume greater than largest machine representable number")
       ans <- Inf
     }
     else ans <- exp(volog)
   }
   
-  ans
-}
-
-imputeData <- function(x, categorical=NULL, seed=NULL) 
-{
-  if(!requireNamespace("mix", quietly = TRUE)) 
-     stop("imputeData function require 'mix' package to be installed!")
-  
-  fac <- apply( x, 2, is.factor)
-  if(is.null(categorical)) 
-    { categorical <- fac }
-  else 
-    { if(any(!categorical & fac)) 
-        { stop("x has a factor that is not designated as categorical") }
-      if(any(categorical | !fac)) 
-        { warning("a categorical is not designated as a factor")
-         for(i in which(categorical | !fac)) 
-             x[[i]] <- as.factor(x[[i]])
-      }
-  }
-  
-  # remove categorical variables and add dummy variable
-  if(nocat <- !any(categorical)) 
-    { x <- cbind(as.factor(1),x)
-      categorical <- c(TRUE, categorical)
-  }
-  
-  ord <- c(which(categorical),which(!categorical))
-  
-  # do the imputations
-  s <- mix::prelim.mix(x[,ord],p=sum(categorical))
-  if(is.null(seed)) seed <- runif(1, min = .Machine$integer.max/1024,
-                                     max = .Machine$integer.max)
-  mix::rngseed(seed) # set random number generator seed
-  thetahat <- mix::em.mix(s) # find ML estimate
-  newtheta <- mix::da.mix(s, thetahat, steps=100, showits=TRUE)
-  ximp <- mix::imp.mix(s, newtheta) # impute under newtheta
-  
-  if(nocat) ximp[,-1] else ximp[,order(ord)]
+  return(ans)
 }
 
 "[.mclustBIC" <- function (x, i, j, drop = FALSE) 

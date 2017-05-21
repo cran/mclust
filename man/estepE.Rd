@@ -127,11 +127,10 @@ estepVVE(data, parameters, warn = NULL, \dots)
   \code{\link{mclust.options}}.
 }
 \examples{
+\dontrun{
 msEst <- mstepEII(data = iris[,-5], z = unmap(iris[,5]))
 names(msEst)
 
-estepEII(data = iris[,-5], parameters = msEst$parameters)
+estepEII(data = iris[,-5], parameters = msEst$parameters)}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

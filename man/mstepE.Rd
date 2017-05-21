@@ -142,8 +142,7 @@ mstepVVE( data, z, prior = NULL, warn = NULL, control = NULL, \dots)
   \code{\link{emControl}}.
 }
 \examples{
-mstepVII(data = iris[,-5], z = unmap(iris[,5]))
+\dontrun{
+mstepVII(data = iris[,-5], z = unmap(iris[,5]))}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

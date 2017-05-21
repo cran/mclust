@@ -14,10 +14,14 @@ predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), ..
 {
   if(!inherits(object, "densityMclust")) 
     stop("object not of class \"densityMclust\"")
+  
   if(missing(newdata))
     { newdata <- object$data }
+  newdata <- as.matrix(newdata)
+  if(ncol(object$data) != ncol(newdata))
+    { stop("newdata must match ncol of object data") }
+
   what <- match.arg(what)
-  
   if(what == "dens")
     { d <- dens(modelName = object$modelName, 
                 data = newdata, 
@@ -140,8 +144,9 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
   invisible()
 }
 
-plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), 
-                               points.pch = 1, points.col = 1, points.cex = 0.8, ...) 
+plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, 
+                               col = grey(0.6), points.pch = 1, 
+                               points.col = 1, points.cex = 0.8, ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
   object <- x # Argh.  Really want to use object anyway
@@ -159,9 +164,8 @@ plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
   # set mixture parameters
   par <- object$parameters
   # these parameters should be missing 
-  par$variance$cholSigma <- par$Sigma <- par$Vinv <- NULL
+  par$variance$cholSigma <- par$Sigma <- NULL
   if(is.null(par$pro)) par$pro <- 1  # LS: bug?
-  #par$variance$d <- 2 # LS: bug?
   par$variance$cholsigma <- par$variance$sigma
   for(k in seq(par$variance$G))
      { par$variance$cholsigma[,,k] <- chol(par$variance$sigma[,,k]) }
@@ -212,7 +216,6 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
                 par <- object$parameters
                 if(is.null(par$pro)) par$pro <- 1
                 par$mean <- par$mean[c(j,i),,drop=FALSE]
-                par$Vinv <- NULL
                 par$variance$d <- 2
                 sigma <- array(dim = c(2, 2, par$variance$G))
                 for(g in seq(par$variance$G))
@@ -270,7 +273,7 @@ dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ..
   # logsumexp
   maxlog <- apply(cden, 1, max)
   cden <- sweep(cden, 1, FUN = "-", STATS = maxlog)
-  den <- logb(apply(exp(cden), 1, sum)) + maxlog
+  den <- log(apply(exp(cden), 1, sum)) + maxlog
   if(noise) 
     den <- den + parameters$pro[G+1]*parameters$Vinv
   if(!logarithm) den <- exp(den)

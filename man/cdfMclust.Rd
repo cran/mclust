@@ -20,7 +20,7 @@ quantileMclust(object, p, ...)
   \item{data}{a numeric vector of evaluation points.}
   \item{ngrid}{the number of points in a regular grid to be used as evaluation points if no \code{data} are provided.}
   \item{p}{a numeric vector of probabilities.}
- \item{\dots}{further arguments passed to or from other methods.}
+  \item{\dots}{further arguments passed to or from other methods.}
 }
 
 \details{The cdf is evaluated at points given by the optional argument  \code{data}. If not provided, a regular grid of length \code{ngrid} for the evaluation points is used. 

@@ -40,7 +40,7 @@ export(mclustModel, mclustModelNames, checkModelName, mclustVariance)
 
 export(decomp2sigma, sigma2decomp)
 
-export(imputeData, imputePairs)
+export(imputeData, imputePairs, matchCluster, majorityVote)
 
 export(mapClass, classError, adjustedRandIndex)
 
@@ -96,33 +96,36 @@ S3method("print", "summary.MclustDR")
 S3method("plot", "MclustDR")
 S3method("predict", "MclustDR")
 
-export(clustCombi, print.clustCombi, plot.clustCombi, combiPlot, entPlot, combMat)
-S3method("plot", "clustCombi")
-S3method("print", "clustCombi")
+export(MclustDRsubsel, 
+       MclustDRsubsel_cluster, MclustDRsubsel_classif,
+       MclustDRsubsel1cycle, MclustDRrecoverdir,
+       print.MclustDRsubsel, summary.MclustDRsubsel)
+S3method("print", "MclustDRsubsel")
+S3method("summary", "MclustDRsubsel")
 
 export(me.weighted, covw)
 
 export(icl, mclustICL, print.mclustICL, 
        summary.mclustICL, print.summary.mclustICL, 
        plot.mclustICL)
-S3method( "icl", "Mclust")
-S3method( "icl", "MclustDA")
-S3method( "print", "mclustICL")
-S3method( "summary", "mclustICL")
-S3method( "print", "summary.mclustICL")
-S3method( "plot", "mclustICL")
+S3method("icl", "Mclust")
+S3method("icl", "MclustDA")
+S3method("print", "mclustICL")
+S3method("summary", "mclustICL")
+S3method("print", "summary.mclustICL")
+S3method("plot", "mclustICL")
 
 export(mclustBootstrapLRT, print.mclustBootstrapLRT, plot.mclustBootstrapLRT)
-S3method( "print", "mclustBootstrapLRT")
-S3method( "plot", "mclustBootstrapLRT")
+S3method("print", "mclustBootstrapLRT")
+S3method("plot", "mclustBootstrapLRT")
 
 export(MclustBootstrap, print.MclustBootstrap, 
        summary.MclustBootstrap, print.summary.MclustBootstrap,
        plot.MclustBootstrap)
-S3method( "print", "MclustBootstrap")
-S3method( "summary", "MclustBootstrap")
-S3method( "print", "summary.MclustBootstrap")
-S3method( "plot", "MclustBootstrap")
+S3method("print", "MclustBootstrap")
+S3method("summary", "MclustBootstrap")
+S3method("print", "summary.MclustBootstrap")
+S3method("plot", "MclustBootstrap")
 
 export(as.Mclust, as.Mclust.default)
 S3method("as.Mclust", "default")
@@ -131,6 +134,23 @@ export(as.densityMclust, as.densityMclust.default,
 S3method("as.densityMclust", "default")
 S3method("as.densityMclust", "Mclust")
 
+export(clustCombi, print.clustCombi, 
+       summary.clustCombi, print.summary.clustCombi,
+       plot.clustCombi, combiPlot, entPlot, combiTree,
+       combMat, clustCombiOptim)
+S3method("plot", "clustCombi")
+S3method("print", "clustCombi")
+S3method("summary", "clustCombi")
+S3method("print", "summary.clustCombi")
+
+export(gmmhd, print.gmmhd, 
+       summary.gmmhd, print.summary.gmmhd, 
+       plot.gmmhd,
+       gmmhdClusterCores, gmmhdClassify)
+S3method("print", "gmmhd")
+S3method("summary", "gmmhd")
+S3method("print", "summary.gmmhd")
+S3method("plot", "gmmhd")
 
 # deprecated functions
 export(cv.MclustDA, cv1EMtrain, bicEMtrain)

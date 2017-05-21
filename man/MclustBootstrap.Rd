@@ -8,7 +8,7 @@
 
 \usage{
 MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "jk"),
-                verbose = TRUE, \dots)
+                verbose = interactive(), \dots)
 }
 
 \arguments{
@@ -21,7 +21,7 @@ MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "jk"),
     \code{"jk"} \tab = jackknife \cr
     }
   }
-  \item{verbose}{A logical, if \code{TRUE} and the session is interactive a text progress bar is displayed during the bootstrap procedure.}
+  \item{verbose}{A logical controlling if a text progress bar is displayed during the resampling procedure. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise.}
   \item{\dots}{Further arguments passed to or from other methods.}
 }
 

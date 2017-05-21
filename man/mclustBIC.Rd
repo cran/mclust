@@ -16,7 +16,8 @@ mclustBIC(data, G = NULL, modelNames = NULL,
                                 subset = NULL, 
                                 noise = NULL), 
           Vinv = NULL, warn = mclust.options("warn"), 
-          x = NULL, \dots)
+          x = NULL, verbose = interactive(), 
+          \dots)
 }
 \arguments{
   \item{data}{
@@ -100,7 +101,12 @@ mclustBIC(data, G = NULL, modelNames = NULL,
      \code{x}. 
      Defaults for \code{G} and \code{modelNames} are taken from \code{x}.
   }
-  \item{\dots }{
+  \item{verbose}{
+    A logical controlling if a text progress bar is displayed during the
+    fitting procedure. By default is \code{TRUE} if the session is 
+    interactive, and \code{FALSE} otherwise..
+  }
+  \item{\dots}{
     Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }

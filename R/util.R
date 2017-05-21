@@ -324,7 +324,7 @@ covw <- function(X, Z, normalize = TRUE)
                     S = double(p*p*G),
                     W = double(p*p*G),
                     PACKAGE = "mclust")
-    
+
     out <- list(mean = matrix(tmp$mean, p,G), 
                 S = array(tmp$S, c(p,p,G)),
                 W = array(tmp$W, c(p,p,G)) )
@@ -335,8 +335,8 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
                      labels = dimnames(data)[[2]], CEX = 1, gap = 0.2, ...) 
 {
   data <- as.matrix(data)
-  n <- nrow(data) # m
-  p <- ncol(data) # n
+  n <- nrow(data)
+  p <- ncol(data)
   if(missing(classification)) 
     classification <- rep(1, n)
   if(!is.factor(classification)) 
@@ -369,8 +369,16 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
       warning("more colors needed")
   }
 
-  pairs(x = data, labels = labels, pch = symbols[classification], 
-        cex = CEX, col = colors[classification], gap = gap, ...)
+  if(p > 2)
+    { pairs(x = data, labels = labels, 
+            pch = symbols[classification], 
+            cex = CEX, col = colors[classification], 
+            gap = gap, ...) }
+  else if(p == 2)
+    { plot(data, cex = CEX, 
+            pch = symbols[classification], 
+            col = colors[classification], 
+            ...) }
   
   invisible(list(class = levels(classification), 
                  col = colors,
@@ -597,142 +605,6 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
   invisible()
 }
 
-imputePairs <- function (x, impx, symbols = c(16,1), colors = c("black", "red"),
-                         labels, panel = points, ...,  
-                         lower.panel = panel, 
-                         upper.panel = panel, 
-                         diag.panel = NULL, 
-                         text.panel = textPanel, 
-                         label.pos = 0.5 + has.diag/3, 
-                         cex.labels = NULL, font.labels = 1, 
-                         row1attop = TRUE, gap = 0.2) 
-{
-  textPanel <- function(x = 0.5, y = 0.5, txt, cex, font) text(x, 
-                                                               y, txt, cex = cex, font = font)
-  localAxis <- function(side, x, y, xpd, bg, col = NULL, main, 
-                        oma, ...) {
-    if (side%%2 == 1) 
-      Axis(x, side = side, xpd = NA, ...)
-    else Axis(y, side = side, xpd = NA, ...)
-  }
-  localPlot <- function(..., main, oma, font.main, cex.main) plot(...)
-  localLowerPanel <- function(..., main, oma, font.main, cex.main) lower.panel(...)
-  localUpperPanel <- function(..., main, oma, font.main, cex.main) upper.panel(...)
-  localDiagPanel <- function(..., main, oma, font.main, cex.main) diag.panel(...)
-  dots <- list(...)
-  nmdots <- names(dots)
-  if (!is.matrix(x)) {
-    x <- as.data.frame(x)
-    for (i in seq_along(names(x))) {
-      if (is.factor(x[[i]]) || is.logical(x[[i]])) 
-        x[[i]] <- as.numeric(x[[i]])
-      if (!is.numeric(unclass(x[[i]]))) 
-        stop("non-numeric argument to 'pairs'")
-    }
-  }
-  else if (!is.numeric(x)) 
-    stop("non-numeric argument to 'pairs'")
-  panel <- match.fun(panel)
-  if ((has.lower <- !is.null(lower.panel)) && !missing(lower.panel)) 
-    lower.panel <- match.fun(lower.panel)
-  if ((has.upper <- !is.null(upper.panel)) && !missing(upper.panel)) 
-    upper.panel <- match.fun(upper.panel)
-  if ((has.diag <- !is.null(diag.panel)) && !missing(diag.panel)) 
-    diag.panel <- match.fun(diag.panel)
-  if (row1attop) {
-    tmp <- lower.panel
-    lower.panel <- upper.panel
-    upper.panel <- tmp
-    tmp <- has.lower
-    has.lower <- has.upper
-    has.upper <- tmp
-  }
-  nc <- ncol(x)
-  if (nc < 2) 
-    stop("only one column in the argument to 'pairs'")
-  has.labs <- TRUE
-  if (missing(labels)) {
-    labels <- colnames(x)
-    if (is.null(labels)) 
-      labels <- paste("var", 1:nc)
-  }
-  else if (is.null(labels)) 
-    has.labs <- FALSE
-  oma <- if ("oma" %in% nmdots) 
-    dots$oma
-  else NULL
-  main <- if ("main" %in% nmdots) 
-    dots$main
-  else NULL
-  if (is.null(oma)) {
-    oma <- c(4, 4, 4, 4)
-    if (!is.null(main)) 
-      oma[3] <- 6
-  }
-  opar <- par(mfrow = c(nc, nc), mar = rep.int(gap/2, 4), oma = oma)
-  on.exit(par(opar))
-  for (i in if (row1attop) 
-    1:nc
-    else nc:1) for (j in 1:nc) {
-      localPlot(impx[, j], impx[, i], xlab = "", ylab = "", axes = FALSE, 
-                type = "n", ...)
-      if (i == j || (i < j && has.lower) || (i > j && has.upper)) {
-        box()
-        if (i == 1 && (!(j%%2) || !has.upper || !has.lower)) 
-          localAxis(1 + 2 * row1attop, impx[, j], impx[, i], 
-                    ...)
-        if (i == nc && (j%%2 || !has.upper || !has.lower)) 
-          localAxis(3 - 2 * row1attop, impx[, j], impx[, i], 
-                    ...)
-        if (j == 1 && (!(i%%2) || !has.upper || !has.lower)) 
-          localAxis(2, impx[, j], impx[, i], ...)
-        if (j == nc && (i%%2 || !has.upper || !has.lower)) 
-          localAxis(4, impx[, j], impx[, i], ...)
-        mfg <- par("mfg")
-        if (i == j) {
-          if (has.diag) 
-            localDiagPanel(as.vector(impx[, i]), ...)
-          if (has.labs) {
-            par(usr = c(0, 1, 0, 1))
-            if (is.null(cex.labels)) {
-              l.wid <- strwidth(labels, "user")
-              cex.labels <- max(0.8, min(2, 0.9/max(l.wid)))
-            }
-            text.panel(0.5, label.pos, labels[i], cex = cex.labels, 
-                       font = font.labels)
-          }
-        }
-        else if (i < j) { 
-          classification <- as.numeric(apply(x[,c(i,j)], 1, 
-                                             function(x) any(is.na(x)))) + 1
-          localLowerPanel(as.vector(impx[, j]), as.vector(impx[, 
-                                                               i]), pch = symbols[classification], 
-                          col = colors[classification], ...)
-        }
-        else {
-          classification <- as.numeric(apply(x[,c(i,j)], 1, 
-                                             function(x) any(is.na(x)))) + 1
-          localUpperPanel(as.vector(impx[, j]), as.vector(impx[, 
-                                                               i]), pch = symbols[classification], 
-                          col = colors[classification], ...)
-        }
-        if (any(par("mfg") != mfg)) 
-          stop("the 'panel' function made a new plot")
-      }
-      else par(new = FALSE)
-    }
-  if (!is.null(main)) {
-    font.main <- if ("font.main" %in% nmdots) 
-      dots$font.main
-    else par("font.main")
-    cex.main <- if ("cex.main" %in% nmdots) 
-      dots$cex.main
-    else par("cex.main")
-    mtext(main, 3, 3, TRUE, 0.5, cex = cex.main, font = font.main)
-  }
-  invisible(NULL)
-}
-
 randProj <- function(data, seeds = 0, 
                      parameters = NULL, z = NULL,
                      classification = NULL, truth = NULL, 
@@ -949,9 +821,10 @@ surfacePlot <- function(data, parameters,
                         type = c("contour", "image", "persp"), 
                         what = c("density", "uncertainty"), 
                         transformation = c("none", "log", "sqrt"), 
-                        grid = 100, nlevels = 11, levels = NULL, col = grey(0.6),
-                        xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
-                        scale = FALSE, main = FALSE, swapAxes = FALSE,
+                        grid = 100, nlevels = 11, levels = NULL, 
+                        col = grey(0.6), xlim = NULL, ylim = NULL, 
+                        xlab = NULL, ylab = NULL, scale = FALSE, 
+                        main = FALSE, swapAxes = FALSE,
                         verbose = FALSE,  ...) 
 {
   grid1 <- function(n, range = c(0, 1), edge = TRUE) {
@@ -994,7 +867,9 @@ surfacePlot <- function(data, parameters,
         parameters$variance$cholsigma[,,k] <- chol(parameters$variance$sigma[,,k])
     }
     cden <- cdensVVV(data = data, parameters = parameters, logarithm = TRUE)
-    pro <- if(is.null(parameters$Vinv)) parameters$pro else  parameters$pro[-1]
+    pro <- parameters$pro
+    if(!is.null(parameters$Vinv)) 
+      pro <- pro[-length(pro)]
     z <- sweep(cden, MARGIN = 2, FUN = "+", STATS = log(pro))
     logden <- apply(z, 1, logsumexp)
     z <- sweep(z, MARGIN = 1, FUN = "-", STATS = logden)
@@ -1075,7 +950,7 @@ surfacePlot <- function(data, parameters,
          stop("what improperly specified"))
   switch(EXPR = TRANS, 
          none = { title1 <- "" }, 
-         log = { zz <- logb(zz)
+         log = { zz <- log(zz)
                  title1 <- "log" }, 
          sqrt = { zz <- sqrt(zz)
                   title1 <- "sqrt" }, 
@@ -1161,8 +1036,9 @@ bubble <- function(x, cex = c(0.2, 3), alpha = c(0.1, 1))
   return(list(cex = cex, alpha = alpha))
 }
 
-#############################################################################
-## Convert to a from classes 'Mclust' and 'densityMclust'
+##
+##-- Convert to a from classes 'Mclust' and 'densityMclust' ------------------
+##
 
 as.Mclust <- function(x, ...)
 { 

@@ -104,8 +104,7 @@ mstep(modelName, data, z, prior = NULL, warn = NULL, \dots)
   \code{\link{mclust.options}}.
 }
 \examples{
-mstep(modelName = "VII", data = iris[,-5], z = unmap(iris[,5]))
+\dontrun{
+mstep(modelName = "VII", data = iris[,-5], z = unmap(iris[,5]))}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

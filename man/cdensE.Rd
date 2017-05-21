@@ -120,7 +120,7 @@ cdensXXX(data, logarithm = FALSE, parameters, warn = NULL, \dots)
   \code{\link{do.call}}.
 }
 \examples{
-
+\dontrun{
 z2 <- unmap(hclass(hcVVV(faithful),2)) # initial value for 2 class case
 
 model <- meVVV(data=faithful, z=z2)
@@ -133,8 +133,6 @@ model <- meEEV(data = cross[,-1], z = z2)
 
 EEVdensities <- cdensEEV( data = cross[,-1], parameters = model$parameters)
 
-cbind(cross[,-1],map(EEVdensities))
+cbind(cross[,-1],map(EEVdensities))}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -111,12 +111,14 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
     niterout <- temp$niterout
     errout <- temp$errout
     lapackSVDinfo <- temp$info
-    WARNING <- NULL
-    if(!is.finite(loglik) | any(is.nan(scale)) |
-       any(is.nan(shape)) | any(is.nan(O)))
+    if( !is.finite(loglik) | 
+        any(scale > signif(.Machine$double.xmax, 6)) |
+        any(shape > signif(.Machine$double.xmax, 6)) |
+        any(O > signif(.Machine$double.xmax, 6)) |
+        any(is.nan(scale)) | any(is.nan(shape)) | any(is.nan(O)) )
       { loglik <- .Machine$double.xmax }
-    
     #
+    WARNING <- NULL
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
             WARNING <- "LAPACK DGESVD fails to converge"
@@ -592,11 +594,14 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
     O <- if(any(is.nan(shape.o))) shape.o else
          svd(shape.o, nu = 0)$v
     pro <- temp$pro
-    WARNING <- NULL
-    if(!is.finite(loglik) | any(is.nan(scale)) |
-       any(is.nan(shape)) | any(is.nan(O)))
+    if( !is.finite(loglik) | 
+        any(scale > signif(.Machine$double.xmax, 6)) |
+        any(shape > signif(.Machine$double.xmax, 6)) |
+        any(O > signif(.Machine$double.xmax, 6)) |
+        any(is.nan(scale)) | any(is.nan(shape)) | any(is.nan(O)) )
       { loglik <- .Machine$double.xmax }
     #
+    WARNING <- NULL
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
             WARNING <- "LAPACK DSYEV or DPOTRI fails to converge"
@@ -1102,11 +1107,14 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
     shape <- matrix(temp$shape, p,G)
     O <- t( matrix(temp$O, p,p) )
     pro <- temp$pro
-    WARNING <- NULL
-    if(!is.finite(loglik) | any(is.nan(scale)) |
-       any(is.nan(shape)) | any(is.nan(O)))
+    if( !is.finite(loglik) | 
+        any(scale > signif(.Machine$double.xmax, 6)) |
+        any(shape > signif(.Machine$double.xmax, 6)) |
+        any(O > signif(.Machine$double.xmax, 6)) |
+        any(is.nan(scale)) | any(is.nan(shape)) | any(is.nan(O)) )
       { loglik <- .Machine$double.xmax }
     #
+    WARNING <- NULL
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
             WARNING <- "LAPACK DSYEV or DGESVD fails to converge"
@@ -1621,8 +1629,8 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
         any(O > signif(.Machine$double.xmax, 6)) |
         any(is.nan(scale)) | any(is.nan(shape)) | any(is.nan(O)) )
       { loglik <- .Machine$double.xmax }
-    WARNING <- NULL
     #
+    WARNING <- NULL
     if(lapackSVDinfo) {
         if(lapackSVDinfo > 0) {
             WARNING <- "LAPACK DSYEV or DGESVD fails to converge"
@@ -2014,7 +2022,6 @@ simVVE <- function(parameters, n, seed = NULL, ...)
 }
 
 
-
 #############################################################################
 # Examples of some simple R wrapper functions
 
@@ -2030,4 +2037,3 @@ fcrossprod <- function(X, Y, ...)
                   PACKAGE = "mclust")
   return(out$XTY)
 }
-

@@ -173,10 +173,11 @@ emXXX(data, prior = NULL, warn = NULL, \dots)
   \code{\link{mclust.options}}.
 }
 \examples{
+\dontrun{
 msEst <- mstepEEE(data = iris[,-5], z = unmap(iris[,5]))
 names(msEst)
 
-emEEE(data = iris[,-5], parameters = msEst$parameters)
+emEEE(data = iris[,-5], parameters = msEst$parameters)}
 }
  \keyword{cluster}
 % docclass is function

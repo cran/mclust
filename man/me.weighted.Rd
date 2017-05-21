@@ -142,11 +142,10 @@ me.weighted(modelName, data, z, weights = NULL, prior = NULL,
   \code{\link{mclust.options}}
 }
 \examples{
+\dontrun{
 w <- rep(1,150)
 w[1] <- 0
-me.weighted(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]),weights=w)
+me.weighted(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]),weights=w)}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.
 

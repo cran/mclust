@@ -6,7 +6,9 @@
 # Bootstrap Likelihood Ratio Test
 #
 
-mclustBootstrapLRT <- function(data, modelName = NULL, nboot = 999, level = 0.05, maxG = NULL, verbose = TRUE, ...)
+mclustBootstrapLRT <- function(data, modelName = NULL, 
+                               nboot = 999, level = 0.05, maxG = NULL, 
+                               verbose = interactive(), ...)
 {
   if(is.null(modelName))
     stop("A 'modelName' must be provided. Please see help(mclustModelNames) which describes the available models.")
@@ -23,10 +25,11 @@ mclustBootstrapLRT <- function(data, modelName = NULL, nboot = 999, level = 0.05
   # maxG <- max(G)
   # G <- setdiff(G, maxG)
   
-  if(verbose & interactive()) 
+  if(verbose) 
     { cat("bootstrapping LRTS ...\n")
       flush.console()
-      pbar <- txtProgressBar(min = 0, max = (max(G)-1)*nboot, style = 3) 
+      pbar <- txtProgressBar(min = 0, max = (max(G)-1)*nboot, style = 3)
+      on.exit(close(pbar))
   }
 
   obsLRTS <- p.value <- vector("numeric", length = max(G)-1)
@@ -56,18 +59,18 @@ mclustBootstrapLRT <- function(data, modelName = NULL, nboot = 999, level = 0.05
       LRTS <- 2*(bootMod1$loglik - bootMod0$loglik)
       if(is.na(LRTS)) { b <- b - 1; next() }
       bootLRTS[b,g] <- LRTS 
-      if(verbose & interactive()) 
+      if(verbose) 
         setTxtProgressBar(pbar, (g-1)*nboot+b)
     }
     p.value[g] <- (1 + sum(bootLRTS[,g] >= obsLRTS[g]))/(nboot+1)
     # check if not-significant when no maxG is provided
     if(is.null(maxG) & p.value[g] > level) 
       { continue <- FALSE
-        if(verbose & interactive()) 
+        if(verbose) 
           setTxtProgressBar(pbar, (max(G)-1)*nboot) 
       }
   }
-  if(verbose & interactive()) close(pbar)
+  # if(verbose) close(pbar)
   out <- list(G = 1:g, 
               modelName = modelName,
               obs = obsLRTS[1:g],
@@ -112,7 +115,7 @@ plot.mclustBootstrapLRT <- function(x, G = 1, hist.col = "grey", hist.border = "
 # Bootstrap inference (standard errors and percentile confidence intervals) 
 #
 
-MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), verbose = TRUE, ...)
+MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), verbose = interactive(), ...)
 {
   
   if(!any(class(object) %in% c("Mclust", "densityMclust")))
@@ -138,10 +141,11 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
   var.boot  <- array(NA, c(nboot,d,d,G),
                      dimnames = list(NULL, varnames, varnames, seq.int(G)))
 
-  if(verbose & interactive()) 
-    { cat("resampling Mclust model ...\n")
+  if(verbose) 
+    { cat("resampling ...\n")
       flush.console()
       pbar <- txtProgressBar(min = 0, max = nboot, style = 3) 
+      on.exit(close(pbar))
     }
   b <- nonfit <- 0
   while(b < nboot)
@@ -151,7 +155,7 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
            "bs" = 
            { idx <- sample(seq_len(n), size = n, replace = TRUE)
              obj$data <- object$data[idx,]
-             obj$z <- obj$z[idx,]
+             obj$z <- object$z[idx,]
              obj$warn <- FALSE
              mod.boot <- try(do.call("me", obj), silent = TRUE)
            },
@@ -166,7 +170,7 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
            "jk" =
            { idx <- seq_len(n)[-b]
              obj$data <- object$data[idx,]
-             obj$z <- obj$z[idx,]
+             obj$z <- object$z[idx,]
              obj$warn <- FALSE
              mod.boot <- try(do.call("me", obj), silent = TRUE)
            }
@@ -179,21 +183,23 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
       { b <- b - 1; nonfit <- nonfit + 1; next() }
     
     if(type == "jk")
-      { pro.boot[b,]   <- n*object$parameters$pro - 
+      { # pseudovalues
+        pro.boot[b,]   <- n*object$parameters$pro - 
                           (n-1)*mod.boot$parameters$pro
         mean.boot[b,,] <- n*object$parameters$mean - 
                           (n-1)*mod.boot$parameters$mean
         var.boot[b,,,] <- n*object$parameters$variance$sigma - 
                           (n-1)*mod.boot$parameters$variance$sigma
     } else 
-      { pro.boot[b,]   <- mod.boot$parameters$pro
+      { # bootstrap values
+        pro.boot[b,]   <- mod.boot$parameters$pro
         mean.boot[b,,] <- mod.boot$parameters$mean
         var.boot[b,,,] <- mod.boot$parameters$variance$sigma
     }
 
-    if(verbose & interactive()) setTxtProgressBar(pbar, b)
+    if(verbose) setTxtProgressBar(pbar, b)
   }
-  if(verbose & interactive()) close(pbar)
+  # if(verbose) close(pbar)
   
   out <- list(G = G, 
               modelName = object$modelName, 
@@ -309,7 +315,7 @@ summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0
   if(what == "ci")
     { levels <- c((1-conf.level)/2, (1 + conf.level)/2)
       if(object$type == "jk")
-      { # normal-approximation ci
+      { # bias-corrected ci based on normal-approximation
         ave <- list(pro  = apply(object$pro, 2, mean),
                     mean = apply(object$mean, c(2,3), mean),
                     variance  = t(sapply(seq.int(d), function(j)

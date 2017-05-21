@@ -73,15 +73,14 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
   \code{\link{do.call}}
 }
 \examples{
+\dontrun{
 faithfulModel <- Mclust(faithful)
 Dens <- dens(modelName = faithfulModel$modelName, data = faithful,
              parameters = faithfulModel$parameters)
 Dens
 
-\dontrun{
 ## alternative call
-do.call("dens", faithfulModel)
-}
+do.call("dens", faithfulModel)}
 }
 \keyword{cluster}
 

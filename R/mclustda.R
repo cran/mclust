@@ -1,8 +1,8 @@
 MclustDA <- function(data, class, G = NULL, modelNames = NULL, 
                      modelType = c("MclustDA", "EDDA"), 
                      prior = NULL, control = emControl(), 
-                     initialization = NULL, warn = mclust.options("warn"), 
-                     ...) 
+                     initialization = NULL, warn = mclust.options("warn"),
+                     verbose = interactive(), ...) 
 {
   call <- match.call()
   mc <- match.call(expand.dots = TRUE)
@@ -53,6 +53,13 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     modelNames <- unique(unlist(modelNames))
     BIC <- rep(NA, length(modelNames))
     Model <- NULL
+    if(verbose) 
+      { cat("fitting ...\n")
+        flush.console()
+        pbar <- txtProgressBar(min = 0, max = length(modelNames), style = 3) 
+        on.exit(close(pbar))
+        ipbar <- 0
+    }
     for(i in seq(modelNames))
        { mc$modelName <- as.character(modelNames[i])
          mStep <- eval(mc, parent.frame())
@@ -60,6 +67,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
          BIC[i] <- do.call("bic", c(eStep, list(equalPro = TRUE)))
          if(!is.na(BIC[i]) && BIC[i] >= max(BIC, na.rm = TRUE))
            Model <- eStep
+         if(verbose) 
+           { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
     }
     if(all(is.na(BIC)))
       { warning("No model(s) can be estimated!!")
@@ -70,6 +79,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     df <- (2*loglik - bic)/log(Model$n)
     # there are (nclass-1) more df than real needed
     # equal to logLik(object) but faster
+    Model <- c(Model, list("BIC" = BIC))
     Models <- rep(list(Model), ncl)
     names(Models) <- classLabel
     for(l in 1:ncl)
@@ -123,6 +133,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
          mc[[2]] <- data[I,]
          mc$G <- G[[l]]
          mc$modelNames <- as.character(modelNames[[l]])
+         if(verbose) cat(paste0("Class ", classLabel[l], ": "))
          BIC <- eval(mc, parent.frame())
          # slightly adjust parameters if none of the models can be fitted
          while(all(is.na(BIC)))
@@ -135,8 +146,10 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
              { mc$G <- mc$G - 1 }
            BIC <- eval(mc, parent.frame())
          }
-      SUMMARY <- summary(BIC, data[I,])
-      Models[[l]] <- c(SUMMARY, list(observations = which(I)))
+         SUMMARY <- summary(BIC, data[I,])
+         SUMMARY$bic <- BIC; 
+         names(SUMMARY)[which(names(SUMMARY) == "bic")] <- "BIC"
+         Models[[l]] <- c(SUMMARY, list(observations = which(I)))
     }
     # extract info for each model
     # bic <- sapply(Models, function(mod) max(mod$bic, na.rm=TRUE))
@@ -359,6 +372,7 @@ logLik.MclustDA <- function (object, data, ...)
   par <- getParameters.MclustDA(object)
   nclass <- length(par)
   fclass <- sapply(object$models, function(m) m$n)/n
+  logfclass <- log(fclass)
   G <- sapply(par, function(x) length(x$pro))
   if(object$type == "EDDA") 
     { df <- d * nclass + nVarParams(object$models[[1]]$modelName, 
@@ -368,9 +382,13 @@ logLik.MclustDA <- function (object, data, ...)
     { df <- sum(sapply(object$models, function(mod) with(mod, 
                        (G - 1) + G * d + nVarParams(modelName, d = d, G = G))))
   }
+  # ll <- sapply(object$models, function(mod) 
+  #       { do.call("dens", c(list(data = data, logarithm = FALSE), mod)) })
+  # l <- sum(log(apply(ll, 1, function(l) sum(fclass*l))))
   ll <- sapply(object$models, function(mod) 
-               { do.call("dens", c(list(data = data), mod)) })
-  l <- sum(log(apply(ll, 1, function(l) sum(fclass*l))))
+        { do.call("dens", c(list(data = data, logarithm = TRUE), mod)) })
+  l <- sum(apply(ll, 1, function(l) logsumexp(logfclass+l)))
+    
   attr(l, "nobs") <- n
   attr(l, "df") <- df
   class(l) <- "logLik"
@@ -815,7 +833,7 @@ mapClass <- function(a, b)
   list(aTOb = aTOb, bTOa = bTOa)
 }
 
-cvMclustDA <- function(object, nfold = 10, verbose = TRUE, ...) 
+cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...) 
 {
 # nfold-cross validation (CV) prediction error for mclustDA
 # if nfold=n returns leave-one-out CV
@@ -835,10 +853,11 @@ cvMclustDA <- function(object, nfold = 10, verbose = TRUE, ...)
   err <- rep(NA, nfold)
   cvclass <- factor(rep(NA, n), levels = levels(class))
   
-  if(verbose & interactive()) 
-    { cat("cross-validating...\n")
+  if(verbose)
+    { cat("cross-validating ...\n")
       flush.console()
-      pbar <- txtProgressBar(min = 0, max = nfold, style = 3) 
+      pbar <- txtProgressBar(min = 0, max = nfold, style = 3)
+      on.exit(close(pbar))
   }
   
   for(i in 1:nfold)
@@ -849,16 +868,15 @@ cvMclustDA <- function(object, nfold = 10, verbose = TRUE, ...)
     call$class <- y
     call$G <- G
     call$modelNames <- modelName
+    call$verbose <- FALSE
     mod <- eval(call, parent.frame())
     modTest <- predict(mod, data[folds[[i]],,drop=FALSE])
     classTest <- modTest$classification
     cvclass[folds[[i]]] <- classTest
     err[i] <- length(classTest) - sum(classTest == class[folds[[i]]], na.rm = TRUE)
-    if(verbose & interactive()) 
+    if(verbose) 
       setTxtProgressBar(pbar, i)
   }
-  if(verbose & interactive()) 
-    close(pbar)
   #    
   cv.error <- sum(err)/n
   folds.size <- sapply(folds,length)

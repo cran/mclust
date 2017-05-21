@@ -32,11 +32,6 @@ J.-P. Baudry, A. E. Raftery, L. Scrucca
 \seealso{
 \code{\link{clustCombi}}, \code{\link{combiPlot}}
 }
-\examples{
-
-# Please see the documentation for the combiPlot function for an 
-# illustration of how to use this function
-
-}
+%\examples{}
 \keyword{ cluster }
 

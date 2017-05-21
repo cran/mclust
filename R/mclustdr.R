@@ -6,6 +6,9 @@
 ## Author: Luca Scrucca                             ##
 ######################################################
 
+
+# GMMDR dimension reduction -----------------------------------------------
+
 MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(.Machine$double.eps))
 {
   #  Dimension reduction for model-based clustering and classification
@@ -17,11 +20,6 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   call <- match.call()
   if(!any(class(object) %in% c("Mclust", "MclustDA")))
     stop("object must be of class 'Mclust' or 'MclustDA'")
-  
-  normalize <- function(x) 
-  { x <- as.vector(x)
-    x/sqrt(crossprod(x))
-  }
   
   x <- data.matrix(object$data)
   p <- ncol(x)
@@ -42,6 +40,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
     par <- object$parameters
     f <- par$pro
     if(is.null(f)) f <- 1
+    if(!is.na(object$hypvol)) f <- f[-length(f)]
     # within-group means
     mu.G <- matrix(par$mean,p,G) 
     # within-group covars
@@ -117,7 +116,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   SVD <- eigen.decomp(M, Sigma)
   l <- SVD$l; l <- (l+abs(l))/2
   numdir <- min(p, sum(l > sqrt(.Machine$double.eps)))
-  basis <- as.matrix(SVD$v)[,1:numdir,drop=FALSE]
+  basis <- as.matrix(SVD$v)[,seq(numdir),drop=FALSE]
   sdx <- diag(Sigma)
   std.basis <- as.matrix(apply(basis, 2, function(x) x*sdx))  
   if(normalized)
@@ -156,7 +155,7 @@ print.MclustDR <- function(x, ...)
 summary.MclustDR <- function(object, numdir, std = FALSE, ...)
 {
   if(missing(numdir)) numdir <- object$numdir
-  dim <- 1:numdir
+  dim <- seq(numdir)
   
   if(object$type == "Mclust")
   { n <- as.vector(table(object$class))
@@ -469,11 +468,11 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
           col = adjustcolor(colors[1:G], alpha.f = 0.1),
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
           xaxs = "i", yaxs = "i", asp = asp)
-    for(j in 1:G)         
-       { z <- ifelse(pred$classification == j, 1, -1)
-         contour(pred$x, pred$y, z, col = col.sep,
-                 add = TRUE, levels = 0, drawlabels = FALSE) 
-    }
+    # for(j in 1:G)         
+    #    { z <- ifelse(pred$classification == j, 1, -1)
+    #      contour(pred$x, pred$y, z, col = col.sep,
+    #              add = TRUE, levels = 0, drawlabels = FALSE) 
+    # }
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
@@ -490,11 +489,11 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
           col = adjustcolor(colors[1:nclass], alpha.f = 0.1),
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
           xaxs = "i", yaxs = "i", asp = asp)
-    for(j in 1:nclass)
-       { z <- ifelse(pred$classification == j, 1, -1)
-         contour(pred$x, pred$y, z, col = col.sep,
-                 add = TRUE, levels = 0, drawlabels = FALSE) 
-    }
+    # for(j in 1:nclass)
+    #    { z <- ifelse(pred$classification == j, 1, -1)
+    #      contour(pred$x, pred$y, z, col = col.sep,
+    #              add = TRUE, levels = 0, drawlabels = FALSE) 
+    # }
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
@@ -630,7 +629,7 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, .
 }
 
 
-# Auxiliary functions
+# Auxiliary functions -----------------------------------------------------
 
 mvdnorm <- function(x, mu, sigma, log = FALSE, tol = sqrt(.Machine$double.eps))
 {
@@ -701,3 +700,364 @@ eigen.decomp <- function(A, B)
   svd <- svd(A, nu=0)
   list(l = svd$d, v = inv.sqrt.B  %*% svd$v)
 }
+
+
+# Subset selection of GMMDR/GMMDRC directions -----------------------------
+
+MclustDRsubsel <- function(object, G = 1:9,
+                           modelNames = mclust.options("emModelNames"), 
+                           ..., 
+                           bic.stop = 0, bic.cutoff = 0, 
+                           mindir = 1, 
+                           verbose = interactive())
+{
+# Subset selection for GMMDR directions based on bayes factors.
+#
+# object     = a MclustDR object
+# G          = a vector of cluster sizes for searching 
+# modelNames = a vector of models for searching 
+# ...        = further arguments passed through Mclust/MclustDA
+# bic.stop   = criterion to stop the search. If maximal BIC difference is
+#              less than bic.stop the algorithm stops. 
+#              Two tipical values are:
+#              0    = stops when BIC difference becomes negative (default)
+#              -Inf = stops when all directions have been selected 
+# bic.cutoff = select simplest ``best'' model within bic.cutoff from the
+#              maximum value achieved. Setting this to 0 (default) simply
+#              select the model with the largest BIC difference.
+# mindir     = the minimum number of diretions to be estimated
+# verbose    = if 0 no trace info is shown; if 1 a trace of each step 
+#              of the search is printed; if 2 a detailed trace info is
+#              is shown.
+
+  if(class(object) != "MclustDR") 
+    stop("Not a 'MclustDR' object")
+  
+  hcUse <- mclust.options("hcUse")
+  mclust.options("hcUse" = "VARS")
+  on.exit(mclust.options("hcUse" = hcUse))  
+  mc <- match.call(expand.dots = TRUE)
+  mc[[1]] <- switch(object$type, 
+                    "Mclust"   = as.name("MclustDRsubsel_cluster"),
+                    "EDDA"     = as.name("MclustDRsubsel_classif"),
+                    "MclustDA" = as.name("MclustDRsubsel_classif"),
+                    stop("Not allowed 'MclustDR' type!"))
+  eval(mc, parent.frame())
+}
+
+MclustDRsubsel_cluster <- function(object, G = 1:9,
+                                   modelNames = mclust.options("emModelNames"), 
+                                   ..., 
+                                   bic.stop = 0, bic.cutoff = 0, 
+                                   mindir = 1, 
+                                   verbose = interactive())
+{
+  drmodel <- object
+  mclustType <- drmodel$type
+  lambda <- drmodel$lambda
+  numdir <- drmodel$numdir
+  numdir0 <- numdir+1
+  dir <- drmodel$dir[,seq(numdir),drop=FALSE]
+  mindir <- max(1, as.numeric(mindir), na.rm = TRUE)
+  verbose <- as.numeric(verbose)
+  ncycle <- 0
+  while(numdir < numdir0)
+  { ncycle <- ncycle+1
+    if(verbose > 0) cat("\nCycle", ncycle, "...\n")
+    out <- MclustDRsubsel1cycle(drmodel, 
+                                G, modelNames, 
+                                bic.stop = bic.stop, 
+                                bic.cutoff = bic.cutoff, 
+                                verbose = if(verbose > 1) TRUE else FALSE)
+    if(verbose > 0) { cat("\n"); print(out$tab) }
+    mod <- do.call("Mclust", 
+                   list(data = dir[,out$subset,drop=FALSE], 
+                        G = G, 
+                        modelNames = if(length(out$subset) > 1)
+                                        modelNames else c("E", "V"),
+                        verbose = FALSE, ...))
+    numdir0 <- numdir
+    drmodel0 <- MclustDR(mod, lambda = lambda)
+    if(drmodel0$numdir < mindir) break
+    drmodel <- drmodel0
+    numdir <- drmodel$numdir
+    dir <- drmodel$dir[,seq(numdir),drop=FALSE]
+  }
+  
+  # format object using original data
+  obj <- drmodel
+  obj$basisx <- MclustDRrecoverdir(obj, data = object$x, std = FALSE)
+  obj$std.basisx <- MclustDRrecoverdir(obj, data = object$x, std = TRUE)
+  class(obj) <- c("MclustDRsubsel", class(obj))
+  return(obj)
+}
+  
+MclustDRsubsel1cycle <- function(object, 
+                                 G = 1:9, 
+                                 modelNames = mclust.options("emModelNames"), 
+                                 bic.stop = 0, bic.cutoff = 0, 
+                                 verbose = interactive())
+{
+# Single cycle of subset selection for GMMDR directions based on bayes factors.
+
+  if(class(object) != "MclustDR") 
+    stop("Not a 'MclustDR' object")
+
+  d <- object$numdir
+  dir <- object$dir[,seq(d),drop=FALSE]
+  n <- nrow(dir)
+  if(is.null(colnames(dir)))
+     colnames(dir) = paste("[,", 1:d, "]", sep="")
+  dir.names <- colnames(dir)
+  BIC <- Model1 <- Model2 <- tab <- NULL; Model1$bic <- 0
+  bic.stop <- bic.stop + sqrt(.Machine$double.eps)
+  bic.cutoff <- bic.cutoff + sqrt(.Machine$double.eps)
+  inc <- NULL; excl <- seq(1,d)
+  model1D <- if(any(grep("V", modelNames))) c("E", "V") else "E"
+  #
+  hskip <- paste(rep(" ",4),collapse="")
+  if(verbose) cat("\n", hskip, "Start greedy search...\n", sep="")
+  
+  while(length(excl)>0)
+       { if(verbose) 
+           { cat(hskip, rep("-",15), "\n", sep="")
+             cat(paste(hskip, "Step", length(inc)+1, "\n")) }
+         for(j in excl)
+            { # Select simplest model with smallest num. of components 
+              # within bic.cutoff
+              bic <- mclustBIC(dir[,sort(c(inc, j)),drop=FALSE], 
+                               G = G, 
+                               modelNames = if(length(inc)>0) modelNames else model1D,
+                               verbose = FALSE)
+              bic.tab <- (as.matrix(max(bic, na.rm=TRUE) - bic) < bic.cutoff)*1
+              bestG   <- which(rowSums(bic.tab, na.rm=TRUE) > 0)[1]
+              bestmod <- which(bic.tab[bestG,,drop=FALSE] > 0)[1]
+              out <- data.frame(Variable = dir.names[j],
+                                model = colnames(bic.tab)[bestmod],
+                                G = G[bestG],
+                                bic = c(bic[bestG,bestmod]),
+                                bic.diff = c(bic[bestG,bestmod] - 
+                                             Model1$bic -
+                                             MclustDRBICreg(dir[,j], dir[,inc]))
+                               )
+              #
+              Model2 <- rbind(Model2, out)
+            }
+         if(verbose) print(cbind(" " = hskip, Model2), row.names = FALSE)
+         
+         # stop if max BIC difference is < than cut-off bic.stop
+         if(max(Model2$bic.diff) < bic.stop & length(inc) > 0) 
+           { break }
+         # otherwise keep selecting
+         i <- which.max(Model2$bic.diff)
+         inc <- append(inc, excl[i])
+         excl <- setdiff(excl, excl[i])
+         tab <- rbind(tab, Model2[i,])
+         Model1 <- Model2[i,]
+         Model2 <- NULL
+       }
+  rownames(tab) <- 1:nrow(tab)
+  colnames(tab) <- c("Variable", "Model", "G", "BIC", "BIC.dif")
+  subsets <- sapply(1:nrow(tab), function(x) list(inc[1:x]))
+  #
+  return(list(subset = subsets[[length(subsets)]], tab = tab))
+}
+
+MclustDRsubsel_classif <- function(object, 
+                                   G = 1:9, modelNames = mclust.options("emModelNames"), 
+                                   ..., 
+                                   bic.stop = 0, bic.cutoff = 0, 
+                                   mindir = 1, 
+                                   verbose = interactive())
+{
+  drmodel <- object
+  mclustType <- drmodel$type
+  lambda <- drmodel$lambda
+  numdir <- drmodel$numdir
+  numdir0 <- numdir+1
+  dir <- drmodel$dir[,seq(numdir),drop=FALSE]
+  mindir <- max(1, as.numeric(mindir), na.rm = TRUE)
+  verbose <- as.numeric(verbose)
+  ncycle <- 0
+  while(numdir < numdir0)
+  { ncycle <- ncycle+1
+    if(verbose > 0) cat("\nCycle", ncycle, "...\n")
+    out <- MclustDRCsubsel1cycle(drmodel, 
+                                 G, modelNames, 
+                                 bic.stop = bic.stop, 
+                                 bic.cutoff = bic.cutoff, 
+                                 verbose = if(verbose > 1) TRUE else FALSE)
+    if(verbose > 0) { cat("\n"); print(out$tab) }
+    mod <- do.call("MclustDA", list(data = dir[,out$subset,drop=FALSE], 
+                                    class = object$class,
+                                    G = G, 
+                                    modelNames = if(length(out$subset) > 1) modelNames
+                                                 else if(any(grep("V", modelNames))) 
+                                                        c("E", "V") else "E",
+                                    modelType = mclustType,
+                                    verbose = FALSE, ...))
+    numdir0 <- numdir
+    drmodel0 <- MclustDR(mod, lambda = lambda)
+    if(drmodel0$numdir < mindir) break
+    drmodel <- drmodel0
+    numdir <- drmodel$numdir
+    dir <- drmodel$dir[,seq(numdir),drop=FALSE]
+  }
+  
+  # format object using original data
+  obj <- drmodel
+  obj$basisx <- MclustDRrecoverdir(obj, data = object$x, std = FALSE)
+  obj$std.basisx <- MclustDRrecoverdir(obj, data = object$x, std = TRUE)
+  class(obj) <- c("MclustDRsubsel", class(obj))
+  return(obj)
+}
+  
+MclustDRCsubsel1cycle <- function(object, 
+                                  G = 1:9, 
+                                  modelNames = mclust.options("emModelNames"), 
+                                  bic.stop = 0, bic.cutoff = 0, 
+                                  verbose = TRUE)
+{
+# Single cycle of subset selection for GMMDRC directions based on bayes factors.
+
+  if(class(object) != "MclustDR") 
+    stop("Not a 'MclustDR' object")
+
+  d <- object$numdir
+  dir <- object$dir[,seq(d),drop=FALSE]
+  n <- nrow(dir)
+  if(is.null(colnames(dir)))
+     colnames(dir) = paste("[,", seq(d), "]", sep="")
+  dir.names <- colnames(dir)
+  BIC <- Model1 <- Model2 <- tab <- NULL; Model1$bic <- 0
+  bic.stop <- bic.stop + sqrt(.Machine$double.eps)
+  bic.cutoff <- bic.cutoff + sqrt(.Machine$double.eps)
+  inc <- NULL; excl <- seq(d)
+  model1D <- if(any(grep("V", modelNames))) c("E", "V") else "E"
+  #
+  hskip <- paste(rep(" ",4),collapse="")
+  if(verbose) cat("\n", hskip, "Start greedy search...\n", sep="")
+  
+  while(length(excl)>0)
+       { if(verbose) 
+           { cat(hskip, rep("-",15), "\n", sep="")
+             cat(paste(hskip, "Step", length(inc)+1, "\n")) }
+         for(j in excl)
+            { # Select simplest model with smallest num. of components 
+              # within bic.cutoff
+              mod <- MclustDA(dir[,sort(c(inc, j)),drop=FALSE], 
+                              class = object$class,
+                              G = G, 
+                              modelNames = if(length(inc)>0) modelNames else model1D,
+                              modelType = object$type,
+                              verbose = FALSE)
+              out <- data.frame(Variable = dir.names[j],
+                                model = paste(sapply(mod$models, function(m) m$modelName),collapse="|"),
+                                G = paste(sapply(mod$models, function(m) m$G),collapse="|"),
+                                bic = mod$bic,
+                                bic.diff = c(mod$bic - 
+                                             # (Model1$bic + bic.reg(z2, z1))
+                                             Model1$bic -
+                                             MclustDRBICreg(dir[,j], dir[,inc]))
+                               )
+              #
+              Model2 <- rbind(Model2, out)
+            }
+         if(verbose) print(cbind(" " = hskip, Model2), row.names = FALSE)
+         
+         # stop if max BIC difference is < than cut-off bic.stop
+         if(max(Model2$bic.dif) < bic.stop & length(inc) > 0) 
+           { break }
+         # otherwise keep selecting
+         i <- which.max(Model2$bic.dif)
+         inc <- append(inc, excl[i])
+         excl <- setdiff(excl, excl[i])
+         tab <- rbind(tab, Model2[i,])
+         Model1 <- Model2[i,]
+         Model2 <- NULL
+       }
+  rownames(tab) <- 1:nrow(tab)
+  colnames(tab) <- c("Variable", "Model", "G", "BIC", "BIC.dif")
+  subsets <- sapply(1:nrow(tab), function(x) list(inc[1:x]))
+  #
+  return(list(subset = subsets[[length(subsets)]], tab = tab))
+}
+
+# BICreg <- function(y, x)
+# { n <- length(y)
+#   mod <- lm.fit(cbind(rep(1,n), x), y)
+#   rss <- sum(mod$residuals^2)
+#   -n*log(2*pi) - n*log(rss/n) - n - (n - mod$df.residual + 1) * log(n) 
+# }
+
+MclustDRBICreg <- function(y, x, stepwise = TRUE)
+{ 
+  x <- as.matrix(x)
+  y <- as.vector(y)
+  n <- length(y)
+  mod0 <- lm(y ~ 1)
+  if(ncol(x) >= 1)
+    { mod1 <- lm(y ~ 1+x)
+      if(stepwise) 
+        { mod <- step(mod0, k = log(n), trace = 0,
+                      scope = list(lower = formula(mod0), 
+                                   upper = formula(mod1)),
+                      direction = "forward") }
+       else mod <- mod1
+  }
+  else mod <- mod0
+  rss <- sum(mod$residuals^2)
+  p <- (n - mod$df.residual + 1)
+  -n*log(2*pi) - n*log(rss/n) - n - p*log(n) 
+}
+
+normalize <- function(x)
+{
+# Normalize the vector x to have unit length
+  x <- as.vector(x)
+  x <- x/sqrt(as.vector(crossprod(x)))
+  return(x)
+}
+
+MclustDRrecoverdir <- function(object, data, normalized = TRUE, std = FALSE)
+{
+# Recover coefficients of the linear combination defining the MclustDR
+# directions. This is useful if the directions are obtained from other 
+# directions
+
+  if(!any(class(object) == "MclustDR"))
+    stop("object must be of class mclustsir")
+  if(missing(data)) x <- object$x
+  else              x <- as.matrix(data)
+  x <- scale(x, center=TRUE, scale=FALSE)
+  numdir <- object$numdir
+  dir <- object$dir[,seq(numdir),drop=FALSE]
+  # B <- as.matrix(coef(lm(dir ~ x)))[-1,,drop=FALSE] # ok but old
+  B <- qr.solve(x, dir)  
+  if(std) 
+    { sdx <- sd(x)
+      B <- apply(B, 2, function(x) x*sdx) }
+  if(normalized) 
+    { B <- as.matrix(apply(B, 2, normalize)) }
+  rownames(B) <- colnames(x)
+  return(B)
+}
+
+## Define print and summary methods for showing basis coefs 
+## in the original scale of variables
+
+print.MclustDRsubsel <- function(x, ...)
+{
+  x$basis <- x$basisx
+  class(x) <- class(x)[2]
+  NextMethod()
+} 
+  
+summary.MclustDRsubsel <- function(object, ...)
+{
+  object$basis <- object$basisx
+  object$std.basis <- object$std.basisx
+  class(object) <- class(object)[2]
+  NextMethod()
+} 
+

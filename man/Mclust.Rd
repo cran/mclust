@@ -14,7 +14,8 @@ Mclust(data, G = NULL, modelNames = NULL,
        control = emControl(), 
        initialization = NULL, 
        warn = mclust.options("warn"), 
-       x =  NULL, \dots)
+       x =  NULL, 
+       verbose = interactive(), \dots)
 }
 \arguments{
   \item{data}{
@@ -49,7 +50,7 @@ Mclust(data, G = NULL, modelNames = NULL,
     A list of control parameters for EM. The defaults are set by the call
     \code{emControl()}. 
   }
- \item{initialization}{
+  \item{initialization}{
     A list containing zero or more of the following components:
   \describe{
   \item{\code{hcPairs}}{
@@ -59,21 +60,18 @@ Mclust(data, G = NULL, modelNames = NULL,
     \code{hc} with \code{modelName = "VVV"} to the data or a subset as
     indicated by the \code{subset} argument.
     The hierarchical clustering results are to start EM.
-    For univariate data, the default is to use quantiles to start EM.
-  }
+    For univariate data, the default is to use quantiles to start EM.}
   \item{\code{subset}}{
     A logical or numeric vector specifying a subset of the data
-    to be used in the initial hierarchical clustering phase.
-  }
+    to be used in the initial hierarchical clustering phase.}
   \item{\code{noise}}{
     A logical or numeric vector indicating an initial guess as to
     which observations are noise in the data. If numeric the entries
     should correspond to row indexes of the data. If supplied, a noise
-    term will be added to the model in the estimation.
+    term will be added to the model in the estimation.}
    }
   }
- }
- \item{warn}{
+  \item{warn}{
     A logical value indicating whether or not certain warnings 
     (usually related to singularity) should be issued.
     The default is controlled by \code{\link{mclust.options}}.
@@ -87,7 +85,12 @@ Mclust(data, G = NULL, modelNames = NULL,
      attributes of \code{x}. Defaults for \code{G} and \code{modelNames}
      are taken from \code{x}.
   }
-  \item{\dots }{
+  \item{verbose}{
+    A logical controlling if a text progress bar is displayed during the
+    fitting procedure. By default is \code{TRUE} if the session is 
+    interactive, and \code{FALSE} otherwise..
+  }
+  \item{\dots}{
     Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }

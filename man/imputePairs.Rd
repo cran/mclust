@@ -9,21 +9,22 @@
   colors and symbols than non missing values.
 }
 \usage{
-imputePairs(x, impx, symbols = c(16,1), colors = c("black", "red"), labels,
-        panel = points, ..., lower.panel = panel, upper.panel = panel, 
-        diag.panel = NULL, text.panel = textPanel, label.pos = 0.5 + 
-        has.diag/3, cex.labels = NULL, font.labels = 1, row1attop = TRUE, 
-        gap = 0.2) 
+imputePairs(data, dataImp, 
+            symbols = c(1,16), colors = c("black", "red"), labels,
+            panel = points, ..., lower.panel = panel, upper.panel = panel, 
+            diag.panel = NULL, text.panel = textPanel, label.pos = 0.5 + 
+            has.diag/3, cex.labels = NULL, font.labels = 1, row1attop = TRUE, 
+            gap = 0.2) 
 }
 \arguments{
-  \item{x}{
+  \item{data}{
     A numeric vector, matrix, or data frame of observations containing
     missing values. Categorical variables are not allowed. If a matrix
     or data frame, rows correspond to observations and columns
     correspond to variables. 
   }
-  \item{impx}{
-    The dataset \code{x} with missing values imputed.
+  \item{dataImp}{
+    The dataset \code{data} with missing values imputed.
   }
   \item{symbols}{
     Either an integer or character vector assigning plotting symbols to
@@ -76,19 +77,23 @@ imputePairs(x, impx, symbols = c(16,1), colors = c("black", "red"), labels,
 \section{Side Effects}{
   A pairs plot displaying the location of missing and nonmissing values.
 }
+
 \section{References}{
   C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
   mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
   Clustering, Classification, and Density Estimation. 
   Technical Report No. 597, Department of Statistics, University of Washington.
+
+  Schafer J. L. (1997). Analysis of Imcomplete Multivariate Data, Chapman and Hall.
 }
 \seealso{
   \code{\link{pairs}},
   \code{\link{imputeData}}
 }
 \examples{
-# Note that package 'mix' must be installed.
-\dontshow{library(mix)}
+\dontrun{
+# Note that package 'mix' must be installed
+data(stlouis, package = "mix")
  
 # impute the continuos variables in the stlouis data
 stlimp <- imputeData(stlouis[,-(1:3)])
@@ -96,6 +101,5 @@ stlimp <- imputeData(stlouis[,-(1:3)])
 # plot imputed values
 imputePairs(stlouis[,-(1:3)], stlimp)
 }
+}
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

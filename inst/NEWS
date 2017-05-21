@@ -1,3 +1,24 @@
+Version 5.3 (2017-05)
+    o added gmmhd() function and relative methods.
+    o added MclustDRsubsel() function and relative methods.
+    o added option to use subset in the hierarchical initialization step when
+      a noise component is present.
+    o plot.clustCombi() presents a menu in interactive sessions, no more 
+      need of data for classification plots but extract the data from the
+      'clustCombi' object.
+    o added combiTree() plot for 'clustCombi' objects.
+    o clPairs() now produces a single scatterplot in the bivariate case.
+    o fix a bug in imputeData() when seed is provided. Now if a seed is 
+      provided the data matrix is reproducible. 
+    o in imputeData() and imputePairs() some name of arguments have been
+      modified to be coherent with the rest of the package.
+    o added functions matchCluster() and majorityVote().
+    o rewriting of print and summary methods for 'clustCombi' class object.
+    o added clustCombiOptim().
+    o fix a bug in randomPairs() when nrow of input data is odd.
+    o fix a bug in plotDensityMclust2(), plotDensityMclustd() and 
+      surfacePlot() when a noise component is present.
+
 Version 5.2.3 (2017-03)
     o added native routine registration for Fortran code.
     o fix lowercase argument PACKAGE in .Fortran() calls.
@@ -8,22 +29,22 @@ Version 5.2.2 (2017-01)
 
 Version 5.2.1 (2017-01)
     o replaced "structure(NULL, *)" with "structure(list(), *)"
-    
+
 Version 5.2 (2016-03)
     o added argument 'x' to Mclust() to use BIC values from previous 
-      computations to avoid recomputing for the same models. The same argument
-      and functionality was already available in mclustBIC().
+      computations to avoid recomputing for the same models. The same
+      argument and functionality was already available in mclustBIC().
     o added argument 'x' to mclustICL() to use ICL values from previous 
       computations to avoid recomputing for the same models.
-    o corrected a bug on plot.MclustBootstrap for the "mean" and "var" in the 
-      univariate case.
+    o corrected a bug on plot.MclustBootstrap for the "mean" and "var" in
+      the univariate case.
     o modified uncertainty plots.
     o introduction of as.Mclust and as.densityMclust to convert object to 
       specific mclust classes.
     o solved a numerical accuracy problem in qclass when the scale of x is 
       (very) large by making the tolerance eps scale dependent.
-    o use transpose subroutine instead of non-Fortran 77 TRANSPOSE function in
-      mclustaddson.f 
+    o use transpose subroutine instead of non-Fortran 77 TRANSPOSE function
+      in mclustaddson.f 
     o predict.Mclust and predict.MclustDR implement a more efficient and 
       accurate algorithm for computing the densities.
   
@@ -47,8 +68,8 @@ Version 5.0.1 (2015-04)
     o add print method to hc.
 
 Version 5.0.0 (2015-03)
-    o added the four missing models (EVV, VEE, EVE, VVE) to the mclust family.
-      A noise component is allowed, but no prior is available. 
+    o added the four missing models (EVV, VEE, EVE, VVE) to the mclust
+      family. A noise component is allowed, but no prior is available. 
     o added mclustBootstrapLRT function (and print and plot methods) for
       selecting the number of mixture components based on the bootstrap 
       sequential likelihood ratio test.
@@ -56,13 +77,13 @@ Version 5.0.0 (2015-03)
       performing bootstrap inference. This provides standard errors for 
       parameters and confidence intervals.
     o a "A quick tour of mclust" vignette is included as html generated using
-      rmarkdown and knitr. Older vignettes are included as other documentation
-      for the package.
+      rmarkdown and knitr. Older vignettes are included as other
+      documentation for the package.
     o modified arguments to mvn2plot to control colour, lty, lwd, and pch of
       ellipses and mean point.
-    o added functions emX, emXII, emXXI, emXXX, cdensX, cdensXII, cdensXXI, and
-      cdensXXX, to deal with single-component cases, so calling the em function
-      works even if G = 1. 
+    o added functions emX, emXII, emXXI, emXXX, cdensX, cdensXII, cdensXXI,
+      and cdensXXX, to deal with single-component cases, so calling the em
+      function works even if G = 1. 
     o small changes to icl.R, now icl is a generic method, with specialized 
       methods for 'Mclust' and 'MclustDA' objects.
     o bug fixes for transformations in the initialization step when some 
@@ -203,7 +224,8 @@ Version 3.3.2  (2009-10)
 
 Version 3.3.1  (2009-06)
     o fixed plot.mclustBIC/plot.Mclust to handle modelNames
-    o changed "orientation" for VEV, VVV models to be consistent with R eigen() and the literature
+    o changed "orientation" for VEV, VVV models to be consistent with R
+      eigen() and the literature
     o fixed some problems including doc for the noise option
     o updated the unmap function to optionally include missing groups
 

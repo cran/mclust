@@ -4,6 +4,8 @@
   emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI",
                    "EEE", "EVE", "VEE", "VVE", 
                    "EEV", "VEV", "EVV", "VVV"),
+  # in mclust version <= 4.x
+  # emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE", "EEV", "VEV", "VVV"), 
   hcModelNames = c("VVV", "EEE", "VII", "EII"),
   hcUse = "VARS",
   bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1,

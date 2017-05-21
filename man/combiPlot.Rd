@@ -7,7 +7,7 @@ Plot Classifications Corresponding to Successive Combined Solutions
 Plot classifications corresponding to successive combined solutions. 
 }
 \usage{
-combiPlot(data, z, combiM, ...)
+combiPlot(data, z, combiM, \dots)
 }
 \arguments{
   \item{data}{
@@ -36,7 +36,7 @@ J.-P. Baudry, A. E. Raftery, L. Scrucca
 \code{\link{clustCombi}}, \code{\link{combMat}}, \code{\link{clustCombi}}
 }
 \examples{
-
+\dontrun{
 data(Baudry_etal_2010_JCGS_examples)
 MclustOutput <- Mclust(ex4.1) 
 
@@ -65,6 +65,6 @@ plot(0,0,type="n", xlab = "", ylab = "", axes = FALSE)
 legend("center", legend = 1:6,
        col = mclust.options("classPlotColors"), 
        pch = mclust.options("classPlotSymbols"), 
-       title = "Class labels:")
+       title = "Class labels:")}
 }
 \keyword{ cluster }

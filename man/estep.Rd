@@ -99,12 +99,11 @@
   \code{\link{mclustVariance}}
 }
 \examples{
+\dontrun{
 msEst <- mstep(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]))
 names(msEst)
 
 estep(modelName = msEst$modelName, data = iris[,-5],
-      parameters = msEst$parameters)           
+      parameters = msEst$parameters)}
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

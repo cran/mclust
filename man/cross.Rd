@@ -1,7 +1,10 @@
 \name{cross}
 \alias{cross}
+
 \title{Simulated Cross Data}
+
 \usage{data(cross)}
+
 \description{
 A 500 by 3 matrix in which the first column is the classification and
 the remaining columns are two data from a simulation of two crossed

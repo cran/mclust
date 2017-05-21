@@ -78,10 +78,12 @@ randomPairs <- function(data, seed, ...)
   if(!missing(seed)) set.seed(seed)
   data <- as.matrix(data)
   n <- nrow(data)
-  tree <- matrix(sample(1:n, n, replace = FALSE), nrow = 2, ncol = ceiling(n/2))
+  m <- if(n%%2 == 1) n-1 else n
+  tree <- matrix(sample(1:n, m, replace = FALSE), 
+                 nrow = 2, ncol = ceiling(m/2))
   tree <- apply(tree, 2, sort)
   ind <- unique(tree[1,])
-  while(ncol(tree) < (n-1))
+  while(ncol(tree) < (m-1))
   { 
     addtree <- sort(sample(ind, size = 2, replace = FALSE))
     ind <- setdiff(ind, addtree[2])

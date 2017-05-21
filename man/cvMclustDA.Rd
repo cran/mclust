@@ -8,7 +8,7 @@ K-fold cross-validation for discriminant analysis based on Gaussian finite mixtu
 }
 
 \usage{
-cvMclustDA(object, nfold = 10, verbose = TRUE, ...) 
+cvMclustDA(object, nfold = 10, verbose = interactive(), \dots) 
 }
 
 \arguments{
@@ -20,7 +20,7 @@ cvMclustDA(object, nfold = 10, verbose = TRUE, ...)
   }
     
  \item{verbose}{
-    A logical, if \code{TRUE} and the session is interactive a text progress bar is displayed during the algorithm.
+    A logical controlling if a text progress bar is displayed during the cross-validation procedure. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise.
   }
   
   \item{\dots }{Further arguments passed to or from other methods.}

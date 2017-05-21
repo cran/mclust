@@ -1,5 +1,9 @@
 \name{clustCombi}
 \alias{clustCombi}
+\alias{print.clustCombi}
+\alias{summary.clustCombi}
+\alias{print.summary.clustCombi}
+
 \title{
 Combining Gaussian Mixture Components for Clustering
 }
@@ -7,17 +11,16 @@ Combining Gaussian Mixture Components for Clustering
 Provides a hierarchy of combined clusterings from the EM/BIC Gaussian mixture solution to one class, following the methodology proposed in the article cited in the references.
 }
 \usage{
-clustCombi(data, MclustOutput = NULL, ...)
+clustCombi(object = NULL, data = NULL, \dots)
 }
 \arguments{
+  \item{object}{
+		An object returned by \code{\link{Mclust}} giving the optimal (according to BIC) parameters, conditional probabilities, and log-likelihood, together with the associated classification and its uncertainty. If not provided, the \code{data} argument must be specified.
+	}
   \item{data}{
-		A numeric vector, matrix, or data frame of observations. Categorical variables are not allowed. If a matrix or data frame, rows correspond to observations and columns correspond to variables.
-	}
-  \item{MclustOutput}{
-		A list giving the optimal (according to BIC) parameters, conditional probabilities z, and log-likelihood, together with the associated classification and its uncertainty, as returned by Mclust. Please see Mclust documentation for the details of the components. Default value is \code{NULL}, in which case Mclust is called to get this output.
-	}
+		A numeric vector, matrix, or data frame of observations. Categorical variables are not allowed. If a matrix or data frame, rows correspond to observations and columns correspond to variables. If the \code{object} argument is not provided, the function \code{\link{Mclust}} is applied to the given \code{data} to fit a mixture model.}
   \item{\dots}{
-		Optional arguments to be passed to called functions. Notably, any option (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm...) to be passed to Mclust in case \code{MclustOutput} is \code{NULL}. Please see the \code{\link{Mclust}} documentation for more details.
+		Optional arguments to be passed to called functions. Notably, any argument (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm, ...) to be passed to \code{\link{Mclust}} in case \code{object = NULL}. Please see the \code{\link{Mclust}} documentation for more details.
 	}
 }
 \details{
@@ -37,34 +40,37 @@ J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining 
 J.-P. Baudry, A. E. Raftery, L. Scrucca
 }
 \examples{
-
 data(Baudry_etal_2010_JCGS_examples)
-output <- clustCombi(ex4.1) # will run Mclust to get the MclustOutput
 
-MclustOutput <- Mclust(ex4.1) # or you can run Mclust yourself
-output <- clustCombi(ex4.1, MclustOutput) # and provide the output to clustCombi
+# run Mclust using provided data
+output <- clustCombi(data = ex4.1) 
+\dontrun{
+# run Mclust and then clustcombi on the returned object
+mod <- Mclust(ex4.1)
+output <- clustCombi(mod)}
 
-# any further optional argument is passed to Mclust (see the Mclust documentation)
-\dontrun{output <- clustCombi(ex4.1, modelName = "EEV", G = 1:15)}
+output
+summary(output)
 
-output # is of class clustCombi
-# plots the hierarchy of combined solutions, then some "entropy plots" which 
-# may help one to select the number of classes (please see the article cited 
-# in the references)
-plot(output, ex4.1) 
+\dontrun{
+# run Mclust using provided data and any further optional argument provided
+output <- clustCombi(data = ex4.1, modelName = "EEV", G = 1:15)}
 
-# the selected model and number of components by Mclust, ie by BIC with MLE 
-# on Gaussian mixtures
+# plot the hierarchy of combined solutions
+plot(output, what = "classification") 
+# plot some "entropy plots" which may help one to select the number of classes
+plot(output, what = "entropy") 
+# plot the tree structure obtained from combining mixture components
+plot(output, what = "tree") 
+
+# the selected model and number of components obtained from Mclust using BIC
 output$MclustOutput 
-# the selected number of components by Mclust: the combined hierarchy then 
-# starts from this number of classes and ends at one
-output$MclustOutput$G 
-# the matrix whose [i,k]th entry is the probability that observation i in 
-# the data belongs to the kth class according to the BIC solution
+
+# the matrix whose [i,k]th entry is the probability that i-th observation in 
+# the data belongs to the k-th class according to the BIC solution
 head( output$combiz[[output$MclustOutput$G]] ) 
-# is the matrix whose [i,k]th entry is the probability that observation i in 
-# the data belongs to the kth class according to the first combined 
-# ((output$MclustOutput$G-1)-classes) solution
+# the matrix whose [i,k]th entry is the probability that i-th observation in 
+# the data belongs to the k-th class according to the first combined solution
 head( output$combiz[[output$MclustOutput$G-1]] ) 
 # the matrix describing how to merge the 6-classes solution to get the 
 # 5-classes solution

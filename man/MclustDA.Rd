@@ -15,6 +15,7 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
          control = emControl(), 
          initialization = NULL, 
          warn = mclust.options("warn"), 
+         verbose = interactive(),
          \dots)
 }
 
@@ -89,7 +90,11 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
     estimation fails. 
     The default is controlled by \code{\link{mclust.options}}.
   }
-  
+  \item{verbose}{
+    A logical controlling if a text progress bar is displayed during the
+    fitting procedure. By default is \code{TRUE} if the session is 
+    interactive, and \code{FALSE} otherwise..
+  }  
   \item{\dots }{Further arguments passed to or from other methods.}
 }
 

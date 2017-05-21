@@ -158,16 +158,15 @@ A list including the following components:
   \code{\link{do.call}}
 }
 \examples{
+\dontrun{
 msEst <- mstep(modelName = "EEE", data = iris[,-5], 
                z = unmap(iris[,5]))
 names(msEst)
 
 em(modelName = msEst$modelName, data = iris[,-5],
    parameters = msEst$parameters)
-\dontrun{
+
 do.call("em", c(list(data = iris[,-5]), msEst))   ## alternative call
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -8,8 +8,8 @@
 \description{Perform the likelihood ratio test (LRT) for assessing the number of mixture components in a specific finite mixture model parameterisation. The observed significance is approximated by using the (parametric) bootstrap for the likelihood ratio test statistic (LRTS).}
 
 \usage{
-mclustBootstrapLRT(data, modelName = NULL, nboot = 999, 
-                   level = 0.05, maxG = NULL, verbose = TRUE, \dots)
+mclustBootstrapLRT(data, modelName = NULL, nboot = 999, level = 0.05, maxG = NULL, 
+                   verbose = interactive(), \dots)
                    
 \method{print}{mclustBootstrapLRT}(x, \dots)
 
@@ -27,9 +27,8 @@ mclustBootstrapLRT(data, modelName = NULL, nboot = 999,
   \item{level}{The significance level to be used to terminate the sequential bootstrap procedure.}
   \item{maxG}{The maximum number of mixture components \eqn{G} to test. If not provided
   the procedure is stopped when a test is not significant at the specified \code{level}.}
-  \item{verbose}{A logical, if \code{TRUE} and the session is interactive a text progress bar is displayed during the bootstrap procedure.}
+  \item{verbose}{A logical controlling if a text progress bar is displayed during the bootstrap procedure. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise.}
   \item{\dots}{Further arguments passed to or from other methods. In particular, see the optional arguments in  \code{\link{mclustBIC}}.}
-  
   \item{x}{An \code{'mclustBootstrapLRT'} object.}
   \item{G}{A value specifying the number of components for which to plot the 
            bootstrap distribution.}

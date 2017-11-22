@@ -1,3 +1,24 @@
+Version 5.4
+    o Model-based hierarchical clustering used to start the EM-algorithm
+      is now based on the scaled SVD transformation proposed by Scrucca and
+      Raftery (2016).
+      This change is not backward compatible. However, previous results can
+      be easily obtained by issuing the command:
+      mclust.options(hcUse = "VARS")
+      For more details see help("mclust.options").
+    o Added 'subset' parameter in mclust.options() to control the maximal 
+      sample size to be used in the initial model-based hierarchical phase.
+    o predict.densityMclust() can optionally returns the density on a 
+      logarithm scale.
+    o removed normalization of mixing proportions for new models in single 
+      mstep.
+    o Internal rewrite of code used by packageStartupMessage().
+    o Fix a small bug in MclustBootstrap() in the univariate data case.
+    o Fix bugs when both the noise and subset are provided for initialization.
+    o Vignette updated to include references, startup message, css style, etc.
+    o Various bugs fix in plotting methods when noise is present.
+    o Update references in citation() and man pages.
+    
 Version 5.3 (2017-05)
     o added gmmhd() function and relative methods.
     o added MclustDRsubsel() function and relative methods.

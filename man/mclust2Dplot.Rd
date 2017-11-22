@@ -126,19 +126,8 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
     Other graphics parameters.
   }
 }
-\section{Side Effects}{
-  A plot showing the data, together with the location of the mixture 
-  components, classification, uncertainty, and/or classification errors.
-}
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
+\value{
+A plot showing the data, together with the location of the mixture components, classification, uncertainty, and/or classification errors.
 }
 \seealso{
   \code{\link{surfacePlot}},
@@ -147,6 +136,7 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
   \code{\link{mclust.options}}
 }
 \examples{
+\dontrun{
 faithfulModel <- Mclust(faithful)
 
 mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
@@ -154,5 +144,6 @@ mclust2Dplot(faithful, parameters=faithfulModel$parameters,
 
 mclust2Dplot(faithful, parameters=faithfulModel$parameters, 
              z=faithfulModel$z, what = "uncertainty", main = TRUE)
+}
 }
 \keyword{cluster}

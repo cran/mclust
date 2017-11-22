@@ -29,13 +29,6 @@ Plots the ICL values returned by the \code{\link{mclustICL}} function.
   A plot of the ICL values.
 }
 
-\section{References}{
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
-
 \seealso{
   \code{\link{mclustICL}}
 }

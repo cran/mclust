@@ -118,8 +118,8 @@
       sumz = sum(z, dim = 1)
       
 *       a priori probabilities
-*      pro = sumz / dble(n)
-      pro = sumz / sum(sumz)
+      pro = sumz / dble(n)
+*      pro = sumz / sum(sumz)
 *       if there is noise sum(sumz) does not sum to n. See help(mstep)
       
       do k = 1,G
@@ -508,8 +508,8 @@
       sumz = sum(z, dim = 1)
       
 *       a priori probabilities
-*      pro = sumz / dble(n)
-      pro = sumz / sum(sumz)
+      pro = sumz / dble(n)
+*      pro = sumz / sum(sumz)
 *       if there is noise sum(sumz) does not sum to n. See help(mstep)
       
 *       compute weighted scattering matrix and means      
@@ -1029,8 +1029,8 @@
       sumz = sum(z, dim = 1)
       
 *       a priori probabilities
-*      pro = sumz / dble(n)
-      pro = sumz / sum(sumz)
+      pro = sumz / dble(n)
+*      pro = sumz / sum(sumz)
 *       if there is noise sum(sumz) does not sum to n. See help(mstep)
       
 *       compute weighted scattering matrix and means      
@@ -1683,8 +1683,8 @@
       sumz = sum(z, dim = 1)
       
 *       a priori probabilities
-*      pro = sumz / dble(n)
-      pro = sumz / sum(sumz)
+      pro = sumz / dble(n)
+*      pro = sumz / sum(sumz)
 *       if there is noise sum(sumz) does not sum to n. See help(mstep)
       
 *       compute weighted scattering matrix and means      

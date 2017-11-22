@@ -74,21 +74,12 @@ mvnXXX(data, prior = NULL, warn = NULL, \dots)
   }
 }
 
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{mvn}},
   \code{\link{mstepE}}
 }
 \examples{
+\dontrun{
 n <- 1000
 
 set.seed(0)
@@ -112,6 +103,7 @@ set.seed(0)
 x <- sweep(matrix(rnorm(n*3), n, 3) \%*\% chol(Sigma), 
            MARGIN = 2, STATS = mu, FUN = "+")
 mvnXXX(x) 
+}
 }
 \keyword{cluster}
 % docclass is function

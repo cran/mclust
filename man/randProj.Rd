@@ -119,21 +119,10 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
     Other graphics parameters.
   }
 }
-\section{Side Effects}{
-  A plot showing a random two-dimensional projection of the data, together
-  with the location of the  mixture components, classification, uncertainty,
-  and/or classification errors. 
+\value{
+A plot showing a random two-dimensional projection of the data, together with the location of the  mixture components, classification, uncertainty, and/or classification errors. 
 }
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{clPairs}},
   \code{\link{coordProj}},
@@ -141,9 +130,8 @@ randProj(data, seeds=0, parameters=NULL, z=NULL,
   \code{\link{mclust.options}}
 }
 \examples{
-est <- meVVV(iris[,-5], unmap(iris[,5]))
-
 \dontrun{
+est <- meVVV(iris[,-5], unmap(iris[,5]))
 par(pty = "s", mfrow = c(1,1))
 randProj(iris[,-5], seeds=1:3, parameters = est$parameters, z = est$z,
           what = "classification", main = TRUE) 

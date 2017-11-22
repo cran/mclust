@@ -32,24 +32,10 @@ priorControl(functionName = "defaultPrior", \dots)
   case only 10 out of 14 models may be used in conjunction with a prior, i.e.
   those available in \emph{MCLUST} up to version 4.4.
 }
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley and A. E. Raftery (2005).
-  Bayesian regularization for normal mixture estimation and model-based
-  clustering.
-  Technical Report, Department of Statistics, University of Washington.
-
+\references{
   C. Fraley and A. E. Raftery (2007).
   Bayesian regularization for normal mixture estimation and model-based
   clustering. \emph{Journal of Classification 24:155-181}.
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{mclustBIC}},

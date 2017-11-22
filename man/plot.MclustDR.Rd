@@ -78,11 +78,6 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 \references{
   Scrucca, L. (2010) Dimension reduction for model-based clustering.
   \emph{Statistics and Computing}, 20(4), pp. 471-484.
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 
 \author{Luca Scrucca}

@@ -21,12 +21,6 @@
 
 %\value{}
 
-\references{
-Davison, A. and Hinkley, D. (1997) \emph{Bootstrap Methods and Their Applications}. Cambridge University Press.
-
-McLachlan, G.J. and Peel, D. (2000) \emph{Finite Mixture Models}. Wiley.
-}
-
 \seealso{\code{\link{MclustBootstrap}}.}
 
 \examples{

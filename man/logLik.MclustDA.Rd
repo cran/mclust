@@ -23,17 +23,6 @@ Returns the log-likelihood for a \code{MclustDA} object.}
 
 \value{Returns an object of class \code{'logLik'} with an element providing the maximized log-likelihood, and further arguments giving the number of (estimated) parameters in the model (\code{"df"}) and the sample size (\code{"nobs"}).}
 
-\references{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611:631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
-
 \author{Luca Scrucca}
 
 % \note{}

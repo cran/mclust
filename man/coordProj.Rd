@@ -117,20 +117,8 @@ coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
     Other graphics parameters.
   }
 }
-\section{Side Effects}{
-  A plot showing a two-dimensional coordinate projection of the data, together
-  with the location of the  mixture components, classification, uncertainty,
-  and/or classification errors.
-}
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
+\value{
+  A plot showing a two-dimensional coordinate projection of the data, together with the location of the  mixture components, classification, uncertainty, and/or classification errors.
 }
 \seealso{
   \code{\link{clPairs}},
@@ -139,9 +127,8 @@ coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
   \code{\link{mclust.options}}
 }
 \examples{
-est <- meVVV(iris[,-5], unmap(iris[,5]))
-
 \dontrun{
+est <- meVVV(iris[,-5], unmap(iris[,5]))
 par(pty = "s", mfrow = c(1,1))
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
           what = "classification", main = TRUE) 

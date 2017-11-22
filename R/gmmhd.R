@@ -57,7 +57,8 @@ gmmhd <- function(object,
       }
       else
         { # select the smallest subset with cumsum eigenvalues > dr$cumEvalues
-          dims <- seq(min(which(cumsum(evalues/sum(evalues)) > dr$cumEvalues)))
+          dims <- min(which(cumsum(evalues/sum(evalues)) > dr$cumEvalues))
+          dims <- seq(min(dr$mindir, dims))
       }
 
       # estimate the density from Mclust model on the selected directions
@@ -129,7 +130,7 @@ gmmhd <- function(object,
     # sapply(ConComp,length); ConComp
     if(length(ConComp) < 1) next()
     nc[i] <- length(ConComp)
-    con[[i]] <- lapply(ConComp, sort)
+    con[[i]] <- ConComp # lapply(ConComp, sort)
   }
   #
   obj <- list(Mclust = object,
@@ -504,9 +505,10 @@ density.MclustDA <- function(object, newdata, prior, logarithm = FALSE, ...)
 }
 
 
-ConnectComp <- function(nb)
+# old version
+ConnectComp_old <- function(nb)
 {
-# Get connetec components
+# Get connected components
 # Example:
 # nb <- list(c(1,2,3), c(2,3,4), c(9,10,11), c(9,11,12), c(1,6,5))
 # 
@@ -527,6 +529,36 @@ ConnectComp <- function(nb)
            cnb[[i]] <- sort(unique(unlist(cnb[j])))
            cnb[setdiff(j, i)] <- NULL
          }
+    if(identical(cnb, cnb.old)) stable <- TRUE
+    cnb.old <- cnb
+  }
+  return(cnb)
+}
+
+ConnectComp <- function(nb)
+{
+# Get connected components
+# Example:
+# nb <- list(c(1,2,3), c(2,3,4), c(9,10,11), c(9,11,12), c(1,6,5))
+# ConnectComp(nb)
+  
+  if(length(nb) < 1 | !is.list(nb))
+    return(NULL)
+  nb <- lapply(nb, function(x) as.integer(x))
+  n <- length(nb)
+  u <- sort(unique(unlist(nb)))
+  nu <- length(u)
+  cnb <- cnb.old <- nb
+  stable <- FALSE
+  # merge the neighbors until the configuration is stable
+  while(!stable)
+  { i <- 0
+    while(i < length(cnb))
+    { i <- i + 1
+      j <- which(sapply(cnb, function(nbb) any(is.element(cnb[[i]], nbb))))
+      cnb[[i]] <- sort(unique(unlist(cnb[j])))
+      cnb[setdiff(j, i)] <- NULL
+    }
     if(identical(cnb, cnb.old)) stable <- TRUE
     cnb.old <- cnb
   }

@@ -71,10 +71,10 @@ defaultPrior(data, G, modelName, \dots)
   Furthermore, \code{defaultPrior} can be used as a template to specify 
   alternative parameters for a conjugate prior.
 }
-\section{References}{
+\references{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
+  \emph{Journal of the American Statistical Association} 97:611-631. 
 
   C. Fraley and A. E. Raftery (2005, revised 2009).
   Bayesian regularization for normal mixture estimation and model-based
@@ -83,12 +83,7 @@ defaultPrior(data, G, modelName, \dots)
 
   C. Fraley and A. E. Raftery (2007).
   Bayesian regularization for normal mixture estimation and model-based
-  clustering. \emph{Journal of Classification 24:155-181}.
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.  
+  clustering. \emph{Journal of Classification} 24:155-181.
 }
 \seealso{
   \code{\link{mclustBIC}},

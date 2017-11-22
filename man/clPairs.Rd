@@ -67,30 +67,19 @@ clPairsLegend(x, y, class, col, pch, \dots)
     }
 }
 
-\section{Details}{
-  The function \code{clPairs} draws scatter plots on the current graphics 
-  device for each combination of variables in \code{data}. Observations of 
-  different classifications are labeled with different symbols. 
+\details{
+  The function \code{clPairs()} draws scatter plots on the current graphics device for each combination of variables in \code{data}. Observations of different classifications are labeled with different symbols. 
   
-  The function \code{clPairsLegend} can be used to add a legend. See examples
-  below.
+  The function \code{clPairsLegend()} can be used to add a legend. See examples below.
 }
 
 \value{
-  The function \code{clPairs} invisibly returns a list with the following 
-  components:
+  The function \code{clPairs()} invisibly returns a list with the following components:
   \item{class}{A character vector of class labels.}
   \item{col}{A vector of colors used for each class.}
   \item{pch}{A vector of plotting symbols used for each class.}
 }
 
-
-\section{References}{
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{pairs}},
   \code{\link{coordProj}},

@@ -53,7 +53,14 @@ Available options are:
     variables (i.e. using the covariance matrix);\cr
     \code{"PCR"} = principal components computed using SVD on standardized 
     (center and scaled) variables (i.e. using the correlation matrix);\cr
-    \code{"SVD"} = scaled SVD transformation.
+    \code{"SVD"} = scaled SVD transformation.\cr
+    For further details see Scrucca and Raftery (2015), Scrucca et al. (2016).
+  }
+  \item{\code{subset}}{
+    A value specifying the maximal sample size to be used in the model-based 
+    hierarchical clustering to start the EM-algorithm. 
+    If data sample size exceeds this value, a random sample is drawn of size
+    specified by \code{subset}.
   }
   \item{\code{bicPlotSymbols}}{
     A vector whose entries correspond to graphics symbols for plotting the 
@@ -94,24 +101,19 @@ If the argument list is empty the function returns the current list of values.
 If the argument list is not empty, the returned list is invisible.
 }
 
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of
-  Washington.
-}
-
 \seealso{
   \code{\link{Mclust}}, 
   \code{\link{MclustDA}}, 
   \code{\link{densityMclust}}, 
   \code{\link{emControl}}
 }
+
+\references{
+Scrucca L. and Raftery A. E. (2015) Improved initialisation of model-based clustering using Gaussian hierarchical partitions. \emph{Advances in Data Analysis and Classification}, 9/4, pp. 447-460.
+
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 205-233.
+}
+
 \examples{
 opt <- mclust.options() # save default values
 irisBIC <- mclustBIC(iris[,-5])

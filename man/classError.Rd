@@ -37,12 +37,7 @@ classError(classification, truth)
   corresponds to the minimum number of classification errors,
   only one possible set of misclassified observations is returned.
 }
-\section{References}{
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
+
 \seealso{
   \code{\link{mapClass}},
   \code{\link{table}}

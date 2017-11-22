@@ -39,17 +39,6 @@ The function returns a list with the following components:
 
 %\details{}
 
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
-
 \author{Luca Scrucca}
 
 \seealso{
@@ -60,6 +49,7 @@ The function returns a list with the following components:
 }
 
 \examples{
+\dontrun{
 X <- iris[,-5]
 Class <- iris[,5]
 
@@ -77,6 +67,7 @@ cv[c("error", "se")]
 irisMclustDA <- MclustDA(X, Class)
 cv <- cvMclustDA(irisMclustDA) # default 10-fold CV
 cv[c("error", "se")]
+}
 }
 
 \keyword{multivariate}

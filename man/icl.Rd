@@ -22,15 +22,10 @@ icl(object, \dots)
   The ICL for the given input MCLUST model.
 }
 
-\section{References}{
+\references{
   Biernacki, C., Celeux, G., Govaert, G. (2000). 
   Assessing a mixture model for clustering with the integrated completed likelihood.
   \emph{IEEE Trans. Pattern Analysis and Machine Intelligence}, 22 (7), 719-725.
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{Mclust}},
@@ -40,7 +35,7 @@ icl(object, \dots)
 }
 
 \examples{
-mod = Mclust(iris[,1:4])
+mod <- Mclust(iris[,1:4])
 icl(mod)
 }
 

@@ -47,22 +47,14 @@ bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
 \value{
   The BIC or Bayesian Information Criterion for the given input arguments.
 }
-\references{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611:631}. 
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{mclustBIC}},
   \code{\link{nVarParams}},
   \code{\link{mclustModelNames}}.
 }
 \examples{
+\dontrun{
 n <- nrow(iris)
 d <- ncol(iris)-1
 G <- 3
@@ -72,6 +64,7 @@ names(emEst)
 
 args(bic)
 bic(modelName="VVI", loglik=emEst$loglik, n=n, d=d, G=G)
-\dontrun{do.call("bic", emEst)    ## alternative call}
+# do.call("bic", emEst)    ## alternative call
+}
 }
 \keyword{cluster}

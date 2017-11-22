@@ -26,7 +26,6 @@ covw(X, Z, normalize = TRUE)
 %\seealso{}
 \author{M. Fop and L. Scrucca}
 
-
 \examples{
 # Z as an indicator matrix
 X = iris[,1:4]

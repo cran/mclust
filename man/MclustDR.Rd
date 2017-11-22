@@ -82,16 +82,9 @@ This implementation doesn't provide a formal procedure for the selection of dime
 }
 
 \references{
-  Scrucca, L. (2010) Dimension reduction for model-based clustering. 
-  \emph{Statistics and Computing}, 20(4), pp. 471-484.
+Scrucca, L. (2010) Dimension reduction for model-based clustering. \emph{Statistics and Computing}, 20(4), pp. 471-484.
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-
-  Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis.
-  \emph{Advances in Data Analysis and Classification}, 8(2), pp. 147-165
+Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis. \emph{Advances in Data Analysis and Classification}, 8(2), pp. 147-165.
 }
 
 \author{Luca Scrucca}

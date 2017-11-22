@@ -28,13 +28,6 @@ randomPairs(data, seed, \dots)
   \emph{i}th stage of a random agglomerative hierarchical clustering.
 }
 
-\section{References}{
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
-
 \seealso{
   \code{\link{hc}},
   \code{\link{hclass}}

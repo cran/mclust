@@ -38,16 +38,6 @@
   If a \code{noise} value of symbol is designated, the corresponding indicator 
   variables are relocated to the last column of the matrix. 
 }
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-  
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{map}},
   \code{\link{estep}},

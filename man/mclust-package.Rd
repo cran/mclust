@@ -3,27 +3,24 @@
 \alias{mclust}
 \docType{package}
 
-\title{Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation}
+\title{Gaussian Mixture Modelling for Model-Based Clustering, Classification, and Density Estimation}
 
-\description{Finite Gaussian mixture modeling fitted via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization and dimension reduction.}
+\description{Finite Gaussian mixture modelling fitted via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization and dimension reduction.}
 
 \details{For a quick introduction to \pkg{mclust} see the vignette \href{../doc/mclust.html}{A quick tour of mclust}.}
 
 \author{
 Chris Fraley, Adrian Raftery and Luca Scrucca.
 
-Maintainer: Luca Scrucca \email{luca@stat.unipg.it}
+Maintainer: Luca Scrucca \email{luca.scrucca@unipg.it}
 }
 
-\section{References}{
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-  
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611:631}. 
+\references{
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 205-233. 
+
+Fraley C. and Raftery A. E. (2002) Model-based clustering, discriminant analysis and density estimation, \emph{Journal of the American Statistical Association}, 97/458, pp. 611-631.
+
+Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 for R: Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation. \emph{Technical Report} No. 597, Department of Statistics, University of Washington.
 }
 
 \examples{

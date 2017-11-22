@@ -94,15 +94,12 @@ for the specified mixture models and numbers of clusters.
 The corresponding \code{print} method shows the matrix of values and the top models according to the ICL criterion. The \code{summary} method shows only the top models.
 }
 
-\section{References}{
-  Biernacki, C., Celeux, G., Govaert, G. (2000). 
-  Assessing a mixture model for clustering with the integrated completed likelihood.
-  \emph{IEEE Trans. Pattern Analysis and Machine Intelligence}, 22 (7), 719-725.
+\references{
+Biernacki, C., Celeux, G., Govaert, G. (2000). 
+Assessing a mixture model for clustering with the integrated completed likelihood.
+\emph{IEEE Trans. Pattern Analysis and Machine Intelligence}, 22 (7), 719-725.
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 205-233. 
 }
 
 \seealso{

@@ -90,16 +90,7 @@ simVVE(parameters, n, seed = NULL, \dots)
   \code{me}, \code{Mclust}, to be passed directly without the need
   to specify individual parameters as arguments. 
 }
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-  
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
+
 \seealso{
   \code{\link{sim}},
   \code{\link{Mclust}},
@@ -107,6 +98,7 @@ simVVE(parameters, n, seed = NULL, \dots)
   \code{\link{mclustVariance}}.
 }
 \examples{
+\dontrun{
 d <- 2
 G <- 2
 scale <- 1
@@ -125,7 +117,6 @@ simdat <- simEEV( n = 200,
 
 cl <- simdat[,1]
 
-\dontrun{
 sigma <- array(apply(O, 3, function(x,y) crossprod(x*y), 
                  y = sqrt(scale*shape)), c(2,2,2))
 paramList <- list(mu = mu, sigma = sigma)

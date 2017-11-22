@@ -28,9 +28,6 @@
 
 %\details{}
 %\value{}
-\references{
-Scrucca, L. (2010) Dimension reduction for model-based clustering. \emph{Statistics and Computing}, 20(4), pp. 471-484.
-}
 \author{Luca Scrucca}
 %\note{}
 

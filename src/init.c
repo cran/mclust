@@ -2,8 +2,11 @@
 #include <stdlib.h> // for NULL
 #include <R_ext/Rdynload.h>
 
-/* FIXME: 
-   Check these declarations against the C/Fortran source code.
+/* 
+Routines registration obtained with 
+tools::package_native_routine_registration_skeleton()
+
+FIXME: Check these declarations against the C/Fortran source code.
 */
 
 /* .Fortran calls */

@@ -23,9 +23,8 @@ adjustedRandIndex(x, y)
   This index has zero expected value in the case of random partition, and it is bounded above by 1 in the case of perfect agreement between two partitions.  
 }
 
-\section{References}{
- L. Hubert and P. Arabie (1985) Comparing Partitions, 
- \emph{Journal of the Classification 2:193-218}.
+\references{
+ L. Hubert and P. Arabie (1985) Comparing Partitions, \emph{Journal of the Classification}, 2, pp. 193-218.
 }
 \seealso{
   \code{\link{classError}},

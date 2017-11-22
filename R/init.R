@@ -46,7 +46,7 @@ hc <- function(data, modelName = mclust.options("hcModelNames")[1],
                    Z <- dropCols(Z) },
          "SVD" = { data <- scale(data, center = TRUE, scale = TRUE)
                    data <- dropCols(data)
-                   n <- nrow(data); p <- ncol(data)
+                   p <- min(dim(data))
                    SVD <- svd(data, nu=0)
                    Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) },
          stop("'use' argument not allowed. See help(mclust.options)")

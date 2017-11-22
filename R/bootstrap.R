@@ -15,16 +15,15 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
   modelName <- modelName[1]
   if(is.null(maxG)) G <- seq.int(1, 9)
   else { maxG <- as.numeric(maxG); G <- seq.int(1, maxG+1) }
-  Bic <- mclustBIC(data, G = G, modelNames = modelName, warn = FALSE, ...)
+  Bic <- mclustBIC(data, G = G, modelNames = modelName, 
+                   warn = FALSE, verbose = FALSE, ...)
   if(!(modelName %in% attr(Bic, "modelNames")))
     stop("'modelName' not compatibile with data. Please see help(mclustModelNames) which describes the available models.")
   if(all(is.na(Bic)))
     stop(paste("no model", modelName, "can be fitted."))
   # select only models that can be fit
   G <- which(!is.na(Bic[, attr(Bic, "modelNames") == modelName]))
-  # maxG <- max(G)
-  # G <- setdiff(G, maxG)
-  
+
   if(verbose) 
     { cat("bootstrapping LRTS ...\n")
       flush.console()
@@ -70,7 +69,7 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
           setTxtProgressBar(pbar, (max(G)-1)*nboot) 
       }
   }
-  # if(verbose) close(pbar)
+
   out <- list(G = 1:g, 
               modelName = modelName,
               obs = obsLRTS[1:g],
@@ -134,6 +133,12 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
   G <- object$G
   if(type == "jk") nboot <- n
   varnames <- rownames(object$parameters$mean)
+  # model parameters
+  par <- summary(object)[c("pro", "mean", "variance")]
+  if(d == 1)
+    { par$mean <- array(par$mean, dim = c(d, G))
+      par$variance <- array(par$variance, dim = c(d, d, G)) }
+  # boostrapped parameters 
   pro.boot  <- array(NA, c(nboot,G), 
                      dimnames = list(NULL, seq.int(G)))
   mean.boot <- array(NA, c(nboot,d,G), 
@@ -149,7 +154,8 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
     }
   b <- nonfit <- 0
   while(b < nboot)
-  { b <- b + 1
+  { 
+    b <- b + 1
     obj <- object
     switch(type, 
            "bs" = 
@@ -178,18 +184,22 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
 
     # check model convergence
     if(inherits(mod.boot, "try-error"))
-      { b <- b - 1; nonfit <- nonfit + 1; next() }
+      { if(type != "jk") b <- b - 1
+        nonfit <- nonfit + 1
+        next() }
     if(is.na(mod.boot$loglik))
-      { b <- b - 1; nonfit <- nonfit + 1; next() }
+      { if(type != "jk") b <- b - 1
+        nonfit <- nonfit + 1
+        next() }
     
     if(type == "jk")
-      { # pseudovalues
-        pro.boot[b,]   <- n*object$parameters$pro - 
-                          (n-1)*mod.boot$parameters$pro
-        mean.boot[b,,] <- n*object$parameters$mean - 
-                          (n-1)*mod.boot$parameters$mean
-        var.boot[b,,,] <- n*object$parameters$variance$sigma - 
-                          (n-1)*mod.boot$parameters$variance$sigma
+      { # pseudovalues ...
+        # pro.boot[b,]   <- n*par$pro - (n-1)*mod.boot$parameters$pro
+        # mean.boot[b,,] <- n*par$mean - (n-1)*mod.boot$parameters$mean
+        # var.boot[b,,,] <- n*par$variance - (n-1)*mod.boot$parameters$variance$sigma
+        pro.boot[b,]   <- mod.boot$parameters$pro
+        mean.boot[b,,] <- mod.boot$parameters$mean
+        var.boot[b,,,] <- mod.boot$parameters$variance$sigma
     } else 
       { # bootstrap values
         pro.boot[b,]   <- mod.boot$parameters$pro
@@ -199,11 +209,10 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
 
     if(verbose) setTxtProgressBar(pbar, b)
   }
-  # if(verbose) close(pbar)
-  
+
   out <- list(G = G, 
               modelName = object$modelName, 
-              parameters = summary(object)[c("pro", "mean", "variance")],
+              parameters = par,
               nboot = nboot, 
               type = type,
               nonfit = nonfit,
@@ -213,81 +222,6 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
   class(out) <- "MclustBootstrap"
   return(out)
 }
-
-
-# MclustBootstrap <- function(object, nboot = 999, type = c("nonpara", "wlb"), verbose = TRUE, ...)
-# {
-#   if(!inherits(object, c("Mclust", "densityMclust")))
-#     stop("object must be of class 'Mclust' or 'densityMclust'")
-#   type <- match.arg(type, c("nonpara", "wlb"))
-# 
-#   data <- object$data
-#   n <- object$n
-#   d <- object$d
-#   G <- object$G
-#   varnames <- rownames(object$parameters$mean)
-#   par <- summary(object)[c("pro", "mean", "variance")]
-#   if(d == 1)
-#     { par$mean <- array(par$mean, dim = c(d, G))
-#       par$variance <- array(par$variance, dim = c(d, d, G)) }
-#     
-#   pro.boot  <- array(NA, c(nboot,G), 
-#                      dimnames = list(NULL, seq.int(G)))
-#   mean.boot <- array(NA, c(nboot,d,G), 
-#                      dimnames = list(NULL, varnames, seq.int(G)))
-#   var.boot  <- array(NA, c(nboot,d,d,G),
-#                      dimnames = list(NULL, varnames, varnames, seq.int(G)))
-# 
-#   if(verbose & interactive()) 
-#     { cat("bootstrapping Mclust model ...\n")
-#       flush.console()
-#       pbar <- txtProgressBar(min = 0, max = nboot, style = 3) 
-#     }
-#   b <- 0
-#   while(b < nboot)
-#   { b <- b + 1
-#     obj <- object
-#     if(type == "wlb")
-#       { w <- rexp(n)
-#         # w <- w/mean(w)
-#         w <- w/max(w)
-#         mod.boot <- try(do.call("me.weighted", 
-#                                 c(list(weights = w, warn = FALSE), obj)),
-#                         silent = TRUE)
-#     }
-#     else 
-#       { idx <- sample(seq_len(n), size = n, replace = TRUE)
-#         obj$data <- object$data[idx,]
-#         obj$z <- obj$z[idx,]
-#         obj$warn <- FALSE
-#         mod.boot <- try(do.call("me", obj), silent = TRUE)
-#     }
-#     
-#     # check model convergence
-#     if(inherits(mod.boot, "try-error"))
-#       { b <- b - 1; next() }
-#     if(is.na(mod.boot$loglik))
-#       { b <- b - 1; next() }
-#     
-#     pro.boot[b,]   <- mod.boot$parameters$pro
-#     mean.boot[b,,] <- mod.boot$parameters$mean
-#     var.boot[b,,,] <- mod.boot$parameters$variance$sigma
-#     
-#     if(verbose & interactive()) setTxtProgressBar(pbar, b)
-#   }
-#   if(verbose & interactive()) close(pbar)
-#   
-#   out <- list(n = n, d = d, G = G, 
-#               modelName = object$modelName, 
-#               parameters = par,
-#               nboot = nboot, 
-#               type = type,
-#               pro = pro.boot, 
-#               mean = mean.boot, 
-#               variance = var.boot)
-#   class(out) <- "MclustBootstrap"
-#   return(out)
-# }
 
 print.MclustBootstrap <- function(x,  digits = getOption("digits"), ...)
 {
@@ -306,27 +240,29 @@ summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0
   G <- dims[3]
 
   if(what == "se")
-    { out <- list(pro  = apply(object$pro, 2, sd),
-                  mean = apply(object$mean, c(2,3), sd),
-                  variance = apply(object$variance, c(2,3,4), sd))
+    { out <- list(pro  = apply(object$pro, 2, sd, na.rm=TRUE),
+                  mean = apply(object$mean, c(2,3), sd, na.rm=TRUE),
+                  variance = apply(object$variance, c(2,3,4), sd, na.rm=TRUE))
       if(object$type == "jk")
-        out <- lapply(out, function(x) x/sqrt(nboot))
+        out <- lapply(out, function(x) 
+                      sqrt(x^2*(nboot-object$nonfit-1)^2/(nboot-object$nonfit)))
   } else
   if(what == "ci")
     { levels <- c((1-conf.level)/2, (1 + conf.level)/2)
       if(object$type == "jk")
       { # bias-corrected ci based on normal-approximation
-        ave <- list(pro  = apply(object$pro, 2, mean),
-                    mean = apply(object$mean, c(2,3), mean),
-                    variance  = t(sapply(seq.int(d), function(j)
-                                         apply(object$variance[,j,j,], 2, mean),
-                                         simplify = "array")))
-        se <- list(pro  = apply(object$pro, 2, sd),
-                   mean = apply(object$mean, c(2,3), sd),
-                   variance  = t(sapply(seq.int(d), function(j)
-                                        apply(object$variance[,j,j,], 2, sd),
+        ave <- list(pro  = apply(object$pro, 2, mean, na.rm=TRUE),
+                    mean = apply(object$mean, c(2,3), mean, na.rm=TRUE),
+                    variance = t(sapply(seq.int(d), function(j)
+                                        apply(object$variance[,j,j,], 2, mean, na.rm=TRUE),
                                         simplify = "array")))
-        se <- lapply(se, function(x) x/sqrt(nboot))
+        se <- list(pro  = apply(object$pro, 2, sd, na.rm=TRUE),
+                   mean = apply(object$mean, c(2,3), sd, na.rm=TRUE),
+                   variance  = t(sapply(seq.int(d), function(j)
+                                        apply(object$variance[,j,j,], 2, sd, na.rm=TRUE),
+                                        simplify = "array")))
+        se <- lapply(se, function(x) 
+                     sqrt(x^2*(nboot-object$nonfit-1)^2/(nboot-object$nonfit)))
         zq <- qnorm(max(levels))
         lnames <- paste0(formatC(levels * 100, format = "fg", width = 1, 
                                  digits = getOption("digits")), "%")
@@ -347,12 +283,12 @@ summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0
       }
       else
       { # percentile-based ci
-        out <- list(pro = apply(object$pro, 2, quantile, probs = levels),
-                    mean = apply(object$mean, c(2,3), quantile, probs = levels))
+        out <- list(pro = apply(object$pro, 2, quantile, probs = levels, na.rm=TRUE),
+                    mean = apply(object$mean, c(2,3), quantile, probs = levels, na.rm=TRUE))
         v <- array(as.double(NA), dim = c(2,d,G),
                    dimnames = dimnames(out$mean))
         for(j in seq.int(d))
-           v[,j,] <- apply(object$variance[,j,j,], 2, quantile, probs = levels)
+           v[,j,] <- apply(object$variance[,j,j,], 2, quantile, probs = levels, na.rm=TRUE)
         out$variance <- v
       }
   }

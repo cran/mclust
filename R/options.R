@@ -7,7 +7,8 @@
   # in mclust version <= 4.x
   # emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE", "EEV", "VEV", "VVV"), 
   hcModelNames = c("VVV", "EEE", "VII", "EII"),
-  hcUse = "VARS",
+  hcUse = "SVD",
+  subset = 2000,
   bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1,
                                15, 5, 8, 9,
                                12, 7, 14, 0,
@@ -17,9 +18,9 @@
                                         "EEV", "VEV", "EVV", "VVV",
                                         "E", "V")), 
   bicPlotColors = structure(
-    { pal <-  grDevices:::colorRampPalette(c("forestgreen", 
-                                             "royalblue1", 
-                                             "red3"), space = "Lab")
+    { pal <-  grDevices::colorRampPalette(c("forestgreen", 
+                                            "royalblue1", 
+                                            "red3"), space = "Lab")
       c("gray", "black", pal(12), "gray", "black")
     },
                             .Names = c("EII", "VII", "EEI", "EVI", "VEI", "VVI",

@@ -95,14 +95,5 @@ output to e.g. \code{me} or \code{mstep} or input to e.g. \code{estep} may conta
 In all cases, the value
 \code{-1} is used as a placeholder for unknown nonzero entries. 
 }
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611:631}.
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \keyword{cluster}

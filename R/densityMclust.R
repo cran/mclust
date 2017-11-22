@@ -10,7 +10,7 @@ densityMclust <- function(data, ...)
   return(obj)
 }
 
-predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), ...)
+predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), logarithm = FALSE, ...)
 {
   if(!inherits(object, "densityMclust")) 
     stop("object not of class \"densityMclust\"")
@@ -23,17 +23,21 @@ predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), ..
 
   what <- match.arg(what)
   if(what == "dens")
-    { d <- dens(modelName = object$modelName, 
-                data = newdata, 
-                parameters = object$parameters) }
-  else
-    { d <- cdens(modelName = object$modelName, 
-                 data = newdata, 
-                 parameters = object$parameters)
+  { 
+    d <- dens(modelName = object$modelName, 
+              data = newdata, 
+              parameters = object$parameters,
+              logarithm = logarithm) 
+  } else
+  { 
+    d <- cdens(modelName = object$modelName, 
+               data = newdata, 
+               parameters = object$parameters,
+               logarithm = logarithm)
       dim <- dim(d)
       attributes(d) <- NULL 
       d <- array(d, dim)
-    }
+  }
   return(d)
 }
 

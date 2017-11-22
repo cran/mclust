@@ -26,12 +26,6 @@ hclass(hcPairs, G)
   corresponding to a classification. Columns are indexed by the character
   representation of the integers in \code{G}.
 }
-\section{References}{
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{hc}},
   \code{\link{hcE}}

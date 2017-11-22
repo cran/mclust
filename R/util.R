@@ -450,26 +450,26 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     mu <- array(mu[dimens,  ], c(2, G))
     sigma <- array(sigma[dimens, dimens,  ], c(2, 2, G))
   }
-  if(!is.null(truth)) {
+  if(!is.null(truth)) 
+  {
     if(is.null(classification)) {
       classification <- truth
       truth <- NULL
     }
   }
-  if(!is.null(classification)) {
+  if(!is.null(classification)) 
+  {
     classification <- as.character(classification)
     U <- sort(unique(classification))
     L <- length(U)
-    noise <- classification[1] == "0"
+    noise <- (U[1] == "0")
+    # browser()
     if(is.null(symbols)) {
       if(L <= length(mclust.options("classPlotSymbols"))) {
-        symbols <- mclust.options("classPlotSymbols")
-        if(noise) {
-          first <- symbols[1]
-          symbols[symbols == 16] <- first
-          symbols[1] <- 16
+        symbols <- mclust.options("classPlotSymbols")[1:L]
+        if(noise) 
+          { symbols <- c(16,symbols)[1:L] }
         }
-      }
       else if(L <= 9) {
         symbols <- as.character(1:9)
       }
@@ -480,13 +480,11 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     else if(length(symbols) == 1)
       symbols <- rep(symbols, L)
     if(is.null(colors)) {
-      if(L <= length(mclust.options("classPlotColors"))) {
+      if(L <= length(mclust.options("classPlotColors"))) 
+      {
         colors <- mclust.options("classPlotColors")[1:L]
-        if(noise) {
-          first <- colors[1]
-          colors[colors == "black"] <- first
-          colors[1] <- "black"
-        }
+        if(noise) 
+          { colors <- unique(c("black", colors))[1:L] }
       }
     }
     else if(length(colors) == 1)
@@ -517,8 +515,8 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     if(badClass && !bad)
       warning("classification and truth differ in number of groups")
     bad <- bad && badClass
-  }
-  else {
+  } else 
+  {
     bad <- !m
     warning("what improperly specified")
   }
@@ -536,7 +534,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
            for(k in 1:L) {
              I <- classification == U[k]
              points(data[I, 1], data[I, 2], pch = symbols[k], col = colors[k], 
-                    cex = if(U[k] == "0") CEX/4 else CEX)
+                    cex = if(U[k] == "0") CEX/3 else CEX)
            }
          },
          "errors" = {
@@ -572,7 +570,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
          },
          "uncertainty" = { 
            u <- (uncertainty - min(uncertainty)) /
-                (max(uncertainty) - min(uncertainty))
+                (max(uncertainty) - min(uncertainty) + sqrt(.Machine$double.eps))
            b <- bubble(u, cex = CEX * c(0.3, 2), alpha = c(0.3, 0.9))
            cl <- sapply(classification, function(cl) which(cl == U))
            plot(data[, 1], data[, 2], pch = 19, main = "", 
@@ -1026,11 +1024,11 @@ bubble <- function(x, cex = c(0.2, 3), alpha = c(0.1, 1))
   x <- as.vector(x)
   cex <- cex[!is.na(cex)]
   alpha <- alpha[!is.na(alpha)]
-  x <- (x - min(x))/(max(x) - min(x))
+  x <- (x - min(x))/(max(x) - min(x) + sqrt(.Machine$double.eps))
   n <- length(x)
   r <- sqrt(x/pi)
   r <- (r - min(r, na.rm = TRUE))/
-       (max(r, na.rm = TRUE) - min(r, na.rm = TRUE))
+       (max(r, na.rm = TRUE) - min(r, na.rm = TRUE) + sqrt(.Machine$double.eps))
   cex <- r * diff(range(cex)) + min(cex)
   alpha <- x * diff(range(alpha)) + min(alpha)
   return(list(cex = cex, alpha = alpha))

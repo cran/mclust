@@ -39,13 +39,14 @@ imputeData(data, categorical = NULL, seed = NULL, verbose = interactive())
   A dataset of the same dimensions as \code{data} with missing values
   filled in.
 }
-\section{References}{
+\references{
 Schafer J. L. (1997). Analysis of Imcomplete Multivariate Data, Chapman and Hall.
 }
 \seealso{
   \code{\link{imputePairs}}
 }
 \examples{
+\dontrun{
 # Note that package 'mix' must be installed
 data(stlouis, package = "mix")
  
@@ -54,5 +55,6 @@ stlimp <- imputeData(stlouis[,-(1:3)])
 
 # plot imputed values
 imputePairs(stlouis[,-(1:3)], stlimp)
+}
 }
 \keyword{cluster}

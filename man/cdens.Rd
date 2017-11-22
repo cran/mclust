@@ -59,16 +59,6 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
   it may be possible to compute the logarithm of the component
   densities but not the component densities themselves due to overflow.
 }
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 
 \seealso{
   \code{\link{cdensE}}, \ldots,

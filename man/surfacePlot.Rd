@@ -102,19 +102,15 @@ surfacePlot(data, parameters,
   }
 }
 \value{
-  An invisible list with components x, y, and z in which x and y are the
-  values used to define the grid and z is the transformed density or
-  uncertainty at the grid points.
+A plots showing (a transformation of) the density or uncertainty for the given mixture model and data. 
+
+The function also returns an invisible list with components \code{x}, \code{y}, and \code{z} in which \code{x} and \code{y} are the values used to define the grid and \code{z} is the transformed density or uncertainty at the grid points.
 }
-\section{Side Effects}{
-  A plots showing (a transformation of) the density or uncertainty
-  for the given mixture model and data. 
-}
-\section{Details}{
+\details{
   For an image plot, a color scheme may need to be selected on the display
   device in order to view the plot.
 }
-\section{References}{
+\references{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611-631}. 
@@ -129,6 +125,7 @@ surfacePlot(data, parameters,
   \code{\link{mclust2Dplot}}
 }
 \examples{
+\dontrun{
 faithfulModel <- Mclust(faithful)
 surfacePlot(faithful, parameters = faithfulModel$parameters,
             type = "contour", what = "density", transformation = "none",
@@ -137,5 +134,6 @@ surfacePlot(faithful, parameters = faithfulModel$parameters,
             type = "persp", what = "density", transformation = "log")
 surfacePlot(faithful, parameters = faithfulModel$parameters,
             type = "contour", what = "uncertainty", transformation = "log")
+}
 }
 \keyword{cluster}

@@ -67,11 +67,9 @@ At each step, the search over the model space is performed with respect to the m
 }
 
 \references{
-  Scrucca, L. (2010) Dimension reduction for model-based clustering. 
-  \emph{Statistics and Computing}, 20(4), pp. 471-484.
+Scrucca, L. (2010) Dimension reduction for model-based clustering. \emph{Statistics and Computing}, 20(4), pp. 471-484.
 
-  Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis.
-  \emph{Advances in Data Analysis and Classification}, 8(2), pp. 147-165
+Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis. \emph{Advances in Data Analysis and Classification}, 8(2), pp. 147-165
 }
 
 \author{Luca Scrucca}

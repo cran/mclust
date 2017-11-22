@@ -35,7 +35,7 @@ nVarParams(modelName, d, G, \dots)
   To get the total number of parameters in model, add \code{G*d} for the
   means and \code{G-1} for the mixing proportions if they are unequal.
 }
-\section{References}{
+\references{
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
   \emph{Journal of the American Statistical Association 97:611:631}. 

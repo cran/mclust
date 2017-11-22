@@ -110,28 +110,17 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
     Other graphics parameters.
   }
 }
-\section{Side Effects}{
-  A plot showing location of the mixture components, classification,
-  uncertainty, density and/or classification errors. Points in the different
-  classes are shown in separated levels above the whole of the data.
+\value{
+  A plot showing location of the mixture components, classification, uncertainty, density and/or classification errors. Points in the different classes are shown in separated levels above the whole of the data.
 }
 
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
-}
 \seealso{
   \code{\link{mclust2Dplot}},
   \code{\link{clPairs}},
   \code{\link{coordProj}}
 }
 \examples{
+\dontrun{
 n <- 250 ## create artificial data
 set.seed(1)
 y <- c(rnorm(n,-5), rnorm(n,0), rnorm(n,5))
@@ -151,6 +140,7 @@ mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z,
 mclust1Dplot(y, z = yModel$z, parameters = yModel$parameters,
             what = "uncertainty", main = TRUE)
 
+}
 }
 \keyword{cluster}
 

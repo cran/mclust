@@ -4,8 +4,8 @@
 \title{Classification given Probabilities}
 
 \description{
-  Converts a matrix in which each row sums to \emph{1} 
-  into the nearest matrix of \emph{(0,1)} indicator variables.
+  Converts a matrix in which each row sums to 1 to an integer vector 
+  specifying for each row the column index of the maximum.
 }
 \usage{
 map(z, warn = mclust.options("warn"), \dots)
@@ -31,16 +31,6 @@ map(z, warn = mclust.options("warn"), \dots)
   in which the \emph{i}-th value is the column index at which the
   \emph{i}-th row of \code{z} attains a maximum.
   
-}
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
-
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{unmap}},

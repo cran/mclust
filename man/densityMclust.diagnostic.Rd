@@ -47,7 +47,7 @@ The two diagnostic plots for density estimation in the one-dimensional case are 
 
 % \value{}
 
-\section{References}{
+\references{
   Loader C. (1999), Local Regression and Likelihood. New York, Springer.
 
   C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
@@ -64,14 +64,14 @@ The two diagnostic plots for density estimation in the one-dimensional case are 
 }
 
 \examples{
-x = faithful$waiting
-dens = densityMclust(x)
 \dontrun{
-plot(dens, x, what = "diagnostic")}
+x <- faithful$waiting
+dens <- densityMclust(x)
+plot(dens, x, what = "diagnostic")
 # or
 densityMclust.diagnostic(dens, type = "cdf")
 densityMclust.diagnostic(dens, type = "qq")
 }
-
+}
 \keyword{cluster}
 \keyword{dplot}

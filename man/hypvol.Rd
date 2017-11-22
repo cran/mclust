@@ -29,14 +29,14 @@ hypvol(data, reciprocal=FALSE)
   component when observations are designated as noise in  \code{Mclust}
   and \code{mclustBIC}.
 }
-\section{References}{
+\references{
   A. Dasgupta and A. E. Raftery (1998).
   Detecting features in spatial point processes with clutter via model-based
   clustering. 
- \emph{Journal of the American Statistical Association 93:294-302}. 
+  \emph{Journal of the American Statistical Association 93:294-302}. 
 
   C. Fraley and A.E. Raftery (1998).
-   \emph{Computer Journal 41:578-588}.
+  \emph{Computer Journal 41:578-588}.
 
   C. Fraley and A. E. Raftery (2002).
   Model-based clustering, discriminant analysis, and density estimation.
@@ -49,5 +49,3 @@ hypvol(data, reciprocal=FALSE)
 hypvol(iris[,-5])
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

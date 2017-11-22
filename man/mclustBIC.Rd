@@ -6,8 +6,7 @@
 \title{BIC for Model-Based Clustering}
 
 \description{
-BIC for parameterized Gaussian mixture models fitted by EM algorithm initialized by model-based hierarchical clustering.
-}
+BIC for parameterized Gaussian mixture models fitted by EM algorithm initialized by model-based hierarchical clustering.}
 
 \usage{
 mclustBIC(data, G = NULL, modelNames = NULL, 
@@ -69,6 +68,10 @@ mclustBIC(data, G = NULL, modelNames = NULL,
   \item{\code{subset}}{
     A logical or numeric vector specifying a subset of the data
     to be used in the initial hierarchical clustering phase.
+    By default no subset is used unless the number of observations exceeds 
+    the value specified by \code{mclust.options("subset")}. Note that to
+    guarantee exact reproducibility of results a seed must be specified 
+    (see \code{\link{set.seed}}).
   }
   \item{\code{noise}}{
     A logical or numeric vector indicating an initial guess as to
@@ -119,24 +122,12 @@ Auxiliary information returned as attributes.
 The corresponding \code{print} method shows the matrix of values and the top models according to the BIC criterion.
 }
 
-\section{References}{
-  C. Fraley and A. E. Raftery (2002).
-  Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611:631}. 
-  
-  C. Fraley and A. E. Raftery (2005).
-  Bayesian regularization for normal mixture estimation and model-based
-  clustering.
-  Technical Report, Department of Statistics, University of Washington.
+\references{
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 205-233. 
 
-  C. Fraley and A. E. Raftery (2007).
-  Bayesian regularization for normal mixture estimation and model-based
-  clustering. \emph{Journal of Classification 24:155-181}.
+Fraley C. and Raftery A. E. (2002) Model-based clustering, discriminant analysis and density estimation, \emph{Journal of the American Statistical Association}, 97/458, pp. 611-631.
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
+Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 for R: Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation. \emph{Technical Report} No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
   \code{\link{priorControl}}, 

@@ -3,13 +3,11 @@
 
 \title{Tree structure obtained from combining mixture components}
 
-\description{The clustering structure 
-
-The method implemented in \code{\link{clustCombi}} can be used for combining Gaussian mixture components for clustering. This provides a hierarchical structure which can be graphically represented as a tree.}
+\description{The method implemented in \code{\link{clustCombi}} can be used for combining Gaussian mixture components for clustering. This provides a hierarchical structure which can be graphically represented as a tree.}
 
 \usage{
-combiTree(object, what = c("entropy", "step"), 
-                  type = c("triangle", "rectangle"), 
+combiTree(object, type = c("triangle", "rectangle"),
+                  yaxis = c("entropy", "step"), 
                   edgePar = list(col = "darkgray", lwd = 2), 
                   \dots)
 }
@@ -18,11 +16,11 @@ combiTree(object, what = c("entropy", "step"),
   \item{object}{
   An object of class \code{'clustCombi'} resulting from a call to \code{\link{clustCombi}}.
 }
-  \item{what}{
-  A string specifying the quantity used to draw the vertical axis. Possible values are \code{"entropy"} (default), and \code{"step"}.
-}
   \item{type}{
   A string specifying the dendrogram's type. Possible values are \code{"triangle"} (default), and \code{"rectangle"}.
+}
+  \item{yaxis}{
+  A string specifying the quantity used to draw the vertical axis. Possible values are \code{"entropy"} (default), and \code{"step"}.
 }
   \item{edgePar}{
   A list of plotting parameters. See \code{\link[stats]{dendrogram}}.
@@ -45,8 +43,9 @@ data(Baudry_etal_2010_JCGS_examples)
 output <- clustCombi(data = ex4.1) 
 combiTree(output)
 combiTree(output, type = "rectangle")
-combiTree(output, what = "step")
-combiTree(output, what = "step", type = "rectangle")}
+combiTree(output, yaxis = "step")
+combiTree(output, type = "rectangle", yaxis = "step")
+}
 }
 
 \keyword{cluster}

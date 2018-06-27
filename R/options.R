@@ -38,7 +38,8 @@
 
 mclust.options <- function(...)
 {
-  current <- .mclust
+  # current <- .mclust
+  current <- get(".mclust", envir = asNamespace("mclust"))
   if(nargs() == 0) return(current)
   args <- list(...)
   if(length(args) == 1 && is.null(names(args))) 
@@ -53,7 +54,9 @@ mclust.options <- function(...)
   if (is.null(n)) stop("options must be given by name")
   changed <- current[n]
   current[n] <- args
-  if(sys.parent() == 0) env <- asNamespace("mclust") else env <- parent.frame()
-  assign(".mclust", current, envir = env)
+  # if(sys.parent() == 0) env <- asNamespace("mclust") else env <- parent.frame()
+  # assign(".mclust", current, envir = env)
+  assign(".mclust", current, envir = asNamespace("mclust"))
+  
   invisible(current)
 }

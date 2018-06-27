@@ -399,13 +399,15 @@ gmmhdClassify <- function(object, G = 1:5,
   isCore <- (!is.na(clusterCores))
 
   logRatio <- function(p) 
-    { p <- pmax(pmin(p, 1-sqrt(.Machine$double.eps)),sqrt(.Machine$double.eps))
-      log(p)-log(1-p)
+  { 
+    p <- pmax(pmin(p, 1-sqrt(.Machine$double.eps)),sqrt(.Machine$double.eps))
+    log(p)-log(1-p)
   }
 
   # select num. components G to guarantee at least minSize obs per class
   numCompClass <- function(class, G, minSize = 10)
-  { classSize <- tabulate(class)
+  { 
+    classSize <- tabulate(class)
     Gin <- as.vector(G)
     Gmax <- classSize %/% minSize
     Gmax <- pmin(Gmax, max(G))
@@ -418,7 +420,8 @@ gmmhdClassify <- function(object, G = 1:5,
   inc <- isCore
   cluster <- clusterCores
   while(sum(inc) < n)
-  { mod <- MclustDA(data = x[inc,,drop=FALSE], 
+  { 
+    mod <- MclustDA(data = x[inc,,drop=FALSE], 
                     class = as.character(cluster[inc]), 
                     G = numCompClass(cluster[inc], G), 
                     modelNames = modelNames,

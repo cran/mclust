@@ -31,6 +31,8 @@ The function returns a list with the following components:
 
   \item{classification}{a factor of cross-validated class labels.} 
 
+  \item{z}{a matrix containing the cross-validated probabilites for class assignement.} 
+
   \item{error}{the cross-validation error.} 
     
   \item{se}{the standard error of cv error.}

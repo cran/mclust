@@ -83,14 +83,14 @@ Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis
 \dontrun{
 # clustering
 data(crabs, package = "MASS")
-x = crabs[,4:8]
-class = paste(crabs$sp, crabs$sex, sep = "|")
-mod = Mclust(x)
+x <- crabs[,4:8]
+class <- paste(crabs$sp, crabs$sex, sep = "|")
+mod <- Mclust(x)
 table(class, mod$classification)
-dr = MclustDR(mod)
+dr <- MclustDR(mod)
 summary(dr)
 plot(dr)
-drs = MclustDRsubsel(dr)
+drs <- MclustDRsubsel(dr)
 summary(drs)
 table(class, drs$class)
 plot(drs, what = "scatterplot")
@@ -101,11 +101,11 @@ plot(drs, what = "evalues")
 
 # classification
 data(banknote)
-da = MclustDA(banknote[,2:7], banknote$Status)
+da <- MclustDA(banknote[,2:7], banknote$Status)
 table(banknote$Status, predict(da)$class)
-dr = MclustDR(da)
+dr <- MclustDR(da)
 summary(dr)
-drs = MclustDRsubsel(dr)
+drs <- MclustDRsubsel(dr)
 summary(drs)
 table(banknote$Status, predict(drs)$class)
 plot(drs, what = "scatterplot")

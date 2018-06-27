@@ -44,19 +44,19 @@ MclustOutput$G # Mclust/BIC selected 6 classes
 
 par(mfrow=c(2,2))
 
-combiM0 = diag(6) # is the identity matrix
+combiM0 <- diag(6) # is the identity matrix
 # no merging: plot the initial solution, given by z
 combiPlot(ex4.1, MclustOutput$z, combiM0, cex = 3) 
 title("No combining")
 
-combiM1 = combMat(6, 1, 2) # let's merge classes labeled 1 and 2
+combiM1 <- combMat(6, 1, 2) # let's merge classes labeled 1 and 2
 combiM1
 combiPlot(ex4.1, MclustOutput$z, combiM1)
 title("Combine 1 and 2")
 
 # let's merge classes labeled 1 and 2, and then components labeled (in this 
 # new 5-classes combined solution...) 1 and 2
-combiM2 = combMat(5, 1, 2) \%*\% combMat(6, 1, 2) 
+combiM2 <- combMat(5, 1, 2) \%*\% combMat(6, 1, 2) 
 combiM2 
 combiPlot(ex4.1, MclustOutput$z, combiM2)
 title("Combine 1, 2 and then 1 and 2 again")
@@ -67,4 +67,5 @@ legend("center", legend = 1:6,
        pch = mclust.options("classPlotSymbols"), 
        title = "Class labels:")}
 }
-\keyword{ cluster }
+
+\keyword{cluster}

@@ -16,32 +16,33 @@ adjustedRandIndex <- function (x, y)
   return(ARI)
 }
 
+
 classError <- function(classification, truth)
 {
   q <- function(map, len, x)
   {
     x <- as.character(x)
     map <- lapply(map, as.character)
-    y <- sapply(map, function(x)
-      x[1])
+    y <- sapply(map, function(x) x[1])
     best <- y != x
     if(all(len) == 1)
       return(best)
     errmin <- sum(as.numeric(best))
-    z <- sapply(map, function(x)
-      x[length(x)])
+    z <- sapply(map, function(x) x[length(x)])
     mask <- len != 1
     counter <- rep(0, length(len))
     k <- sum(as.numeric(mask))
     j <- 0
-    while(y != z) {
+    while(y != z) 
+    {
       i <- k - j
       m <- mask[i]
       counter[m] <- (counter[m] %% len[m]) + 1
       y[x == names(map)[m]] <- map[[m]][counter[m]]
       temp <- y != x
       err <- sum(as.numeric(temp))
-      if(err < errmin) {
+      if(err < errmin) 
+      {
         errmin <- err
         best <- temp
       }
@@ -49,35 +50,78 @@ classError <- function(classification, truth)
     }
     best
   }
-  if (any(isNA <- is.na(classification))) {
+  if (any(isNA <- is.na(classification))) 
+  {
     classification <- as.character(classification)
     nachar <- paste(unique(classification[!isNA]),collapse="")
     classification[isNA] <- nachar
   }
   MAP <- mapClass(classification, truth)
   len <- sapply(MAP[[1]], length)
-  if(all(len) == 1) {
+  if(all(len) == 1) 
+  {
     CtoT <- unlist(MAP[[1]])
-    I <- match(as.character(classification), names(CtoT), nomatch= 0)               
+    I <- match(as.character(classification), names(CtoT), nomatch= 0)
     one <- CtoT[I] != truth
-  }
-  else {
+  } else 
+  {
     one <- q(MAP[[1]], len, truth)
   }
   len <- sapply(MAP[[2]], length)
-  if(all(len) == 1) {
+  if(all(len) == 1) 
+  {
     TtoC <- unlist(MAP[[2]])
     I <- match(as.character(truth), names(TtoC), nomatch = 0)
     two <- TtoC[I] != classification
-  }
-  else {
+  } else 
+  {
     two <- q(MAP[[2]], len, classification)
   }
-  err <- if(sum(as.numeric(one)) > sum(as.numeric(two)))
-    as.vector(one)
-  else as.vector(two)
+  err <- if(sum(as.numeric(one)) > sum(as.numeric(two))) 
+            as.vector(one) else as.vector(two)
   bad <- seq(along = classification)[err]
   list(misclassified = bad, errorRate = length(bad)/length(truth))
+}
+
+mapClass <- function(a, b)
+{
+  l <- length(a)
+  x <- y <- rep(NA, l)
+  if(l != length(b)) {
+    warning("unequal lengths")
+    return(x)
+  }
+  aChar <- as.character(a)
+  bChar <- as.character(b)
+  Tab <- table(a, b)
+  Ua <- dimnames(Tab)[[1]]
+  Ub <- dimnames(Tab)[[2]]
+  aTOb <- rep(list(Ub), length(Ua))
+  names(aTOb) <- Ua
+  bTOa <- rep(list(Ua), length(Ub))
+  names(bTOa) <- Ub
+  # -------------------------------------------------------------
+  k <- nrow(Tab)
+  Map <- rep(0, k)
+  Max <- apply(Tab, 1, max)
+  for(i in 1:k) 
+  {
+    I <- match(Max[i], Tab[i,  ], nomatch = 0)
+    aTOb[[i]] <- Ub[I]
+  }
+  if(is.numeric(b))
+    aTOb <- lapply(aTOb, as.numeric)
+  k <- ncol(Tab)
+  Map <- rep(0, k)
+  Max <- apply(Tab, 2, max)
+  for(j in (1:k)) {
+    J <- match(Max[j], Tab[, j])
+    bTOa[[j]] <- Ua[J]
+  }
+  if(is.numeric(a))
+    bTOa <- lapply(bTOa, as.numeric)
+  # -------------------------------------------------------------
+  return(list(aTOb = aTOb, bTOa = bTOa))
 }
 
 map <- function(z, warn = mclust.options("warn"), ...)
@@ -303,32 +347,32 @@ covw <- function(X, Z, normalize = TRUE)
 # weighted means(p x G), weighted covariance matrices S(p x p x G) and
 # weighted scattering matrices W(p x p x G)
 {
-    X <- as.matrix(X)
-    Z <- as.matrix(Z)
-    n <- nrow(X)
-    p <- ncol(X)
-    nZ <- nrow(Z)
-    G <- ncol(Z)
-    if(n != nZ) 
-      stop("X and Z must have same number of rows")
-    if(normalize)
-      Z <- apply(Z, 1, function(z) z/sum(z))
-    
-    tmp <- .Fortran("covwf",
-                    X = as.double(X),
-                    Z = as.double(Z),
-                    n = as.integer(n),
-                    p = as.integer(p),
-                    G = as.integer(G),
-                    mean = double(p*G),
-                    S = double(p*p*G),
-                    W = double(p*p*G),
-                    PACKAGE = "mclust")
-
-    out <- list(mean = matrix(tmp$mean, p,G), 
-                S = array(tmp$S, c(p,p,G)),
-                W = array(tmp$W, c(p,p,G)) )
-    return(out)
+  X <- as.matrix(X)
+  Z <- as.matrix(Z)
+  n <- nrow(X)
+  p <- ncol(X)
+  nZ <- nrow(Z)
+  G <- ncol(Z)
+  if(n != nZ) 
+    stop("X and Z must have same number of rows")
+  if(normalize)
+    Z <- t( apply(Z, 1, function(z) z/sum(z)) )
+  
+  tmp <- .Fortran("covwf",
+                  X = as.double(X),
+                  Z = as.double(Z),
+                  n = as.integer(n),
+                  p = as.integer(p),
+                  G = as.integer(G),
+                  mean = double(p*G),
+                  S = double(p*p*G),
+                  W = double(p*p*G),
+                  PACKAGE = "mclust")
+  
+  out <- list(mean = matrix(tmp$mean, p,G), 
+              S = array(tmp$S, c(p,p,G)),
+              W = array(tmp$W, c(p,p,G)) )
+  return(out)
 }
 
 clPairs <- function (data, classification, symbols = NULL, colors = NULL, 
@@ -336,7 +380,7 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
 {
   data <- as.matrix(data)
   n <- nrow(data)
-  p <- ncol(data)
+  d <- ncol(data)
   if(missing(classification)) 
     classification <- rep(1, n)
   if(!is.factor(classification)) 
@@ -351,12 +395,12 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
         { symbols <- mclust.options("classPlotSymbols") }
       else { if(l <= 9) { symbols <- as.character(1:9) }
              else if(l <= 26) { symbols <- LETTERS[1:l] }
-                  else symbols <- rep( 16,l)
+                  else symbols <- rep(16,l)
            }
   }
   if(length(symbols) == 1) symbols <- rep(symbols, l)
   if(length(symbols) < l) 
-    { symbols <- rep( 16, l)
+    { symbols <- rep(16, l)
       warning("more symbols needed")
   }
   if(is.null(colors)) 
@@ -369,24 +413,40 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
       warning("more colors needed")
   }
 
-  if(p > 2)
+  if(d > 2)
     { pairs(x = data, labels = labels, 
             pch = symbols[classification], 
             cex = CEX, col = colors[classification], 
             gap = gap, ...) }
-  else if(p == 2)
+  else if(d == 2)
     { plot(data, cex = CEX, 
             pch = symbols[classification], 
             col = colors[classification], 
             ...) }
   
-  invisible(list(class = levels(classification), 
+  invisible(list(d = d,
+                 class = levels(classification), 
                  col = colors,
                  pch = symbols[seq(l)]))
 }
 
-clPairsLegend <- function(x, y, class, col, pch, ...)
+clPairsLegend <- function(x, y, class, col, pch, box = TRUE, ...)
 {
+  usr <- par("usr")
+  
+  if(box & all(usr == c(0,1,0,1))) 
+  {
+    oldpar <- par(mar = rep(0.3, 4), no.readonly = TRUE)
+    on.exit(par(oldpar))
+    box(which = "plot")
+  }
+  
+  if(!all(usr == c(0,1,0,1)))
+  {
+    x <- x*(usr[2]-usr[1])+usr[1]
+    y <- y*(usr[4]-usr[3])+usr[3]
+  }
+
   legend(x = x, y = y, legend = class, 
          col = col, text.col = col, pch = pch, 
          title.col = par("fg"), xpd = NA, ...)
@@ -816,10 +876,11 @@ invisible()
 }
 
 surfacePlot <- function(data, parameters, 
-                        type = c("contour", "image", "persp"), 
+                        type = c("contour", "level", "image", "persp"), 
                         what = c("density", "uncertainty"), 
                         transformation = c("none", "log", "sqrt"), 
                         grid = 100, nlevels = 11, levels = NULL, 
+                        color.palette = blue2grey.colors,
                         col = grey(0.6), xlim = NULL, ylim = NULL, 
                         xlab = NULL, ylab = NULL, scale = FALSE, 
                         main = FALSE, swapAxes = FALSE,
@@ -955,14 +1016,28 @@ surfacePlot <- function(data, parameters,
          stop("transformation improperly specified"))
   
   switch(EXPR = CI, 
-         contour = {
+         "contour" = {
            title3 <- "Contour"
            if(is.null(levels)) levels <- pretty(zz, nlevels)
            contour(x = x, y = y, z = zz, levels = levels, 
                    xlab = xlab, ylab = ylab, 
                    col = col, main = "", ...)
+         },
+         "level" = {
+           title3 <- "HDR level"
+           if(is.null(levels)) levels <- pretty(zz, nlevels)
+           plot(x, y, type = "n",
+                xlab = xlab, ylab = ylab, ...)
+           fargs <- formals(".filled.contour")
+           dargs <- c(list(x = x, y = y, z = zz, 
+                          levels = levels,
+                          col = color.palette(length(levels))), 
+                      args)
+           dargs <- dargs[names(dargs) %in% names(fargs)]
+           fargs[names(dargs)] <- dargs
+           do.call(".filled.contour", fargs)
          }, 
-         image = {
+         "image" = {
            title3 <- "Image"
            if(length(col) == 1)
              { if(!is.null(levels)) 
@@ -973,7 +1048,7 @@ surfacePlot <- function(data, parameters,
            image(x = x, y = y, z = zz, xlab = xlab, ylab = ylab, 
                  col = col, main = "", ...)
          }, 
-         persp = {
+         "persp" = {
            title3 <- "Perspective"
            dots <- list(...)
            if(is.null(dots$theta)) dots$theta <- -30
@@ -1019,6 +1094,25 @@ uncerPlot <- function (z, truth=NULL, ...)
   invisible()
 }
 
+hdrlevels <- function(density, prob)
+{
+  if(missing(density) | missing(prob))
+    stop("Please provide both density and prob arguments to function call!")
+  density <- as.vector(density)
+  prob <- pmin(pmax(as.numeric(prob), 0), 1)
+  alpha <- 1-prob
+  lev <- quantile(density, alpha)
+  names(lev) <- paste0(round(prob*100),"%")
+  return(lev)
+}
+
+blue2grey.colors <- function(n) 
+{
+  palette <- grDevices::colorRampPalette(c("#E6E6E6", "#bcc9d1", "#6c7f97", "#3e5264"), 
+                                           space = "Lab")
+  palette(n)
+}
+
 bubble <- function(x, cex = c(0.2, 3), alpha = c(0.1, 1)) 
 {
   x <- as.vector(x)
@@ -1033,6 +1127,13 @@ bubble <- function(x, cex = c(0.2, 3), alpha = c(0.1, 1))
   alpha <- x * diff(range(alpha)) + min(alpha)
   return(list(cex = cex, alpha = alpha))
 }
+
+catwrap <- function(x, width = getOption("width"), ...)
+{
+# version of cat with wrapping at specified width
+  cat(paste(strwrap(x, width = width, ...), collapse = "\n"), "\n")
+}
+
 
 ##
 ##-- Convert to a from classes 'Mclust' and 'densityMclust' ------------------

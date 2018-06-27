@@ -46,7 +46,7 @@ J.-P. Baudry, A. E. Raftery, L. Scrucca
 \dontrun{
 data(Baudry_etal_2010_JCGS_examples)
 # run Mclust to get the MclustOutput
-output <- clustCombi(ex4.2, modelNames = "VII") 
+output <- clustCombi(data = ex4.2, modelNames = "VII") 
 
 entPlot(output$MclustOutput$z, output$combiM, reg = c(2,3)) 
 # legend: in red, the single-change-point piecewise linear regression;

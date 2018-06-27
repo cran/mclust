@@ -43,6 +43,10 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   if(!is.list(modelNames))
     { modelNames <- rep(list(modelNames), ncl) }
   #
+  hcUse <- mclust.options("hcUse")
+  mclust.options("hcUse" = "VARS")
+  on.exit(mclust.options("hcUse" = hcUse))
+  #
   if(modelType == "EDDA")
   { 
     mc[[1]] <- as.name("mstep")
@@ -151,14 +155,6 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
          names(SUMMARY)[which(names(SUMMARY) == "bic")] <- "BIC"
          Models[[l]] <- c(SUMMARY, list(observations = which(I)))
     }
-    # extract info for each model
-    # bic <- sapply(Models, function(mod) max(mod$bic, na.rm=TRUE))
-    # loglik <- sapply(Models, function(mod) mod$loglik)       
-    # df <- (2*loglik - bic)/log(sapply(Models, function(mod) mod$n))
-    # then sum up
-    # bic <- sum(bic)
-    # loglik <- sum(loglik)
-    # df <- sum(df)
     bic <- loglik <- df <- NULL
   }
   
@@ -169,11 +165,13 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
               bic = bic, loglik = loglik, df = df)
   out <- structure(out, prior = prior, control = control, 
                    class = "MclustDA")
+  
   if(modelType == "MclustDA") 
-    { l <- logLik.MclustDA(out, data)
-      out$loglik <- as.numeric(l)
-      out$df <- attr(l, "df")
-      out$bic <- 2*out$loglik - log(n)*out$df
+  { 
+    l <- logLik.MclustDA(out, data)
+    out$loglik <- as.numeric(l)
+    out$df <- attr(l, "df")
+    out$bic <- 2*out$loglik - log(n)*out$df
   }
   
   return(out)
@@ -188,11 +186,15 @@ print.MclustDA <- function(x, ...)
   M <- sapply(1:nclass, function(i) models[[i]]$modelName)
   G <- sapply(1:nclass, function(i) models[[i]]$G)
   out <- data.frame(n = n, Model = M, G = G)
-  rownames(out) <- names(models)  
+  rownames(out) <- names(models)
   out <- as.matrix(out)
   names(dimnames(out)) <- c("Classes", "")
-  print(out, quote = FALSE, right = TRUE) 
-  invisible()
+  print(out, quote = FALSE, right = TRUE)
+  cat("\n")
+  catwrap("\nAvailable components:\n")
+  print(names(x))
+  # str(x, max.level = 2, give.attr = FALSE, strict.width = "wrap")
+  invisible(x)
 }
 
 summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
@@ -210,15 +212,17 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   class <- object$class
   data <- object$data
   pred <- predict(object, newdata = data, ...)
-  err <- classError(class, pred$classification)$errorRate
+  err <- mean(class != pred$classification)
   tab <- try(table(class, pred$classification))
   if(class(tab) == "try-error") 
-  { err <- tab <- NA }
-  else names(dimnames(tab)) <- c("Class", "Predicted")
+    { err <- tab <- NA }
+  else 
+    { names(dimnames(tab)) <- c("Class", "Predicted") }
   
   tab.newdata <- err.newdata <- NULL
-  if(!missing(newdata))
-  { pred.newdata <- predict(object, newdata = newdata, ...)
+  if(!missing(newdata) & !missing(newclass))
+  { 
+    pred.newdata <- predict(object, newdata = newdata, ...)
     if(missing(newclass))
     { tab.newdata <- table(pred.newdata$classification)
       names(dimnames(tab.newdata)) <- "Predicted"
@@ -226,7 +230,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
     else
     { tab.newdata <- table(newclass, pred.newdata$classification)
       names(dimnames(tab.newdata)) <- c("Class", "Predicted")
-      err.newdata <- classError(newclass, pred.newdata$classification)$errorRate
+      err.newdata <- mean(newclass != pred.newdata$classification)
     }
   }
   
@@ -244,18 +248,20 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
 
 print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
 {
-  
   title <- paste("Gaussian finite mixture model for classification")
-  cat(rep("-", nchar(title)),"\n",sep="")
-  cat(title, "\n")
-  cat(rep("-", nchar(title)),"\n",sep="")
+  txt <- paste(rep("-", min(nchar(title), getOption("width"))), collapse = "")
+  catwrap(txt)
+  catwrap(title)
+  catwrap(txt)
   
-  cat("\n", x$type, " model summary:\n", sep="")
+  cat("\n")
+  catwrap(paste(x$type, "model summary:"))
+  cat("\n")
   #
   tab <- data.frame("log-likelihood" = x$loglik,
                     "n" = sum(x$n), "df" = x$df, 
                     "BIC" = x$bic, row.names = "")
-  cat("\n"); print(tab, digits = digits)
+  print(tab, digits = digits)
   
   tab <- data.frame(n = x$n, Model = x$modelName, G = x$G)
   rownames(tab) <- x$classes
@@ -730,109 +736,6 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
 }
 
 
-classError <- function(classification, truth)
-{
-  q <- function(map, len, x)
-  {
-    x <- as.character(x)
-    map <- lapply(map, as.character)
-    y <- sapply(map, function(x)
-      x[1])
-    best <- y != x
-    if(all(len) == 1)
-      return(best)
-    errmin <- sum(as.numeric(best))
-    z <- sapply(map, function(x)
-      x[length(x)])
-    mask <- len != 1
-    counter <- rep(0, length(len))
-    k <- sum(as.numeric(mask))
-    j <- 0
-    while(y != z) {
-      i <- k - j
-      m <- mask[i]
-      counter[m] <- (counter[m] %% len[m]) + 1
-      y[x == names(map)[m]] <- map[[m]][counter[m]]
-      temp <- y != x
-      err <- sum(as.numeric(temp))
-      if(err < errmin) {
-        errmin <- err
-        best <- temp
-      }
-      j <- (j + 1) %% k
-    }
-    best
-  }
-  if (any(isNA <- is.na(classification))) {
-    classification <- as.character(classification)
-    nachar <- paste(unique(classification[!isNA]),collapse="")
-    classification[isNA] <- nachar
-  }
-  MAP <- mapClass(classification, truth)
-  len <- sapply(MAP[[1]], length)
-  if(all(len) == 1) {
-    CtoT <- unlist(MAP[[1]])
-    I <- match(as.character(classification), names(CtoT), nomatch= 0)               
-    one <- CtoT[I] != truth
-  }
-  else {
-    one <- q(MAP[[1]], len, truth)
-  }
-  len <- sapply(MAP[[2]], length)
-  if(all(len) == 1) {
-    TtoC <- unlist(MAP[[2]])
-    I <- match(as.character(truth), names(TtoC), nomatch = 0)
-    two <- TtoC[I] != classification
-  }
-  else {
-    two <- q(MAP[[2]], len, classification)
-  }
-  err <- if(sum(as.numeric(one)) > sum(as.numeric(two)))
-    as.vector(one)
-  else as.vector(two)
-  bad <- seq(along = classification)[err]
-  list(misclassified = bad, errorRate = length(bad)/length(truth))
-}
-
-mapClass <- function(a, b)
-{
-  l <- length(a)
-  x <- y <- rep(NA, l)
-  if(l != length(b)) {
-    warning("unequal lengths")
-    return(x)
-  }
-  aChar <- as.character(a)
-  bChar <- as.character(b)
-  Tab <- table(a, b)
-  Ua <- dimnames(Tab)[[1]]
-  Ub <- dimnames(Tab)[[2]]
-  aTOb <- rep(list(Ub), length(Ua))
-  names(aTOb) <- Ua
-  bTOa <- rep(list(Ua), length(Ub))
-  names(bTOa) <- Ub
-  # -------------------------------------------------------------
-  k <- nrow(Tab)
-  Map <- rep(0, k)
-  Max <- apply(Tab, 1, max)
-  for(i in 1:k) {
-    I <- match(Max[i], Tab[i,  ], nomatch = 0)
-    aTOb[[i]] <- Ub[I]
-  }
-  if(is.numeric(b))
-    aTOb <- lapply(aTOb, as.numeric)
-  k <- ncol(Tab)
-  Map <- rep(0, k)
-  Max <- apply(Tab, 2, max)
-  for(j in (1:k)) {
-    J <- match(Max[j], Tab[, j])
-    bTOa[[j]] <- Ua[J]
-  }
-  if(is.numeric(a))
-    bTOa <- lapply(bTOa, as.numeric)
-  list(aTOb = aTOb, bTOa = bTOa)
-}
-
 cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...) 
 {
 # nfold-cross validation (CV) prediction error for mclustDA
@@ -852,6 +755,7 @@ cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...)
   #
   err <- rep(NA, nfold)
   cvclass <- factor(rep(NA, n), levels = levels(class))
+  cvprob  <- matrix(as.double(NA), nrow = n, ncol = nlevels(class))
   
   if(verbose)
     { cat("cross-validating ...\n")
@@ -873,6 +777,7 @@ cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...)
     modTest <- predict(mod, data[folds[[i]],,drop=FALSE])
     classTest <- modTest$classification
     cvclass[folds[[i]]] <- classTest
+    cvprob[folds[[i]],] <- modTest$z
     err[i] <- length(classTest) - sum(classTest == class[folds[[i]]], na.rm = TRUE)
     if(verbose) 
       setTxtProgressBar(pbar, i)
@@ -883,7 +788,11 @@ cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...)
   err <- err/folds.size
   se <- sqrt(var(err)/nfold)
   #
-  return(list(classification = cvclass, error = cv.error, se = se))
+  out <- list(classification = cvclass, 
+              z = cvprob, 
+              error = cv.error, 
+              se = se)
+  return(out)
 }
 
 balanced.folds <- function(y, nfolds = min(min(table(y)), 10)) 

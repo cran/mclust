@@ -119,7 +119,7 @@ summary(faithful.ICL)
 plot(faithful.ICL)
 \dontrun{
 # compare with
-faithful.BIC = mclustBIC(faithful)
+faithful.BIC <- mclustBIC(faithful)
 faithful.BIC
 plot(faithful.BIC)
 }

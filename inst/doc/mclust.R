@@ -41,11 +41,11 @@ plot(mod1, what = "uncertainty", dimens = c(3,1), main = "")
 plot(mod1, what = "uncertainty", dimens = c(2,3), main = "")
 par(mfrow = c(1,1))
 
-ICL = mclustICL(X)
+ICL <- mclustICL(X)
 summary(ICL)
 plot(ICL)
 
-LRT = mclustBootstrapLRT(X, modelName = "VVV")
+LRT <- mclustBootstrapLRT(X, modelName = "VVV")
 LRT
 
 ## ------------------------------------------------------------------------
@@ -71,8 +71,12 @@ plot(mod3, what = "scatterplot")
 plot(mod3, what = "classification")
 
 ## ------------------------------------------------------------------------
-unlist(cvMclustDA(mod2, nfold = 10)[2:3])
-unlist(cvMclustDA(mod3, nfold = 10)[2:3])
+cv <- cvMclustDA(mod2, nfold = 10)
+str(cv)
+unlist(cv[3:4])
+cv <- cvMclustDA(mod3, nfold = 10)
+str(cv)
+unlist(cv[3:4])
 
 ## ------------------------------------------------------------------------
 data(acidity)
@@ -89,7 +93,9 @@ mod5 <- densityMclust(faithful)
 summary(mod5)
 plot(mod5, what = "BIC")
 plot(mod5, what = "density")
-plot(mod5, what = "density", type = "image", col = "dodgerblue3", grid = 100)
+plot(mod5, what = "density", type = "level")
+plot(mod5, what = "density", type = "level",
+     data = faithful, points.cex = 0.5)
 plot(mod5, what = "density", type = "persp")
 
 ## ------------------------------------------------------------------------
@@ -100,6 +106,7 @@ summary(boot1, what = "ci")
 par(mfrow=c(4,3))
 plot(boot1, what = "pro")
 plot(boot1, what = "mean")
+par(mfrow=c(1,1))
 
 ## ------------------------------------------------------------------------
 boot4 <- MclustBootstrap(mod4, nboot = 999, type = "bs")
@@ -109,6 +116,7 @@ summary(boot4, what = "ci")
 par(mfrow=c(2,2))
 plot(boot4, what = "pro")
 plot(boot4, what = "mean")
+par(mfrow=c(1,1))
 
 ## ------------------------------------------------------------------------
 mod1dr <- MclustDR(mod1)

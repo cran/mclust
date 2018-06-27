@@ -1,3 +1,22 @@
+Version 5.4.1 (NOT ON CRAN)
+    o Add parametric bootstrap option (type = "pb") in MclustBootstrap().
+    o Add the options to get averages of resampling distributions in 
+      summary.MclustBootstrap() and to plot resampling-based confidence 
+      intervals in plot.MclustBootstrap().
+    o Add function catwrap() for wrapping printed lines at getOption("width") 
+      when using cat().
+    o mclust.options() now modify the variable .mclust in the namespace of 
+      the package, so it should work even inside an mclust function call.
+    o Fix a bug in covw() when normalize = TRUE.
+    o Fix a bug in estepVEV() estepVEE() when parameters contains Vinv.
+    o Fix a bug in plotDensityMclustd() when drawing marginal axes.
+    o Fix a bug in summary.MclustDA() when computing classification error 
+      in the extreme case of a minor class of assignment.
+    o Fix a bug in the initialisation of mclustBIC() when a noise component
+      is present for 1-dimensional data.
+    o fix bugs in some examples documenting clustCombi() and related 
+      functions.
+
 Version 5.4
     o Model-based hierarchical clustering used to start the EM-algorithm
       is now based on the scaled SVD transformation proposed by Scrucca and
@@ -10,7 +29,7 @@ Version 5.4
       sample size to be used in the initial model-based hierarchical phase.
     o predict.densityMclust() can optionally returns the density on a 
       logarithm scale.
-    o removed normalization of mixing proportions for new models in single 
+    o Removed normalization of mixing proportions for new models in single 
       mstep.
     o Internal rewrite of code used by packageStartupMessage().
     o Fix a small bug in MclustBootstrap() in the univariate data case.

@@ -87,8 +87,8 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 \seealso{\link{MclustDR}}
 
 \examples{
-mod = Mclust(iris[,1:4], G = 3)
-dr = MclustDR(mod)
+mod <- Mclust(iris[,1:4], G = 3)
+dr <- MclustDR(mod)
 plot(dr, what = "evalues")
 plot(dr, what = "pairs")
 plot(dr, what = "scatterplot", dimens = c(1,3))
@@ -99,8 +99,8 @@ plot(dr, what = "density")
 plot(dr, what = "density", dimens = 2)
 
 data(banknote)
-da = MclustDA(banknote[,2:7], banknote$Status, G = 1:3)
-dr = MclustDR(da)
+da <- MclustDA(banknote[,2:7], banknote$Status, G = 1:3)
+dr <- MclustDR(da)
 plot(dr, what = "evalues")
 plot(dr, what = "pairs")
 plot(dr, what = "contour")

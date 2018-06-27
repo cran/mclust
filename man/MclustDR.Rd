@@ -97,16 +97,16 @@ Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis
 \examples{
 # clustering
 data(diabetes)
-mod = Mclust(diabetes[,-1])
+mod <- Mclust(diabetes[,-1])
 summary(mod)
 
-dr = MclustDR(mod)
+dr <- MclustDR(mod)
 summary(dr)
 plot(dr, what = "scatterplot")
 plot(dr, what = "evalues")
 
 # adjust the tuning parameter to show the most separating directions
-dr1 = MclustDR(mod, lambda = 1) 
+dr1 <- MclustDR(mod, lambda = 1) 
 summary(dr1)
 plot(dr1, what = "scatterplot")
 plot(dr1, what = "evalues")
@@ -114,12 +114,12 @@ plot(dr1, what = "evalues")
 # classification
 data(banknote)
 
-da = MclustDA(banknote[,2:7], banknote$Status, modelType = "EDDA")
-dr = MclustDR(da)
+da <- MclustDA(banknote[,2:7], banknote$Status, modelType = "EDDA")
+dr <- MclustDR(da)
 summary(dr)
 
-da = MclustDA(banknote[,2:7], banknote$Status)
-dr = MclustDR(da)
+da <- MclustDA(banknote[,2:7], banknote$Status)
+dr <- MclustDR(da)
 summary(dr)
 }
 

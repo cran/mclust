@@ -1,18 +1,19 @@
 \name{surfacePlot}
 \alias{surfacePlot}
-\title{
-  Density or uncertainty surface for bivariate mixtures.
-}
+
+\title{Density or uncertainty surface for bivariate mixtures}
+
 \description{
-  Plots a density or uncertainty surface 
-  given bivariate data and parameters of an MVN mixture model for the data.
+Plots a density or uncertainty surface given bivariate data and parameters of 
+a MVN mixture model for the data.
 }
 \usage{
 surfacePlot(data, parameters, 
-            type = c("contour", "image", "persp"), 
+            type = c("contour", "level", "image", "persp"), 
             what = c("density", "uncertainty"), 
             transformation = c("none", "log", "sqrt"),          
-            grid = 100, nlevels = 11, levels = NULL, col = grey(0.6),
+            grid = 100, nlevels = 11, levels = NULL, 
+            color.palette = blue2grey.colors, col = grey(0.6),
             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
             scale = FALSE, main = FALSE, swapAxes = FALSE, 
             verbose = FALSE, \dots)
@@ -43,8 +44,9 @@ surfacePlot(data, parameters,
      }
   }
   \item{type}{
-    Choose from one of the following three options: \code{"contour"}
-    (default), \code{"image"}, \code{"persp"} indicating the plot type. 
+    Choose from one of the following three options: \code{"contour"} 
+    (default), \code{"level"}, \code{"image"}, and \code{"persp"} indicating 
+    the plot type. 
   }
   \item{what}{
     Choose from one of the following options: \code{"density"}
@@ -67,6 +69,10 @@ surfacePlot(data, parameters,
   }
   \item{levels}{
     A vector of levels at which to draw the lines in a contour plot.
+  }
+  \item{color.palette}{
+    A function which defines a palette of colours to be used for 
+    \code{type = "level"} plot. 
   }
   \item{col}{
     The color to be used for drawing contour lines.
@@ -102,9 +108,13 @@ surfacePlot(data, parameters,
   }
 }
 \value{
-A plots showing (a transformation of) the density or uncertainty for the given mixture model and data. 
+A plots showing (a transformation of) the density or uncertainty for the given
+mixture model and data. 
 
-The function also returns an invisible list with components \code{x}, \code{y}, and \code{z} in which \code{x} and \code{y} are the values used to define the grid and \code{z} is the transformed density or uncertainty at the grid points.
+The function also returns an invisible list with components \code{x}, 
+\code{y}, and \code{z} in which \code{x} and \code{y} are the values used to 
+define the grid and \code{z} is the transformed density or uncertainty at the 
+grid points.
 }
 \details{
   For an image plot, a color scheme may need to be selected on the display

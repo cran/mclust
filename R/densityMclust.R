@@ -148,22 +148,32 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
   invisible()
 }
 
-plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL, 
-                               col = grey(0.6), points.pch = 1, 
-                               points.col = 1, points.cex = 0.8, ...) 
+plotDensityMclust2 <- function(x, data = NULL, 
+                               nlevels = 11, levels = NULL, 
+                               prob = c(0.25, 0.5, 0.75),
+                               points.pch = 1, points.col = 1, points.cex = 0.8, 
+                               ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
   object <- x # Argh.  Really want to use object anyway
   mc <- match.call(expand.dots = TRUE)
-  mc$x <- mc$points.pch <- mc$points.col <- mc$points.cex <- NULL
-  mc$nlevels <- nlevels; mc$levels <- levels
-  mc$col <- col
+  mc$x <- mc$points.pch <- mc$points.col <- mc$points.cex <- mc$prob <- NULL
+
+  mc$nlevels <- nlevels
+  mc$levels <- levels
+  if(isTRUE(mc$type == "level"))
+    { mc$levels <- c(sort(hdrlevels(object$density, prob)), 
+                     1.1*max(object$density))
+      mc$nlevels <- length(mc$levels)
+    }
   
   if(is.null(data)) 
     { addPoints <- FALSE
       mc$data <- object$data } 
   else
-    { addPoints <- TRUE }
+    { data <- as.matrix(data)
+      stopifnot(ncol(data) == ncol(object$data))
+      addPoints <- TRUE }
   
   # set mixture parameters
   par <- object$parameters
@@ -183,23 +193,34 @@ plotDensityMclust2 <- function(x, data = NULL, nlevels = 11, levels = NULL,
   invisible(out)
 }
 
-plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), 
-                               points.pch = 1, points.col = 1, points.cex = 0.8, gap = 0.2, ...) 
+plotDensityMclustd <- function(x, data = NULL, 
+                               nlevels = 11, levels = NULL, 
+                               prob = c(0.25, 0.5, 0.75),
+                               points.pch = 1, points.col = 1, points.cex = 0.8, 
+                               gap = 0.2, ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
   
   object <- x # Argh.  Really want to use object anyway
   mc <- match.call(expand.dots = TRUE)
   mc$x <- mc$points.pch <- mc$points.col <- mc$points.cex <- mc$gap <- NULL
-  mc$nlevels <- nlevels; mc$levels <- levels
-  mc$col <- col
-  
+
+  mc$nlevels <- nlevels
+  mc$levels <- levels
+  if(isTRUE(mc$type == "level"))
+    { mc$levels <- c(sort(hdrlevels(object$density, prob)), 
+                     1.1*max(object$density))
+      mc$nlevels <- length(mc$levels)
+    }
+
   if(is.null(data)) 
     { data <- mc$data <- object$data
       addPoints <- FALSE }
   else
     { data <- as.matrix(data)
+      stopifnot(ncol(data) == ncol(object$data))
       addPoints <- TRUE  }
+  
   
   nc <- object$d
   oldpar <- par(mfrow = c(nc, nc), 
@@ -211,8 +232,11 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
   for(i in seq(nc))
      { for(j in seq(nc)) 
           { if(i == j) 
-              { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-                text(0,0, colnames(data)[i], cex=1.5, adj=0.5)
+              { 
+                plot(data[i], data[i], type="n",
+                     xlab = "", ylab = "", axes=FALSE)
+                text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
+                     colnames(data)[i], cex = 1.5, adj = 0.5)
                 box()
             } 
             else 
@@ -232,9 +256,10 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
                 mc$data <- object$data[,c(j,i)]
                 mc$axes <- FALSE
                 mc[[1]] <- as.name("surfacePlot")
+                # if(mc$type == "level") browser()
                 out <- eval(mc, parent.frame())
                 box()
-                if(addPoints)
+                if(addPoints & (j > i))
                   points(data[,c(j,i)], pch = points.pch, 
                          col = points.col, cex = points.cex)
               }
@@ -245,7 +270,7 @@ plotDensityMclustd <- function(x, data = NULL, nlevels = 11, levels = NULL, col 
           }
   }
   #
-  invisible(out)
+  invisible()
 }
 
 dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
@@ -301,9 +326,10 @@ cdens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, .
 }
 
 densityMclust.diagnostic <- function(object, type = c("cdf", "qq"), 
-                                     col = c("black", "green4"), 
-                                     lwd = c(2,2), lty = c(1,2),
-                                     legend = TRUE, grid = TRUE, main = TRUE, ...)
+                                     col = c("black", "black"), 
+                                     lwd = c(2,1), lty = c(1,1),
+                                     legend = TRUE, grid = TRUE, 
+                                     ...)
 {
 # Diagnostic plots for density estimation 
 # (only available for the one-dimensional case)
@@ -326,7 +352,7 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
     { warning("only available for one-dimensional data") 
       return() }  
   type <- match.arg(type, c("cdf", "qq"), several.ok = TRUE)
-  main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
+  # main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
 
   data <- as.numeric(object$data)
   n <- length(data)
@@ -340,17 +366,17 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
   if(any(type == "cdf"))
   { # Fitted CDF vs Emprical CDF    
     empcdf <- ecdf(data)
-    plot(empcdf, do.points = FALSE, 
+    plot(empcdf, do.points = FALSE, verticals = TRUE,
          col = col[2], lwd = lwd[2], lty = lty[2],
          xlab = deparse(object$call$data), 
          ylab = "Cumulative Distribution Function",
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
          main = NULL, ...)
-    if(main) title(main = "CDF plot", cex.main = 1.1)
+    # if(main) title(main = "CDF plot", cex.main = 1.1)
     lines(cdf, col = col[1], lwd = lwd[1], lty = lty[1])
     rug(data)
     if(legend)
-      { legend("bottomright", legend = c("Est.CDF", "Emp.CDF"), 
+      { legend("bottomright", legend = c("Estimated CDF", "Empirical CDF"), 
                ncol = 1, inset = 0.05, cex = 0.8,
                col = col, lwd = lwd, lty = lty) }
   }
@@ -363,7 +389,7 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
          ylab = "Sample Quantiles", 
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
          main = NULL, ...)
-    if(main) title(main = "Q-Q plot", cex.main = 1.1)
+    # if(main) title(main = "Q-Q plot", cex.main = 1.1)
     with(list(y = sort(data), x = q),
          { i <- (y > quantile(y, 0.25) & y < quantile(y, 0.75))
            abline(lm(y ~ x, subset = i), lty = 2) 

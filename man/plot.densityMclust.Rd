@@ -19,24 +19,31 @@
 plotDensityMclust1(x, data = NULL, hist.col = "lightgrey", 
                    hist.border = "white",  breaks = "Sturges", \dots)
 
-plotDensityMclust2(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6),
+plotDensityMclust2(x, data = NULL, nlevels = 11, levels = NULL, 
+                   prob = c(0.25, 0.5, 0.75),
                    points.pch = 1, points.col = 1, points.cex = 0.8, \dots)
 
-plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6), 
+plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, 
+                   prob = c(0.25, 0.5, 0.75),
                    points.pch = 1, points.col = 1, points.cex = 0.8,
                    gap = 0.2, \dots)
 }
 
 \arguments{
-  \item{x}{An object of class \code{'mclustDensity'} obtained from a call to \code{\link{densityMclust}} function.}
+  \item{x}{An object of class \code{'mclustDensity'} obtained from a call to
+           \code{\link{densityMclust}} function.}
 
   \item{data}{Optional data points.}
 
   \item{what}{The type of graph requested:
     \describe{
-    \item{\code{"density"} =}{a plot of estimated density; if \code{data} is also provided the density is plotted over data points (see Details section).}
-    \item{\code{"BIC"} =}{a plot of BIC values for the estimated models versus the number of components.}
-    \item{\code{"diagnostic"} =}{diagnostic plots (only available for the one-dimensional case, see \code{\link{densityMclust.diagnostic}})}
+    \item{\code{"density"} =}{a plot of estimated density; if \code{data} is 
+          also provided the density is plotted over data points (see Details 
+          section).}
+    \item{\code{"BIC"} =}{a plot of BIC values for the estimated models versus
+                          the number of components.}
+    \item{\code{"diagnostic"} =}{diagnostic plots (only available for the 
+          one-dimensional case, see \code{\link{densityMclust.diagnostic}})}
     }
   }
   
@@ -52,11 +59,11 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6),
   
   \item{levels}{A vector of density levels at which to draw the contour lines.}
   
-  \item{col}{Color to be used for drawing the contour lines, the perspective plot, or the image density. In the latter case can be also a vector of color values.}
-  
+  \item{prob}{A vector of probability levels for computing HDR. Only used if \code{type = "level"} and supersede previous \code{nlevels} and \code{levels} arguments.}
+
   \item{gap}{Distance between subplots, in margin lines, for the matrix of pairwise scatterplots.}
 
-  \item{\dots}{Additional arguments.}
+  \item{\dots}{Additional arguments passed to \code{\link{surfacePlot}}.}
 }
 
 \details{The function \code{plot.densityMclust} allows to obtain the plot of
@@ -72,8 +79,10 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6),
   
   For two-dimensional data further arguments available are those accepted by
   the \code{\link{surfacePlot}} function. In particular, the density can be
-  represented through \code{"contour"}, \code{"image"}, and \code{"persp"}
-  type of graph.
+  represented through \code{"contour"}, \code{"level"}, \code{"image"}, and 
+  \code{"persp"} type of graph. 
+  For \code{type = "level"} Highest Density Regions (HDRs) are plotted for 
+  probability levels \code{prob}. See \code{link{hdrlevels}} for details.
   
   For higher dimensionality a scatterplot matrix of pairwise densities is
   drawn. 
@@ -85,28 +94,35 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL, col = grey(0.6),
 
 \seealso{
   \code{\link{densityMclust}},
+  \code{\link{surfacePlot}},
   \code{\link{densityMclust.diagnostic}}, 
   \code{\link{Mclust}}.
 }
 
 \examples{
-dens = densityMclust(faithful$waiting)
-plot(dens, what = "density")
+\dontrun{
+dens <- densityMclust(faithful$waiting)
+summary(dens)
+summary(dens, parameters = TRUE)
+plot(dens, what = "BIC", legendArgs = list(x = "topright"))
 plot(dens, what = "density", data = faithful$waiting)
 
-dens = densityMclust(faithful)
-plot(dens, what = "density")
-plot(dens, what = "density", type = "image", col = "steelblue")
-plot(dens, what = "density", type = "persp", col = adjustcolor("steelblue", alpha.f = 0.5))
+dens <- densityMclust(faithful)
+summary(dens)
+summary(dens, parameters = TRUE)
+plot(dens, what = "density", data = faithful, 
+     drawlabels = FALSE, points.pch = 20)
+plot(dens, what = "density", type = "level")
+plot(dens, what = "density", type = "level", prob = seq(0.1, 0.9, by = 0.1))
+plot(dens, what = "density", type = "level", data = faithful)
+plot(dens, what = "density", type = "persp")
 
-x = iris[,1:4]
-dens = densityMclust(x)
-plot(dens, what = "density", nlevels = 7)
-\dontrun{
-  plot(dens, x, what = "density", drawlabels = FALSE,
-       levels = quantile(dens$density, probs = c(0.05, 0.25, 0.5, 0.75, 0.95)))
-  plot(dens, what = "density", type = "image", col = "steelblue")
-  plot(dens, what = "density", type = "persp", border = adjustcolor(grey(0.1), alpha.f = 0.5))
+dens <- densityMclust(iris[,1:4])
+summary(dens, parameters = TRUE)
+plot(dens, what = "density", data = iris[,1:4], 
+     col = "slategrey", drawlabels = FALSE, nlevels = 7)
+plot(dens, what = "density", type = "level", data = iris[,1:4])
+plot(dens, what = "density", type = "persp", col = grey(0.9))
 }
 }
 

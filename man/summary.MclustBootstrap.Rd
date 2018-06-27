@@ -7,12 +7,12 @@
 \description{Summary of bootstrap distribution for the parameters of a Gaussian mixture model providing either standard errors or percentile bootstrap confidence intervals.}
 
 \usage{
-\method{summary}{MclustBootstrap}(object, what = c("se", "ci"), conf.level = 0.95, \dots)
+\method{summary}{MclustBootstrap}(object, what = c("se", "ci", "ave"), conf.level = 0.95, \dots)
 }
 
 \arguments{
   \item{object}{An object of class \code{'MclustBootstrap'} as returned by \code{\link{MclustBootstrap}}.}
-  \item{what}{A character string: \code{"se"} for the standard errors; \code{"ci"} for the confidence intervals.}
+  \item{what}{A character string: \code{"se"} for the standard errors; \code{"ci"} for the confidence intervals; \code{"ave"} for the averages.}
   \item{conf.level}{A value specifying the confidence level of the interval.}
   \item{\dots}{Further arguments passed to or from other methods.}
 }

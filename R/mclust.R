@@ -47,16 +47,19 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
 
 print.Mclust <- function(x, digits = getOption("digits"), ...)
 {
-  cat("\'", class(x)[1], "\' model object:\n", sep = "")
-  G <- x$G
+  txt <- paste0("\'", class(x)[1], "\' model object: ")
   noise <- !is.null(attr(x$BIC, "Vinv"))
-  if(G == 0 & noise)
-    { cat(" best model: single noise component\n") }
+  if(x$G == 0 & noise)
+    { txt <- paste0(txt, "single noise component") }
   else
-    { M <- mclustModelNames(x$modelName)$type
-     cat(" best model: ", M, " (", x$model, ") with ", G, " components\n", 
-         if(noise) " and a noise term\n", sep = "") }
-  invisible()
+    { txt <- paste0(txt, "(", x$model, ",", x$G, ")",
+                    if(noise) " + noise component") }
+  catwrap(txt)
+  cat("\n")
+  catwrap("\nAvailable components:\n")
+  print(names(x))
+  # str(x, max.level = 1, give.attr = FALSE, strict.width = "wrap")
+  invisible(x)
 }
 
 summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, ...)
@@ -94,26 +97,30 @@ summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, .
 
 print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
 {
-  cat(rep("-", nchar(x$title)),"\n",sep="")
-  cat(x$title, "\n")
-  cat(rep("-", nchar(x$title)),"\n",sep="")
+  txt <- paste(rep("-", min(nchar(x$title), getOption("width"))), collapse = "")
+  catwrap(txt)
+  catwrap(x$title)
+  catwrap(txt)
   #
+  cat("\n")
   if(x$G == 0)
-    { cat("\nMclust model with only a noise component:\n\n") }
-  else
-    { cat("\nMclust ", x$modelName, " (", 
-          mclustModelNames(x$modelName)$type, ") model with ", 
-          x$G, ifelse(x$G > 1, " components", " component"),
-          if(x$noise) "\nand a noise term", ":\n\n",
-          sep = "") 
-    }
+  { 
+    catwrap("Mclust model with only a noise component:")
+  } else
+  { 
+    catwrap(paste0("Mclust ", x$modelName, " (", 
+        mclustModelNames(x$modelName)$type, ") model with ", 
+        x$G, ifelse(x$G > 1, " components", " component"),
+        if(x$noise) " and a noise term", ":"))
+  }
+  cat("\n")
   #
   if(!is.null(x$prior))
-    { cat("Prior: ")
-      cat(x$prior$functionName, "(", 
-          paste(names(x$prior[-1]), x$prior[-1], sep = " = ", 
-                collapse = ", "), ")", sep = "")
-      cat("\n\n")
+  { 
+    catwrap(paste0("Prior: ", x$prior$functionName, "(", 
+                   paste(names(x$prior[-1]), x$prior[-1], sep = " = ", 
+                         collapse = ", "), ")", sep = ""))
+    cat("\n")
   }
   #
   tab <- data.frame("log-likelihood" = x$loglik, "n" = x$n, 
@@ -129,7 +136,8 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
         digits = digits)
   #
   if(x$printParameters)
-  { cat("\nMixing probabilities:\n")
+  { 
+    cat("\nMixing probabilities:\n")
     print(x$pro, digits = digits)
     cat("\nMeans:\n")
     print(x$mean, digits = digits)
@@ -151,27 +159,6 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   #
   invisible(x)
 }
-
-# old version, wrong df, data not needed, inefficient because compute dens on original scale
-# logLik.Mclust <- function(object, data, ...)
-# {
-#   if(!missing(data))
-#     object$data <- data.matrix(data)
-#   par <- object$parameters
-#   df <- with(object, (G-1) + G*d + nVarParams(modelName, d = d, G = G))
-# 
-#   #  l <- matrix(as.double(NA), object$n, object$G)
-#   #  for(k in seq(object$G))
-#   #     { l[,k] <- par$pro[k] * dmvnorm(data, par$mean[,k],
-#   #                                           par$variance$sigma[,,k]) }
-#   #  l <- sum(log(rowSums(l)))
-#   
-#   l <- sum(log(do.call("dens", object)))
-#   attr(l, "nobs") <- object$n
-#   attr(l, "df") <- df
-#   class(l) <- "logLik"
-#   return(l)
-# }
 
 logLik.Mclust <- function(object, ...)
 {
@@ -423,7 +410,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
           cl <- clss[,g]
         }
         else {
-          cl <- qclass( data, as.numeric(g))
+          cl <- qclass(data, as.numeric(g))
         }
         if(verbose) 
           { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
@@ -571,7 +558,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
           cl <- clss[,g]
         }
         else {
-          cl <- qclass(data[!noise], k = k)
+          cl <- qclass(data[-noise], k = k)
         }
         z[-noise,1:k] <- unmap(cl, groups = 1:max(cl))
         if(any(apply(z[-noise,1:k,drop=FALSE], 2, max) == 0) & warn) 
@@ -725,10 +712,10 @@ print.mclustBIC <- function(x, pick = 3, ...)
   d <- attr(x, "d")
   attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
   
-  cat("Bayesian Information Criterion (BIC):\n")
+  catwrap("Bayesian Information Criterion (BIC):")
   NextMethod("print")
   cat("\n")
-  cat("Top", pick, "models based on the BIC criterion:\n")
+  catwrap(paste("Top", pick, "models based on the BIC criterion:"))
   print(pickBIC(x, pick), ...)
   invisible()
 }
@@ -985,22 +972,25 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
 print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
 {
   if("classification" %in% names(x))
-  { bic <- attr(x,"bestBICvalues")
-  l <- length(bic)
-  if(l == 1) 
-  { cat("BIC value:\n")
-    print(bic, digits = digits)
-  }
-  else {
-    cat("Best BIC values:\n")
-    bic <- drop(as.matrix(bic))
-    bic <- rbind(BIC = bic, "BIC diff" = bic - max(bic))
-    print(bic, digits = digits)
-  }
-  cat("\nClassification table for model (", colnames(bic)[1], "):", sep = "")
-  print(table(x$classification), digits = digits, ...)
-  }
-  else {
+  { 
+    bic <- attr(x,"bestBICvalues")
+    l <- length(bic)
+    if(l == 1) 
+    { 
+      cat("BIC value:\n")
+      print(bic, digits = digits)
+    } else 
+    {
+      cat("Best BIC values:\n")
+      bic <- drop(as.matrix(bic))
+      bic <- rbind(BIC = bic, "BIC diff" = bic - max(bic))
+      print(bic, digits = digits)
+    }
+    cat("\n")
+    catwrap(paste0("Classification table for model (", colnames(bic)[1], "):"))
+    print(table(x$classification), digits = digits, ...)
+  } else 
+  {
     cat("Best BIC values:\n")
     x <- if(length(x) == 0) attr(x,"bestBICvalues") else drop(as.matrix(x))
     x <- rbind(BIC = x, "BIC diff" = x - max(x))
@@ -5618,6 +5608,7 @@ estepVEV <- function(data, parameters, warn = NULL, ...)
   }
   else {
     K <- G + 1
+    Vinv <- parameters$Vinv
     if(is.null(Vinv) || Vinv <= 0)
       Vinv <- hypvol(data, reciprocal = TRUE)
   }

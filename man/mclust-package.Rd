@@ -24,19 +24,20 @@ Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 fo
 }
 
 \examples{
+
 # Clustering
-mod1 = Mclust(iris[,1:4])
+mod1 <- Mclust(iris[,1:4])
 summary(mod1)
 plot(mod1,  what = c("BIC", "classification"))
 
 # Classification
 data(banknote)
-mod2 = MclustDA(banknote[,2:7], banknote$Status)
+mod2 <- MclustDA(banknote[,2:7], banknote$Status)
 summary(mod2)
 plot(mod2)
 
 # Density estimation
-mod3 = densityMclust(faithful$waiting)
+mod3 <- densityMclust(faithful$waiting)
 summary(mod3)
 plot(mod3, faithful$waiting)
 }

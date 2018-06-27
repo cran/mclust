@@ -64,12 +64,16 @@ hc <- function(data, modelName = mclust.options("hcModelNames")[1],
 print.hc <- function(x, ...) 
 {
   if(!is.null(attr(x, "call"))) 
-    cat("Call:\n", deparse(attr(x, "call")), "\n\n", sep = "")
-  cat("Model-Based Agglomerative Hierarchical Clustering:\n")
+  { 
+    cat("Call:\n")
+    catwrap(paste0(deparse(attr(x, "call"))))
+    cat("\n")
+  }
+  catwrap("Model-Based Agglomerative Hierarchical Clustering:")
   if(!is.null(attr(x, "modelName")))
-    cat("Model name        = ", attr(x, "modelName"), "\n")
+    catwrap(paste("Model name        =", attr(x, "modelName")))
   if(!is.null(attr(x, "dimensions")))
-    cat("Number of objects = ", attr(x, "dimensions")[1], "\n")
+    catwrap(paste("Number of objects =", attr(x, "dimensions")[1]))
   invisible(x)
 }
 

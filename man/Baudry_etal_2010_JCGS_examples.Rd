@@ -49,13 +49,12 @@ J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining 
 \dontrun{
 data(Baudry_etal_2010_JCGS_examples)
 
-output <- clustCombi(ex4.4.1) 
-
+output <- clustCombi(data = ex4.4.1)
 output # is of class clustCombi
 
 # plots the hierarchy of combined solutions, then some "entropy plots" which 
 # may help one to select the number of classes
-plot(output, ex4.4.1) 
+plot(output) 
 }
 
 }

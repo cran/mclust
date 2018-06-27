@@ -103,7 +103,7 @@ export(MclustDRsubsel,
 S3method("print", "MclustDRsubsel")
 S3method("summary", "MclustDRsubsel")
 
-export(me.weighted, covw)
+export(me.weighted, covw, hdrlevels)
 
 export(icl, mclustICL, print.mclustICL, 
        summary.mclustICL, print.summary.mclustICL, 

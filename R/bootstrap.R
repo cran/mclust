@@ -73,7 +73,7 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
   out <- list(G = 1:g, 
               modelName = modelName,
               obs = obsLRTS[1:g],
-              boot = bootLRTS[,1:g],
+              boot = bootLRTS[,1:g,drop=FALSE],
               p.value = p.value[1:g])
   class(out) <- "mclustBootstrapLRT"
   return(out)
@@ -81,8 +81,10 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
 
 print.mclustBootstrapLRT <- function(x, ...)
 {
-  cat("Bootstrap sequential LRT for the number of mixture components\n") 
-  cat(rep("-", 61), "\n", sep = "")
+  txt <- paste(rep("-", min(61, getOption("width"))), collapse = "")
+  catwrap(txt)
+  catwrap("Bootstrap sequential LRT for the number of mixture components") 
+  catwrap(txt)
   cat(formatC("Model", flag = "-", width = 12), "=", x$modelName, "\n")
   cat(formatC("Replications", flag = "-", width = 12), "=", nrow(x$boot), "\n")
   df <- data.frame(x$obs, x$p.value)
@@ -98,10 +100,11 @@ plot.mclustBootstrapLRT <- function(x, G = 1, hist.col = "grey", hist.border = "
       return() }
   G <- as.numeric(G)[1]
   h <- hist(x$boot[,G], breaks = breaks, plot = FALSE)
-  xlim <- range(h$breaks, x$boot[,G], x$obs[G]*1.1, na.rm = TRUE)
-  xlim <- c(xlim[1] - diff(xlim) * 0.1, xlim[2] + diff(xlim) * 0.1)
+  xlim <- range(h$breaks, x$boot[,G], x$obs[G], na.rm = TRUE)
+  xlim <- extendrange(xlim, f = 0.05)
   plot(h, xlab = "LRTS", freq = FALSE, xlim = xlim,
        col = hist.col, border = hist.border, main = NULL)
+  box()
   abline(v = x$obs[G], lty = lty, lwd = lwd, col = col)
   if(is.null(main) | is.character(main))
     { if(is.null(main)) main <- paste("Bootstrap LRT for model", x$modelName, 
@@ -114,7 +117,8 @@ plot.mclustBootstrapLRT <- function(x, G = 1, hist.col = "grey", hist.border = "
 # Bootstrap inference (standard errors and percentile confidence intervals) 
 #
 
-MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), verbose = interactive(), ...)
+MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "pb", "jk"),
+                            max.nonfit = 10*nboot, verbose = interactive(), ...)
 {
   
   if(!any(class(object) %in% c("Mclust", "densityMclust")))
@@ -127,7 +131,7 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
     }
   type <- match.arg(type, choices = eval(formals(MclustBootstrap)$type))
   
-  data <- object$data
+  # data <- object$data
   n <- object$n
   d <- object$d
   G <- object$G
@@ -153,7 +157,7 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
       on.exit(close(pbar))
     }
   b <- nonfit <- 0
-  while(b < nboot)
+  while(b < nboot & nonfit < max.nonfit)
   { 
     b <- b + 1
     obj <- object
@@ -172,6 +176,12 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
              mod.boot <- try(do.call("me.weighted", 
                                      c(list(weights = w, warn = FALSE), obj)),
                              silent = TRUE)
+           },
+           "pb" = 
+           { obj$data <- do.call("sim", object)[,-1,drop=FALSE]
+             obj$z <- predict(obj)$z
+             obj$warn <- FALSE
+             mod.boot <- try(do.call("me", obj), silent = TRUE)
            },
            "jk" =
            { idx <- seq_len(n)[-b]
@@ -225,73 +235,76 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "jk"), v
 
 print.MclustBootstrap <- function(x,  digits = getOption("digits"), ...)
 {
-  cat("\'", class(x)[1], "\' model object:\n", sep = "")
-  str(x,1)
+  cat("\'", class(x)[1], "\' object:\n", sep = "")
+  str(x, max.level = 1, give.attr = FALSE, strict.width = "wrap")
   invisible()
 }
 
-summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0.95, ...)
+summary.MclustBootstrap <- function(object, what = c("se", "ci", "ave"), conf.level = 0.95, ...)
 {
-  what <- match.arg(what, choices = c("se", "ci"))
+  what <- match.arg(what, choices = eval(formals(summary.MclustBootstrap)$what))
   dims <- dim(object$mean)
-  varnames <- dimnames(object$mean)[[2]]
+  # varnames <- dimnames(object$mean)[[2]]
   nboot <- dims[1]
   d <- dims[2]
   G <- dims[3]
 
-  if(what == "se")
-    { out <- list(pro  = apply(object$pro, 2, sd, na.rm=TRUE),
-                  mean = apply(object$mean, c(2,3), sd, na.rm=TRUE),
-                  variance = apply(object$variance, c(2,3,4), sd, na.rm=TRUE))
-      if(object$type == "jk")
-        out <- lapply(out, function(x) 
-                      sqrt(x^2*(nboot-object$nonfit-1)^2/(nboot-object$nonfit)))
-  } else
-  if(what == "ci")
-    { levels <- c((1-conf.level)/2, (1 + conf.level)/2)
-      if(object$type == "jk")
-      { # bias-corrected ci based on normal-approximation
-        ave <- list(pro  = apply(object$pro, 2, mean, na.rm=TRUE),
-                    mean = apply(object$mean, c(2,3), mean, na.rm=TRUE),
-                    variance = t(sapply(seq.int(d), function(j)
+  switch(what,
+    "se" = { out <- list(pro  = apply(object$pro, 2, sd, na.rm=TRUE),
+                         mean = apply(object$mean, c(2,3), sd, na.rm=TRUE),
+                         variance = apply(object$variance, c(2,3,4), sd, na.rm=TRUE))
+             if(object$type == "jk")
+                out <- lapply(out, function(x) 
+                              sqrt(x^2*(nboot-object$nonfit-1)^2/(nboot-object$nonfit)))
+           },
+    "ave" = { out <- list(pro  = apply(object$pro, 2, mean, na.rm=TRUE),
+                          mean = apply(object$mean, c(2,3), mean, na.rm=TRUE),
+                          variance = apply(object$variance, c(2,3,4), mean, na.rm=TRUE))
+           },
+    "ci" = { levels <- c((1-conf.level)/2, (1 + conf.level)/2)
+             if(object$type == "jk")
+             { # bias-corrected ci based on normal-approximation
+               ave <- list(pro  = apply(object$pro, 2, mean, na.rm=TRUE),
+                           mean = apply(object$mean, c(2,3), mean, na.rm=TRUE),
+                           variance = t(sapply(seq.int(d), function(j)
                                         apply(object$variance[,j,j,], 2, mean, na.rm=TRUE),
                                         simplify = "array")))
-        se <- list(pro  = apply(object$pro, 2, sd, na.rm=TRUE),
-                   mean = apply(object$mean, c(2,3), sd, na.rm=TRUE),
-                   variance  = t(sapply(seq.int(d), function(j)
-                                        apply(object$variance[,j,j,], 2, sd, na.rm=TRUE),
-                                        simplify = "array")))
-        se <- lapply(se, function(x) 
-                     sqrt(x^2*(nboot-object$nonfit-1)^2/(nboot-object$nonfit)))
-        zq <- qnorm(max(levels))
-        lnames <- paste0(formatC(levels * 100, format = "fg", width = 1, 
-                                 digits = getOption("digits")), "%")
-        # the code above mimic stats:::format_perc(levels) which can't be used
-        # because format_perc is not exported from stats
-        out <- list(pro = array(as.double(NA), c(2,G),
-                                dimnames = list(lnames, 1:G)),
-                    mean = array(as.double(NA), dim = c(2,d,G),
-                                 dimnames = list(lnames, 1:d, 1:G)),
-                    variance = array(as.double(NA), dim = c(2,d,G),
-                                     dimnames = list(lnames, 1:d, 1:G)))
-        out$pro[1,] <- ave$pro - zq*se$pro
-        out$pro[2,] <- ave$pro + zq*se$pro
-        out$mean[1,,] <- ave$mean - zq*se$mean
-        out$mean[2,,] <- ave$mean + zq*se$mean
-        out$variance[1,,] <- ave$variance - zq*se$variance
-        out$variance[2,,] <- ave$variance + zq*se$variance
-      }
-      else
-      { # percentile-based ci
-        out <- list(pro = apply(object$pro, 2, quantile, probs = levels, na.rm=TRUE),
-                    mean = apply(object$mean, c(2,3), quantile, probs = levels, na.rm=TRUE))
-        v <- array(as.double(NA), dim = c(2,d,G),
-                   dimnames = dimnames(out$mean))
-        for(j in seq.int(d))
-           v[,j,] <- apply(object$variance[,j,j,], 2, quantile, probs = levels, na.rm=TRUE)
-        out$variance <- v
-      }
-  }
+               se <- list(pro  = apply(object$pro, 2, sd, na.rm=TRUE),
+                          mean = apply(object$mean, c(2,3), sd, na.rm=TRUE),
+                          variance  = t(sapply(seq.int(d), function(j)
+                            apply(object$variance[,j,j,], 2, sd, na.rm=TRUE),
+                            simplify = "array")))
+               se <- lapply(se, function(x) 
+                 sqrt(x^2*(nboot-object$nonfit-1)^2/(nboot-object$nonfit)))
+               zq <- qnorm(max(levels))
+               lnames <- paste0(formatC(levels * 100, format = "fg", width = 1, 
+                                        digits = getOption("digits")), "%")
+               # the code above mimic stats:::format_perc(levels) which can't be used
+               # because format_perc is not exported from stats
+               out <- list(pro = array(as.double(NA), c(2,G),
+                                       dimnames = list(lnames, 1:G)),
+                           mean = array(as.double(NA), dim = c(2,d,G),
+                                        dimnames = list(lnames, 1:d, 1:G)),
+                           variance = array(as.double(NA), dim = c(2,d,G),
+                                            dimnames = list(lnames, 1:d, 1:G)))
+               out$pro[1,] <- ave$pro - zq*se$pro
+               out$pro[2,] <- ave$pro + zq*se$pro
+               out$mean[1,,] <- ave$mean - zq*se$mean
+               out$mean[2,,] <- ave$mean + zq*se$mean
+               out$variance[1,,] <- ave$variance - zq*se$variance
+               out$variance[2,,] <- ave$variance + zq*se$variance
+           } else
+             { # percentile-based ci
+               out <- list(pro = apply(object$pro, 2, quantile, probs = levels, na.rm=TRUE),
+                           mean = apply(object$mean, c(2,3), quantile, probs = levels, na.rm=TRUE))
+               v <- array(as.double(NA), dim = c(2,d,G),
+                          dimnames = dimnames(out$mean))
+               for(j in seq.int(d))
+                 v[,j,] <- apply(object$variance[,j,j,], 2, quantile, probs = levels, na.rm=TRUE)
+               out$variance <- v
+             }
+           }
+  )
 
   obj <- append(object[c("modelName", "G", "nboot", "type")],
                 list(d = d, what = what))
@@ -301,46 +314,16 @@ summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0
   return(obj)
 }
 
-# summary.MclustBootstrap <- function(object, what = c("se", "ci"), conf.level = 0.95, ...)
-# {
-#   what <- match.arg(what, several.ok = FALSE)
-#   dims <- dim(object$mean)
-#   varnames <- dimnames(object$mean)[[2]]
-#   nboot <- dims[1]
-#   d <- dims[2]
-#   G <- dims[3]
-#       
-#   if(what == "se")
-#     { out <- list(pro = apply(object$pro, 2, sd),
-#                   mean = apply(object$mean, c(2,3), sd),
-#                   variance = apply(object$variance, c(2,3,4), sd))
-#   } else 
-#   if(what == "ci")
-#     { levels <- c((1-conf.level)/2, (1 + conf.level)/2)
-#       out <-  list(pro = apply(object$pro, 2, quantile, probs = levels),
-#                    mean = apply(object$mean, c(2,3), quantile, probs = levels))
-#       v <- array(as.double(NA), dim = c(2,d,G), 
-#                  dimnames = dimnames(out$mean))
-#       for(j in seq.int(d))
-#          v[,j,] <- apply(object$variance[,j,j,], 2, quantile, probs = levels)
-#      out$variance <- v
-#   }
-#   
-#   obj <- append(object[c("modelName", "G", "nboot", "type")], 
-#                 list(d = d, what = what))
-#   if(what == "ci") obj$conf.level <- conf.level
-#   obj <- append(obj, out)
-#   class(obj) <- "summary.MclustBootstrap"
-#   return(obj)
-# }
-
 print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
 {
-  cat(rep("-", 58), "\n", sep="")
-  cat("Resampling", 
-      if(x$what == "se") "standard errors" else "confidence intervals",
-      "\n")
-  cat(rep("-", 58), "\n", sep="")
+  txt <- paste(rep("-", min(58, getOption("width"))), collapse = "")
+  catwrap(txt)
+  catwrap(paste("Resampling", 
+                switch(x$what,
+                       "se" = "standard errors",
+                       "ave" = "averages",
+                       "ci"  = "confidence intervals")))
+  catwrap(txt)
   #
   cat(formatC("Model", flag = "-", width = 26), "=", x$modelName, "\n")
   cat(formatC("Num. of mixture components", flag = "-", width = 26), 
@@ -350,6 +333,7 @@ print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
       switch(x$type, 
              "bs"   = "nonparametric bootstrap",
              "wlbs" = "weighted likelihood bootstrap", 
+             "pb"   = "parametric bootstrap",
              "jk" = "jackknife"),
       "\n")
   if(x$what == "ci")
@@ -361,13 +345,17 @@ print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
   #
   cat("\nMeans:\n")
   if(x$d == 1) 
-    { if(x$what == "se") print(x$mean[1,], digits = digits)
-      else               print(x$mean[,1,], digits = digits) 
+    { if(x$what == "se" | x$what == "ave") 
+        print(x$mean[1,], digits = digits)
+      else
+        print(x$mean[,1,], digits = digits) 
   } else
-  if(x$what == "se") print(x$mean, digits = digits)
-    else { for(g in seq.int(x$G))
-              { cat("[,,", g, "]\n", sep = "")
-                print(x$mean[,,g], digits = digits) }
+  if(x$what == "se" | x$what == "ave") 
+      print(x$mean, digits = digits)
+    else 
+    { for(g in seq.int(x$G))
+      { cat("[,,", g, "]\n", sep = "")
+        print(x$mean[,,g], digits = digits) }
   }
   #
   cat("\nVariances:\n")
@@ -382,84 +370,57 @@ print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
   invisible(x)
 }
 
-# print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
-# {
-#   cat(rep("-", 58),"\n",sep="")
-#   if(x$what == "se")
-#     cat("Bootstrap standard errors\n")
-#   else  
-#     cat("Bootstrap confidence intervals\n")
-#   cat(rep("-", 58),"\n",sep="")
-#   cat(formatC("Model", flag = "-", width = 26), "=", x$modelName, "\n")
-#   cat(formatC("Num. of mixture components", flag = "-", width = 26), 
-#       "=", x$G, "\n")
-#   cat(formatC("Replications", flag = "-", width = 26), "=", x$nboot, "\n")
-#   cat(formatC("Type", flag = "-", width = 26), "=", 
-#       ifelse(x$type == "nonpara", "nonparametric bootstrap",
-#                                   "weighted likelihood bootstrap"), "\n")
-#   if(x$what == "ci")
-#     cat(formatC("Confidence level", flag = "-", width = 26), 
-#         "=", x$conf.level, "\n")
-# 
-#   cat("\nMixing probabilities:\n")
-#   print(x$pro, digits = digits)
-#   #
-#   cat("\nMeans:\n")
-#   if(x$d == 1) 
-#     { if(x$what == "se") print(x$mean[1,], digits = digits)
-#       else               print(x$mean[,1,], digits = digits) 
-#   } else
-#   if(x$what == "se") print(x$mean, digits = digits)
-#     else { for(g in seq.int(x$G))
-#               { cat("[,,", g, "]\n", sep = "")
-#                 print(x$mean[,,g], digits = digits) }
-#   }
-#   #
-#   cat("\nVariances:\n")
-#   if(x$d == 1)
-#     { print(x$variance[,1,], digits = digits) }
-#   else
-#     { for(g in seq.int(x$G))
-#          { cat("[,,", g, "]\n", sep = "")
-#            print(x$variance[,,g], digits = digits) }
-#   }
-#   
-#   invisible(x)
-# }
-
-plot.MclustBootstrap <- function(x, what = c("pro", "mean", "var"), hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", col = "forestgreen", lwd = 2, lty = 3, xlab = NULL, xlim = NULL, ylim = NULL, ...)
+plot.MclustBootstrap <- function(x, what = c("pro", "mean", "var"), show.parest = TRUE, show.confint = FALSE, hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", col = "forestgreen", lwd = 2, lty = 3, xlab = NULL, xlim = NULL, ylim = NULL, ...)
 {
   object <- x # Argh.  Really want to use object anyway
   what <- match.arg(what, choices = eval(formals(plot.MclustBootstrap)$what))
   par <- object$parameters
   d <- dim(object$mean)[2]
   varnames <- rownames(par$mean)
+  if(show.confint)
+    { ci <- summary(object, what = "ci", ...)
+      ave <- summary(object, what = "ave", ...) 
+    }
   
-  histBoot <- function(boot, stat, breaks, xlim, ylim, xlab, ...)
-  { hist(boot, breaks = breaks, xlim = xlim, ylim = ylim,
+  histBoot <- function(boot, stat, ci, ave, breaks, xlim, ylim, xlab, ...)
+  { 
+    hist(boot, breaks = breaks, xlim = xlim, ylim = ylim,
          main = "", xlab = xlab, ylab = "",
          border = hist.border, col = hist.col)
-    abline(v = stat, col = col, lwd = lwd, lty = lty)
+    box()
+    if(show.parest)
+      abline(v = stat, col = col, lwd = lwd, lty = lty)
+    if(show.confint)
+      { lines(ci, rep(par("usr")[3]/2,2), lwd = lwd, col = col)
+        points(ave, par("usr")[3]/2, pch = 15, col = col)
+    }
   }
-  
+
   switch(what, 
          "pro" = { xlim <- range(if(is.null(xlim)) pretty(object$pro) else xlim)
                    for(k in 1:object$G) 
-                       histBoot(object$pro[,k], par$pro[k], breaks, 
+                       histBoot(object$pro[,k], breaks = breaks, 
+                                stat = par$pro[k], 
+                                ci = ci$pro[,k],
+                                ave = ave$pro[k],
                                 xlim = xlim, ylim = ylim,
-                                xlab = paste(ifelse(is.null(xlab), 
-                                                    "Mix. prop. for comp.", xlab), k)) 
+                                xlab = ifelse(is.null(xlab),
+                                              paste("Mix. prop. for comp.",k),
+                                              xlab))
          },
          "mean" = { isNull_xlim <- is.null(xlim)
                     for(j in 1:d)
                        { xlim <- range(if(isNull_xlim) pretty(object$mean[,j,]) 
                                        else xlim)
                          for(k in 1:object$G)
-                            histBoot(object$mean[,j,k], par$mean[j,k], breaks, 
+                            histBoot(object$mean[,j,k], breaks = breaks, 
+                                     stat = par$mean[j,k], 
+                                     ci = ci$mean[,j,k],
+                                     ave = ave$mean[j,k],
                                      xlim = xlim, ylim = ylim,
-                                     xlab = paste(varnames[j], 
-                                                  ifelse(is.null(xlab), 
-                                                         "mean for comp.", xlab), k))
+                                     xlab = ifelse(is.null(xlab),
+                                              paste(varnames[j], "mean for comp.",k),
+                                              xlab))
                        }
          },
          "var" = { isNull_xlim <- is.null(xlim)
@@ -467,11 +428,14 @@ plot.MclustBootstrap <- function(x, what = c("pro", "mean", "var"), hist.col = "
                       { xlim <- range(if(isNull_xlim) pretty(object$variance[,j,j,]) 
                                        else xlim)
                         for(k in 1:object$G)
-                            histBoot(object$variance[,j,j,k], par$variance[j,j,k], 
-                                     breaks, xlim = xlim, ylim = ylim,
-                                     xlab = paste(varnames[j], 
-                                                  ifelse(is.null(xlab), 
-                                                         "var for comp.", xlab), k))
+                            histBoot(object$variance[,j,j,k], breaks = breaks, 
+                                     stat = par$variance[j,j,k], 
+                                     ci = ci$variance[,j,k],
+                                     ave = ave$variance[j,k],
+                                     xlim = xlim, ylim = ylim,
+                                     xlab = ifelse(is.null(xlab),
+                                              paste(varnames[j], "var. for comp.",k),
+                                              xlab))
                        }
          }
         )  

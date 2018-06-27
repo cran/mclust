@@ -13,7 +13,7 @@ Observations in different classes are represented by different colors and symbol
 clPairs(data, classification, symbols, colors, labels = dimnames(data)[[2]], 
         CEX = 1, gap = 0.2, \dots)
 
-clPairsLegend(x, y, class, col, pch, \dots)
+clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
 }
 
 \arguments{
@@ -57,6 +57,9 @@ clPairsLegend(x, y, class, col, pch, \dots)
   }
   \item{class}{
     The class labels.
+  }
+  \item{box}{
+    A logical, if \code{TRUE} then a box is drawn around the current plot figure. 
   }
   \item{col, pch}{
     The colors and plotting symbols appearing in the legend.

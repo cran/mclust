@@ -143,12 +143,8 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
 
 print.MclustDR <- function(x, ...) 
 {
-  cat(paste("\'", class(x), "\' object for ", x$type, 
-            " mixture model:\n\n", sep = ""))
-  tab <- rbind(x$basis[,seq(x$numdir),drop=FALSE],
-               "-----------" = rep(NA, x$numdir), 
-               Eigenvalues = x$evalues[seq(x$numdir)])
-  print(tab, na.print = "", ...)
+  cat("\'", class(x)[1], "\' model object:\n", sep = "")
+  str(x, max.level = 1, give.attr = FALSE, strict.width = "wrap")
   invisible()
 }
 
@@ -182,18 +178,20 @@ return(obj)
 print.summary.MclustDR <- function(x, digits = max(5, getOption("digits") - 3), ...)
 {
   title <- paste("Dimension reduction for model-based clustering and classification")
-  cat(rep("-", nchar(title)),"\n",sep="")
-  cat(title, "\n")
-  cat(rep("-", nchar(title)),"\n",sep="")
-  
+  txt <- paste(rep("-", min(nchar(title), getOption("width"))), collapse = "")
+  catwrap(txt)
+  catwrap(title)
+  catwrap(txt)
+
   if(x$type == "Mclust")
   { 
     tab <- data.frame(n = x$n)
     rownames(tab) <- x$classes
     tab <- as.matrix(tab)
     names(dimnames(tab)) <- c("Clusters", "")
-    cat(paste("\nMixture model type: ", x$type, 
-              " (", x$modelName, ", ", x$G, ")\n", sep = ""))
+    cat("\n")
+    catwrap(paste0("Mixture model type: ", x$type, 
+                   " (", x$modelName, ", ", x$G, ")"))
     print(tab, quote = FALSE, right = TRUE)
   }
   else if(x$type == "MclustDA" | x$type == "EDDA")
@@ -202,18 +200,21 @@ print.summary.MclustDR <- function(x, digits = max(5, getOption("digits") - 3), 
     rownames(tab) <- x$classes
     tab <- as.matrix(tab)
     names(dimnames(tab)) <- c("Classes", "")
-    cat(paste("\nMixture model type:", x$type, "\n"))
+    cat("\n")
+    catwrap(paste("Mixture model type:", x$type))
     print(tab, quote = FALSE, right = TRUE)
   }
   else stop("invalid model type")
   
+  cat("\n")
   if(x$std) 
-  { cat("\nStandardized basis vectors",  "using predictors", "scaled to have", 
-        "std.dev. equal to one:\n", fill = TRUE)
+  { 
+    catwrap("Standardized basis vectors using predictors scaled to have std.dev. equal to one:")
     print(x$std.basis, digits = digits)
   }
   else 
-  { cat("\nEstimated basis vectors:\n")
+  { 
+    catwrap("Estimated basis vectors:")
     print(x$basis, digits = digits)
   }
   cat("\n")

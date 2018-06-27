@@ -826,6 +826,7 @@ estepVEE <- function(data, parameters, warn = NULL, ...)
         Vinv <- NULL
     } else {
         K <- G + 1
+        Vinv <- parameters$Vinv
         if(is.null(Vinv) || Vinv <= 0)
             Vinv <- hypvol(data, reciprocal = TRUE)
     }

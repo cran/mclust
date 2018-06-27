@@ -28,11 +28,11 @@ covw(X, Z, normalize = TRUE)
 
 \examples{
 # Z as an indicator matrix
-X = iris[,1:4]
-Z = unmap(iris$Species)
+X <- iris[,1:4]
+Z <- unmap(iris$Species)
 str(covw(X, Z))
 # Z as a matrix of weights
-mod = Mclust(X, G = 3, modelNames = "VVV")
+mod <- Mclust(X, G = 3, modelNames = "VVV")
 str(covw(X, mod$z))
 }
 

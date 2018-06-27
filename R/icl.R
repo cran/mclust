@@ -79,10 +79,10 @@ print.mclustICL <- function (x, pick = 3, ...)
   attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
   
   oldClass(x) <- attr(x, "args") <- attr(x, "criterion") <- NULL 
-  cat("Integrated Complete-data Likelihood (ICL) criterion:\n")
+  catwrap("Integrated Complete-data Likelihood (ICL) criterion:")
   print(x, ...)
   cat("\n")
-  cat("Top", pick, "models based on the ICL criterion:\n")
+  catwrap(paste("Top", pick, "models based on the ICL criterion:"))
   print(pickBIC(x, pick), ...)
   invisible()
 }

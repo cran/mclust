@@ -301,15 +301,15 @@ entPlot <- function(z, combiM, abc = c("standard", "normalized"), reg = 2, ...)
   invisible()
 }
 
-combiTree <- function(object, what = c("entropy", "step"), 
-                      type = c("triangle", "rectangle"),
+combiTree <- function(object, type = c("triangle", "rectangle"),
+                      yaxis = c("entropy", "step"), 
                       edgePar = list(col = "darkgray", lwd = 2), ...)
 
 { 
   
   if(!inherits(object, "clustCombi")) 
     stop("object not of class \"clustCombi\"")
-  what <- match.arg(what, eval(formals(combiTree)$what), several.ok = FALSE)
+  yaxis <- match.arg(yaxis, eval(formals(combiTree)$yaxis), several.ok = FALSE)
   type <- match.arg(type, eval(formals(combiTree)$type), several.ok = FALSE)
 
   G <- object$MclustOutput$G
@@ -338,7 +338,7 @@ combiTree <- function(object, what = c("entropy", "step"),
   }
   ord <- abs(c(sel(merge[nrow(merge),1]), sel(merge[nrow(merge),2])))
 
-  if(what == "step")
+  if(yaxis == "step")
     { # step 
       h <- 1:(G-1) 
       ylab <- "Steps" 

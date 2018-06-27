@@ -9,10 +9,10 @@ Diagnostic plots for density estimation. Only available for the one-dimensional 
 
 \usage{
 densityMclust.diagnostic(object, type = c("cdf", "qq"), 
-                         col = c("black", "green4"), 
-                         lwd = c(2,2), lty = c(1,2), 
+                         col = c("black", "black"), 
+                         lwd = c(2,1), lty = c(1,1), 
                          legend = TRUE, grid = TRUE, 
-                         main = TRUE, \dots)
+                         \dots)
 }
 
 \arguments{
@@ -35,8 +35,6 @@ densityMclust.diagnostic(object, type = c("cdf", "qq"),
 
   \item{grid}{A logical indicating if a \code{\link{grid}} should be added to the plot.}
 
-  \item{main}{A logical indicating if a title should be added to the plot.}
-  
   \item{\dots}{Additional arguments.}
 }
 

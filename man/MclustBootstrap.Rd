@@ -7,8 +7,9 @@
 \description{Bootstrap or jackknife estimation of standard errors and percentile bootstrap confidence intervals for the parameters of a Gaussian mixture model.}
 
 \usage{
-MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "jk"),
-                verbose = interactive(), \dots)
+MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "pb", "jk"),
+                max.nonfit = 10*nboot, verbose = interactive(), 
+                \dots)
 }
 
 \arguments{
@@ -18,9 +19,11 @@ MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "jk"),
   \tabular{ll}{
     \code{"bs"} \tab = nonparametric bootstrap \cr
     \code{"wlbs"} \tab = weighted likelihood bootstrap \cr
+    \code{"pb"} \tab = parametric bootstrap \cr
     \code{"jk"} \tab = jackknife \cr
     }
   }
+  \item{max.nonfit}{The maximum number of non-estimable models allowed.}
   \item{verbose}{A logical controlling if a text progress bar is displayed during the resampling procedure. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise.}
   \item{\dots}{Further arguments passed to or from other methods.}
 }
@@ -69,15 +72,15 @@ O'Hagan A., Murphy T. B., Gormley I. C. and Scrucca L. (2015) On Estimation of P
 \examples{
 \dontrun{
 data(diabetes)
-X = diabetes[,-1]
-modClust = Mclust(X) 
-bootClust = MclustBootstrap(modClust)
+X <- diabetes[,-1]
+modClust <- Mclust(X) 
+bootClust <- MclustBootstrap(modClust)
 summary(bootClust, what = "se")
 summary(bootClust, what = "ci")
 
 data(acidity)
-modDens = densityMclust(acidity)
-modDens = MclustBootstrap(modDens)
+modDens <- densityMclust(acidity)
+modDens <- MclustBootstrap(modDens)
 summary(modDens, what = "se")
 summary(modDens, what = "ci")
 }

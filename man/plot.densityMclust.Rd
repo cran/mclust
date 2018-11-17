@@ -82,7 +82,7 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL,
   represented through \code{"contour"}, \code{"level"}, \code{"image"}, and 
   \code{"persp"} type of graph. 
   For \code{type = "level"} Highest Density Regions (HDRs) are plotted for 
-  probability levels \code{prob}. See \code{link{hdrlevels}} for details.
+  probability levels \code{prob}. See \code{\link{hdrlevels}} for details.
   
   For higher dimensionality a scatterplot matrix of pairwise densities is
   drawn. 

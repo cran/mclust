@@ -28,7 +28,7 @@ MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "pb", "jk"),
   \item{\dots}{Further arguments passed to or from other methods.}
 }
 
-\details{For a fitted Gaussian mixture model with \code{object$G} mixture components and covariances parameterisation \code{object$modelName}, this function returns either the boostrap distribution or the jackknife distribution of mixture parameters. In the former case, the nonparametric bootstrap or the weighted likelihood bootstrap approach could be used, so the the bootstrap procedure generates \code{nboot} bootstrap samples of the same size as the original data by resampling with replacement from the observed data. In the jackknife case, the procedure considers all the samples obtained by omitting one observation at time.
+\details{For a fitted Gaussian mixture model with \code{object$G} mixture components and covariances parameterisation \code{object$modelName}, this function returns either the bootstrap distribution or the jackknife distribution of mixture parameters. In the former case, the nonparametric bootstrap or the weighted likelihood bootstrap approach could be used, so the the bootstrap procedure generates \code{nboot} bootstrap samples of the same size as the original data by resampling with replacement from the observed data. In the jackknife case, the procedure considers all the samples obtained by omitting one observation at time.
 
 The resulting resampling distribution can then be used to obtain standard errors and percentile confidence intervals by the use of \code{\link{summary.MclustBootstrap}} function.}
 

@@ -5,16 +5,23 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
 {
   call <- match.call()
   data <- data.matrix(data)
+  d <- ncol(data)
+  
   if(!is.null(x))
+  {
     if(!inherits(x, "mclustBIC"))
-      stop("If provided, argument x must be an object of class 'mclustBIC'.")
+      stop("If provided, argument x must be an object of class 'mclustBIC'")
+  }
+
   mc <- match.call(expand.dots = TRUE)
   mc[[1]] <- as.name("mclustBIC")
   mc[[2]] <- data
-  Bic <- eval(mc, parent.frame())
-  G <- attr(Bic, "G")
-  modelNames <- attr(Bic, "modelNames")
-  Sumry <- summary(Bic, data, G = G, modelNames = modelNames)
+
+  BIC <- eval(mc, parent.frame())
+  # get the best model from BIC table
+  G <- attr(BIC, "G")
+  modelNames <- attr(BIC, "modelNames")
+  Sumry <- summary(BIC, data, G = G, modelNames = modelNames)
   if(length(Sumry)==0) return()
   if(!(length(G) == 1)) 
     { bestG <- length(tabulate(Sumry$cl))
@@ -28,15 +35,15 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
   oldClass(Sumry) <- NULL
   
   Sumry$bic <- Sumry$bic[1]
-  Sumry$hypvol <- if(is.null(attr(Bic, "Vinv"))) 
-                    as.double(NA) else 1/attr(Bic, "Vinv")
+  Sumry$hypvol <- if(is.null(attr(BIC, "Vinv"))) 
+                    as.double(NA) else 1/attr(BIC, "Vinv")
   # df <- (2*Sumry$loglik - Sumry$bic)/log(Sumry$n)
   df <- if(is.null(Sumry$modelName)) NULL 
         else with(Sumry, nMclustParams(modelName, d, G, 
                                        noise = (!is.na(hypvol)),
                                        equalPro = attr(Sumry, "control")$equalPro))
 
-  ans <- c(list(call = call, data = data, BIC = Bic, df = df), Sumry)
+  ans <- c(list(call = call, data = data, BIC = BIC, df = df), Sumry)
   orderedNames <- c("call", "data", "modelName", 
                     "n", "d", "G", 
                     "BIC", "bic", "loglik", "df", 
@@ -44,6 +51,54 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
                     "classification", "uncertainty")
   structure(ans[orderedNames], class = "Mclust")  
 }
+
+# Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, 
+#                    control = emControl(), initialization = NULL, 
+#                    warn = mclust.options("warn"), x = NULL, 
+#                    verbose = interactive(), ...) 
+# {
+#   call <- match.call()
+#   data <- data.matrix(data)
+#   if(!is.null(x))
+#     if(!inherits(x, "mclustBIC"))
+#       stop("If provided, argument x must be an object of class 'mclustBIC'.")
+#   mc <- match.call(expand.dots = TRUE)
+#   mc[[1]] <- as.name("mclustBIC")
+#   mc[[2]] <- data
+#   Bic <- eval(mc, parent.frame())
+#   G <- attr(Bic, "G")
+#   modelNames <- attr(Bic, "modelNames")
+#   Sumry <- summary(Bic, data, G = G, modelNames = modelNames)
+#   if(length(Sumry)==0) return()
+#   if(!(length(G) == 1)) 
+#     { bestG <- length(tabulate(Sumry$cl))
+#       if(warn) 
+#         { if(bestG == max(G) & warn) 
+#              warning("optimal number of clusters occurs at max choice")
+#           else if(bestG == min(G) & warn) 
+#                warning("optimal number of clusters occurs at min choice")
+#         }
+#   }
+#   oldClass(Sumry) <- NULL
+#   
+#   Sumry$bic <- Sumry$bic[1]
+#   Sumry$hypvol <- if(is.null(attr(Bic, "Vinv"))) 
+#                     as.double(NA) else 1/attr(Bic, "Vinv")
+#   # df <- (2*Sumry$loglik - Sumry$bic)/log(Sumry$n)
+#   df <- if(is.null(Sumry$modelName)) NULL 
+#         else with(Sumry, nMclustParams(modelName, d, G, 
+#                                        noise = (!is.na(hypvol)),
+#                                        equalPro = attr(Sumry, "control")$equalPro))
+# 
+#   ans <- c(list(call = call, data = data, BIC = Bic, df = df), Sumry)
+#   orderedNames <- c("call", "data", "modelName", 
+#                     "n", "d", "G", 
+#                     "BIC", "bic", "loglik", "df", 
+#                     "hypvol", "parameters", "z", 
+#                     "classification", "uncertainty")
+#   structure(ans[orderedNames], class = "Mclust")  
+# }
+
 
 print.Mclust <- function(x, digits = getOption("digits"), ...)
 {
@@ -162,12 +217,17 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
 
 logLik.Mclust <- function(object, ...)
 {
-  par <- object$parameters
-  # df <- with(object, (G-1) + G*d + nVarParams(modelName, d = d, G = G))
-  df <- with(object, nMclustParams(modelName, d, G, 
-                                   noise = (!is.na(hypvol)), 
-                                   equalPro = attr(BIC, "control")$equalPro))
-  l <- sum(do.call("dens", c(object, logarithm = TRUE)))
+  if(is.null(object$loglik)) 
+    l <- sum(do.call("dens", c(object, logarithm = TRUE)))
+  else
+    l <- object$loglik
+  if(is.null(object$df)) 
+    {
+      noise <- if(is.null(object$hypvol)) FALSE else (!is.na(object$hypvol))
+      equalPro <- if(is.null(object$BIC)) FALSE else attr(object$BIC, "control")$equalPro
+      df <- with(object, nMclustParams(modelName, d, G, 
+                                       noise = noise, equalPro = equalPro))
+  } else df <- object$df
   attr(l, "nobs") <- object$n
   attr(l, "df") <- df
   class(l) <- "logLik"
@@ -209,7 +269,9 @@ predict.Mclust <- function(object, newdata, ...)
 
 mclustBIC <- function(data, G = NULL, modelNames = NULL, 
                       prior = NULL, control = emControl(), 
-                      initialization = list(hcPairs=NULL, subset=NULL, noise=NULL),  
+                      initialization = list(hcPairs = NULL, 
+                                            subset = NULL, 
+                                            noise = NULL),  
                       Vinv = NULL, warn = mclust.options("warn"), 
                       x = NULL, verbose = interactive(), ...)
 {
@@ -258,16 +320,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       else 
         {
           noise <- initialization$noise
-          # TODO: remove after check
-          # if(!is.logical(noise)) 
-          #   { if(any(match(noise, 1:n, nomatch = 0) == 0))
-          #       stop("numeric noise must correspond to row indexes of data")
-          #     noise <- as.logical(match(1:n, noise, nomatch = 0))
-          # }
-          # initialization$noise <- noise
-          # nnoise <- sum(as.numeric(noise))
-          if(is.logical(noise))
-            noise <- which(noise)
+          if(is.logical(noise)) noise <- which(noise)
           if(any(match(noise, 1:n, nomatch = 0) == 0))
             stop("numeric or logical vector for noise must correspond to row indexes of data")
           initialization$noise <- noise
@@ -333,9 +386,9 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
   
   # set subset (if not provided) for initialization when data size is
   # larger than the value specified in mclust.options()
-  if(n > .mclust$subset & is.null(initialization$subset))
+  if(n > mclust.options("subset") & is.null(initialization$subset))
     { initialization$subset <- sample(seq.int(n), 
-                                      size = .mclust$subset,
+                                      size = mclust.options("subset"),
                                       replace = FALSE) }
   
   l <- length(Gall)
@@ -373,7 +426,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         if(verbose) 
           { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
       }
-      if (l == 1) {
+      if (l == 1) 
+      {
         BIC[BIC == EMPTY] <- NA
         if(verbose) 
           { ipbar <- l*m+1; setTxtProgressBar(pbar, ipbar) }
@@ -392,7 +446,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         if (d != 1) {
           if (n > d) {
             hcPairs <- hc(data = data, 
-                          modelName = mclust.options("hcModelNames")[1])
+                          modelName = mclust.options("hcModelName")[1])
           }
           else {
             hcPairs <- hc(data = data, modelName = "EII")
@@ -400,7 +454,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         }
         else {
           hcPairs <- NULL 
-          #   hcPairs <- hc(data = data, modelName = "E")
+          # hcPairs <- hc(data = data, modelName = "E")
         }
       }
       else hcPairs <- initialization$hcPairs
@@ -445,7 +499,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
+            hcPairs <- hc(modelName = mclust.options("hcModelName")[1], 
                           data = data[subset,])
           }
           else {
@@ -532,11 +586,11 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
-                          data = data[-noise,  ])
+            hcPairs <- hc(modelName = mclust.options("hcModelName")[1], 
+                          data = data[-noise,])
           }
           else {
-            hcPairs <- hc(modelName = "EII", data = data[-noise,  ])
+            hcPairs <- hc(modelName = "EII", data = data[-noise,])
           }
         }
         else {
@@ -617,7 +671,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], 
+            hcPairs <- hc(modelName = mclust.options("hcModelName")[1], 
                           data = data[subset,])
           }
           else {
@@ -987,7 +1041,9 @@ print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
       print(bic, digits = digits)
     }
     cat("\n")
-    catwrap(paste0("Classification table for model (", colnames(bic)[1], "):"))
+    catwrap(paste0("Classification table for model (", 
+                   if(l == 1) names(bic)[1] else colnames(bic)[1],
+                   "):"))
     print(table(x$classification), digits = digits, ...)
   } else 
   {
@@ -1007,7 +1063,7 @@ pickBIC <- function(x, k = 3, ...)
   Glabels <- dimnames(x)[[1]]
   modelNames <- dimnames(x)[[2]]
   mis <- is.na(x)
-  if(all(mis)) 
+  if(all(mis) & mclust.options("warn")) 
   { warning("none of the selected models could be fitted")
     return(rep(NA,k))
   }
@@ -1026,6 +1082,85 @@ pickBIC <- function(x, k = 3, ...)
   namesx[is.na(x)] <- " "
   names(x) <- namesx
   x
+}
+
+mclustBICupdate <- function(BIC, ...)
+{
+  args  <- list(...)
+  nargs <- length(args)
+  BIC1 <- BIC
+  if(length(args) > 1)
+  { # recursively call the function when multiple arguments
+    BIC2 <- mclustBICupdate(args[[1]], args[[-1]])
+  } else {
+    BIC2 <- args[[1]] }
+  if(is.null(BIC1)) return(BIC2)
+  if(is.null(BIC2)) return(BIC1)
+  
+  stopifnot(inherits(BIC1, c("mclustBIC", "mclustSBIC", "mclustICL")) & 
+            inherits(BIC2, c("mclustBIC", "mclustSBIC", "mclustICL")))
+  stopifnot(all.equal(attributes(BIC1)[c("n", "d")],
+                      attributes(BIC2)[c("n", "d")]))
+
+  G <- unique(c(rownames(BIC1), rownames(BIC2)))
+  modelNames <- unique(c(colnames(BIC1), colnames(BIC2)))
+  BIC <- matrix(as.double(NA), nrow = length(G), ncol = length(modelNames),
+                dimnames = list(G, modelNames))
+  BIC[rownames(BIC1),colnames(BIC1)] <- BIC1[rownames(BIC1),colnames(BIC1)]
+  BIC[rownames(BIC2),colnames(BIC2)] <- BIC2[rownames(BIC2),colnames(BIC2)]
+  r <- intersect(rownames(BIC1), rownames(BIC2))
+  c <- intersect(colnames(BIC1), colnames(BIC2))
+  BIC[r,c] <- pmax(BIC1[r,c], BIC2[r,c], na.rm = TRUE)
+  
+  attr <- if(pickBIC(BIC2,1) > pickBIC(BIC1,1)) 
+          attributes(BIC2) else attributes(BIC1) 
+  attr$dim <- dim(BIC)
+  attr$dimnames <- dimnames(BIC)
+  attr$G <- as.numeric(G)
+  attr$modelNames <- modelNames
+  attr$returnCodes <- NULL
+  attributes(BIC) <- attr
+  return(BIC)
+}
+
+mclustLoglik <- function(object, ...)
+{
+  stopifnot(inherits(object, "mclustBIC"))
+  BIC <- object
+  G <- as.numeric(rownames(BIC))
+  modelNames <- colnames(BIC)
+  n <- attr(BIC, "n")
+  d <- attr(BIC, "d")
+  noise <- if(is.null(attr(BIC, "noise"))) FALSE else TRUE
+  
+  loglik <- matrix(as.double(NA), nrow = length(G), ncol = length(modelNames),
+                   dimnames = list(G, modelNames))
+  for(i in seq_along(G))
+    for(j in seq_along(modelNames))
+    {
+      npar <- nMclustParams(G = G[i], modelName = modelNames[j], 
+                            d = d, noise = noise)
+      loglik[i,j] <- 0.5*(BIC[i,j] + npar*log(n))
+    }
+  
+  mostattributes(loglik) <- attributes(BIC)
+  attr(loglik, "criterion") <- "loglik"
+  class(loglik) <- "mclustLoglik"
+  return(loglik)
+}
+
+print.mclustLoglik <- function(x, ...)
+{
+  oldClass(x) <- attr(x, "args") <- NULL
+  attr(x, "criterion") <- NULL
+  attr(x, "control") <- attr(x, "initialization") <- NULL
+  attr(x, "oneD") <- attr(x, "warn") <- attr(x, "Vinv") <- NULL
+  attr(x, "prior") <- attr(x, "G") <- attr(x, "modelNames") <- NULL
+  attr(x, "returnCodes") <- attr(x, "n") <- attr(x, "d") <- NULL
+  
+  catwrap("Log-likelihood:")
+  NextMethod("print")
+  invisible()
 }
 
 mclustModel <- function(data, BICvalues, G=NULL, modelNames=NULL, ...)
@@ -4096,7 +4231,7 @@ mvn2plot <- function(mu, sigma, k = 15, alone = FALSE,
 plot.Mclust <- function(x, 
                         what = c("BIC", "classification", "uncertainty", "density"), 
                         dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,  
-                        addEllipses = TRUE, main = TRUE,
+                        addEllipses = TRUE, main = FALSE,
                         ...) 
 {
   
@@ -4260,7 +4395,7 @@ plot.Mclust <- function(x,
     if(p == 2) 
       { surfacePlot(data = data, parameters = object$parameters,
                     what = "density", nlevels = 11,
-                    transformation = "log",
+                    # transformation = "log",
                     xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
                     main = main, ...) 
@@ -7647,7 +7782,7 @@ cdensX <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 
 emX <- function(data, prior = NULL, warn = NULL, ...)
 {
-  mvnX(data, prior = prior, warn = warn, ...)
+  mvnX(data = data, prior = prior, warn = warn, ...)
 }
 
 meX <- emX
@@ -7728,7 +7863,7 @@ cdensXII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 
 emXII <- function(data, prior = NULL, warn = NULL, ...)
 {
-  mvnXII(data, prior = prior, warn = warn, ...)
+  mvnXII(data = data, prior = prior, warn = warn, ...)
 }
 
 meXII <- emXII
@@ -7813,7 +7948,7 @@ cdensXXI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 
 emXXI <- function(data, prior = NULL, warn = NULL, ...)
 {
-  mvnXXI(data, prior = prior, warn = warn, ...)
+  mvnXXI(data = data, prior = prior, warn = warn, ...)
 }
 
 meXXI <- emXXI
@@ -7899,7 +8034,7 @@ cdensXXX <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 
 emXXX <- function(data, prior = NULL, warn = NULL, ...)
 {
-  mvnXXX(data, prior = prior, warn = warn, ...)
+  mvnXXX(data = data, prior = prior, warn = warn, ...)
 }
 
 meXXX <- emXXX

@@ -121,7 +121,7 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelNames")[1], data = data)
+            hcPairs <- hc(modelName = mclust.options("hcModelName"), data = data)
           }
           else {
             hcPairs <- hc(modelName = "EII", data = data)
@@ -162,7 +162,7 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
         if (d != 1) {
           if (n > d) {
             hcPairs <- hc(data = data[initialization$subset,  ],
-                          modelName = mclust.options("hcModelNames")[1])
+                          modelName = mclust.options("hcModelName"))
           }
           else {
             hcPairs <- hc(data = data[initialization$subset,],
@@ -235,7 +235,7 @@ EMclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, control = e
       if (d != 1) {
         if (n > d) {
           hcPairs <- hc(data = data[!noise,],
-                        modelName = mclust.options("hcModelNames")[1])
+                        modelName = mclust.options("hcModelName"))
         }
         else {
           hcPairs <- hc(data = data[!noise,], modelName = "EII")

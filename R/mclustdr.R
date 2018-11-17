@@ -106,7 +106,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   M.II <- matrix(0, p, p)
   for(j in 1:G)
     M.II <- M.II + f[j]*crossprod(inv.sqrt.Sigma%*%(Sigma.G[,,j]-S))
-  # convex combiation of M_I and M_II
+  # convex combination of M_I and M_II
   M <- 2*lambda*crossprod(inv.sqrt.Sigma %*% M.I) + 2*(1-lambda)*M.II
   # regularize the M_II
   # M <- M.I + lambda*M.II

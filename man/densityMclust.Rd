@@ -61,17 +61,17 @@ summary(dens, parameters = TRUE)
 plot(dens, what = "BIC", legendArgs = list(x = "topright"))
 plot(dens, what = "density", data = faithful$waiting)
 
-dens <- densityMclust(faithful)
+dens <- densityMclust(faithful, modelNames = "EEE", G = 3)
 summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = faithful, 
      drawlabels = FALSE, points.pch = 20)
 plot(dens, what = "density", type = "level")
-plot(dens, what = "density", type = "level", prob = seq(0.1, 0.9, by = 0.1))
+plot(dens, what = "density", type = "level", prob = c(0.1, 0.9))
 plot(dens, what = "density", type = "level", data = faithful)
 plot(dens, what = "density", type = "persp")
 
-dens <- densityMclust(iris[,1:4])
+dens <- densityMclust(iris[,1:4], G = 2)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = iris[,1:4], 
      col = "slategrey", drawlabels = FALSE, nlevels = 7)

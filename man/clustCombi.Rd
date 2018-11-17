@@ -39,6 +39,9 @@ J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining 
 \author{
 J.-P. Baudry, A. E. Raftery, L. Scrucca
 }
+\seealso{
+\code{\link{plot.clustCombi}}
+}
 \examples{
 data(Baudry_etal_2010_JCGS_examples)
 

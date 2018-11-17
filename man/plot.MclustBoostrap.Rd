@@ -9,7 +9,7 @@ Plots the bootstrap distribution of parameters as returned by the \code{\link{Mc
 
 \usage{
 \method{plot}{MclustBootstrap}(x, what = c("pro", "mean", "var"), 
-     show.parest = TRUE, show.confint = FALSE,
+     show.parest = TRUE, show.confint = TRUE,
      hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", 
      col = "forestgreen", lwd = 2, lty = 3, 
      xlab = NULL, xlim = NULL, ylim = NULL, \dots)
@@ -24,7 +24,7 @@ Plots the bootstrap distribution of parameters as returned by the \code{\link{Mc
     
   \item{show.parest}{A logical specifying if the parameter estimate should be drawn as vertical line.}
     
-  \item{show.confint}{A logical specifying if resampling-based confidence interval should be drawn at the bottom of the graph. Confidence level can be provided as further argument \code{conf.level}; see \code{\link{summary.MclustBootstrap}}.}
+  \item{show.confint}{A logical specifying if the resampling-based confidence interval should be drawn at the bottom of the graph. Confidence level can be provided as further argument \code{conf.level}; see \code{\link{summary.MclustBootstrap}}.}
 
   \item{hist.col}{The color to be used to fill the bars of the histograms.}
 

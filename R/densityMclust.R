@@ -276,7 +276,7 @@ plotDensityMclustd <- function(x, data = NULL,
 dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
-  aux <- list(...)
+  # aux <- list(...)
   cden <- cdens(modelName = modelName, data = data,
                 logarithm = TRUE, parameters = parameters, warn = warn)
   dimdat <- dim(data)

@@ -45,7 +45,8 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
     # bootstrap
     b <- 0
     while(b < nboot)
-    { b <- b + 1
+    { 
+			b <- b + 1
       # generate 'parametric' bootstrap sample under H0
       bootSample <- sim(Mod0$modelName, Mod0$parameters, n = Mod0$n)
       # fit model under H0
@@ -142,7 +143,7 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "pb", "j
   if(d == 1)
     { par$mean <- array(par$mean, dim = c(d, G))
       par$variance <- array(par$variance, dim = c(d, d, G)) }
-  # boostrapped parameters 
+  # bootstrapped parameters 
   pro.boot  <- array(NA, c(nboot,G), 
                      dimnames = list(NULL, seq.int(G)))
   mean.boot <- array(NA, c(nboot,d,G), 
@@ -370,7 +371,7 @@ print.summary.MclustBootstrap <- function(x, digits = getOption("digits"), ...)
   invisible(x)
 }
 
-plot.MclustBootstrap <- function(x, what = c("pro", "mean", "var"), show.parest = TRUE, show.confint = FALSE, hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", col = "forestgreen", lwd = 2, lty = 3, xlab = NULL, xlim = NULL, ylim = NULL, ...)
+plot.MclustBootstrap <- function(x, what = c("pro", "mean", "var"), show.parest = TRUE, show.confint = TRUE, hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", col = "forestgreen", lwd = 2, lty = 3, xlab = NULL, xlim = NULL, ylim = NULL, ...)
 {
   object <- x # Argh.  Really want to use object anyway
   what <- match.arg(what, choices = eval(formals(plot.MclustBootstrap)$what))

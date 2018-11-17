@@ -6,7 +6,7 @@
                    "EEV", "VEV", "EVV", "VVV"),
   # in mclust version <= 4.x
   # emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE", "EEV", "VEV", "VVV"), 
-  hcModelNames = c("VVV", "EEE", "VII", "EII"),
+  hcModelName = "VVV",
   hcUse = "SVD",
   subset = 2000,
   bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1,
@@ -38,7 +38,6 @@
 
 mclust.options <- function(...)
 {
-  # current <- .mclust
   current <- get(".mclust", envir = asNamespace("mclust"))
   if(nargs() == 0) return(current)
   args <- list(...)
@@ -52,11 +51,10 @@ mclust.options <- function(...)
   if(length(args) == 0) return(current)
   n <- names(args)
   if (is.null(n)) stop("options must be given by name")
-  changed <- current[n]
+  # changed <- current[n]
   current[n] <- args
-  # if(sys.parent() == 0) env <- asNamespace("mclust") else env <- parent.frame()
-  # assign(".mclust", current, envir = env)
   assign(".mclust", current, envir = asNamespace("mclust"))
-  
+  # da provare
+  # assignInNamespace(".mclust", current, ns = asNamespace("mclust"))
   invisible(current)
 }

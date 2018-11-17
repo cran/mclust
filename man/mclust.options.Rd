@@ -16,9 +16,7 @@ Available arguments are described in the Details section below.}
 }
   
 \details{
-\code{mclust.options} is provided for assigning values to the \code{.mclust}
-variable list, which is used to supply default values to various functions 
-in \code{MCLUST}. \cr
+\code{mclust.options} is provided for assigning or retrieving default values used by various functions in \code{MCLUST}.\cr
 
 Available options are:
 \describe{
@@ -30,35 +28,41 @@ Available options are:
     The help file for \code{\link{mclustModelNames}} describes the 
     available models.
   }
-  \item{\code{hcModelNames}}{
-    A vector of character strings associated with multivariate models for
-    which model-based hierarchical clustering is available in MCLUST. \cr
-    The available models are the following:\cr
-    \code{"EII"} = spherical, equal volume \cr
-    \code{"EEE"} = ellipsoidal, equal volume, shape, and orientation \cr
-    \code{"VII"} = spherical, unequal volume \cr
-    \code{"VVV"} = ellipsoidal, varying volume, shape, and orientation. \cr
-    The last model in this list is used as default for initialization of 
-    EM-algorithm.
+  \item{\code{hcModelName}}{
+    A string associated with multivariate models for which model-based 
+    hierarchical clustering is available in MCLUST. \cr
+    The available models are the following:
+    \tabular{ll}{
+    \code{"EII"} \tab spherical, equal volume \cr
+    \code{"EEE"} \tab ellipsoidal, equal volume, shape, and orientation \cr
+    \code{"VII"} \tab spherical, unequal volume \cr
+    \code{"VVV"} \tab ellipsoidal, varying volume, shape, and orientation.
+    }
+    The \code{"VVV"} is used as default for initialization of EM algorithm.
   }
   \item{\code{hcUse}}{
-    A string specifying the type of input variables to be used for
-    model-based hierarchical clustering to start the EM-algorithm.
-    Possible values are:\cr
-    \code{"VARS"} = original variables (default);\cr
-    \code{"STD"} = standardized variables;\cr
-    \code{"SPH"} = sphered variables (centered, scaled, uncorrelated)  
+    A string or a vector of character strings specifying the type of input 
+    variables to be used in model-based hierarchical clustering to start 
+    the EM algorithm.
+    Possible values are:
+    \tabular{ll}{
+    \code{"VARS"} \tab original variables;\cr
+    \code{"STD"} \tab standardized variables;\cr
+    \code{"SPH"} \tab sphered variables (centered, scaled, uncorrelated)  
     computed using SVD;\cr
-    \code{"PCS"} = principal components computed using SVD on centered 
+    \code{"PCS"} \tab principal components computed using SVD on centered 
     variables (i.e. using the covariance matrix);\cr
-    \code{"PCR"} = principal components computed using SVD on standardized 
+    \code{"PCR"} \tab principal components computed using SVD on standardized 
     (center and scaled) variables (i.e. using the correlation matrix);\cr
-    \code{"SVD"} = scaled SVD transformation.\cr
+    \code{"SVD"} \tab scaled SVD transformation;\cr
+    \code{"RND"} \tab no transformation is applied but a random hierarchical
+    structure is returned (see \code{\link{randomPairs}}).
+    }
     For further details see Scrucca and Raftery (2015), Scrucca et al. (2016).
   }
   \item{\code{subset}}{
     A value specifying the maximal sample size to be used in the model-based 
-    hierarchical clustering to start the EM-algorithm. 
+    hierarchical clustering to start the EM algorithm. 
     If data sample size exceeds this value, a random sample is drawn of size
     specified by \code{subset}.
   }

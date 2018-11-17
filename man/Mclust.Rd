@@ -5,9 +5,10 @@
 \title{Model-Based Clustering}
 
 \description{
-  The optimal model according to BIC for EM initialized by hierarchical 
-  clustering for parameterized Gaussian mixture models.
+Model-based clustering based on parameterized finite Gaussian mixture models. 
+Models are estimated by EM algorithm initialized by hierarchical model-based agglomerative clustering. The optimal model is then selected according to BIC.
 }
+
 \usage{
 Mclust(data, G = NULL, modelNames = NULL, 
        prior = NULL, 
@@ -55,12 +56,20 @@ Mclust(data, G = NULL, modelNames = NULL,
   \describe{
   \item{\code{hcPairs}}{
     A matrix of merge pairs for hierarchical clustering such as produced
-    by function \code{hc}. For multivariate data, the default is 
-    to compute a hierarchical clustering tree by applying function 
-    \code{hc} with \code{modelName = "VVV"} to the data or a subset as
-    indicated by the \code{subset} argument.
-    The hierarchical clustering results are to start EM.
-    For univariate data, the default is to use quantiles to start EM.}
+    by function \code{\link{hc}}. \cr
+    For multivariate data, the default is to compute a hierarchical 
+    agglomerative clustering tree by applying function 
+    \code{\link{hc}} with 
+    model specified by \code{mclust.options("hcModelName")}, and
+    data transformation set by \code{mclust.options("hcUse")}.\cr
+    All the input or a subset as indicated by the \code{subset} argument is 
+    used for initial clustering.\cr
+    The hierarchical clustering results are then used to start the EM
+    algorithm from a given partition.\cr
+    For univariate data, the default is to use quantiles to start the EM
+    algorithm. However, hierarchical clustering could also be used by 
+    calling \code{\link{hc}} with model specified as \code{"V"} or \code{"E"}.
+  }
   \item{\code{subset}}{
     A logical or numeric vector specifying a subset of the data
     to be used in the initial hierarchical clustering phase.

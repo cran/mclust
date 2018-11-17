@@ -60,7 +60,7 @@ mclustICL <- function(data, G = NULL, modelNames = NULL,
             ICL[i,j] <- icl.Mclust(Sumry)
        }
   }
-  class(ICL) <- "mclustICL" # "mclustBIC"
+  class(ICL) <- "mclustICL"
   attr(ICL, "criterion") <- "ICL"
   return(ICL)
 }

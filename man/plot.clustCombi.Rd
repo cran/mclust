@@ -39,7 +39,7 @@ J.-P. Baudry, A. E. Raftery, L. Scrucca
 data(Baudry_etal_2010_JCGS_examples)
 
 ## 1D Example 
-output <- clustCombi(Test1D, G=1:15)
+output <- clustCombi(data = Test1D, G=1:15)
 
 # plots the hierarchy of combined solutions, then some "entropy plots" which 
 # may help one to select the number of classes (please see the article cited 
@@ -47,7 +47,7 @@ output <- clustCombi(Test1D, G=1:15)
 plot(output) 
 
 ## 2D Example 
-output <- clustCombi(ex4.1) 
+output <- clustCombi(data = ex4.1) 
 
 # plots the hierarchy of combined solutions, then some "entropy plots" which 
 # may help one to select the number of classes (please see the article cited 
@@ -55,7 +55,7 @@ output <- clustCombi(ex4.1)
 plot(output) 
 
 ## 3D Example 
-output <- clustCombi(ex4.4.2)
+output <- clustCombi(data = ex4.4.2)
 
 # plots the hierarchy of combined solutions, then some "entropy plots" which 
 # may help one to select the number of classes (please see the article cited 

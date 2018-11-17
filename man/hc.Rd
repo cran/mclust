@@ -10,7 +10,7 @@
 }
 \usage{
 hc(data,
-   modelName = mclust.options("hcModelNames")[1],  
+   modelName = mclust.options("hcModelName"),  
    use = mclust.options("hcUse"), \dots)
 }
 \arguments{
@@ -22,23 +22,24 @@ hc(data,
   }
   \item{modelName}{
     A character string indicating the model to be used.\cr
-    Possible models are: \cr\cr 
-    \code{"E"}: equal variance  (one-dimensional) \cr
-    \code{"V"} : spherical, variable variance (one-dimensional) \cr
-    \code{"EII"}: spherical, equal volume \cr
-    \code{"VII"}: spherical, unequal volume \cr
-    \code{"EEE"}: ellipsoidal, equal volume, shape, and orientation \cr
-    \code{"VVV"}: ellipsoidal, varying volume, shape, and orientation.\cr\cr
-    By default the first model listed in
-    \code{mclust.options("hcModelNames")}, i.e. \code{"VVV"}, is used.
+    Possible models are:
+    \tabular{ll}{
+    \code{"E"} \tab equal variance (one-dimensional) \cr
+    \code{"V"} \tab spherical, variable variance (one-dimensional) \cr
+    \code{"EII"}\tab spherical, equal volume \cr
+    \code{"VII"}\tab spherical, unequal volume \cr
+    \code{"EEE"}\tab ellipsoidal, equal volume, shape, and orientation \cr
+    \code{"VVV"}\tab ellipsoidal, varying volume, shape, and orientation.\cr\cr
+    }
+    By default the model provided by \code{mclust.options("hcModelName")} is used. 
+    See \code{\link{mclust.options}}.
   }
   \item{use}{
-    A character string specifying what type of data/transformation should be 
-    used for model-based hierarchical clustering.\cr
-    This is experimental and it is only useful for the initialization of 
-    EM algorithm.
-    By default it uses the method specified in \code{mclust.options("hcUse")}, 
-    which is set to \code{"VARS"}, i.e. the original input variables.
+    A string or a vector of character strings specifying the type of input 
+    variables/data transformation to be used for model-based hierarchical 
+    clustering.\cr
+    By default the method specified in \code{mclust.options("hcUse")} is used. 
+    See \code{\link{mclust.options}}.
   }
   \item{\dots}{
     Arguments for the method-specific \code{hc} functions. See for example

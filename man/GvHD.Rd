@@ -37,16 +37,15 @@ J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining 
 \examples{
 \dontrun{
 data(GvHD)
-
 dat <- GvHD.pos[1:500,] # only a few lines for a quick example
-
-output <- clustCombi(dat) 
-
+output <- clustCombi(data = dat) 
 output # is of class clustCombi
-
-# plots the hierarchy of combined solutions, then some "entropy plots" which 
-# may help one to select the number of classes
-plot(output, dat) 
+# plot the hierarchy of combined solutions
+plot(output, what = "classification") 
+# plot some "entropy plots" which may help one to select the number of classes
+plot(output, what = "entropy") 
+# plot the tree structure obtained from combining mixture components
+plot(output, what = "tree") 
 }
 
 }

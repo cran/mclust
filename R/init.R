@@ -2,16 +2,15 @@
 ## Initialization for d-dim data ############################################
 #############################################################################
 
-# This new version allowing transformation of the data. 
-# By default it behaves as the old function
-hc <- function(data, modelName = mclust.options("hcModelNames")[1], 
+hc <- function(data, 
+               modelName = mclust.options("hcModelName"), 
                use = mclust.options("hcUse"), ...)
 {
   if(!any(modelName == c("E", "V", "EII", "VII", "EEE", "VVV")))
-     stop("invalid 'modelName' argument for model-based hierarchical clustering")
+     stop("invalid 'modelName' argument for model-based hierarchical clustering. See help(mclust.options)")
 
-  if(!any(use == c("VARS", "STD", "SPH", "PCS", "PCR", "SVD")))
-     stop("invalid 'use' argument for  model-based hierarchical clustering")
+  if(!any(use == c("VARS", "STD", "SPH", "PCS", "PCR", "SVD", "RND")))
+     stop("invalid 'use' argument for model-based hierarchical clustering. See help(mclust.options)")
 
   funcName <- paste("hc", modelName, sep = "")
   mc <- match.call(expand.dots = TRUE)
@@ -23,7 +22,7 @@ hc <- function(data, modelName = mclust.options("hcModelNames")[1],
     x[,apply(x, 2, function(x) all(is.finite(x))), drop = FALSE]
   }
 
-  use <- toupper(use)
+  use <- toupper(use[1])
   switch(use,
          "VARS" = { Z <- data },
          "STD" = { Z <- scale(data, center = TRUE, scale = TRUE) 
@@ -49,12 +48,19 @@ hc <- function(data, modelName = mclust.options("hcModelNames")[1],
                    p <- min(dim(data))
                    SVD <- svd(data, nu=0)
                    Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) },
-         stop("'use' argument not allowed. See help(mclust.options)")
-            )
+         "RND" = { out <- randomPairs(data, ...) 
+                   attr(out, "dimensions") <- dim(data)
+                   attr(out, "use") <- use
+                   attr(out, "call") <- match.call()
+                   class(out) <- "hc"
+                   return(out) }
+        )
+  
   # call the proper hc<funcName> function
   mc$data <- Z 
   mc[[1]] <- as.name(funcName)
   out <- eval(mc, parent.frame())
+  attr(out, "use") <- use
   attr(out, "call") <- match.call()
   class(out) <- "hc"
   return(out)
@@ -71,7 +77,9 @@ print.hc <- function(x, ...)
   }
   catwrap("Model-Based Agglomerative Hierarchical Clustering:")
   if(!is.null(attr(x, "modelName")))
-    catwrap(paste("Model name        =", attr(x, "modelName")))
+    catwrap(paste("Model name =", attr(x, "modelName")))
+  if(!is.null(attr(x, "use")))
+    catwrap(paste("Use =", attr(x, "use")))
   if(!is.null(attr(x, "dimensions")))
     catwrap(paste("Number of objects =", attr(x, "dimensions")[1]))
   invisible(x)

@@ -10,7 +10,7 @@
 \usage{
 \method{plot}{Mclust}(x, what = c("BIC", "classification", "uncertainty", "density"), 
      dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,
-     addEllipses = TRUE, main = TRUE, \dots)
+     addEllipses = TRUE, main = FALSE, \dots)
 }
 \arguments{
   \item{x}{
@@ -44,7 +44,7 @@
   }
  \item{main}{
     A logical or \code{NULL} indicating whether or not to add a title 
-    to the plot identifying the dimensions used.
+    to the plot identifying the type of plot drawn.
   }
   \item{\dots}{
     Other graphics parameters.

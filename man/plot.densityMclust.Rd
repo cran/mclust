@@ -59,7 +59,7 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL,
   
   \item{levels}{A vector of density levels at which to draw the contour lines.}
   
-  \item{prob}{A vector of probability levels for computing HDR. Only used if \code{type = "level"} and supersede previous \code{nlevels} and \code{levels} arguments.}
+  \item{prob}{A vector of probability levels for computing HDR. Only used if \code{type = "hdr"} and supersede previous \code{nlevels} and \code{levels} arguments.}
 
   \item{gap}{Distance between subplots, in margin lines, for the matrix of pairwise scatterplots.}
 
@@ -79,13 +79,13 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL,
   
   For two-dimensional data further arguments available are those accepted by
   the \code{\link{surfacePlot}} function. In particular, the density can be
-  represented through \code{"contour"}, \code{"level"}, \code{"image"}, and 
+  represented through \code{"contour"}, \code{"hdr"}, \code{"image"}, and 
   \code{"persp"} type of graph. 
-  For \code{type = "level"} Highest Density Regions (HDRs) are plotted for 
+  For \code{type = "hdr"} Highest Density Regions (HDRs) are plotted for 
   probability levels \code{prob}. See \code{\link{hdrlevels}} for details.
   
-  For higher dimensionality a scatterplot matrix of pairwise densities is
-  drawn. 
+  For higher dimensionality a scatterplot matrix of pairwise projected
+  densities is drawn. 
 }
 
 % \value{}
@@ -112,16 +112,16 @@ summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = faithful, 
      drawlabels = FALSE, points.pch = 20)
-plot(dens, what = "density", type = "level")
-plot(dens, what = "density", type = "level", prob = seq(0.1, 0.9, by = 0.1))
-plot(dens, what = "density", type = "level", data = faithful)
+plot(dens, what = "density", type = "hdr")
+plot(dens, what = "density", type = "hdr", prob = seq(0.1, 0.9, by = 0.1))
+plot(dens, what = "density", type = "hdr", data = faithful)
 plot(dens, what = "density", type = "persp")
 
 dens <- densityMclust(iris[,1:4])
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = iris[,1:4], 
      col = "slategrey", drawlabels = FALSE, nlevels = 7)
-plot(dens, what = "density", type = "level", data = iris[,1:4])
+plot(dens, what = "density", type = "hdr", data = iris[,1:4])
 plot(dens, what = "density", type = "persp", col = grey(0.9))
 }
 }

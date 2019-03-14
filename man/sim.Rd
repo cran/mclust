@@ -65,7 +65,7 @@ sim(modelName, parameters, n, seed = NULL, ...)
 }
 
 \seealso{
-  \code{\link{simE}}, \ldots,
+  \code{\link{simE}}, \dots,
   \code{\link{simVVV}},
   \code{\link{Mclust}},
   \code{\link{mstep}},

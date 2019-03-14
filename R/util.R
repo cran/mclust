@@ -100,7 +100,7 @@ mapClass <- function(a, b)
   names(aTOb) <- Ua
   bTOa <- rep(list(Ua), length(Ub))
   names(bTOa) <- Ub
-  # -------------------------------------------------------------
+  #
   k <- nrow(Tab)
   Map <- rep(0, k)
   Max <- apply(Tab, 1, max)
@@ -120,7 +120,7 @@ mapClass <- function(a, b)
   }
   if(is.numeric(a))
     bTOa <- lapply(bTOa, as.numeric)
-  # -------------------------------------------------------------
+  #
   return(list(aTOb = aTOb, bTOa = bTOa))
 }
 
@@ -523,7 +523,6 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
     U <- sort(unique(classification))
     L <- length(U)
     noise <- (U[1] == "0")
-    # browser()
     if(is.null(symbols)) {
       if(L <= length(mclust.options("classPlotSymbols"))) {
         symbols <- mclust.options("classPlotSymbols")[1:L]
@@ -876,16 +875,27 @@ invisible()
 }
 
 surfacePlot <- function(data, parameters, 
-                        type = c("contour", "level", "image", "persp"), 
+                        type = c("contour", "hdr", "image", "persp"), 
                         what = c("density", "uncertainty"), 
                         transformation = c("none", "log", "sqrt"), 
                         grid = 100, nlevels = 11, levels = NULL, 
+                        prob = c(0.25, 0.5, 0.75),
                         color.palette = blue2grey.colors,
                         col = grey(0.6), xlim = NULL, ylim = NULL, 
                         xlab = NULL, ylab = NULL, scale = FALSE, 
                         main = FALSE, swapAxes = FALSE,
                         verbose = FALSE,  ...) 
 {
+  data <- as.matrix(data)
+  if(dim(data)[2] != 2) 
+    stop("data must be two dimensional")
+  if(any(type == "level")) 
+    type[type == "level"] <- "hdr" # TODO: to be removed
+  type <- match.arg(type, choices = eval(formals(surfacePlot)$type))
+  what <- match.arg(what, choices = eval(formals(surfacePlot)$what))
+  transformation <- match.arg(transformation, 
+                              choices = eval(formals(surfacePlot)$transformation))
+  #
   grid1 <- function(n, range = c(0, 1), edge = TRUE) {
     if (any(n < 0 | round(n) != n)) 
       stop("n must be nonpositive and integer")
@@ -900,6 +910,7 @@ surfacePlot <- function(data, parameters,
     }
     G
   }
+  #
   grid2 <- function(x, y) {
     lx <- length(x)
     ly <- length(y)
@@ -913,10 +924,7 @@ surfacePlot <- function(data, parameters,
     }
     xy
   }
-  data <- as.matrix(data)
-  if(dim(data)[2] != 2) 
-    stop("data must be two dimensional")
-  
+  #
   densNuncer <- function(modelName, data, parameters) 
   {
     if(is.null(parameters$variance$cholsigma)) 
@@ -936,11 +944,12 @@ surfacePlot <- function(data, parameters,
     data.frame(density = exp(logden),
                uncertainty = 1 - apply(z, 1, max))
   }
+  #
   pro <- parameters$pro
   mu <- parameters$mean
   sigma <- parameters$variance$sigma
-  haveParams <- !is.null(mu) && !is.null(sigma) && !is.null(pro) && 
-                !any(is.na(mu)) && !any(is.na(sigma)) && !(any(is.na(pro)))
+  haveParams <- (!is.null(mu) && !is.null(sigma) && !is.null(pro) && 
+                 !any(is.na(mu)) && !any(is.na(sigma)) && !(any(is.na(pro))))
   if(haveParams) 
     { G <- ncol(mu)
       dimpar <- dim(sigma)
@@ -955,9 +964,7 @@ surfacePlot <- function(data, parameters,
       mu <- array(mu, c(2, G))
       sigma <- array(sigma, c(2, 2, G))
   }
-  
-  if(!haveParams) 
-    stop("need parameters to compute density")
+  else stop("need parameters to compute density")
   
   if(swapAxes) 
     { if(haveParams) 
@@ -990,32 +997,29 @@ surfacePlot <- function(data, parameters,
   x <- grid1(n = grid[1], range = xlim, edge = TRUE)
   y <- grid1(n = grid[2], range = ylim, edge = TRUE)
   xy <- grid2(x, y)
+  
   if(verbose) 
     cat("\n computing density and uncertainty over grid ...\n")
   Z <- densNuncer(modelName = "VVV", data = xy, parameters = parameters)
   lx <- length(x)
   ly <- length(y)
-  CI <- type
-  DU <- what
-  TRANS <- transformation
-  if(length(CI) > 1) CI <- CI[1]
-  if(length(DU) > 1) DU <- DU[1]
-  if(length(TRANS) > 1) TRANS <- TRANS[1]
-  switch(EXPR = DU, 
-         density = { zz <- matrix(Z$density, lx, ly)
-                     title2 <- "Density" }, 
-         uncertainty = { zz <- matrix(Z$uncertainty, lx, ly)
-                         title2 <- "Uncertainty" }, 
+  #
+  switch(what, 
+         "density"     = { zz <- matrix(Z$density, lx, ly)
+                           title2 <- "Density" }, 
+         "uncertainty" = { zz <- matrix(Z$uncertainty, lx, ly)
+                           title2 <- "Uncertainty" }, 
          stop("what improperly specified"))
-  switch(EXPR = TRANS, 
-         none = { title1 <- "" }, 
-         log = { zz <- log(zz)
-                 title1 <- "log" }, 
-         sqrt = { zz <- sqrt(zz)
-                  title1 <- "sqrt" }, 
+  #
+  switch(transformation, 
+         "none" = { title1 <- "" }, 
+         "log"  = { zz <- log(zz)
+                    title1 <- "log" }, 
+         "sqrt" = { zz <- sqrt(zz)
+                    title1 <- "sqrt" }, 
          stop("transformation improperly specified"))
-  
-  switch(EXPR = CI, 
+  #
+  switch(type,
          "contour" = {
            title3 <- "Contour"
            if(is.null(levels)) levels <- pretty(zz, nlevels)
@@ -1023,9 +1027,11 @@ surfacePlot <- function(data, parameters,
                    xlab = xlab, ylab = ylab, 
                    col = col, main = "", ...)
          },
-         "level" = {
+         "hdr" = {
            title3 <- "HDR level"
-           if(is.null(levels)) levels <- pretty(zz, nlevels)
+           z <- densNuncer(modelName = "VVV", data = data, 
+                           parameters = parameters)$density
+           levels <- c(sort(hdrlevels(z, prob)), 1.1*max(z))
            plot(x, y, type = "n",
                 xlab = xlab, ylab = ylab, ...)
            fargs <- formals(".filled.contour")
@@ -1051,13 +1057,21 @@ surfacePlot <- function(data, parameters,
          "persp" = {
            title3 <- "Perspective"
            dots <- list(...)
-           if(is.null(dots$theta)) dots$theta <- -30
-           if(is.null(dots$phi))   dots$phi <- 20
+           if(is.null(dots$theta))  dots$theta <- -30
+           if(is.null(dots$phi))    dots$phi <- 20
            if(is.null(dots$expand)) dots$expand <- 0.6
-           do.call("persp", c(list(x = x, y = y, z = zz, 
-                                   xlab = xlab, ylab = ylab, col = col,
-                                   zlab = "Density", main = ""), dots))
-         }, stop("type improperly specified"))
+           p3d <- do.call("persp", 
+                          c(list(x = x, y = y, z = zz, border = NA,
+                                 xlab = xlab, ylab = ylab, col = col,
+                                 zlab = "Density", main = ""), dots))
+           ii <- floor(seq(1, length(y), length.out = 2*nlevels))
+           for(i in ii[-c(1,length(ii))])
+             lines(trans3d(x, y[i], zz[,i], pmat = p3d))
+           ii <- floor(seq(1, length(x), length.out = 2*nlevels))
+           for(i in ii[-c(1,length(ii))])
+             lines(trans3d(x[i], y, zz[i,], pmat = p3d))
+         }
+  )
   if(main) 
     { TITLE <- paste(c(title1, title2, title3, "Plot"), collapse = " ")
       title(TITLE) }
@@ -1097,7 +1111,7 @@ uncerPlot <- function (z, truth=NULL, ...)
 hdrlevels <- function(density, prob)
 {
   if(missing(density) | missing(prob))
-    stop("Please provide both density and prob arguments to function call!")
+    stop("Please provide both 'density' and 'prob' arguments to function call!")
   density <- as.vector(density)
   prob <- pmin(pmax(as.numeric(prob), 0), 1)
   alpha <- 1-prob
@@ -1136,7 +1150,7 @@ catwrap <- function(x, width = getOption("width"), ...)
 
 
 ##
-##-- Convert to a from classes 'Mclust' and 'densityMclust' ------------------
+## Convert to a from classes 'Mclust' and 'densityMclust' 
 ##
 
 as.Mclust <- function(x, ...)
@@ -1148,6 +1162,12 @@ as.Mclust.default <- function(x, ...)
 { 
   if(inherits(x, "Mclust")) x
   else stop("argument 'x' cannot be coerced to class 'Mclust'")
+}
+
+as.Mclust.densityMclust <- function(x, ...)
+{ 
+  class(x) <- c("Mclust", class(x)[1])
+  return(x)
 }
 
 as.densityMclust <- function(x, ...)

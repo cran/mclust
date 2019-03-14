@@ -15,7 +15,7 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should in the form of a matrix")
     data <- as.matrix(data)
@@ -181,7 +181,7 @@ mstepEVV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should be a matrix or a vector")
     data <- as.matrix(data)
@@ -491,7 +491,7 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should in the form of a matrix")
     data <- as.matrix(data)
@@ -669,7 +669,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should be a matrix or a vector")
     data <- as.matrix(data)
@@ -1006,7 +1006,7 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should in the form of a matrix")
     data <- as.matrix(data)
@@ -1184,7 +1184,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should be a matrix or a vector")
     data <- as.matrix(data)
@@ -1521,7 +1521,7 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
 {
     if(is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should in the form of a matrix")
     data <- as.matrix(data)
@@ -1701,7 +1701,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
     if (is.null(warn)) warn <- mclust.options("warn")
     dimdat <- dim(data)
-    oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+    oneD <- (is.null(dimdat) || NCOL(data) == 1)
     if(oneD || length(dimdat) != 2)
         stop("data should be a matrix or a vector")
     data <- as.matrix(data)

@@ -60,8 +60,7 @@ mclustBIC(data, G = NULL, modelNames = NULL,
     A matrix of merge pairs for hierarchical clustering such as produced
     by function \code{\link{hc}}. \cr
     For multivariate data, the default is to compute a hierarchical 
-    agglomerative clustering tree by applying function 
-    \code{\link{hc}} with 
+    agglomerative clustering tree by applying function \code{\link{hc}} with 
     model specified by \code{mclust.options("hcModelName")}, and
     data transformation set by \code{mclust.options("hcUse")}.\cr
     All the input or a subset as indicated by the \code{subset} argument is 
@@ -76,9 +75,10 @@ mclustBIC(data, G = NULL, modelNames = NULL,
     A logical or numeric vector specifying a subset of the data
     to be used in the initial hierarchical clustering phase.
     By default no subset is used unless the number of observations exceeds 
-    the value specified by \code{mclust.options("subset")}. Note that to
-    guarantee exact reproducibility of results a seed must be specified 
-    (see \code{\link{set.seed}}).
+    the value specified by \code{mclust.options("subset")}. 
+    The \code{subset} argument is ignored if \code{hcPairs} are provided.
+    Note that to guarantee exact reproducibility of results a seed must be 
+    specified (see \code{\link{set.seed}}).
   }
   \item{\code{noise}}{
     A logical or numeric vector indicating an initial guess as to

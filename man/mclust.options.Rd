@@ -32,11 +32,11 @@ Available options are:
     A string associated with multivariate models for which model-based 
     hierarchical clustering is available in MCLUST. \cr
     The available models are the following:
-    \tabular{ll}{
-    \code{"EII"} \tab spherical, equal volume \cr
-    \code{"EEE"} \tab ellipsoidal, equal volume, shape, and orientation \cr
-    \code{"VII"} \tab spherical, unequal volume \cr
-    \code{"VVV"} \tab ellipsoidal, varying volume, shape, and orientation.
+    \describe{
+    \item{\code{"EII"}}{spherical, equal volume}
+    \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation}
+    \item{\code{"VII"}}{spherical, unequal volume}
+    \item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation.}
     }
     The \code{"VVV"} is used as default for initialization of EM algorithm.
   }
@@ -45,18 +45,17 @@ Available options are:
     variables to be used in model-based hierarchical clustering to start 
     the EM algorithm.
     Possible values are:
-    \tabular{ll}{
-    \code{"VARS"} \tab original variables;\cr
-    \code{"STD"} \tab standardized variables;\cr
-    \code{"SPH"} \tab sphered variables (centered, scaled, uncorrelated)  
-    computed using SVD;\cr
-    \code{"PCS"} \tab principal components computed using SVD on centered 
-    variables (i.e. using the covariance matrix);\cr
-    \code{"PCR"} \tab principal components computed using SVD on standardized 
-    (center and scaled) variables (i.e. using the correlation matrix);\cr
-    \code{"SVD"} \tab scaled SVD transformation;\cr
-    \code{"RND"} \tab no transformation is applied but a random hierarchical
-    structure is returned (see \code{\link{randomPairs}}).
+    \describe{
+    \item{\code{"VARS"}}{original variables;}
+    \item{\code{"STD"}}{standardized variables;}
+    \item{\code{"SPH"}}{sphered variables (centered, scaled, uncorrelated)  
+    computed using SVD;}
+    \item{\code{"PCS"}}{principal components computed using SVD on centered 
+    variables (i.e. using the covariance matrix);}
+    \item{\code{"PCR"}}{principal components computed using SVD on standardized 
+    (center and scaled) variables (i.e. using the correlation matrix);}
+    \item{\code{"SVD"}}{scaled SVD transformation;}
+    \item{\code{"RND"}}{no transformation is applied but a random hierarchical structure is returned (see \code{\link{randomPairs}}).}
     }
     For further details see Scrucca and Raftery (2015), Scrucca et al. (2016).
   }

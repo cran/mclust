@@ -14,31 +14,36 @@ mclustModelNames(model)
 }
 
 \details{
-The following models are available in package \pkg{mclust}:
-\tabular{lcl}{
-\bold{univariate mixture} \tab \tab \cr
-    \code{"E"} \tab = \tab equal variance  (one-dimensional) \cr
-    \code{"V"} \tab = \tab variable variance (one-dimensional) \cr
-\bold{multivariate mixture}  \tab \tab \cr
-    \code{"EII"} \tab = \tab spherical, equal volume \cr
-    \code{"VII"} \tab = \tab spherical, unequal volume \cr
-    \code{"EEI"} \tab = \tab diagonal, equal volume and shape\cr 
-    \code{"VEI"} \tab = \tab diagonal, varying volume, equal shape\cr 
-    \code{"EVI"} \tab = \tab diagonal, equal volume, varying shape \cr
-    \code{"VVI"} \tab = \tab diagonal, varying volume and shape \cr
-    \code{"EEE"} \tab = \tab ellipsoidal, equal volume, shape, and orientation \cr
-    \code{"EVE"} \tab = \tab ellipsoidal, equal volume and orientation (*)\cr
-    \code{"VEE"} \tab = \tab ellipsoidal, equal shape and orientation (*)\cr
-    \code{"VVE"} \tab = \tab ellipsoidal, equal orientation (*)\cr
-    \code{"EEV"} \tab = \tab ellipsoidal, equal volume and equal shape\cr
-    \code{"VEV"} \tab = \tab ellipsoidal, equal shape \cr
-    \code{"EVV"} \tab = \tab ellipsoidal, equal volume (*)\cr
-    \code{"VVV"} \tab = \tab ellipsoidal, varying volume, shape, and orientation \cr
-\bold{single component}  \tab \tab \cr
-    \code{"X"} \tab = \tab univariate normal \cr
-    \code{"XII"} \tab = \tab spherical multivariate normal \cr
-    \code{"XXI"} \tab = \tab diagonal multivariate normal \cr
-    \code{"XXX"} \tab = \tab ellipsoidal multivariate normal 
+The following models are available in package \pkg{mclust}:\cr
+
+\bold{univariate mixture} \cr
+\describe{
+\item{\code{"E"}}{equal variance (one-dimensional)}
+\item{\code{"V"}}{variable/unqual variance (one-dimensional)}
+}
+\bold{multivariate mixture}\cr
+\describe{
+\item{\code{"EII"}}{spherical, equal volume}
+\item{\code{"VII"}}{spherical, unequal volume}
+\item{\code{"EEI"}}{diagonal, equal volume and shape}
+\item{\code{"VEI"}}{diagonal, varying volume, equal shape}
+\item{\code{"EVI"}}{diagonal, equal volume, varying shape}
+\item{\code{"VVI"}}{diagonal, varying volume and shape}
+\item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation}
+\item{\code{"EVE"}}{ellipsoidal, equal volume and orientation (*)}
+\item{\code{"VEE"}}{ellipsoidal, equal shape and orientation (*)}
+\item{\code{"VVE"}}{ellipsoidal, equal orientation (*)}
+\item{\code{"EEV"}}{ellipsoidal, equal volume and equal shape}
+\item{\code{"VEV"}}{ellipsoidal, equal shape}
+\item{\code{"EVV"}}{ellipsoidal, equal volume (*)}
+\item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation}
+}
+\bold{single component}\cr
+\describe{
+\item{\code{"X"}}{univariate normal}
+\item{\code{"XII"}}{spherical multivariate normal}
+\item{\code{"XXI"}}{diagonal multivariate normal}
+\item{\code{"XXX"}}{ellipsoidal multivariate normal}
 }
 (*) new models in \pkg{mclust} version >= 5.0.0.
 }

@@ -8,7 +8,7 @@
   Gaussian to given data (univariate or multivariate normal).
 }
 \usage{
-mvn( modelName, data, prior = NULL, warn = NULL, \ldots)
+mvn( modelName, data, prior = NULL, warn = NULL, \dots)
 }
 \arguments{
   \item{modelName}{

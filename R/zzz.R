@@ -1,7 +1,7 @@
-.onLoad <- function(libname, pkgname) 
-{
-  library.dynam("mclust", pkgname, libname)
-}
+# .onLoad <- function(libname, pkgname) 
+# {
+#   library.dynam("mclust", pkgname, libname)
+# }
 
 mclustStartupMessage <- function()
 {

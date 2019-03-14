@@ -61,7 +61,7 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
 }
 
 \seealso{
-  \code{\link{cdensE}}, \ldots,
+  \code{\link{cdensE}}, \dots,
   \code{\link{cdensVVV}},
   \code{\link{dens}},
   \code{\link{estep}},

@@ -20,6 +20,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   classLabel <- levels(class)
   ncl <- nlevels(class)
   if(ncl == 1) G <- 1
+  prop <- as.vector(table(class))/n
+  names(prop) <- classLabel
   #
   modelType <- match.arg(modelType)
   #
@@ -161,8 +163,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   names(Models) <- classLabel
   Models$Vinv <- NULL
   out <- list(call = call, data = data, class = class,
-              type = modelType, models = Models, n = n, d = p, 
-              bic = bic, loglik = loglik, df = df)
+              type = modelType, n = n, d = p, prop = prop, 
+              models = Models, bic = bic, loglik = loglik, df = df)
   out <- structure(out, prior = prior, control = control, 
                    class = "MclustDA")
   
@@ -238,7 +240,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
               loglik = object$loglik, df = object$df, bic = object$bic,
               nclass = nclass, classes = classes,
               G = G, modelName = modelName,
-              prior = prior, parameters = par, 
+              prop = object$prop, parameters = par, prior = prior, 
               tab = tab, err = err,
               tab.newdata = tab.newdata, err.newdata = err.newdata,
               printParameters = printParameters)
@@ -260,7 +262,8 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
   #
   tab <- data.frame("log-likelihood" = x$loglik,
                     "n" = sum(x$n), "df" = x$df, 
-                    "BIC" = x$bic, row.names = "")
+                    "BIC" = x$bic, 
+										row.names = "", check.names = FALSE)
   print(tab, digits = digits)
   
   tab <- data.frame(n = x$n, Model = x$modelName, G = x$G)
@@ -279,12 +282,16 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
   
   if(x$printParameters)
   {
-    cat("\nEstimated parameters:\n")
+    cat("\nClass prior probabilities:\n")
+    print(x$prop, digits = digits)
     for(i in seq(x$nclass))
     { cat("\nClass = ", x$class[i], "\n", sep = "")
       par <- x$parameters[[i]]
-      cat("\nMixing probabilities: ")
-      cat(round(par$pro, digits = digits), "\n")
+      if(x$type == "MclustDA")
+      {
+        cat("\nMixing probabilities: ")
+        cat(round(par$pro, digits = digits), "\n")
+      }
       cat("\nMeans:\n")
       print(par$mean, digits = digits)
       cat("\nVariances:\n")
@@ -297,16 +304,16 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
     }
   }
   
-  cat("\nTraining classification summary:\n\n")
+  cat("\nTraining classification summary:\n")
   print(x$tab)
-  cat("\nTraining error =", x$err, "\n")
+  cat("Training error =", x$err, "\n")
   
   if(!is.null(x$tab.newdata)) 
   {
-    cat("\nTest classification summary:\n\n")
+    cat("\nTest classification summary:\n")
     print(x$tab.newdata)
     if(!is.null(x$err.newdata))
-    { cat("\nTest error =", x$err.newdata, "\n") }
+    { cat("Test error =", x$err.newdata, "\n") }
   }
   
   invisible(x)
@@ -532,11 +539,9 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
     scatellipses <- function(data, dimens, nclass, symbols, colors, ...)
     {
       m <- lapply(models, function(m) 
-      { m$parameters$mean <- array(m$parameters$mean[dimens,], 
-                                   c(2,m$G))
+      { m$parameters$mean <- array(m$parameters$mean[dimens,], c(2,m$G))
         m$parameters$variance$sigma <- 
-          array(m$parameters$variance$sigma[dimens,dimens,],
-                c(2,2,m$G))
+          array(m$parameters$variance$sigma[dimens,dimens,], c(2,2,m$G))
         m
       })
       plot(data[,dimens], type = "n", ...)
@@ -563,17 +568,19 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
         for(i in seq(p))
            { for(j in seq(p)) 
                 { if(i == j) 
-                    { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-                      text(0,0, dataNames[i], cex=1.5, adj=0.5)
+                    { plot(data[,c(i,j)], type="n",
+                           xlab = "", ylab = "", axes=FALSE)
+                      text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
+                           colnames(data)[i], cex = 1.5, adj = 0.5)
                       box()
                     } 
                   else 
                     { scatellipses(data, c(j,i), nclass, symbols, colors, 
                                    xaxt = "n", yaxt = "n") }
                   if(i == 1 && (!(j%%2))) axis(3)
-                  if(i == p && (j%%2))   axis(1)
+                  if(i == p && (j%%2))    axis(1)
                   if(j == 1 && (!(i%%2))) axis(2)
-                  if(j == p && (i%%2))   axis(4)
+                  if(j == p && (i%%2))    axis(4)
                 }
            }      
       }

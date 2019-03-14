@@ -25,4 +25,4 @@ bicEMtrain(data, labels, modelNames=NULL)
 
 }
 
-%\details{}
+\seealso{\code{\link{deprecated}}}

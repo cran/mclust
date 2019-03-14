@@ -1,4 +1,5 @@
-useDynLib(mclust, .registration = TRUE)
+useDynLib(mclust)
+# useDynLib(mclust, .registration = TRUE)
 
 # Export all names
 # exportPattern(".")

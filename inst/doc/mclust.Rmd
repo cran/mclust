@@ -1,5 +1,5 @@
 ---
-title: "A quick tour of **mclust**"
+title: "A quick tour of mclust"
 author: "Luca Scrucca"
 date: "`r format(Sys.time(), '%d %b %Y')`"
 output: 
@@ -44,7 +44,7 @@ cat(mclust:::mclustStartupMessage(), sep="")
 
 # Clustering
 
-```{r, par=TRUE}
+```{r}
 data(diabetes)
 class <- diabetes$class
 table(class)
@@ -62,11 +62,7 @@ summary(mod1, parameters = TRUE)
 plot(mod1, what = "classification")
 table(class, mod1$classification)
 
-par(mfrow = c(2,2))
-plot(mod1, what = "uncertainty", dimens = c(2,1), main = "")
-plot(mod1, what = "uncertainty", dimens = c(3,1), main = "")
-plot(mod1, what = "uncertainty", dimens = c(2,3), main = "")
-par(mfrow = c(1,1))
+plot(mod1, what = "uncertainty")
 
 ICL <- mclustICL(X)
 summary(ICL)
@@ -182,8 +178,8 @@ mod5 <- densityMclust(faithful)
 summary(mod5)
 plot(mod5, what = "BIC")
 plot(mod5, what = "density")
-plot(mod5, what = "density", type = "level")
-plot(mod5, what = "density", type = "level",
+plot(mod5, what = "density", type = "hdr")
+plot(mod5, what = "density", type = "hdr",
      data = faithful, points.cex = 0.5)
 plot(mod5, what = "density", type = "persp")
 ```
@@ -268,8 +264,6 @@ plot(mod, what = "classification")
 The above color definitions are adapted from http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/, but users can easily define their own palettes if needed.
 
 
-
-
 # References
 
 Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, *The R Journal*, 8/1, pp. 205-233. https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf
@@ -277,3 +271,9 @@ Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, 
 Fraley C. and Raftery A. E. (2002) Model-based clustering, discriminant analysis and density estimation, *Journal of the American Statistical Association*, 97/458, pp. 611-631.
 
 Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 for R: Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation. *Technical Report* No. 597, Department of Statistics, University of Washington.
+
+----
+
+```{r}
+sessionInfo()
+```

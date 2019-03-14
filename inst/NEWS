@@ -5,8 +5,8 @@ Version 5.4.2
       BIC results as returned by mclustBIC().
     o Add option type = "level" to plot.densityMclust() and surfacePlot() to
       draw highest density regions.
-		o Add meXXI() and meXXX() to exported functions.
-		o Updated vignette.
+    o Add meXXI() and meXXX() to exported functions.
+    o Update vignette.
 
 Version 5.4.1
     o Add parametric bootstrap option (type = "pb") in MclustBootstrap().

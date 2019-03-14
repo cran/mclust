@@ -40,7 +40,6 @@ mclustICL <- function(data, G = NULL, modelNames = NULL,
   mc[[1]] <- as.name("mclustBIC")
   mc[[2]] <- data
   BIC <- eval(mc, parent.frame())
-  # browser()
   class(BIC) <- "mclustBIC"
   G <- attr(BIC, "G")
   modelNames <- attr(BIC, "modelNames")

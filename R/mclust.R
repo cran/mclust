@@ -180,7 +180,7 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   #
   tab <- data.frame("log-likelihood" = x$loglik, "n" = x$n, 
                     "df" = x$df, "BIC" = x$bic, "ICL" = x$icl, 
-                    row.names = "")
+                    row.names = "", check.names = FALSE)
   print(tab, digits = digits)
   #
   cat("\nClustering table:")
@@ -384,12 +384,16 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       modelNames <- c("E", "V")[c(Emodel, Vmodel)]
   }
   
-  # set subset (if not provided) for initialization when data size is
-  # larger than the value specified in mclust.options()
-  if(n > mclust.options("subset") & is.null(initialization$subset))
-    { initialization$subset <- sample(seq.int(n), 
-                                      size = mclust.options("subset"),
-                                      replace = FALSE) }
+  # set subset for initialization when subset is not, no hcPairs is provided, and
+  # data size is larger than the value specified in mclust.options()
+  if(is.null(initialization$subset) & 
+     is.null(initialization$hcPairs) & 
+     n > mclust.options("subset"))
+  { 
+    initialization$subset <- sample(seq.int(n), 
+                                    size = mclust.options("subset"),
+                                    replace = FALSE) 
+  }
   
   l <- length(Gall)
   m <- length(Mall)
@@ -442,13 +446,16 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
     if (is.null(initialization$subset)) 
     {
       ## all data in initial hierarchical clustering phase (no subset) ----
-      if (is.null(initialization$hcPairs)) { 
-        if (d != 1) {
-          if (n > d) {
+      if (is.null(initialization$hcPairs)) 
+      { 
+        if (d != 1) 
+        {
+          if (n > d) 
+          {
             hcPairs <- hc(data = data, 
                           modelName = mclust.options("hcModelName")[1])
-          }
-          else {
+          } else 
+          {
             hcPairs <- hc(data = data, modelName = "EII")
           } 
         }
@@ -459,22 +466,24 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       }
       else hcPairs <- initialization$hcPairs
       if (d > 1 || !is.null(hcPairs))  clss <- hclass(hcPairs, G)
-      for (g in Glabels) {
-        if (d > 1 || !is.null(hcPairs)) {
+      for (g in Glabels) 
+      {
+        if (d > 1 || !is.null(hcPairs)) 
+        {
           cl <- clss[,g]
-        }
-        else {
+        } else 
+        {
           cl <- qclass(data, as.numeric(g))
         }
         if(verbose) 
           { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
         z <- unmap(cl, groups = 1:max(cl))
         if(any(apply( z, 2, max) == 0) & warn) 
-          { #  missing groups
-            if(warn) warning("there are missing groups")
-            small <- sqrt(.Machine$double.neg.eps)
-            z[z < small] <- small
-            z <-  t(apply( z, 1, function(x) x/sum(x)))
+        { #  missing groups
+          if(warn) warning("there are missing groups")
+          small <- sqrt(.Machine$double.neg.eps)
+          z[z < small] <- small
+          z <-  t(apply( z, 1, function(x) x/sum(x)))
         }
         for(modelName in na.omit(modelNames[BIC[g,] == EMPTY])) 
         {  
@@ -489,8 +498,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
             { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
         }
       }
-    }
-    else 
+    } else 
     {
       ## initial hierarchical clustering phase on a subset ----
       subset <- initialization$subset
@@ -1405,7 +1413,7 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   }
   dimnames(z) <- list(dimnames(data)[[1]],NULL)
   structure(z, logarithm = logarithm, modelName = "EEE",
-            WARNING = WARNING, retrunCode = ret)
+            WARNING = WARNING, returnCode = ret)
 }
 
 emEEE <- function(data, parameters, prior = NULL, control = emControl(), 
@@ -1504,7 +1512,7 @@ meEEE <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -1643,7 +1651,7 @@ mstepEEE <- function(data, z, prior = NULL,  warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -1963,7 +1971,7 @@ meEEI <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data  should be in the form of a matrix")
   data <- as.matrix(data)
@@ -2102,7 +2110,7 @@ mstepEEI <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -2231,7 +2239,7 @@ cdensE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- drop(data)
@@ -2303,7 +2311,7 @@ estepE <- function(data, parameters, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- drop(data)
@@ -2523,7 +2531,7 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -2682,7 +2690,7 @@ mstepEEV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -2919,7 +2927,7 @@ meEII <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -3053,7 +3061,7 @@ mstepEII <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix")
   data <- as.matrix(data)
@@ -3170,7 +3178,7 @@ meE <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be 1 dimensional")
   data <- as.vector(data)
@@ -3288,7 +3296,7 @@ mstepE <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- as.vector(data)
@@ -3524,7 +3532,7 @@ meEVI <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -3656,7 +3664,7 @@ mstepEVI <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -4227,7 +4235,6 @@ mvn2plot <- function(mu, sigma, k = 15, alone = FALSE,
   invisible()
 }
 
-# new version
 plot.Mclust <- function(x, 
                         what = c("BIC", "classification", "uncertainty", "density"), 
                         dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,  
@@ -4250,7 +4257,6 @@ plot.Mclust <- function(x,
   d <- length(dimens)
   main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
   
-  ####################################################################
   what <- match.arg(what, several.ok = TRUE)
   oldpar <- par(no.readonly = TRUE)
   # on.exit(par(oldpar))
@@ -4357,9 +4363,10 @@ plot.Mclust <- function(x,
             for(i in seq(d))
                { for(j in seq(d)) 
                     { if(i == j) 
-                        { plot(0,0,type="n",xlab="",ylab="",axes=FALSE)
-                          text(0,0, colnames(data[,dimens])[i], 
-                               cex=1.5, adj=0.5)
+                        { plot(data[,c(i,j)], type="n",
+                               xlab="", ylab="", axes=FALSE)
+                          text(mean(par("usr")[1:2]), mean(par("usr")[3:4]),
+                               colnames(data[,dimens])[i], cex=1.5, adj=0.5)
                           box()
                         } 
                       else 
@@ -4374,9 +4381,9 @@ plot.Mclust <- function(x,
                                     xaxt = "n", yaxt = "n", ...)
                         }
                       if(i == 1 && (!(j%%2))) axis(3)
-                      if(i == d && (j%%2))   axis(1)
+                      if(i == d && (j%%2))    axis(1)
                       if(j == 1 && (!(i%%2))) axis(2)
-                      if(j == d && (i%%2))   axis(4)
+                      if(j == d && (i%%2))    axis(4)
                     }
                }
           }
@@ -4394,7 +4401,8 @@ plot.Mclust <- function(x,
     }
     if(p == 2) 
       { surfacePlot(data = data, parameters = object$parameters,
-                    what = "density", nlevels = 11,
+                    what = "density", 
+                    # nlevels = 11,
                     # transformation = "log",
                     xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
@@ -4404,7 +4412,7 @@ plot.Mclust <- function(x,
       { objdens <- object
         objdens$varname <- colnames(data)
         objdens$range <- if(objdens$d > 1) apply(data, 2, range) else range(data)
-        plotDensityMclustd(objdens, nlevels = 11, ...) }
+        plotDensityMclustd(objdens, ...) }
   }
   
   if(interactive() & length(what) > 1)
@@ -4766,7 +4774,7 @@ grid2 <- function (x, y)
 hypvol <- function (data, reciprocal = FALSE) 
 {
   dimdat <- dim(data)
-  oneD <- (is.null(dimdat) || length(dimdat[dimdat > 1]) == 1)
+  oneD <- ((is.null(dimdat) || NCOL(data) == 1))
   if (oneD) 
   {
     n <- length(as.vector(data))
@@ -4877,8 +4885,6 @@ estep <- function(modelName, data, parameters, warn = NULL, ...)
   eval(mc, parent.frame())
 }
 
-
-#############################################################################
 
 mclustVariance <- function(modelName, d=NULL, G=2)
 {
@@ -5211,7 +5217,7 @@ meVEI <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -5360,7 +5366,7 @@ mstepVEI <- function(data, z, prior = NULL, warn = NULL, control = NULL,...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -5510,7 +5516,7 @@ cdensV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- drop(data)
@@ -5581,7 +5587,7 @@ estepV <- function(data, parameters, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- drop(data)
@@ -5799,7 +5805,7 @@ meVEV <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -5968,7 +5974,7 @@ mstepVEV <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -6295,7 +6301,7 @@ meVII <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data must be in the form of a matrix")
   data <- as.matrix(data)
@@ -6428,7 +6434,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -6561,7 +6567,7 @@ mstepVII <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix")
   data <- as.matrix(data)
@@ -6674,7 +6680,7 @@ meV <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- as.vector(data)
@@ -6793,7 +6799,7 @@ mstepV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one-dimensional")
   data <- as.vector(data)
@@ -7031,7 +7037,7 @@ meVVI <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) > 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -7164,7 +7170,7 @@ mstepVVI <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -7448,7 +7454,7 @@ meVVV <- function(data, z, prior = NULL, control = emControl(),
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should in the form of a matrix")
   data <- as.matrix(data)
@@ -7583,7 +7589,7 @@ mstepVVV <- function(data, z, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD || length(dimdat) != 2)
     stop("data should be a matrix or a vector")
   data <- as.matrix(data)
@@ -7720,7 +7726,7 @@ mvnX <- function(data, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(!oneD)
     stop("data must be one dimensional")
   data <- as.vector(data)
@@ -7792,7 +7798,7 @@ mvnXII <- function(data, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD)
     stop("for multidimensional data only")
   if(length(dimdat) != 2)
@@ -7873,7 +7879,7 @@ mvnXXI <- function(data, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD)
     stop("for multidimensional data only")
   if(length(dimdat) != 2)
@@ -7958,7 +7964,7 @@ mvnXXX <- function(data, prior = NULL, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- (is.null(dimdat) || NCOL(data) == 1)
   if(oneD)
     stop("for multidimensional data only")
   if(length(dimdat) != 2)

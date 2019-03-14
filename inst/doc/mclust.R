@@ -18,7 +18,7 @@ set.seed(1) # for exact reproducibility
 library(mclust)
 cat(mclust:::mclustStartupMessage(), sep="")
 
-## ---- par=TRUE-----------------------------------------------------------
+## ------------------------------------------------------------------------
 data(diabetes)
 class <- diabetes$class
 table(class)
@@ -36,11 +36,7 @@ summary(mod1, parameters = TRUE)
 plot(mod1, what = "classification")
 table(class, mod1$classification)
 
-par(mfrow = c(2,2))
-plot(mod1, what = "uncertainty", dimens = c(2,1), main = "")
-plot(mod1, what = "uncertainty", dimens = c(3,1), main = "")
-plot(mod1, what = "uncertainty", dimens = c(2,3), main = "")
-par(mfrow = c(1,1))
+plot(mod1, what = "uncertainty")
 
 ICL <- mclustICL(X)
 summary(ICL)
@@ -128,8 +124,8 @@ mod5 <- densityMclust(faithful)
 summary(mod5)
 plot(mod5, what = "BIC")
 plot(mod5, what = "density")
-plot(mod5, what = "density", type = "level")
-plot(mod5, what = "density", type = "level",
+plot(mod5, what = "density", type = "hdr")
+plot(mod5, what = "density", type = "hdr",
      data = faithful, points.cex = 0.5)
 plot(mod5, what = "density", type = "persp")
 
@@ -190,4 +186,7 @@ clPairs(iris[,-5], iris$Species)
 mod <- Mclust(iris[,-5])
 plot(mod, what = "BIC")
 plot(mod, what = "classification")
+
+## ------------------------------------------------------------------------
+sessionInfo()
 

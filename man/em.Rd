@@ -130,7 +130,7 @@ A list including the following components:
     }
 }
 \seealso{
-  \code{\link{emE}}, \ldots,
+  \code{\link{emE}}, \dots,
   \code{\link{emVVV}},
   \code{\link{estep}},
   \code{\link{me}},

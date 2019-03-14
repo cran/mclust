@@ -17,19 +17,19 @@ hc(data,
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
     Categorical variables are not allowed.
-    If a matrix or data frame, rows correspond to observations and
-    columns correspond to variables.
+    If a matrix or data frame, rows correspond to observations (\eqn{n}) and
+    columns correspond to variables (\eqn{d}).
   }
   \item{modelName}{
     A character string indicating the model to be used.\cr
     Possible models are:
-    \tabular{ll}{
-    \code{"E"} \tab equal variance (one-dimensional) \cr
-    \code{"V"} \tab spherical, variable variance (one-dimensional) \cr
-    \code{"EII"}\tab spherical, equal volume \cr
-    \code{"VII"}\tab spherical, unequal volume \cr
-    \code{"EEE"}\tab ellipsoidal, equal volume, shape, and orientation \cr
-    \code{"VVV"}\tab ellipsoidal, varying volume, shape, and orientation.\cr\cr
+    \describe{
+    \item{\code{"E"}}{equal variance (one-dimensional)}
+    \item{\code{"V"}}{spherical, variable variance (one-dimensional)}
+    \item{\code{"EII"}}{spherical, equal volume}
+    \item{\code{"VII"}}{spherical, unequal volume}
+    \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation}
+    \item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation.}
     }
     By default the model provided by \code{mclust.options("hcModelName")} is used. 
     See \code{\link{mclust.options}}.

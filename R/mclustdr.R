@@ -22,8 +22,9 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
     stop("object must be of class 'Mclust' or 'MclustDA'")
   
   x <- data.matrix(object$data)
-  p <- ncol(x)
   n <- nrow(x)
+  p <- ncol(x)
+  lambda <- pmax(0, min(lambda, 1))
   #-----------------------------------------------------------------  
   # overall parameters
   mu <- colMeans(x)
@@ -45,9 +46,12 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
     mu.G <- matrix(par$mean,p,G) 
     # within-group covars
     if(p == 1) 
-    { Sigma.G <- array(par$variance$sigmasq, c(p,p,G)) }
-    else     
-    { Sigma.G <- par$variance$sigma }
+    { 
+      Sigma.G <- array(par$variance$sigmasq, c(p,p,G)) 
+    } else     
+    { 
+      Sigma.G <- par$variance$sigma 
+    }
   }
   else if(inherits(object, "MclustDA"))
   { 
@@ -85,27 +89,26 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
     }
   }
   #-----------------------------------------------------------------
-  SVD <- svd(Sigma)
-  pos <- (SVD$d > max(tol*SVD$d[1], 0)) # in case of not full rank covar matrix
-  if(all(pos)) 
-  { inv.Sigma <- SVD$v %*% (1/SVD$d * t(SVD$u))
-    inv.sqrt.Sigma <- SVD$v %*% (1/sqrt(SVD$d) * t(SVD$u)) }
-  else
-  { inv.Sigma <- SVD$v[,pos,drop=FALSE] %*% 
-      (1/SVD$d[pos] * t(SVD$u[,pos,drop=FALSE]))
-    inv.sqrt.Sigma <- SVD$v[,pos,drop=FALSE] %*% 
-      (1/sqrt(SVD$d[pos]) * t(SVD$u[,pos,drop=FALSE])) }
+  SVD <- svd(Sigma, nu = 0, nv = min(n,p))
+  pos <- which(SVD$d > max(tol*SVD$d[1], 0)) 
+  SVD$d <- SVD$d[pos]
+  SVD$v <- SVD$v[,pos,drop=FALSE]
+  inv.Sigma <- SVD$v %*% (1/SVD$d * t(SVD$v))
+  inv.sqrt.Sigma <- SVD$v %*% (1/sqrt(SVD$d) * t(SVD$v)) 
   #-----------------------------------------------------------------
   # pooled within-group covariance
   S <- matrix(0, p, p)
-  for(j in 1:G) 
+  for(j in seq_len(G))
     S <- S + f[j]*Sigma.G[,,j]
   #-----------------------------------------------------------------
   # kernel matrix
   M.I <- crossprod(t(sweep(mu.G, 1, FUN="-", STATS=mu))*sqrt(f))
   M.II <- matrix(0, p, p)
-  for(j in 1:G)
-    M.II <- M.II + f[j]*crossprod(inv.sqrt.Sigma%*%(Sigma.G[,,j]-S))
+  if(lambda < 1) 
+  {
+    for(j in seq_len(G))
+      M.II <- M.II + f[j]*crossprod(inv.sqrt.Sigma%*%(Sigma.G[,,j]-S))
+  }
   # convex combination of M_I and M_II
   M <- 2*lambda*crossprod(inv.sqrt.Sigma %*% M.I) + 2*(1-lambda)*M.II
   # regularize the M_II
@@ -113,7 +116,7 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   # M <- crossprod(inv.sqrt.Sigma %*% M.I) + 
   #      (1-lambda)*M.II + lambda/p * diag(p)  
   #
-  SVD <- eigen.decomp(M, Sigma)
+  SVD <- eigen.decomp(M, inv.sqrt.Sigma, invsqrt = TRUE)
   l <- SVD$l; l <- (l+abs(l))/2
   numdir <- min(p, sum(l > sqrt(.Machine$double.eps)))
   basis <- as.matrix(SVD$v)[,seq(numdir),drop=FALSE]
@@ -668,38 +671,46 @@ ellipse <- function(c, M, r, npoints = 100)
   return(coord)
 }
 
-eigen.decomp <- function(A, B)
+eigen.decomp <- function(A, B, invsqrt = FALSE)
 {
-  #
-  # Generalized eigenvalue decomposition of A with respect to B
-  #
-  # A generalized eigenvalue problem AV = BLV is said to be symmetric positive 
-  # definite if A is symmetric and B is positive definite. V is the matrix of
-  # generalized eigenvectors, and L is the diagonal matrix of generalized 
-  # eigenvalues (Stewart, 2001, pag. 229-230).
-  # 
-  # Properties:
-  # V'AV = L
-  # V'BV = I
-  #
-  # The algorithm implemented is described in Stewart (2001, pag. 234) and used
-  # by Li (2000).
-  #
-  # References: 
-  # Li, K.C., 2000. High dimensional data analysis via the SIR-PHD approach,
-  # Stewart, G.W., 2001. Matrix Algorithms: vol II Eigensystems, SIAM.
+#
+# Generalized eigenvalue decomposition of A with respect to B.
+#
+# A generalized eigenvalue problem AV = BLV is said to be symmetric positive 
+# definite if A is symmetric and B is positive definite. V is the matrix of
+# generalized eigenvectors, and L is the diagonal matrix of generalized 
+# eigenvalues (Stewart, 2001, pag. 229-230).
+# 
+# Properties:
+# V'AV = L
+# V'BV = I
+#
+# The algorithm implemented is described in Stewart (2001, pag. 234) and used
+# by Li (2000).
+#
+# References: 
+# Li, K.C., 2000. High dimensional data analysis via the SIR-PHD approach,
+# Stewart, G.W., 2001. Matrix Algorithms: vol II Eigensystems, SIAM.
   
-  svd <- svd(B, nu=0)
-  p <- length(svd$d)
-  # Computes inverse square root matrix such that: 
-  # t(inv.sqrt.B) %*% inv.sqrt.B = inv.sqrt.B %*% t(inv.sqrt.B) = solve(B)
-  inv.sqrt.B <- svd$v %*% diag(1/sqrt(svd$d),p,p) %*% t(svd$v)
+  if(!invsqrt)
+  {
+    SVD <- svd(B, nu=0)
+    # in case of not full rank covar matrix
+    tol <- .Machine$double.eps
+    pos <- which(SVD$d > max(tol*SVD$d[1], 0)) 
+    SVD$d <- SVD$d[pos]
+    SVD$v <- SVD$v[,pos,drop=FALSE]
+    # Computes inverse square root matrix such that: 
+    # t(inv.sqrt.B) %*% inv.sqrt.B = inv.sqrt.B %*% t(inv.sqrt.B) = solve(B)
+    inv.sqrt.B <- SVD$v %*% (1/sqrt(SVD$d) * t(SVD$v))
+  } else
+  { inv.sqrt.B <-  B }
   # Compute  B^(-1/2)' A B^(-1/2) = UDU'
   # evectors = B^(-1/2) U 
   # evalues  = D
   A <- t(inv.sqrt.B) %*% A %*% inv.sqrt.B
-  svd <- svd(A, nu=0)
-  list(l = svd$d, v = inv.sqrt.B  %*% svd$v)
+  SVD <- svd(A, nu=0)
+  list(l = SVD$d, v = inv.sqrt.B  %*% SVD$v)
 }
 
 

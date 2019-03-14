@@ -66,16 +66,16 @@ summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = faithful, 
      drawlabels = FALSE, points.pch = 20)
-plot(dens, what = "density", type = "level")
-plot(dens, what = "density", type = "level", prob = c(0.1, 0.9))
-plot(dens, what = "density", type = "level", data = faithful)
+plot(dens, what = "density", type = "hdr")
+plot(dens, what = "density", type = "hdr", prob = c(0.1, 0.9))
+plot(dens, what = "density", type = "hdr", data = faithful)
 plot(dens, what = "density", type = "persp")
 
 dens <- densityMclust(iris[,1:4], G = 2)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = iris[,1:4], 
      col = "slategrey", drawlabels = FALSE, nlevels = 7)
-plot(dens, what = "density", type = "level", data = iris[,1:4])
+plot(dens, what = "density", type = "hdr", data = iris[,1:4])
 \dontrun{
 plot(dens, what = "density", type = "persp", col = grey(0.9))
 }

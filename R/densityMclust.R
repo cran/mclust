@@ -14,7 +14,6 @@ predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), lo
 {
   if(!inherits(object, "densityMclust")) 
     stop("object not of class \"densityMclust\"")
-  
   if(missing(newdata))
     { newdata <- object$data }
   newdata <- as.matrix(newdata)
@@ -60,22 +59,13 @@ plot.densityMclust <- function(x, data = NULL, what = c("BIC", "density", "diagn
   
   plot.densityMclust.bic <- function(...)
   { 
-    # this add right axis for bic diff
-    # oldpar <- par(no.readonly = TRUE)
-    # on.exit(par(oldpar))
-    # mar <- oldpar$mar
-    # mar[4] <- max(mar[4],3)
-    # par(mar = mar)
-    # plot.mclustBIC(object$BIC, ...)
-    # yaxp <- par("yaxp")
-    # bicdiff <- seq(0, yaxp[1] - object$bic, length = 100)
-    # bicdiff <- pretty(bicdiff, yaxp[3]+1)
-    # axis(4, at = object$bic+bicdiff, labels = signif(bicdiff,2))
     plot.mclustBIC(object$BIC, ...)
   }
   
   plot.densityMclust.diagnostic <- function(...)
-  { densityMclust.diagnostic(object, ...) }
+  { 
+    densityMclust.diagnostic(object, ...) 
+  }
   
   if(interactive() & length(what) > 1)
     { title <- "Model-based density estimation plots:"
@@ -151,17 +141,20 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
 plotDensityMclust2 <- function(x, data = NULL, 
                                nlevels = 11, levels = NULL, 
                                prob = c(0.25, 0.5, 0.75),
-                               points.pch = 1, points.col = 1, points.cex = 0.8, 
+                               points.pch = 1, points.col = 1, 
+                               points.cex = 0.8, 
                                ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
   object <- x # Argh.  Really want to use object anyway
   mc <- match.call(expand.dots = TRUE)
-  mc$x <- mc$points.pch <- mc$points.col <- mc$points.cex <- mc$prob <- NULL
+  mc$x <- mc$points.pch <- mc$points.col <- mc$points.cex <- NULL
 
   mc$nlevels <- nlevels
   mc$levels <- levels
-  if(isTRUE(mc$type == "level"))
+  if(!is.null(mc$type))
+    if(mc$type == "level") mc$type <- "hdr" # TODO: to be removed
+  if(isTRUE(mc$type == "hdr"))
     { mc$levels <- c(sort(hdrlevels(object$density, prob)), 
                      1.1*max(object$density))
       mc$nlevels <- length(mc$levels)
@@ -196,7 +189,9 @@ plotDensityMclust2 <- function(x, data = NULL,
 plotDensityMclustd <- function(x, data = NULL, 
                                nlevels = 11, levels = NULL, 
                                prob = c(0.25, 0.5, 0.75),
-                               points.pch = 1, points.col = 1, points.cex = 0.8, 
+                               points.pch = 1, 
+                               points.col = 1, 
+                               points.cex = 0.8, 
                                gap = 0.2, ...) 
 {
   # This function call surfacePlot() with a suitable modification of arguments
@@ -207,11 +202,9 @@ plotDensityMclustd <- function(x, data = NULL,
 
   mc$nlevels <- nlevels
   mc$levels <- levels
-  if(isTRUE(mc$type == "level"))
-    { mc$levels <- c(sort(hdrlevels(object$density, prob)), 
-                     1.1*max(object$density))
-      mc$nlevels <- length(mc$levels)
-    }
+  mc$prob <- prob
+  if(!is.null(mc$type))
+    if(mc$type == "level") mc$type <- "hdr" # TODO: to be removed
 
   if(is.null(data)) 
     { data <- mc$data <- object$data
@@ -233,7 +226,7 @@ plotDensityMclustd <- function(x, data = NULL,
      { for(j in seq(nc)) 
           { if(i == j) 
               { 
-                plot(data[i], data[i], type="n",
+                plot(data[,c(i,j)], type="n",
                      xlab = "", ylab = "", axes=FALSE)
                 text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
                      colnames(data)[i], cex = 1.5, adj = 0.5)
@@ -256,8 +249,7 @@ plotDensityMclustd <- function(x, data = NULL,
                 mc$data <- object$data[,c(j,i)]
                 mc$axes <- FALSE
                 mc[[1]] <- as.name("surfacePlot")
-                # if(mc$type == "level") browser()
-                out <- eval(mc, parent.frame())
+                eval(mc, parent.frame())
                 box()
                 if(addPoints & (j > i))
                   points(data[,c(j,i)], pch = points.pch, 
@@ -280,7 +272,7 @@ dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ..
   cden <- cdens(modelName = modelName, data = data,
                 logarithm = TRUE, parameters = parameters, warn = warn)
   dimdat <- dim(data)
-  oneD <- is.null(dimdat) || length(dimdat[dimdat > 1]) == 1
+  oneD <- is.null(dimdat) || NCOL(data) == 1
   G <- if(oneD) { length(parameters$mean) }
        else     { ncol(as.matrix(parameters$mean)) }
   pro <- parameters$pro

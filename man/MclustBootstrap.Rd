@@ -15,13 +15,13 @@ MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "pb", "jk"),
 \arguments{
   \item{object}{An object of class \code{'Mclust'} or \code{'densityMclust'} providing an estimated Gaussian mixture model.}
   \item{nboot}{The number of bootstrap replications.}
-  \item{type}{A character string specifying the type of resampling to use: 
-  \tabular{ll}{
-    \code{"bs"} \tab = nonparametric bootstrap \cr
-    \code{"wlbs"} \tab = weighted likelihood bootstrap \cr
-    \code{"pb"} \tab = parametric bootstrap \cr
-    \code{"jk"} \tab = jackknife \cr
-    }
+  \item{type}{A character string specifying the type of resampling to use:
+  \describe{
+  \item{\code{"bs"}}{nonparametric bootstrap}
+  \item{\code{"wlbs"}}{weighted likelihood bootstrap}
+  \item{\code{"pb"}}{parametric bootstrap}
+  \item{\code{"jk"}}{jackknife}
+  }
   }
   \item{max.nonfit}{The maximum number of non-estimable models allowed.}
   \item{verbose}{A logical controlling if a text progress bar is displayed during the resampling procedure. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise.}

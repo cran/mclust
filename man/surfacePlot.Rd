@@ -9,10 +9,11 @@ a MVN mixture model for the data.
 }
 \usage{
 surfacePlot(data, parameters, 
-            type = c("contour", "level", "image", "persp"), 
+            type = c("contour", "hdr", "image", "persp"), 
             what = c("density", "uncertainty"), 
             transformation = c("none", "log", "sqrt"),          
             grid = 100, nlevels = 11, levels = NULL, 
+            prob = c(0.25, 0.5, 0.75),
             color.palette = blue2grey.colors, col = grey(0.6),
             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
             scale = FALSE, main = FALSE, swapAxes = FALSE, 
@@ -45,7 +46,7 @@ surfacePlot(data, parameters,
   }
   \item{type}{
     Choose from one of the following three options: \code{"contour"} 
-    (default), \code{"level"}, \code{"image"}, and \code{"persp"} indicating 
+    (default), \code{"hdr"}, \code{"image"}, and \code{"persp"} indicating 
     the plot type. 
   }
   \item{what}{
@@ -70,9 +71,14 @@ surfacePlot(data, parameters,
   \item{levels}{
     A vector of levels at which to draw the lines in a contour plot.
   }
+  \item{prob}{
+    A vector of probability levels for computing HDR. 
+    Only used if \code{type = "hdr"} and supersede previous 
+    \code{nlevels} and \code{levels} arguments.
+  }
   \item{color.palette}{
     A function which defines a palette of colours to be used for 
-    \code{type = "level"} plot. 
+    \code{type = "hdr"} plot. 
   }
   \item{col}{
     The color to be used for drawing contour lines.

@@ -23,7 +23,9 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   prop <- as.vector(table(class))/n
   names(prop) <- classLabel
   #
-  modelType <- match.arg(modelType)
+  modelType <- match.arg(modelType, 
+                         choices = eval(formals(MclustDA)$modelType), 
+                         several.ok = FALSE)
   #
   if(is.null(G)) 
     { G <- rep(list(1:5), ncl) }
@@ -215,13 +217,14 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   data <- object$data
   pred <- predict(object, newdata = data, ...)
   err <- mean(class != pred$classification)
+  brier <- BrierScore(pred$z, class)
   tab <- try(table(class, pred$classification))
   if(class(tab) == "try-error") 
     { err <- tab <- NA }
   else 
     { names(dimnames(tab)) <- c("Class", "Predicted") }
   
-  tab.newdata <- err.newdata <- NULL
+  tab.newdata <- err.newdata <- brier.newdata <- NULL
   if(!missing(newdata) & !missing(newclass))
   { 
     pred.newdata <- predict(object, newdata = newdata, ...)
@@ -233,6 +236,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
     { tab.newdata <- table(newclass, pred.newdata$classification)
       names(dimnames(tab.newdata)) <- c("Class", "Predicted")
       err.newdata <- mean(newclass != pred.newdata$classification)
+      brier.newdata <- BrierScore(pred.newdata$z, newclass)
     }
   }
   
@@ -241,8 +245,9 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
               nclass = nclass, classes = classes,
               G = G, modelName = modelName,
               prop = object$prop, parameters = par, prior = prior, 
-              tab = tab, err = err,
-              tab.newdata = tab.newdata, err.newdata = err.newdata,
+              tab = tab, err = err, brier = brier,
+              tab.newdata = tab.newdata, 
+              err.newdata = err.newdata, brier.newdata = brier.newdata,
               printParameters = printParameters)
   class(obj) <- "summary.MclustDA"
   return(obj)
@@ -266,11 +271,13 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
 										row.names = "", check.names = FALSE)
   print(tab, digits = digits)
   
-  tab <- data.frame(n = x$n, Model = x$modelName, G = x$G)
-  rownames(tab) <- x$classes
+  tab <- data.frame("n" = x$n, "%" = round(x$n/sum(x$n)*100,2), 
+                    "Model" = x$modelName, "G" = x$G,
+                    check.names = FALSE,
+                    row.names = x$classes)
   tab <- as.matrix(tab)
   names(dimnames(tab)) <- c("Classes", "")
-  print(tab, quote = FALSE, right = TRUE)
+  print(tab, digits = digits, quote = FALSE, right = TRUE)
   
   if(!is.null(x$prior))
   { cat("\nPrior: ")
@@ -304,16 +311,19 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
     }
   }
   
-  cat("\nTraining classification summary:\n")
+  cat("\nTraining confusion matrix:\n")
   print(x$tab)
-  cat("Training error =", x$err, "\n")
+  cat("Classification error =", round(x$err, min(digits,4)), "\n")
+  cat("Brier score          =", round(x$brier, min(digits,4)), "\n")
   
   if(!is.null(x$tab.newdata)) 
   {
-    cat("\nTest classification summary:\n")
+    cat("\nTest confusion matrix:\n")
     print(x$tab.newdata)
     if(!is.null(x$err.newdata))
-    { cat("Test error =", x$err.newdata, "\n") }
+    { cat("Classification error =", round(x$err.newdata, min(digits,4)), "\n") 
+      cat("Brier score          =", round(x$brier.newdata, min(digits,4)), "\n")
+    }
   }
   
   invisible(x)
@@ -343,38 +353,6 @@ getParameters.MclustDA <- function(object)
   }
   return(par)
 }
-
-dmvnorm <- function (x, mean, sigma, log = FALSE) 
-{
-  if(is.vector(x)) 
-  { x <- matrix(x, ncol = length(x)) }
-  if(missing(mean))
-  { mean <- rep(0, length = ncol(x)) }
-  if(missing(sigma)) 
-  { sigma <- diag(ncol(x)) }
-  if(NCOL(x) != NCOL(sigma)) 
-  { stop("x and sigma have non-conforming size") }
-  if(!isSymmetric(sigma, tol = sqrt(.Machine$double.eps), check.attributes = FALSE)) 
-  { stop("sigma must be a symmetric matrix") }
-  if(length(mean) != NROW(sigma)) 
-  { stop("mean and sigma have non-conforming size") }
-  
-  md <- mahalanobis(x, center = mean, cov = sigma)
-  logdet <- determinant(sigma, logarithm = TRUE)$modulus
-  # SVD <- svd(sigma)
-  # Positive <- (SVD$d > sqrt(.Machine$double.eps))
-  # invSigma <- SVD$v[,Positive, drop = FALSE] %*% 
-  #             ((1/SVD$d[Positive]) * t(SVD$u[, Positive, drop = FALSE]))
-  # logdet <- sum(log(SVD$d[Positive]))
-  # md <- mahalanobis(x, center = mean, cov = invSigma, inverted = TRUE)
-  logdens <- -(ncol(x) * log(2 * pi) + logdet + md)/2
-  
-  if(log)
-    return(logdens)
-  else
-    exp(logdens)
-}
-
 
 logLik.MclustDA <- function (object, data, ...) 
 {
@@ -408,7 +386,7 @@ logLik.MclustDA <- function (object, data, ...)
   return(l)
 }
 
-predict.MclustDA <- function(object, newdata, prior, ...)
+predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
 {
   
   if(!inherits(object, "MclustDA")) 
@@ -416,41 +394,47 @@ predict.MclustDA <- function(object, newdata, prior, ...)
   
   models <- object$models
   nclass <- length(models)
+  classNames <- levels(object$class)
   n <- sapply(1:nclass, function(i) models[[i]]$n)
   if(missing(newdata))
     { newdata <- object$data }
   if(object$d == 1) newdata <- as.vector(newdata)
-  if(missing(prior))
-    { prior <- n/sum(n) }
-  else
-    { if(length(prior) != nclass)
-        stop("wrong number of prior probabilities")
-      if(any(prior < 0))
-        stop("prior must be nonnegative")
-    }
-  
-  #  densfun <- function(mod, data)
-  #  { do.call("dens", c(list(data = data), mod)) }
-  #  z <- as.matrix(data.frame(lapply(models, densfun, data = newdata)))
-  #  z <- sweep(z, MARGIN = 1, FUN = "/", STATS = apply(z, 1, max))
-  #  z <- sweep(z, MARGIN = 2, FUN = "*", STATS = prior/sum(prior))
-  #  z <- sweep(z, MARGIN = 1, STATS = apply(z, 1, sum), FUN = "/")
-  
-  # compute on log scale for stability
+  if(is.numeric(prop))
+  {
+    if(any(prop < 0)) 
+      stop("'prop' must be nonnegative")
+    if(length(prop) != nclass) 
+      stop("'prop' is of incorrect length")
+    prop <- prop/sum(prop)
+  } else
+  {
+    prop <- n/sum(n)
+  }
+
+  # class density computed on log scale
   densfun <- function(mod, data)
-  { do.call("dens", c(list(data = data, logarithm = TRUE), mod)) }
+  { 
+    do.call("dens", c(list(data = data, logarithm = TRUE), mod)) 
+  }
+  #
   z <- as.matrix(data.frame(lapply(models, densfun, data = newdata)))
-  z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prior/sum(prior)))
+  z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prop))
   z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
   z <- exp(z)
+  colnames(z) <- classNames
   cl <- apply(z, 1, which.max)
-  class <- factor(names(models)[cl], levels = names(models))
-  
+  class <- factor(classNames[cl], levels = classNames)
+  #
   out <- list(classification = class, z = z)
   return(out) 
 }
 
-plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&test", "error"), newdata, newclass, dimens, symbols, colors, ...)
+plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&test", "error"), 
+                          newdata, newclass, 
+                          dimens = NULL, 
+                          symbols, colors, 
+                          main = NULL,
+                          ...)
 {
   object <- x # Argh.  Really want to use object anyway
   if(!inherits(object, "MclustDA")) 
@@ -461,6 +445,13 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   else             dataNames <- deparse(object$call$data)
   n <- nrow(data)
   p <- ncol(data)
+  dimens <- if(is.null(dimens)) seq(p) else dimens[dimens <= p]
+  d <- length(dimens)
+  if(d == 0)
+  {
+    warning("dimens larger than data dimensionality...")
+    return(invisible())
+  }
   
   if(missing(newdata))
     { newdata <- matrix(as.double(NA), 0, p) }
@@ -473,7 +464,10 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   else
     { if(nrow(newdata) != length(newclass))
       stop("incompatible newdata and newclass") }
+  if(object$d > 1) newdataNames <- colnames(newdata)
+  else             newdataNames <- deparse(match.call()$newdata)
   
+  what <- match.arg(what, several.ok = TRUE)
   models <- object$models
   M <- length(models)
   if(missing(dimens)) dimens <- 1:p
@@ -489,7 +483,6 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
              { symbols <- LETTERS }
   }
   if(length(symbols) == 1) symbols <- rep(symbols,M)
-#  if(length(symbols) < M & what != "train&test") 
   if(length(symbols) < M & !any(what == "train&test"))
     { warning("more symbols needed to show classification")
       symbols <- rep(16, M) }
@@ -497,45 +490,33 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   if(missing(colors))
     { colors <- mclust.options("classPlotColors") }
   if(length(colors) == 1) colors <- rep(colors,M)
-# if(length(colors) < M & what != "train&test") 
   if(length(colors) < M & !any(what == "train&test"))
     { warning("more colors needed to show classification")
       colors <- rep("black", M) }
   
-  ####################################################################
-  what <- match.arg(what, several.ok = TRUE)
   oldpar <- par(no.readonly = TRUE)
-  # on.exit(par(oldpar))
-  
+
   plot.MclustDA.scatterplot <- function(...)
   {
-    if(length(dimens) == 1)
-    { eval.points <- seq(min(data[,dimens]), max(data[,dimens]), length = 1000)
-      d <- matrix(as.double(NA), length(eval.points), nclass)
-      for(i in seq(nclass))
-      { par <- models[[i]]$parameters
-        if(par$variance$d > 1)
-        { par$d <- 1
-          par$mean <- par$mean[dimens,,drop=FALSE]
-          par$variance$sigmasq <- par$variance$sigma[dimens,dimens,]
-          par$variance$modelName <- if(par$variance$G == 1) "X"
-          else if(dim(par$variance$sigma)[3] > 1)
-            "V" else "E"
-        }
-        d[,i] <- dens(modelName = par$variance$modelName, 
-                      data = eval.points, 
-                      parameters = par)
-      }
-      matplot(eval.points, d, type = "l", 
-              lty = 1, col = colors[seq(nclass)], 
-              xlab = dataNames[dimens], ylab = "Density")
-      for(i in 1:nclass) 
-      { I <- models[[i]]$observations
-        Axis(side = 1, at = data[I,], labels = FALSE, lwd = 0,
-             lwd.ticks = 0.5, col.ticks = colors[i], tck = 0.03) 
-      }
+    if(d == 1)
+    { 
+      mclust1Dplot(data = if(nrow(newdata) == 0) data[,dimens[1],drop=FALSE]
+                          else                   newdata[,dimens[1],drop=FALSE],
+                   what = "classification",
+                   classification = if(nrow(newdata) == 0) trainClass
+                                    else                   newclass,
+                   xlab = if(nrow(newdata) == 0) dataNames[dimens]
+                          else                   newdataNames[dimens], 
+                   ylab = "Classes",
+                   main = NULL, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) 
+                     if(nrow(newdata) == 0) "Training data" else "Test data"
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
-    
+
     scatellipses <- function(data, dimens, nclass, symbols, colors, ...)
     {
       m <- lapply(models, function(m) 
@@ -546,134 +527,215 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
       })
       plot(data[,dimens], type = "n", ...)
       for(l in 1:nclass) 
-         { I <- m[[l]]$observations
-           points(data[I,dimens[1]], data[I,dimens[2]], 
-                  pch = symbols[l], col = colors[l])
-           for(k in 1:(m[[l]]$G))
-              { mvn2plot(mu = m[[l]]$parameters$mean[,k], 
-                         sigma = m[[l]]$parameters$variance$sigma[,,k], 
-                         k = 15) }
-         }
+      { 
+        I <- m[[l]]$observations
+        points(data[I,dimens[1]], data[I,dimens[2]], 
+               pch = symbols[l], col = colors[l])
+        for(g in 1:(m[[l]]$G))
+        { 
+          mvn2plot(mu = m[[l]]$parameters$mean[,g], 
+                   sigma = m[[l]]$parameters$variance$sigma[,,g],
+                   k = 15,
+                   fillEllipse = mclust.options("fillEllipses"),
+                   col = if(mclust.options("fillEllipses")) 
+                           colors[l] else rep("grey30",3))
+        }
+      }
     }
     
-    if(length(dimens) == 2) 
-      { scatellipses(data, dimens, nclass, symbols, colors, ...) }
-    
-    if(length(dimens) > 2)
-      { gap <- 0.2
-        on.exit(par(oldpar))
-        par(mfrow = c(p, p), 
-            mar = rep(c(gap,gap/2),each=2), 
-            oma = c(4, 4, 4, 4))
-        for(i in seq(p))
-           { for(j in seq(p)) 
-                { if(i == j) 
-                    { plot(data[,c(i,j)], type="n",
-                           xlab = "", ylab = "", axes=FALSE)
-                      text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
-                           colnames(data)[i], cex = 1.5, adj = 0.5)
-                      box()
-                    } 
-                  else 
-                    { scatellipses(data, c(j,i), nclass, symbols, colors, 
-                                   xaxt = "n", yaxt = "n") }
-                  if(i == 1 && (!(j%%2))) axis(3)
-                  if(i == p && (j%%2))    axis(1)
-                  if(j == 1 && (!(i%%2))) axis(2)
-                  if(j == p && (i%%2))    axis(4)
-                }
-           }      
+    if(d == 2)
+    { 
+      scatellipses(if(nrow(newdata) == 0) data else newdata, 
+                   dimens = dimens[1:2], 
+                   nclass = nclass, 
+                   symbols = symbols, colors = colors, 
+                   xlab = if(nrow(newdata) == 0) dataNames[dimens[1]]
+                          else                   newdataNames[dimens[1]],
+                   ylab = if(nrow(newdata) == 0) dataNames[dimens[2]]
+                          else                   newdataNames[dimens[2]],
+                   ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) 
+                     if(nrow(newdata) == 0) "Training data" else "Test data"
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
+    }
+    if(d > 2)
+    { 
+      on.exit(par(oldpar))
+      par(mfrow = c(d, d), 
+          mar = rep(0.2/2,4),
+          oma = rep(4,4)+c(0,0,1*(!is.null(main)),0))
+      for(i in seq(d))
+      { 
+        for(j in seq(d)) 
+        { 
+          if(i == j) 
+          { 
+            plot(if(nrow(newdata) == 0) data[,dimens[c(i,j)]] 
+                 else                   newdata[,dimens[c(i,j)]],
+                 type="n", xlab = "", ylab = "", axes=FALSE)
+            text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
+                 labels = if(nrow(newdata) == 0) dataNames[dimens][i]
+                          else                   newdataNames[dimens][i], 
+                 cex = 1.5, adj = 0.5)
+            box()
+          } else 
+          { 
+            scatellipses(if(nrow(newdata) == 0) data else newdata, 
+                         dimens = dimens[c(j,i)], 
+                         nclass = nclass, 
+                         symbols = symbols, colors = colors, 
+                         xaxt = "n", yaxt = "n") 
+          }
+          if(i == 1 && (!(j%%2))) axis(3)
+          if(i == d && (j%%2))    axis(1)
+          if(j == 1 && (!(i%%2))) axis(2)
+          if(j == d && (i%%2))    axis(4)
+        }
       }
-  }        
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) 
+                     if(nrow(newdata) == 0) "Training data" else "Test data"
+                   else NULL, 
+              cex.main = 1.2*oldpar$cex.main, 
+              outer = TRUE, line = 3) 
+    }
+  }      
   
   plot.MclustDA.classification <- function(...)
   { 
-    if(nrow(newdata) == 0 & length(dimens) == 1)
-      { mclust1Dplot(data = data[,dimens], what = "classification",
-                     classification = predClass[1:n], 
-                     colors = colors[1:nclass],
-                     xlab = dataNames[dimens],
-                     main = FALSE)          
-        title("Training data: known classification", cex.main = oldpar$cex.lab)
+    if(nrow(newdata) == 0 && d == 1)
+    { 
+      mclust1Dplot(data = data[,dimens[1],drop=FALSE], 
+                   what = "classification",
+                   classification = predClass[1:n], 
+                   colors = colors[1:nclass],
+                   xlab = dataNames[dimens],
+                   main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Training data classification" 
+              else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) == 0 & length(dimens) == 2)
-      { coordProj(data = data[,dimens], what = "classification",
-                  classification = predClass[1:n], 
-                  main = FALSE, 
-                  colors = colors[1:nclass], 
-                  symbols = symbols[1:nclass])
-        title("Training data: known classification", cex.main = oldpar$cex.lab)
-    }
-    
-    if(nrow(newdata) == 0 & length(dimens) > 2)
-      { clPairs(data[,dimens], 
-                classification = predClass[1:n],
+    if(nrow(newdata) == 0 && d == 2)
+    { 
+      coordProj(data = data[,dimens], what = "classification",
+                classification = predClass[1:n], 
+                main = FALSE, 
                 colors = colors[1:nclass], 
-                symbols = symbols[1:nclass],
-                gap = 0.2, cex.labels = 1.5,
-                main = "Training data: known classification",
-                cex.main = oldpar$cex.lab)
+                symbols = symbols[1:nclass], ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Training data classification" 
+              else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) > 0 & length(dimens) == 1)
-      { mclust1Dplot(data = newdata[,dimens], what = "classification",
-                     classification = predClass[-(1:n)], 
-                     main = FALSE, 
-                     xlab = dataNames[dimens])
-        title("Test data: MclustDA classification", cex.main = oldpar$cex.lab)
+    if(nrow(newdata) == 0 && d > 2)
+    { 
+      clPairs(data[,dimens], 
+              classification = predClass[1:n],
+              colors = colors[1:nclass], 
+              symbols = symbols[1:nclass],
+              cex.labels = 1.5,
+              main = if(!is.null(main)) 
+                        if(is.character(main)) main 
+                        else if(as.logical(main)) "Training data classification" 
+                             else NULL,
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) > 0 & length(dimens) == 2)
-      { coordProj(data = newdata[,dimens], what ="classification",
-                  classification = predClass[-(1:n)], 
-                  main = FALSE, 
-                  colors = colors[1:nclass], 
-                  symbols = symbols[1:nclass])
-        title("Test data: MclustDA classification", cex.main = oldpar$cex.lab)
+    if(nrow(newdata) > 0 && d == 1)
+    { 
+      mclust1Dplot(data = newdata[,dimens], 
+                   what = "classification",
+                   classification = predClass[-(1:n)], 
+                   xlab = newdataNames[dimens],
+                   main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Test data classification" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) > 0 & length(dimens) > 2)
-      { on.exit(par(oldpar))
-        par(oma = c(0,0,10,0))      
-        clPairs(data = newdata[,dimens], 
+    if(nrow(newdata) > 0 && d == 2)
+    { 
+      coordProj(data = newdata[,dimens], what ="classification",
                 classification = predClass[-(1:n)], 
                 colors = colors[1:nclass], 
                 symbols = symbols[1:nclass],
-                gap = 0.2, cex.labels = 1.5, 
-                main = "Test data: MclustDA classification",
-                cex.main = oldpar$cex.lab)
+                main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Test data classification" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
+    }
+    
+    if(nrow(newdata) > 0 & length(dimens) > 2)
+    { 
+      on.exit(par(oldpar))
+      # par(oma = c(0,0,10,0))      
+      clPairs(data = newdata[,dimens], 
+              classification = predClass[-(1:n)], 
+              colors = colors[1:nclass], 
+              symbols = symbols[1:nclass],
+              cex.labels = 1.5, 
+              main = if(!is.null(main))
+                       if(is.character(main)) main 
+                       else if(as.logical(main)) "Test data classification" 
+                            else NULL, 
+              cex.main = oldpar$cex.lab)
     }
   }
 
   plot.MclustDA.traintest <- function(...)
   { 
-    if(length(dimens) == 1)
-    { cl <- c(rep("Train", nrow(data)), 
-              rep("Test", nrow(newdata)))
+    cl <- factor(rep(c("Train","Test"), 
+                     times = c(nrow(data), nrow(newdata))),
+                 levels = c("Train", "Test"))
+
+    if(d == 1)
+    { 
       mclust1Dplot(data = Data[,dimens], what = "classification",
-                   classification = cl, main = FALSE,
-                   xlab = dataNames[dimens],
-                   colors = c("black", "red"))
-      title("Training and Test  data", cex.main = oldpar$cex.lab)
+                   classification = cl,
+                   xlab = dataNames[dimens], ylab = "",
+                   colors = c("grey20", "grey80"),
+                   main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Training and Test data" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(length(dimens) == 2)
-    { cl <- c(rep("1", nrow(data)), 
-              rep("2", nrow(newdata)))
-      coordProj(Data[,dimens], what = "classification",
-                classification = cl, main = FALSE, CEX = 0.8,
-                symbols = c(1,3), colors = c("black", "red"))
-      title("Training (o) and Test (+) data", cex.main = oldpar$cex.lab)
+    if(d == 2)
+    { 
+      coordProj(Data, dimens = dimens[1:2], what = "classification",
+                classification = cl, CEX = 0.8,
+                symbols = c(19,3), colors = c("grey80", "grey20"),
+                main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Training (o) and Test (+) data"
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(length(dimens) > 2)
-    { cl <- c(rep("1", nrow(data)), 
-              rep("2", nrow(newdata)))
+    if(d > 2)
+    { 
       clPairs(Data[,dimens], classification = cl, 
-              symbols = c(1,3), colors = c("black", "red"),
-              gap = 0.2, cex.labels = 1.3, CEX = 0.8,
-              main = "Training (o) and Test (+) data",
+              symbols = c(19,3), colors = c("grey80", "grey20"),
+              main = if(!is.null(main))
+                       if(is.character(main)) main 
+                       else if(as.logical(main)) "Training (o) and Test (+) data"
+                            else NULL,
               cex.main = oldpar$cex.lab)
     }
     
@@ -681,41 +743,137 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
 
   plot.MclustDA.error <- function(...)
   { 
-    if(nrow(newdata) != length(newclass))
-      stop("incompatible newdata and newclass")
-    
-    if(nrow(newdata) == 0 & length(dimens) == 1)
-    { mclust1Dplot(data = data[,dimens], what = "errors", 
+    if(nrow(newdata) == 0 && d == 1)
+    { 
+      mclust1Dplot(data = data[,dimens], what = "error", 
                    classification = predClass[1:n], 
                    truth = trainClass, 
                    xlab = dataNames[dimens],
-                   main = FALSE)
-      title("Train Error", cex.main = oldpar$cex.lab)
+                   main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Training data error" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) == 0 & length(dimens) > 1)
-    { coordProj(data = data[,dimens[1:2]], what = "errors",
+    if(nrow(newdata) == 0 && d == 2)
+    { 
+      coordProj(data = data[,dimens[1:2]], what = "error",
                 classification = predClass[1:n], 
-                truth = trainClass, main = FALSE)
-      title("Train Error", cex.main = oldpar$cex.lab)
+                truth = trainClass, main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Training data error" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) > 0 & length(dimens) == 1)
-    { mclust1Dplot(data = newdata[,dimens], what = "errors", 
+    if(nrow(newdata) == 0 && d > 2)
+    { 
+      on.exit(par(oldpar))
+      par(mfrow = c(d, d), 
+          mar = rep(0.2/2,4),
+          oma = rep(4,4)+c(0,0,1*(!is.null(main)),0))
+      for(i in seq(d))
+      { 
+        for(j in seq(d)) 
+        { 
+          if(i == j) 
+          { 
+            plot(data[,dimens[c(i,j)]], type="n",
+                 xlab = "", ylab = "", axes=FALSE)
+            text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
+                 dataNames[dimens][i], cex = 1.5, adj = 0.5)
+            box()
+          } else 
+          { 
+            coordProj(data = data[,dimens[c(j,i)]], what = "error",
+                      classification = predClass[1:n], 
+                      truth = trainClass, main = FALSE,
+                      xaxt = "n", yaxt = "n")
+          }
+          if(i == 1 && (!(j%%2))) axis(3)
+          if(i == d && (j%%2))    axis(1)
+          if(j == 1 && (!(i%%2))) axis(2)
+          if(j == d && (i%%2))    axis(4)
+        }
+      }    
+      
+      if(!is.null(main))
+        title(if(is.character(main)) main
+              else if(as.logical(main)) "Training data error"
+                   else NULL,
+              cex.main = 1.2*oldpar$cex.main, 
+              outer = TRUE, line = 3)
+    }
+    
+    if(nrow(newdata) > 0 && d == 1)
+    { 
+      mclust1Dplot(data = newdata[,dimens], what = "error", 
                    classification = predClass[-(1:n)], 
                    truth = newclass, 
-                   xlab = dataNames[dimens],
-                   main = FALSE)
-      title("Test Error", cex.main = oldpar$cex.lab)
+                   xlab = newdataNames[dimens],
+                   main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Test data error" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
     
-    if(nrow(newdata) > 0 & length(dimens) > 1)
-    { coordProj(data = newdata[,dimens[1:2]], what = "errors",
+    if(nrow(newdata) > 0 && d == 2)
+    { 
+      coordProj(data = newdata[,dimens[1:2]], what = "error",
                 classification = predClass[-(1:n)], 
-                truth = newclass, main = FALSE)
-      title("Test Error", cex.main = oldpar$cex.lab)
+                truth = newclass, main = FALSE, ...)
+      if(!is.null(main))
+        title(if(is.character(main)) main 
+              else if(as.logical(main)) "Test data error" 
+                   else NULL, 
+              cex.main = oldpar$cex.lab)
     }
-    
+
+    if(nrow(newdata) > 0 && d > 2)
+    { 
+      on.exit(par(oldpar))
+      par(mfrow = c(d, d), 
+          mar = rep(0.2/2,4),
+          oma = rep(4,4)+c(0,0,1*(!is.null(main)),0))
+      for(i in seq(d))
+      { 
+        for(j in seq(d)) 
+        { 
+          if(i == j) 
+          { 
+            plot(newdata[,dimens[c(i,j)]], type="n",
+                 xlab = "", ylab = "", axes=FALSE)
+            text(mean(par("usr")[1:2]), mean(par("usr")[3:4]), 
+                 newdataNames[dimens][i], cex = 1.5, adj = 0.5)
+            box()
+          } else 
+          { 
+            coordProj(data = newdata[,dimens[c(j,i)]], what = "error",
+                      classification = predClass[-(1:n)], 
+                      truth = newclass, main = FALSE,
+                      xaxt = "n", yaxt = "n")
+          }
+          if(i == 1 && (!(j%%2))) axis(3)
+          if(i == d && (j%%2))    axis(1)
+          if(j == 1 && (!(i%%2))) axis(2)
+          if(j == d && (i%%2))    axis(4)
+        }
+      }    
+      
+      if(!is.null(main))
+        title(if(is.character(main)) main
+              else if(as.logical(main)) "Test data error"
+                   else NULL,
+              cex.main = 1.2*oldpar$cex.main, 
+              outer = TRUE, line = 3)
+    }
+
+        
   }
 
   if(interactive() & length(what) > 1)
@@ -743,35 +901,48 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
 }
 
 
-cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...) 
+cvMclustDA <- function(object, nfold = 10, 
+                       metric = c("error", "brier"), 
+                       prop = object$prop,
+                       verbose = interactive(), ...) 
 {
-# nfold-cross validation (CV) prediction error for mclustDA
-# if nfold=n returns leave-one-out CV
-# if nfold=3 returns 2:1 CV error
-  
+
   call <- object$call
+  nfold <- as.numeric(nfold)
+  metric <- match.arg(metric, 
+                      choices = eval(formals(cvMclustDA)$metric), 
+                      several.ok = FALSE)
+  #
   data <- object$data
   class <- as.factor(object$class)
   n <- length(class)
   G <- lapply(object$models, function(mod) mod$G)
   modelName <- lapply(object$models, function(mod) mod$modelName)
   #
-  if(nfold == n) folds <- lapply(1:n, function(x) x)
-  else           folds <- balanced.folds(class, nfolds = nfold)
-  nfold <- length(folds)
+  ce <- function(pred, class)
+  {
+    1 - sum(class == pred, na.rm = TRUE)/length(class)
+  }
   #
-  err <- rep(NA, nfold)
+  folds <- if(nfold == n) lapply(1:n, function(x) x)
+           else           balanced.folds(class, nfolds = nfold)
+  nfold <- length(folds)
+  folds.size <- sapply(folds, length)
+  #
+  cvmetric <- rep(NA, nfold)
   cvclass <- factor(rep(NA, n), levels = levels(class))
-  cvprob  <- matrix(as.double(NA), nrow = n, ncol = nlevels(class))
+  cvprob  <- matrix(as.double(NA), nrow = n, ncol = nlevels(class),
+                    dimnames = list(NULL, levels(class)))
   
   if(verbose)
-    { cat("cross-validating ...\n")
-      flush.console()
-      pbar <- txtProgressBar(min = 0, max = nfold, style = 3)
-      on.exit(close(pbar))
+  { 
+    cat("cross-validating ...\n")
+    flush.console()
+    pbar <- txtProgressBar(min = 0, max = nfold, style = 3)
+    on.exit(close(pbar))
   }
   
-  for(i in 1:nfold)
+  for(i in seq(nfold))
   { 
     x <- data[-folds[[i]],,drop=FALSE]
     y <- class[-folds[[i]]]
@@ -781,26 +952,30 @@ cvMclustDA <- function(object, nfold = 10, verbose = interactive(), ...)
     call$modelNames <- modelName
     call$verbose <- FALSE
     mod <- eval(call, parent.frame())
-    modTest <- predict(mod, data[folds[[i]],,drop=FALSE])
-    classTest <- modTest$classification
-    cvclass[folds[[i]]] <- classTest
-    cvprob[folds[[i]],] <- modTest$z
-    err[i] <- length(classTest) - sum(classTest == class[folds[[i]]], na.rm = TRUE)
+    #
+    predTest <- predict(mod, data[folds[[i]],,drop=FALSE], prop = prop)
+    cvmetric[i] <- if(metric == "error") 
+                     ce(predTest$classification, class[folds[[i]]])
+                   else 
+                     BrierScore(predTest$z, class[folds[[i]]])
+    cvclass[folds[[i]]] <- predTest$classification
+    cvprob[folds[[i]],] <- predTest$z
+    #
     if(verbose) 
       setTxtProgressBar(pbar, i)
   }
   #    
-  cv.error <- sum(err)/n
-  folds.size <- sapply(folds,length)
-  err <- err/folds.size
-  se <- sqrt(var(err)/nfold)
+  cv <- sum(cvmetric*folds.size)/sum(folds.size)
+  se <- sqrt(var(cvmetric)/nfold)
   #
   out <- list(classification = cvclass, 
-              z = cvprob, 
-              error = cv.error, 
+              z = cvprob,
+              error = if(metric == "error") cv else NA,
+              brier = if(metric == "brier") cv else NA,
               se = se)
   return(out)
 }
+
 
 balanced.folds <- function(y, nfolds = min(min(table(y)), 10)) 
 { 
@@ -935,9 +1110,33 @@ cv.MclustDA <- function(...)
   cvMclustDA(...)
 }
 
-"[.mclustDAtest" <- function (x, i, j, drop = FALSE) 
+# "[.mclustDAtest" <- function (x, i, j, drop = FALSE) 
+# {
+#   clx <- oldClass(x)
+#   oldClass(x) <- NULL
+#   NextMethod("[")
+# }
+
+classPriorProbs <- function(object, newdata = object$data, 
+                            itmax = 1e3, eps = sqrt(.Machine$double.eps))
 {
-  clx <- oldClass(x)
-  oldClass(x) <- NULL
-  NextMethod("[")
+
+  if(!inherits(object, "MclustDA")) 
+    stop("object not of class \"MclustDA\"")
+
+  z <- predict(object, newdata = newdata)$z
+  prop <- object$prop
+  p <- colMeans(z)
+  p0 <- p+1
+  it <- 0
+  while(max(abs(p-p0)/abs(p)) > eps & it < itmax)
+  {
+    it <- it+1
+    p0 <- p
+    # z_upd <- t(apply(z, 1, function(z) { z <- z*p/prop; z/sum(z) }))
+    z_upd <- sweep(z, 2, FUN = "*", STATS = p/prop)
+    z_upd <- sweep(z_upd, MARGIN = 1, FUN = "/", STATS = rowSums(z_upd))
+    p <- colMeans(z_upd)
+  }
+  return(p)
 }

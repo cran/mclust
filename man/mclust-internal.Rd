@@ -23,10 +23,10 @@
 \alias{mvdnorm}
 \alias{ellipse}
 \alias{eigen.decomp}
-\alias{dmvnorm}
 \alias{getParameters.MclustDA}
 \alias{as.Mclust}
 \alias{as.Mclust.default}
+\alias{as.Mclust.densityMclust}
 \alias{as.densityMclust}
 \alias{as.densityMclust.default}
 \alias{as.densityMclust.Mclust}

@@ -1,7 +1,7 @@
 \name{defaultPrior}
 \alias{defaultPrior}
 \title{
-  Default conjugate prior for Gaussian mixtures.
+  Default conjugate prior for Gaussian mixtures
 }
 \description{
    Default conjugate prior specification for Gaussian mixtures.

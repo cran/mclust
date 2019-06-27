@@ -10,8 +10,9 @@
 \usage{
 coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
           classification = NULL, truth = NULL, uncertainty = NULL, 
-          what = c("classification", "errors", "uncertainty"),
-          addEllipses = TRUE, symbols = NULL, colors = NULL, scale = FALSE, 
+          what = c("classification", "error", "uncertainty"),
+          addEllipses = TRUE, fillEllipses = mclust.options("fillEllipses"),
+          symbols = NULL, colors = NULL, scale = FALSE, 
           xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", main = FALSE, \dots)
 }
 \arguments{
@@ -46,36 +47,40 @@ coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
      }
   }
  \item{z}{
-	A matrix in which the \code{[i,k]}th entry gives the
-	probability of observation \emph{i} belonging to the \emph{k}th class. 
-	Used to compute \code{classification} and
-	\code{uncertainty} if those arguments aren't available.
+  A matrix in which the \code{[i,k]}th entry gives the
+  probability of observation \emph{i} belonging to the \emph{k}th class. 
+  Used to compute \code{classification} and
+  \code{uncertainty} if those arguments aren't available.
   }
   \item{classification}{
-	A numeric or character vector representing a classification of
-	observations (rows) of \code{data}. If present argument \code{z}
+  A numeric or character vector representing a classification of
+  observations (rows) of \code{data}. If present argument \code{z}
         will be ignored.
   }
   \item{truth}{
-	A numeric or character vector giving a known
-	classification of each data point.
-	If \code{classification}
-	or \code{z} is also present, 
-	this is used for displaying classification errors.
+  A numeric or character vector giving a known
+  classification of each data point.
+  If \code{classification}
+  or \code{z} is also present, 
+  this is used for displaying classification errors.
   }
   \item{uncertainty}{
         A numeric vector of values in \emph{(0,1)} giving the
-	uncertainty of each data point. If present argument \code{z}
+  uncertainty of each data point. If present argument \code{z}
         will be ignored.
   }
   \item{what}{
     Choose from one of the following three options: \code{"classification"}
-    (default), \code{"errors"}, \code{"uncertainty"}. 
+    (default), \code{"error"}, \code{"uncertainty"}. 
   }
   \item{addEllipses}{
-    A logical indicating whether or not to add ellipses with axes corresponding 
-    to the within-cluster covariances in case of \code{"classification"} or
-    \code{"uncertainty"} plots. 
+    A logical indicating whether or not to add ellipses with axes 
+    corresponding to the within-cluster covariances in case of 
+    \code{"classification"} or \code{"uncertainty"} plots. 
+  }
+  \item{fillEllipses}{
+    A logical specifying whether or not to fill ellipses with transparent
+    colors when \code{addEllipses = TRUE}.
   }
   \item{symbols}{
     Either an integer or character vector assigning a plotting symbol to each
@@ -133,7 +138,7 @@ par(pty = "s", mfrow = c(1,1))
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
           what = "classification", main = TRUE) 
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
-          truth = iris[,5], what = "errors", main = TRUE) 
+          truth = iris[,5], what = "error", main = TRUE) 
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,
           what = "uncertainty", main = TRUE) 
 }

@@ -11,20 +11,20 @@ entPlot(z, combiM, abc = c("standard", "normalized"), reg = 2, ...)
 }
 \arguments{
   \item{z}{
-	A matrix whose \code{[i,k]}th entry is the probability that observation \emph{i} in the data belongs to the \emph{k}th class, for the initial solution (ie before any combining). Typically, the one returned by \code{Mclust}/BIC.
-	}
+  A matrix whose \code{[i,k]}th entry is the probability that observation \emph{i} in the data belongs to the \emph{k}th class, for the initial solution (ie before any combining). Typically, the one returned by \code{Mclust}/BIC.
+  }
   \item{combiM}{
-	A list of "combining matrices" (as provided by \code{clustCombi}), ie \code{combiM[[K]]} is the matrix whose \emph{k}th row contains only zeros, but in columns corresponding to the labels of the classes in the \emph{(K+1)}-classes solution to be merged to get the \emph{K}-classes combined solution. \code{combiM} must contain matrices from \code{K} = number of classes in \code{z} to one.
-	}
+  A list of "combining matrices" (as provided by \code{clustCombi}), ie \code{combiM[[K]]} is the matrix whose \emph{k}th row contains only zeros, but in columns corresponding to the labels of the classes in the \emph{(K+1)}-classes solution to be merged to get the \emph{K}-classes combined solution. \code{combiM} must contain matrices from \code{K} = number of classes in \code{z} to one.
+  }
   \item{abc}{
-	Choose one or more of: "standard", "normalized", to specify whether the number of observations involved in each combining step should be taken into account to scale the plots or not.
-	}
+  Choose one or more of: "standard", "normalized", to specify whether the number of observations involved in each combining step should be taken into account to scale the plots or not.
+  }
   \item{reg}{
-	The number of parts of the piecewise linear regression for the entropy plots. Choose one or more of: 2 (for 1 change-point), 3 (for 2 change-points).
-	}
+  The number of parts of the piecewise linear regression for the entropy plots. Choose one or more of: 2 (for 1 change-point), 3 (for 2 change-points).
+  }
   \item{\dots}{
-	Other graphical arguments to be passed to the plot functions.
-	}
+  Other graphical arguments to be passed to the plot functions.
+  }
 }
 \details{
 Please see the article cited in the references for more details. A clear elbow in the "entropy plot" should suggest the user to consider the corresponding number(s) of class(es).

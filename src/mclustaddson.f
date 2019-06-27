@@ -475,7 +475,7 @@
 ************************************************************************
 * ======================================================================
       subroutine msvee (x,z, n,p,G, mu,U,C,scale,pro, lwork,info,
-     *                  itmax,tol, niterin,errin, eps)
+     *                  itmax,tol, niterin,errin)
 *       Maximization step for model VEE
 * ======================================================================
 
@@ -490,10 +490,10 @@
       double precision :: scale(G)
       
       double precision :: sumz(G)
-      integer :: i, j, k, info, lwork, dummy, l
-          
+      integer :: i, j, k, info, lwork, l
+*     integer :: dummy          
       double precision :: temp1(p), temp2(p,p), temp3 
-      double precision :: wrk(lwork), tol, errin, trgt, trgtprev, eps
+      double precision :: wrk(lwork), tol, errin, trgt, trgtprev
       integer :: itmax, niterin
     
       double precision :: FLMAX
@@ -738,7 +738,8 @@
       
       double precision :: temp1(p), temp2(p,p), temp3, temp4(p)
       
-      integer :: i, j, k, info, lwork, dummy, l
+      integer :: i, j, k, info, lwork, l
+*			integer :: dummy
       integer :: itmaxin, itmaxout, niterin, niterout
       double precision :: tolin, tolout, errin, errout, eps, rteps
       double precision :: const, logdet, loglik, lkprev, wrk(lwork)

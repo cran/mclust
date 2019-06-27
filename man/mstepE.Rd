@@ -16,9 +16,8 @@
 \alias{mstepVEE}
 \alias{mstepVVE}
 
-\title{
-  M-step for a parameterized Gaussian mixture model.
-}
+\title{M-step for a parameterized Gaussian mixture model}
+
 \description{
   Maximization step in the EM algorithm for a parameterized Gaussian
   mixture model.

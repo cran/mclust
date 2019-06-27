@@ -20,9 +20,8 @@
 \alias{emXXI}
 \alias{emXXX}
 
-\title{
-  EM algorithm starting with E-step for a parameterized Gaussian mixture model.
-}
+\title{EM algorithm starting with E-step for a parameterized Gaussian mixture model}
+
 \description{
   Implements the EM algorithm for a parameterized Gaussian mixture model,
   starting with the expectation step.

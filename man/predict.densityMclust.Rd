@@ -6,7 +6,7 @@
 \description{Compute density estimation for multivariate observations based on Gaussian finite mixture models estimated by \code{\link{densityMclust}}.}
 
 \usage{
-  \method{predict}{densityMclust}(object, newdata, what = c("dens", "cdens"), logarithm = FALSE, \dots)
+  \method{predict}{densityMclust}(object, newdata, what = c("dens", "cdens", "z"), logarithm = FALSE, \dots)
 }
 
 \arguments{
@@ -15,7 +15,7 @@
 
   \item{newdata}{a vector, a data frame or matrix giving the data. If missing the density is computed for the input data obtained from the call to \code{\link{densityMclust}}.}
 
-  \item{what}{a character string specifying what to retrieve: \code{"dens"} returns a vector of values for the mixture density: \code{"cdens"} returns a matrix of component densities for each mixture component (along the columns).}
+  \item{what}{a character string specifying what to retrieve: \code{"dens"} returns a vector of values for the mixture density; \code{"cdens"} returns a matrix of component densities for each mixture component (along the columns); \code{"z"} returns a matrix of conditional probabilities of each data point to belong to a mixture component.}
   
   \item{logarithm}{A logical value indicating whether or not the logarithm of the density or component densities should be returned.}
 

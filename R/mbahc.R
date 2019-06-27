@@ -1,6 +1,8 @@
-#############################################################################
-## Initialization for d-dim data ############################################
-#############################################################################
+##
+## Model-based Agglomerative Hierarchical Clustering (MBAHC)
+##
+
+# MBAHC used for EM initialization for d-dim data ----
 
 hc <- function(data, 
                modelName = mclust.options("hcModelName"), 
@@ -62,6 +64,7 @@ hc <- function(data,
   out <- eval(mc, parent.frame())
   attr(out, "use") <- use
   attr(out, "call") <- match.call()
+  attr(out, "data") <- mc$data
   class(out) <- "hc"
   return(out)
 }
@@ -75,13 +78,13 @@ print.hc <- function(x, ...)
     catwrap(paste0(deparse(attr(x, "call"))))
     cat("\n")
   }
-  catwrap("Model-Based Agglomerative Hierarchical Clustering:")
+  catwrap("Model-Based Agglomerative Hierarchical Clustering")
   if(!is.null(attr(x, "modelName")))
-    catwrap(paste("Model name =", attr(x, "modelName")))
+    cat(paste("Model name        =", attr(x, "modelName"), "\n"))
   if(!is.null(attr(x, "use")))
-    catwrap(paste("Use =", attr(x, "use")))
+    cat(paste("Use               =", attr(x, "use"), "\n"))
   if(!is.null(attr(x, "dimensions")))
-    catwrap(paste("Number of objects =", attr(x, "dimensions")[1]))
+    cat(paste("Number of objects =", attr(x, "dimensions")[1], "\n"))
   invisible(x)
 }
 
@@ -361,20 +364,170 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
             call = match.call())
 }
 
-## Initialization for 1-dim data ############################################
+##
+## Dendrogram for model-based hierarchical agglomeration ----
+##
 
-# This version is bugged when a quantile is equal to the following
-# qclass <- function (x, k)
-# {
-#   q <- quantile(x, seq(from = 0, to = 1, by = 1/k))
-#   cl <- rep(0, length(x))
-#   q[1] <- q[1] - 1
-#   for(i in 1:k)
-#     cl[x > q[i] & x <= q[i+1]] <- i
-#   return(cl)
-# }
+as.hclust.hc <- function(x, ...)
+{
+# Convert 'hc' objects to class 'hclust'
+  stopifnot(inherits(x, "hc"))
+  data <- as.matrix(attr(x, "data"))
+  labels <- rownames(data)
+  # convert a 'hc' hierarchical clustering structure to 'hclust' structure
+  HC <- matrix(as.vector(x), ncol(x), nrow(x), byrow = TRUE)
+  HCm <- matrix(NA, nrow(HC), ncol(HC))
+  merged <- list(as.vector(HC[1,]))
+  HCm[1,] <- -HC[1,]
+  for(i in 2:nrow(HC))
+     { lmerged <- lapply(merged, function(m) HC[i,] %in% m)
+       lm <- which(sapply(lmerged, function(lm) any(lm)))
+       if(length(lm) == 0)
+         { merged <- append(merged, list(HC[i,]))
+           HCm[i,] <- sort(-HC[i,]) }
+       else if(length(lm) == 1)
+              { merged <- append(merged, list(c(merged[[lm]], HC[i,!lmerged[[lm]]])))
+                merged[[lm]] <- list()
+                HCm[i,] <- sort(c(-HC[i,!lmerged[[lm]]], lm)) }
+       else   { merged <- append(merged, list(unlist(merged[lm])))
+                merged[[lm[1]]] <- merged[[lm[2]]] <- list()
+                HCm[i,] <- lm }
+  }
+  # compute heights
+  height <- attr(x, "deviance")
+  if(is.null(height)) 
+    height <- hcCriterion(x, ...)
+  # create 'hclust' object
+  obj <- structure(list(merge = HCm, 
+                        height = rev(height), 
+                        order = merged[[length(merged)]],
+                        labels = labels, 
+                        method = attr(x, "model"), 
+                        dist.method = NULL,
+                        call = attr(x, "call")),
+                   class = "hclust")
+  return(obj)
+}  
+  
 
-# This should correct the above bug
+as.dendrogram.hc <- function(object, ...)
+{
+# Convert 'hc' objects to class 'dendrogram'
+  stopifnot(inherits(object, "hc"))
+  as.dendrogram(as.hclust(object))
+}  
+  
+
+plot.hc <- function(x, ...)
+{
+  stopifnot(inherits(x, "hc"))
+  # dots <- list(...)
+  # if(is.null(dots$hang)) dots$hang <- -1
+  # if(is.null(dots$sub))  dots$sub <- NA
+  dendro <- as.dendrogram(x)
+  # do.call("plot", c(list(hcl), dots))
+  plot(dendro)
+  invisible(dendro)
+}
+
+# Auxiliary functions ----
+
+hcCriterion <- function(hcPairs, Gmax, what = c("deviance", "loglik"), ...)
+{
+  stopifnot(inherits(hcPairs, "hc"))
+  hcPairsName <- deparse(substitute(hcPairs))
+  what <- match.arg(what, choices = eval(formals(hcCriterion)$what))
+  data <- as.matrix(attr(hcPairs, "data"))
+  N <- nrow(data)
+  p <- ncol(data)
+  model <- attr(hcPairs, "model")
+  m <- ifelse(missing(Gmax), ncol(hcPairs), as.integer(Gmax))
+  hc <- hclass(hcPairs, seq_len(m))
+  Wdata <- var(data)*(N-1)
+  trWnp <- tr(Wdata)/(N*p)
+  # detS <- det(Wdata/N)
+  loglik <- rep(as.double(NA), length = m)
+  # loglik[1] <- mvn(model, data)$loglik
+
+  switch(model, 
+         "EII" =
+         { for(k in 1:m)
+              { n <- tabulate(hc[,k], k)
+                # mu <- by(data, as.factor(hc[,k]), FUN = colMeans, 
+                #          simplify = FALSE)
+                W <- WSS(data, hc[,k])
+                sigmasq <- sum(apply(W, 3, tr), na.rm=TRUE)/(N*p)
+                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
+                             -0.5*sum(n*log(sigmasq^p + apply(W, 3, tr)/n + trWnp))
+           }
+          },
+         "VII" =
+         { for(k in 1:m)
+              { n <- tabulate(hc[,k], k)
+                W <- WSS(data, hc[,k])
+                sigmasq <- apply(W, 3, tr)/(n*p)
+                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
+                             -0.5*sum(n*log(sigmasq^p + apply(W, 3, tr)/n + trWnp))
+           }
+         },
+         "EEE" = 
+         { for(k in 1:m)
+              { n <- tabulate(hc[,k], k)
+                W <- WSS(data, hc[,k])
+                Sigma <- apply(W, 1:2, sum)/N
+                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
+                             -0.5*sum(n*log(det(Sigma) + apply(W, 3, tr)/n + trWnp))
+           }
+         },
+         "VVV" = 
+         { for(k in 1:m)
+              { n <- tabulate(hc[,k], k)
+                W <- WSS(data, hc[,k])
+                Sigma <- sapply(1:k, function(k) W[,,k]/n[k], simplify = "array")
+                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
+                             -0.5*sum(n*log(apply(Sigma, 3, det) + 
+                                            apply(W, 3, tr)/n + trWnp))
+           }
+          }
+  )              
+  deviance <- -2*(loglik - max(loglik, na.rm = TRUE))
+  # attr(hcPairs, "loglik") <- loglik
+  # attr(hcPairs, "deviance") <- deviance
+  # assign(hcPairsName, hcPairs, envir = parent.frame())
+  out <- switch(what, 
+                "deviance" = deviance,
+                "loglik" = loglik,
+                NULL)
+  return(out)
+}
+
+WSS <- function(X, group, ...)
+{
+  X <- as.matrix(X)
+  Z <- unmap(as.vector(group))
+  n <- nrow(X)
+  p <- ncol(X)
+  G <- ncol(Z)
+  tmp <- .Fortran("covwf",
+                  X = as.double(X),
+                  Z = as.double(Z),
+                  n = as.integer(n),
+                  p = as.integer(p),
+                  G = as.integer(G),
+                  mean = double(p * G), 
+                  S = double(p * p * G), 
+                  W = double(p * p * G) )
+  array(tmp$W, c(p,p,G))
+}
+
+tr <- function(x) 
+{
+  sum(diag(as.matrix(x)))
+}
+
+
+## Initialization for 1-dim data ----
+
 qclass <- function (x, k) 
 {
   x <- as.vector(x)

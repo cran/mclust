@@ -1,7 +1,7 @@
 \name{covw}
 \alias{covw}
 
-\title{Weighted means, covariance and scattering matrices conditioning on a weighted matrix.}
+\title{Weighted means, covariance and scattering matrices conditioning on a weighted matrix}
 
 \description{
 Compute efficiently (via Fortran code) the means, covariance and scattering matrices conditioning on a weighted or indicator matrix

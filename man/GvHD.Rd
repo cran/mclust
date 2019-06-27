@@ -10,7 +10,7 @@ GvHD (Graft-versus-Host Disease) data of Brinkman et al. (2007). Two samples of 
 
 A treatment of this data by combining mixtures is proposed in Baudry et al. (2010).
 }
-\usage{data(GvHD)}	
+\usage{data(GvHD)}  
 \format{
   GvHD.pos (positive patient) is a data frame with 9083 observations on the following 4 variables, which are biomarker measurements.
   \describe{

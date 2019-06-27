@@ -324,9 +324,9 @@ combiTree <- function(object, type = c("triangle", "rectangle"),
   merge <- matrix(NA, G-1, 2)
   for(k in 1:(G-1))
   {
-    Kp = G - k + 1
-    l1 = which(!combiM[[Kp-1]] %*% rep(1,Kp) == 1)
-    l2 = (combiM[[Kp-1]] %*% curr)[l1] - curr[l1]
+    Kp <- G - k + 1
+    l1 <- which(!combiM[[Kp-1]] %*% rep(1,Kp) == 1)
+    l2 <- (combiM[[Kp-1]] %*% curr)[l1] - curr[l1]
     curr <- setdiff(curr, max(l1, l2))
     merge[k,] <- merged[c(l1,l2)]
     merged[merged == merged[l1] | merged == merged[l2]] <- k

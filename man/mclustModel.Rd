@@ -84,7 +84,7 @@ mclustModel(data, BICvalues, G, modelNames, \dots)
               specification. See the help file for \code{\link{mclustVariance}}
               for details.
             }
-	\item{\code{Vinv}}{
+  \item{\code{Vinv}}{
               The estimate of the reciprocal hypervolume of the data region
               used in the computation when the input indicates the
               addition of a noise component to the model.

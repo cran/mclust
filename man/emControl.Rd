@@ -1,8 +1,8 @@
 \name{emControl}
 \alias{emControl}
-\title{
-  Set control values for use with the EM algorithm.
-}
+
+\title{Set control values for use with the EM algorithm}
+
 \description{
   Supplies a list of values including tolerances for singularity and
   convergence assessment, for use functions involving EM within \emph{MCLUST}.

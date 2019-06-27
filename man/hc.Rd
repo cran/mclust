@@ -1,18 +1,29 @@
 \name{hc}
 \alias{hc}
 \alias{print.hc}
+\alias{plot.hc}
+\alias{as.dendrogram.hc}
+\alias{as.hclust.hc}
 
-\title{Model-based Hierarchical Clustering}
+\title{Model-based Agglomerative Hierarchical Clustering}
 
 \description{
   Agglomerative hierarchical clustering based on maximum likelihood criteria 
   for Gaussian mixture models parameterized by eigenvalue decomposition.
 }
+
 \usage{
 hc(data,
    modelName = mclust.options("hcModelName"),  
    use = mclust.options("hcUse"), \dots)
+
+\method{plot}{hc}(x, \dots)
+
+\method{as.dendrogram}{hc}(object, \dots)
+
+\method{as.hclust}{hc}(x, \dots)
 }
+
 \arguments{
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
@@ -45,12 +56,28 @@ hc(data,
     Arguments for the method-specific \code{hc} functions. See for example
     \code{\link{hcE}}.
   }
+  \item{object, x}{
+    An object of class \code{'hc'} resulting from a call to \code{hc()}.
+  }
+
 }
 \value{
-  A numeric two-column matrix in which the \emph{i}th row gives the 
-  minimum index for observations in each of the two clusters merged at the
-  \emph{i}th stage of agglomerative hierarchical clustering.
+  The function \code{hc()} returns a numeric two-column matrix in which 
+  the \emph{i}th row gives the minimum index for observations in each of 
+  the two clusters merged at the \emph{i}th stage of agglomerative 
+  hierarchical clustering. Several other informations are also returned
+  as attributes.
+  
+  The plotting function \code{plot.hc()} draws a dendrogram by first
+  converting the input object from class \code{'hc'} to class 
+  \code{'dendrogram'} and then plot the transformed object using 
+  \code{\link{plot.dendrogram}}.
+  
+  The functions \code{as.dendrogram.hc()} and \code{as.hclust.hc()} are
+  used to convert the input object from class \code{'hc'} to class, 
+  respectively, \code{'dendrogram'} and \code{'hclust'}.
 }
+
 \details{
   Most models have memory usage of the order of the square of the
   number groups in the initial partition for fast execution.
@@ -59,6 +86,7 @@ hc(data,
   hierarchical clustering paradigm. 
   These use less memory but are much slower to execute.
 }
+
 \note{
   If \code{modelName = "E"} (univariate with equal variances) or
   \code{modelName = "EII"} (multivariate with equal spherical

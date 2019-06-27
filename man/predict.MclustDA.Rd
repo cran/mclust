@@ -6,7 +6,7 @@
 \description{Classify multivariate observations based on Gaussian finite mixture models estimated by \code{\link{MclustDA}}.}
 
 \usage{
-  \method{predict}{MclustDA}(object, newdata, prior, \dots)
+  \method{predict}{MclustDA}(object, newdata, prop = object$prop, \dots)
 }
 
 \arguments{
@@ -15,8 +15,7 @@
 
   \item{newdata}{a data frame or matrix giving the data. If missing the train data obtained from the call to \code{\link{MclustDA}} are classified.}
 
-  \item{prior}{the prior probabilities of the classes; by default, this is set
-   at the proportions in the training data.}
+  \item{prop}{the class proportions or prior class probabilities to belong to each class; by default, this is set at the class proportions in the training data.}
 
   \item{\dots}{further arguments passed to or from other methods.}
 }

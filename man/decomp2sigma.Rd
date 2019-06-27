@@ -1,7 +1,7 @@
 \name{decomp2sigma}
 \alias{decomp2sigma}
 \title{
-  Convert mixture component covariances to matrix form.
+  Convert mixture component covariances to matrix form
 }
 \description{
   Converts covariances from a parameterization by  eigenvalue decomposition 

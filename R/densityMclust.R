@@ -10,7 +10,9 @@ densityMclust <- function(data, ...)
   return(obj)
 }
 
-predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), logarithm = FALSE, ...)
+predict.densityMclust <- function(object, newdata, 
+	                                what = c("dens", "cdens", "z"), 
+																	logarithm = FALSE, ...)
 {
   if(!inherits(object, "densityMclust")) 
     stop("object not of class \"densityMclust\"")
@@ -19,25 +21,46 @@ predict.densityMclust <- function(object, newdata, what = c("dens", "cdens"), lo
   newdata <- as.matrix(newdata)
   if(ncol(object$data) != ncol(newdata))
     { stop("newdata must match ncol of object data") }
+  what <- match.arg(what, choices = eval(formals(predict.densityMclust)$what))	
+  pro <- object$parameters$pro; pro <- pro/sum(pro)
+  noise <- (!is.na(object$hypvol))
+  cl <- c(seq(object$G), if(noise) 0)
 
-  what <- match.arg(what)
-  if(what == "dens")
-  { 
-    d <- dens(modelName = object$modelName, 
-              data = newdata, 
-              parameters = object$parameters,
-              logarithm = logarithm) 
-  } else
-  { 
-    d <- cdens(modelName = object$modelName, 
-               data = newdata, 
-               parameters = object$parameters,
-               logarithm = logarithm)
-      dim <- dim(d)
-      attributes(d) <- NULL 
-      d <- array(d, dim)
-  }
-  return(d)
+  switch(what,
+         "dens" = 
+				 {  
+					 out <- dens(modelName = object$modelName, 
+                       data = newdata, 
+                       parameters = object$parameters,
+                       logarithm = logarithm) 
+         },
+				 "cdens" =
+         {
+					 z <- cdens(modelName = object$modelName, 
+					            data = newdata, 
+					            parameters = object$parameters,
+					            logarithm = TRUE)
+					 z <- if(noise) cbind(z, log(object$parameters$Vinv))
+                else      cbind(z) # drop redundant attributes
+           colnames(z) <- cl
+           out <- if(!logarithm) exp(z) else z
+         },
+				 "z" = 
+				 {
+					 z <- cdens(modelName = object$modelName, 
+                      data = newdata, 
+                      parameters = object$parameters,
+                      logarithm = TRUE)
+					 z <- if(noise) cbind(z, log(object$parameters$Vinv))
+                else      cbind(z) # drop redundant attributes
+           z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(pro))
+           z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
+           colnames(z) <- cl
+           out <- if(!logarithm) exp(z) else z
+         }
+	)
+	
+  return(out)
 }
 
 plot.densityMclust <- function(x, data = NULL, what = c("BIC", "density", "diagnostic"), ...) 
@@ -217,8 +240,8 @@ plotDensityMclustd <- function(x, data = NULL,
   
   nc <- object$d
   oldpar <- par(mfrow = c(nc, nc), 
-                mar = rep(c(gap,gap/2),each=2), 
-                oma = c(4, 4, 4, 4),
+                mar = rep(gap/2,4), 
+                oma = rep(3, 4),
                 no.readonly = TRUE)
   on.exit(par(oldpar))
 

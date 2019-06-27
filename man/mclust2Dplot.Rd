@@ -1,8 +1,8 @@
 \name{mclust2Dplot}
 \alias{mclust2Dplot}
-\title{
-  Plot two-dimensional data modelled by an MVN mixture.
-}
+
+\title{Plot two-dimensional data modelled by an MVN mixture}
+
 \description{
   Plot two-dimensional data given parameters of an MVN mixture model 
   for the data.
@@ -10,8 +10,9 @@
 \usage{
 mclust2Dplot(data, parameters = NULL, z = NULL,
              classification = NULL, truth = NULL, uncertainty = NULL,
-             what = c("classification","uncertainty","errors"), 
-             addEllipses = TRUE, symbols = NULL, colors = NULL, 
+             what = c("classification", "uncertainty", "error"), 
+             addEllipses = TRUE, fillEllipses = mclust.options("fillEllipses"),
+             symbols = NULL, colors = NULL, 
              xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
              scale = FALSE, CEX  = 1, PCH = ".",
              main = FALSE, swapAxes = FALSE, \dots) 
@@ -73,11 +74,15 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
   }
   \item{what}{
     Choose from one of the following three options: \code{"classification"}
-    (default), \code{"errors"}, \code{"uncertainty"}. 
+    (default), \code{"error"}, \code{"uncertainty"}. 
   }
   \item{addEllipses}{
-    A logical indicating whether or not to add ellipses with axes corresponding 
-    to the within-cluster covariances.
+    A logical indicating whether or not to add ellipses with axes 
+    corresponding to the within-cluster covariances.
+  }
+  \item{fillEllipses}{
+    A logical specifying whether or not to fill ellipses with transparent
+    colors when \code{addEllipses = TRUE}.
   }
   \item{symbols}{
     Either an integer or character vector assigning a plotting symbol to each

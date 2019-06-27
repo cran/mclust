@@ -2,7 +2,7 @@
 \alias{summary.MclustDA}
 \alias{print.summary.MclustDA}
 
-\title{Summarizing discriminant analysis based on Gaussian finite mixture modeling.}
+\title{Summarizing discriminant analysis based on Gaussian finite mixture modeling}
 
 \description{Summary method for class \code{"MclustDA"}.}
 

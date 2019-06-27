@@ -20,9 +20,8 @@
 \alias{meXXI}
 \alias{meXXX}
 
-\title{
-  EM algorithm starting with M-step for a parameterized Gaussian mixture model.
-}
+\title{EM algorithm starting with M-step for a parameterized Gaussian mixture model}
+
 \description{
   Implements the EM algorithm for a parameterized Gaussian mixture model,
   starting with the maximization step.

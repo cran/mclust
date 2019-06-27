@@ -1,8 +1,8 @@
 \name{em}
 \alias{em}
-\title{
-  EM algorithm starting with E-step for parameterized Gaussian mixture models.
-}
+
+\title{EM algorithm starting with E-step for parameterized Gaussian mixture models}
+
 \description{
   Implements the EM algorithm for parameterized Gaussian mixture models,
   starting with the expectation step.

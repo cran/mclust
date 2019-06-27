@@ -15,7 +15,7 @@ clustCombiOptim(object, reg = 2, plot = FALSE, \dots)
   An object of class \code{'clustCombi'} resulting from a call to \code{\link{clustCombi}}.
 }
   \item{reg}{
-	The number of parts of the piecewise linear regression for the entropy plots. 
+  The number of parts of the piecewise linear regression for the entropy plots. 
   Choose 2 for a two-segment piecewise linear regression model (i.e. 1 change-point), and 3 for a three-segment piecewise linear regression model (i.e. 3 change-points).
 }
   \item{plot}{

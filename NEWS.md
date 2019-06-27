@@ -1,3 +1,15 @@
+# mclust 5.4.4  (NOT ON CRAN)
+
+- Add `classPriorProbs()` to estimate prior class probabilities.
+- Add `BrierScore()` to compute the Brier score for assessing the accuracy of probabilistic predictions.
+- Add `randomOrthogonalMatrix()` to generate random orthogonal basis matrices.
+- Rewrite of `plot.MclustDA()` internals.
+- Add `dmvnorm()` for computing the density of a general multivariate Gaussian distribution via efficient Fortran code.
+- Add Wisconsin diagnostic breast cancer (WDBC) data.
+- Add EuroUnemployment data.
+- Fixed mismatches in Fortran calls.
+- Bugs fix.
+
 # mclust 5.4.3
 
 - Added website site and update DESCRIPTION with URL.

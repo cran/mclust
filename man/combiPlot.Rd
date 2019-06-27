@@ -11,16 +11,16 @@ combiPlot(data, z, combiM, \dots)
 }
 \arguments{
   \item{data}{
-	The data.
+  The data.
 }
   \item{z}{
-	A matrix whose [i,k]th entry is the probability that observation i in the data belongs to the kth class, for the initial solution (ie before any combining). Typically, the one returned by \code{Mclust}/BIC.
+  A matrix whose [i,k]th entry is the probability that observation i in the data belongs to the kth class, for the initial solution (ie before any combining). Typically, the one returned by \code{Mclust}/BIC.
 }
   \item{combiM}{
-	A "combining matrix" (as provided by \code{\link{clustCombi}}), ie a matrix whose kth row contains only zeros, but in columns corresponding to the labels of the classes in the initial solution to be merged together to get the combined solution.
+  A "combining matrix" (as provided by \code{\link{clustCombi}}), ie a matrix whose kth row contains only zeros, but in columns corresponding to the labels of the classes in the initial solution to be merged together to get the combined solution.
 }
   \item{\dots}{
-	Other arguments to be passed to the \code{\link{Mclust}} plot functions.
+  Other arguments to be passed to the \code{\link{Mclust}} plot functions.
 }
 }
 \value{

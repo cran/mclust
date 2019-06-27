@@ -48,15 +48,19 @@ export(decomp2sigma, sigma2decomp)
 
 export(imputeData, imputePairs, matchCluster, majorityVote)
 
-export(mapClass, classError, adjustedRandIndex)
+export(mapClass, classError, adjustedRandIndex, BrierScore)
 
 export(mclust1Dplot, mclust2Dplot, mvn2plot, surfacePlot, uncerPlot)
-export(clPairs, clPairsLegend, coordProj, randProj)
+export(clPairs, clPairsLegend, coordProj, randProj,
+       randomOrthogonalMatrix)
 
 export(priorControl, defaultPrior, hypvol)
 
-export(hc, print.hc)
+export(hc, print.hc, plot.hc, as.hclust.hc, as.dendrogram.hc)
 S3method("print", "hc")
+S3method("plot", "hc")
+S3method("as.hclust", "hc")
+S3method("as.dendrogram", "hc")
 export(hcE, hcEEE, hcEII, hcV, hcVII, hcVVV)
 export(hclass, randomPairs)
 
@@ -85,7 +89,7 @@ S3method("predict", "densityMclust")
 
 export(MclustDA, print.MclustDA, summary.MclustDA, print.summary.MclustDA,
        plot.MclustDA, predict.MclustDA, cvMclustDA, getParameters.MclustDA,
-       logLik.MclustDA)
+       logLik.MclustDA, classPriorProbs)
 S3method("print", "MclustDA")
 S3method("summary", "MclustDA")
 S3method("print", "summary.MclustDA")
@@ -109,7 +113,7 @@ export(MclustDRsubsel,
 S3method("print", "MclustDRsubsel")
 S3method("summary", "MclustDRsubsel")
 
-export(me.weighted, covw, hdrlevels)
+export(me.weighted, covw, hdrlevels, dmvnorm)
 
 export(icl, mclustICL, print.mclustICL, 
        summary.mclustICL, print.summary.mclustICL, 
@@ -133,10 +137,10 @@ S3method("summary", "MclustBootstrap")
 S3method("print", "summary.MclustBootstrap")
 S3method("plot", "MclustBootstrap")
 
-export(as.Mclust, as.Mclust.default)
+export(as.Mclust, as.Mclust.default, as.Mclust.densityMclust)
 S3method("as.Mclust", "default")
-export(as.densityMclust, as.densityMclust.default,
-       as.densityMclust.Mclust)
+S3method("as.Mclust", "densityMclust")
+export(as.densityMclust, as.densityMclust.default, as.densityMclust.Mclust)
 S3method("as.densityMclust", "default")
 S3method("as.densityMclust", "Mclust")
 

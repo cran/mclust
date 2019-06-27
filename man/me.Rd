@@ -1,8 +1,8 @@
 \name{me}
 \alias{me}
-\title{
-  EM algorithm starting with M-step for parameterized MVN mixture models.
-}
+
+\title{EM algorithm starting with M-step for parameterized MVN mixture models}
+
 \description{
   Implements the EM algorithm for MVN mixture models parameterized by
   eignevalue decomposition, starting with the maximization step.

@@ -12,7 +12,7 @@ Graphs data projected onto the estimated subspace for model-based clustering and
      what = c("scatterplot", "pairs", "contour", "classification",
               "boundaries", "density", "evalues"), 
      symbols, colors, col.contour = gray(0.7), col.sep = grey(0.4), 
-     ngrid = 100, nlevels = 5, asp = NULL, \dots)
+     ngrid = 200, nlevels = 5, asp = NULL, \dots)
 }
 
 \arguments{
@@ -87,6 +87,7 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 \seealso{\link{MclustDR}}
 
 \examples{
+\dontrun{
 mod <- Mclust(iris[,1:4], G = 3)
 dr <- MclustDR(mod)
 plot(dr, what = "evalues")
@@ -110,5 +111,5 @@ plot(dr, what = "boundaries", ngrid = 200)
 plot(dr, what = "density")
 plot(dr, what = "density", dimens = 2)
 }
-
+}
 \keyword{multivariate}

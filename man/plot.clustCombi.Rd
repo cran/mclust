@@ -11,13 +11,13 @@ Plot combined clusterings results: classifications corresponding to \code{Mclust
 }
 \arguments{
   \item{x}{
-	Object returned by \code{\link{clustCombi}} function.
+  Object returned by \code{\link{clustCombi}} function.
 }
   \item{what}{
-	Type of plot.
+  Type of plot.
 }
   \item{\dots}{
-	Other arguments to be passed to other functions: \code{\link{combiPlot}}, \code{\link{entPlot}}, \code{\link{combiTree}}. Please see the corresponding documentations.
+  Other arguments to be passed to other functions: \code{\link{combiPlot}}, \code{\link{entPlot}}, \code{\link{combiTree}}. Please see the corresponding documentations.
 }
 }
 \value{

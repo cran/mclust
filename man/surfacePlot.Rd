@@ -9,14 +9,16 @@ a MVN mixture model for the data.
 }
 \usage{
 surfacePlot(data, parameters, 
-            type = c("contour", "hdr", "image", "persp"), 
             what = c("density", "uncertainty"), 
+            type = c("contour", "hdr", "image", "persp"), 
             transformation = c("none", "log", "sqrt"),          
-            grid = 100, nlevels = 11, levels = NULL, 
+            grid = 200, nlevels = 11, levels = NULL, 
             prob = c(0.25, 0.5, 0.75),
-            color.palette = blue2grey.colors, col = grey(0.6),
+            col = gray(0.7),
+            col.palette = function(...) hcl.colors(..., "blues", rev = TRUE),
+            hdr.palette = blue2grey.colors,
             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
-            scale = FALSE, main = FALSE, swapAxes = FALSE, 
+            main = FALSE, scale = FALSE, swapAxes = FALSE, 
             verbose = FALSE, \dots)
 }
 \arguments{
@@ -44,14 +46,14 @@ surfacePlot(data, parameters,
         }
      }
   }
+  \item{what}{
+    Choose from one of the following options: \code{"density"}
+    (default), \code{"uncertainty"} indicating what to plot. 
+  }
   \item{type}{
     Choose from one of the following three options: \code{"contour"} 
     (default), \code{"hdr"}, \code{"image"}, and \code{"persp"} indicating 
     the plot type. 
-  }
-  \item{what}{
-    Choose from one of the following options: \code{"density"}
-    (default), \code{"uncertainty"} indicating what to plot. 
   }
   \item{transformation}{
     Choose from one of the following three options: \code{"none"}
@@ -76,12 +78,17 @@ surfacePlot(data, parameters,
     Only used if \code{type = "hdr"} and supersede previous 
     \code{nlevels} and \code{levels} arguments.
   }
-  \item{color.palette}{
-    A function which defines a palette of colours to be used for 
-    \code{type = "hdr"} plot. 
-  }
   \item{col}{
-    The color to be used for drawing contour lines.
+    A string specifying the colour to be used for \code{type = "contour"} 
+    and \code{type = "persp"} plots.
+  }
+  \item{col.palette}{
+    A function which defines a palette of colours to be used for 
+    \code{type = "image"} plots. 
+  }
+  \item{hdr.palette}{
+    A function which defines a palette of colours to be used for 
+    \code{type = "hdr"} plots. 
   }
   \item{xlim, ylim}{
     Optional argument specifying bounds for the ordinate, abscissa of the plot.
@@ -90,15 +97,15 @@ surfacePlot(data, parameters,
   \item{xlab, ylab}{
     Optional argument specifying labels for the x-axis and y-axis.
   }
+  \item{main}{
+    A logical variable or \code{NULL} indicating whether or not to add a title 
+    to the plot identifying the dimensions used.
+  }
   \item{scale}{
     A logical variable indicating whether or not the two
     dimensions should be plotted on the same scale, and
     thus preserve the shape of the distribution.
     The default is not to scale.
-  }
-  \item{main}{
-    A logical variable or \code{NULL} indicating whether or not to add a title 
-    to the plot identifying the dimensions used.
   }
   \item{swapAxes}{
     A logical variable indicating whether or not the axes should be swapped

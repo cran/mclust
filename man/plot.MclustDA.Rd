@@ -1,16 +1,16 @@
 \name{plot.MclustDA}
 \alias{plot.MclustDA}
 
-\title{
-  Plotting method for MclustDA discriminant analysis
-}
+\title{Plotting method for MclustDA discriminant analysis}
+
 \description{
-Graphical tools for training and test data, known training data classification, mclustDA test data classification, and/or training errors.
+Plots for model-based mixture discriminant analysis results, such as scatterplot of training and test data, classification of train and test data, and errors.
 }
 
 \usage{
 \method{plot}{MclustDA}(x, what = c("scatterplot", "classification", "train&test", "error"), 
-     newdata, newclass, dimens, symbols, colors, \dots)
+     newdata, newclass, dimens = NULL, 
+     symbols, colors, main = NULL, \dots)
 }
 
 \arguments{
@@ -19,13 +19,14 @@ Graphical tools for training and test data, known training data classification, 
   }
 
  \item{what}{
-    The type of graph requested: 
+    A string specifying the type of graph requested. Available choices are:
     \describe{
-      \item{\code{"scatterplot"} =}{a plot of training data with points marked based the known classification. Ellipses corresponding to covariances of mixture components are also drawn.}
-      \item{\code{"classification"} =}{a plot of data with points marked based the predicted classification; if \code{newdata} is provided then the test set is shown otherwise the training set.}
+      \item{\code{"scatterplot"} =}{a plot of training data with points marked based on the known classification. Ellipses corresponding to covariances of mixture components are also drawn.}
+      \item{\code{"classification"} =}{a plot of data with points marked on based the predicted classification; if \code{newdata} is provided then the test set is shown otherwise the training set.}
       \item{\code{"train&test"} =}{a plot of training and test data with points marked according to the type of set.}
       \item{\code{"error"} =}{a plot of training set (or test set if \code{newdata} and \code{newclass} are provided) with misclassified points marked.}
    }
+   If not specified, in interactive sessions a menu of choices is proposed.
   }
 
   \item{newdata}{
@@ -59,6 +60,13 @@ Graphical tools for training and test data, known training data classification, 
     The default is given by \code{mclust.options("classPlotColors")}.
   }
 
+  \item{main}{
+    A logical, a character string, or \code{NULL} (default) for the main title. 
+    If \code{NULL} or \code{FALSE} no title is added to a plot. 
+    If \code{TRUE} a default title is added identifying the type of plot drawn.
+    If a character string is provided, this is used for the title.
+  }
+  
   \item{\dots}{further arguments passed to or from other methods.}
 }
 

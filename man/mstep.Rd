@@ -1,8 +1,8 @@
 \name{mstep}
 \alias{mstep}
-\title{
-  M-step for parameterized Gaussian mixture models.
-}
+
+\title{M-step for parameterized Gaussian mixture models}
+
 \description{
   Maximization step in the EM algorithm for parameterized Gaussian
   mixture models.

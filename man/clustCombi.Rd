@@ -15,13 +15,13 @@ clustCombi(object = NULL, data = NULL, \dots)
 }
 \arguments{
   \item{object}{
-		An object returned by \code{\link{Mclust}} giving the optimal (according to BIC) parameters, conditional probabilities, and log-likelihood, together with the associated classification and its uncertainty. If not provided, the \code{data} argument must be specified.
-	}
+    An object returned by \code{\link{Mclust}} giving the optimal (according to BIC) parameters, conditional probabilities, and log-likelihood, together with the associated classification and its uncertainty. If not provided, the \code{data} argument must be specified.
+  }
   \item{data}{
-		A numeric vector, matrix, or data frame of observations. Categorical variables are not allowed. If a matrix or data frame, rows correspond to observations and columns correspond to variables. If the \code{object} argument is not provided, the function \code{\link{Mclust}} is applied to the given \code{data} to fit a mixture model.}
+    A numeric vector, matrix, or data frame of observations. Categorical variables are not allowed. If a matrix or data frame, rows correspond to observations and columns correspond to variables. If the \code{object} argument is not provided, the function \code{\link{Mclust}} is applied to the given \code{data} to fit a mixture model.}
   \item{\dots}{
-		Optional arguments to be passed to called functions. Notably, any argument (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm, ...) to be passed to \code{\link{Mclust}} in case \code{object = NULL}. Please see the \code{\link{Mclust}} documentation for more details.
-	}
+    Optional arguments to be passed to called functions. Notably, any argument (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm, ...) to be passed to \code{\link{Mclust}} in case \code{object = NULL}. Please see the \code{\link{Mclust}} documentation for more details.
+  }
 }
 \details{
 Mclust provides a Gaussian mixture fitted to the data by maximum likelihood through the EM algorithm, for the model and number of components selected according to BIC. The corresponding components are hierarchically combined according to an entropy criterion, following the methodology described in the article cited in the references section. The solutions with numbers of classes between the one selected by BIC and one are returned as a \code{clustCombi} class object.

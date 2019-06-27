@@ -10,6 +10,7 @@ FIXME: Check these declarations against the C/Fortran source code.
 */
 
 /* .Fortran calls */
+extern void F77_NAME(dmvnorm)(void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(covwf)(void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(crossprodf)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(d2norm)(void *, void *, void *, void *);
@@ -104,6 +105,7 @@ extern void F77_NAME(shapeo)(void *, void *, void *, void *, void *, void *, voi
 extern void F77_NAME(uncholf)(void *, void *, void *, void *, void *);
 
 static const R_FortranMethodDef FortranEntries[] = {
+    {"dmvnorm",    (DL_FUNC) &F77_NAME(dmvnorm),     8},
     {"covwf",      (DL_FUNC) &F77_NAME(covwf),       8},
     {"crossprodf", (DL_FUNC) &F77_NAME(crossprodf),  6},
     {"d2norm",     (DL_FUNC) &F77_NAME(d2norm),      4},

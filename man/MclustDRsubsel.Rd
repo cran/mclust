@@ -8,7 +8,7 @@
 \alias{print.MclustDRsubsel}
 \alias{summary.MclustDRsubsel}
 
-\title{Subset selection for GMMDR directions based on BIC.}
+\title{Subset selection for GMMDR directions based on BIC}
 
 \description{
 Implements a subset selection method for selecting the relevant directions spanning the dimension reduction subspace for visualizing the clustering or classification structure obtained from a finite mixture of Gaussian densities.}
@@ -91,7 +91,7 @@ summary(dr)
 plot(dr)
 drs <- MclustDRsubsel(dr)
 summary(drs)
-table(class, drs$class)
+table(class, drs$classification)
 plot(drs, what = "scatterplot")
 plot(drs, what = "pairs")
 plot(drs, what = "contour")

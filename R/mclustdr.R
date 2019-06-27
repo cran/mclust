@@ -9,14 +9,12 @@
 
 # GMMDR dimension reduction -----------------------------------------------
 
-MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(.Machine$double.eps))
+MclustDR <- function(object, lambda = 0.5,
+                     normalized = TRUE, Sigma, 
+                     tol = sqrt(.Machine$double.eps))
 {
-  #  Dimension reduction for model-based clustering and classification
-  #
-  # object = a object of class '"Mclust' 
-  # data = the data used to produce object.
-  # normalized = normalize direction coefs to have unit norm
-  
+#  Dimension reduction for model-based clustering and classification
+
   call <- match.call()
   if(!any(class(object) %in% c("Mclust", "MclustDA")))
     stop("object must be of class 'Mclust' or 'MclustDA'")
@@ -61,8 +59,10 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
     class <- factor(class, levels = names(object$models))
     y <- rep(NA, length(class))
     for(i in 1:nlevels(class))
-    { y[class == levels(class)[i]] <- paste(levels(class)[i], 
-                                            object$models[[i]]$classification, sep =":") }
+    { 
+      y[class == levels(class)[i]] <- paste(levels(class)[i], 
+                                            object$models[[i]]$classification, sep =":") 
+    }
     y <- as.numeric(factor(y))
     cl2mc <- rep(seq(length(object$models)), 
                  sapply(object$models, function(m) m$G))
@@ -132,7 +132,8 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   #
   out = list(call = call, type = type,
              x = x, Sigma = Sigma, 
-             class = class, mixcomp = y, class2mixcomp = cl2mc,
+             classification = class, mixcomp = y, 
+             class2mixcomp = cl2mc,
              G = G, modelName = modelName,
              mu = mu.G, sigma = Sigma.G, pro = f,
              M = M, M.I = M.I, M.II = M.II, 
@@ -144,28 +145,32 @@ MclustDR <- function(object, normalized = TRUE, Sigma, lambda = 0.5, tol = sqrt(
   return(out)
 }
 
-print.MclustDR <- function(x, ...) 
+print.MclustDR <- function(x, digits = getOption("digits"), ...)
 {
-  cat("\'", class(x)[1], "\' model object:\n", sep = "")
-  str(x, max.level = 1, give.attr = FALSE, strict.width = "wrap")
-  invisible()
+  txt <- paste0("\'", class(x)[1], "\' model object: ")
+  catwrap(txt)
+  cat("\n")
+  catwrap("\nAvailable components:\n")
+  print(names(x))
+  # str(x, max.level = 1, give.attr = FALSE, strict.width = "wrap")
+  invisible(x)
 }
-
+  
 summary.MclustDR <- function(object, numdir, std = FALSE, ...)
 {
   if(missing(numdir)) numdir <- object$numdir
   dim <- seq(numdir)
   
   if(object$type == "Mclust")
-  { n <- as.vector(table(object$class))
+  { n <- as.vector(table(object$classification))
     G <- object$G }
   else
-  { n <- as.vector(table(object$class))
+  { n <- as.vector(table(object$classification))
     G <- as.vector(table(object$class2mixcomp)) }
   
   obj <- list(type = object$type, 
               modelName = object$modelName, 
-              classes = levels(object$class),
+              classes = levels(object$classification),
               n = n, G = G, 
               basis = object$basis[,seq(dim),drop=FALSE],
               std = std, std.basis = object$std.basis[,seq(dim),drop=FALSE],
@@ -271,7 +276,7 @@ predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points
   
   n <- nrow(dir)
   G <- object$G # num. components
-  nclass <- nlevels(object$class) # num. classes
+  nclass <- nlevels(object$classification) # num. classes
   par <- projpar.MclustDR(object, dim)
   Mu <- par$mean
   Sigma <- par$variance
@@ -299,7 +304,7 @@ predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points
 
   class <- factor(apply(z,1,which.max), 
                   levels = 1:nclass, 
-                  labels = levels(object$class))
+                  labels = levels(object$classification))
   
   out <- list(dir = dir,
               density = exp(logden),
@@ -333,7 +338,15 @@ predict2D.MclustDR <- function(object, dim = 1:2, ngrid = 100, xlim, ylim)
   return(out)
 }
 
-plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour", "classification", "boundaries", "density", "evalues"), symbols, colors, col.contour = gray(0.7), col.sep = grey(0.4), ngrid = 100, nlevels = 5, asp = NULL, ...)
+plot.MclustDR <- function(x, dimens, 
+                          what = c("scatterplot", "pairs", "contour", 
+                                   "classification", "boundaries", "density", "evalues"), 
+                          symbols, colors, 
+                          col.contour = gray(0.7), 
+                          col.sep = grey(0.4), 
+                          ngrid = 200, 
+                          nlevels = 5, 
+                          asp = NULL, ...)
 { 
   object <- x
   x <- object$x
@@ -341,7 +354,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
   n <- nrow(x)
   G <- object$G
   y <- object$mixcomp
-  class <- as.numeric(object$class)
+  class <- as.numeric(object$classification)
   nclass <- length(table(class))
   dir <- object$dir
   numdir <- object$numdir
@@ -433,7 +446,8 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
             pars = list(boxwex = 0.6, staplewex = 0.8, medlwd = 2,
                         whisklty = 3, outlty = 1, outpch = NA),
             ylim = range(q,dir), yaxt = "n", xlab = colnames(dir))
-    axis(2, at = 1:nclass, labels = levels(object$class), tick = FALSE, cex = 0.8, las = 2)
+    axis(2, at = 1:nclass, labels = levels(object$classification), 
+         tick = FALSE, cex = 0.8, las = 2)
   }
   
   plot.MclustDR.contour <- function(...)
@@ -467,16 +481,10 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
                                xlim = niceRange(dir[,1]), 
                                ylim = niceRange(dir[,2]))
     pred$classification <- apply(pred$z, 1:2, which.max)
-    #
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:G], alpha.f = 0.1),
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
           xaxs = "i", yaxs = "i", asp = asp)
-    # for(j in 1:G)         
-    #    { z <- ifelse(pred$classification == j, 1, -1)
-    #      contour(pred$x, pred$y, z, col = col.sep,
-    #              add = TRUE, levels = 0, drawlabels = FALSE) 
-    # }
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
@@ -488,16 +496,10 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
                                xlim = niceRange(dir[,1]), 
                                ylim = niceRange(dir[,2]))
     pred$classification <- apply(pred$z, 1:2, which.max)
-    #
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:nclass], alpha.f = 0.1),
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
           xaxs = "i", yaxs = "i", asp = asp)
-    # for(j in 1:nclass)
-    #    { z <- ifelse(pred$classification == j, 1, -1)
-    #      contour(pred$x, pred$y, z, col = col.sep,
-    #              add = TRUE, levels = 0, drawlabels = FALSE) 
-    # }
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
@@ -507,7 +509,7 @@ plot.MclustDR <- function(x, dimens, what = c("scatterplot", "pairs", "contour",
     pred <- predict2D.MclustDR(object, dimens, ngrid,
                                xlim = niceRange(dir[,1]), 
                                ylim = niceRange(dir[,2]))
-    image(pred$x, pred$y, pred$uncertainty, 
+    image(pred$x, pred$y, pred$uncertainty,
           col = rev(gray.colors(10, start = 0, end = 1)),
           breaks = seq(0, 1-1/nclass, length = 11),
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
@@ -901,7 +903,7 @@ MclustDRsubsel_classif <- function(object,
                                  verbose = if(verbose > 1) TRUE else FALSE)
     if(verbose > 0) { cat("\n"); print(out$tab) }
     mod <- do.call("MclustDA", list(data = dir[,out$subset,drop=FALSE], 
-                                    class = object$class,
+                                    class = object$classification,
                                     G = G, 
                                     modelNames = if(length(out$subset) > 1) modelNames
                                                  else if(any(grep("V", modelNames))) 
@@ -958,7 +960,7 @@ MclustDRCsubsel1cycle <- function(object,
             { # Select simplest model with smallest num. of components 
               # within bic.cutoff
               mod <- MclustDA(dir[,sort(c(inc, j)),drop=FALSE], 
-                              class = object$class,
+                              class = object$classification,
                               G = G, 
                               modelNames = if(length(inc)>0) modelNames else model1D,
                               modelType = object$type,

@@ -10,10 +10,11 @@
 \usage{
 mclust1Dplot(data, parameters = NULL, z = NULL, 
              classification = NULL, truth = NULL, uncertainty = NULL, 
-             what = c("classification", "density", "errors", "uncertainty"),
+             what = c("classification", "density", "error", "uncertainty"),
              symbols = NULL, colors = NULL, ngrid = length(data), 
-             xlab = NULL, xlim = NULL, CEX = 1, 
-             main = FALSE, \dots)
+             xlab = NULL, ylab = NULL, 
+             xlim = NULL, ylim = NULL,
+             CEX = 1, main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -58,8 +59,7 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
   \item{truth}{
         A numeric or character vector giving a known
         classification of each data point.
-        If \code{classification}
-        or \code{z} is also present,
+        If \code{classification} or \code{z} is also present,
         this is used for displaying classification errors.
   }
   \item{uncertainty}{
@@ -68,8 +68,8 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
         will be ignored.
   }
   \item{what}{
-    Choose from one of the following three options: \code{"classification"}
-    (default), \code{"density"}, \code{"errors"}, \code{"uncertainty"}.
+    Choose from one of the following options: \code{"classification"}
+    (default), \code{"density"}, \code{"error"}, \code{"uncertainty"}.
   }
   \item{symbols}{
     Either an integer or character vector assigning a plotting symbol to
@@ -91,10 +91,10 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
     Number of grid points to use for density computation over the interval
     spanned by the data. The default is the length of the data set.
   }
-  \item{xlab}{
-    An argument specifying a label for the horizontal axis.
+  \item{xlab, ylab}{
+    An argument specifying a label for the axes.
   }
-  \item{xlim}{
+  \item{xlim, ylim}{
     An argument specifying bounds of the plot.
     This may be useful for when comparing plots.
   }
@@ -129,16 +129,16 @@ yclass <- c(rep(1,n), rep(2,n), rep(3,n))
 yModel <- Mclust(y)
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
-             what = "classification", main = TRUE)
+             what = "classification")
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
-             truth = yclass, what = "errors", main = TRUE)
+             what = "error", truth = yclass)
 
 mclust1Dplot(y, parameters = yModel$parameters, z = yModel$z, 
-             what = "density", main = TRUE)
+             what = "density")
 
 mclust1Dplot(y, z = yModel$z, parameters = yModel$parameters,
-            what = "uncertainty", main = TRUE)
+            what = "uncertainty")
 
 }
 }

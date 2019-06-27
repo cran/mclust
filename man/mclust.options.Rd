@@ -65,6 +65,12 @@ Available options are:
     If data sample size exceeds this value, a random sample is drawn of size
     specified by \code{subset}.
   }
+  \item{\code{fillEllipses}}{
+    A logical value specifying whether or not to fill with transparent
+    colors ellipses corresponding to the within-cluster covariances in case
+    of \code{"classification"} plot for \code{'Mclust'} objects, or
+    \code{"scatterplot"} graphs for \code{'MclustDA'} objects. 
+  }
   \item{\code{bicPlotSymbols}}{
     A vector whose entries correspond to graphics symbols for plotting the 
     BIC values output from \code{\link{Mclust}} and \code{\link{mclustBIC}}. 

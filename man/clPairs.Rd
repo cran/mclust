@@ -10,8 +10,9 @@ Observations in different classes are represented by different colors and symbol
 }
 
 \usage{
-clPairs(data, classification, symbols, colors, labels = dimnames(data)[[2]], 
-        CEX = 1, gap = 0.2, \dots)
+clPairs(data, classification, symbols, colors, 
+        labels = dimnames(data)[[2]], cex.labels = 1.5, 
+        gap = 0.2, \dots)
 
 clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
 }
@@ -41,12 +42,11 @@ clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
     The default is given by \code{mclust.options("classPlotColors")}.
   }
   \item{labels}{
-    A vector of character strings for labeling the variables. The default
+    A vector of character strings for labelling the variables. The default
     is to use the column dimension names of \code{data}.
   }
-  \item{CEX}{
-    An argument specifying the size of the plotting symbols. 
-    The default value is 1.
+  \item{cex.labels}{
+    An argument specifying the size of the text labels.
   }
   \item{gap}{
     An argument specifying the distance between subplots (see \code{\link{pairs}}).

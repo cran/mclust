@@ -9,6 +9,7 @@
   hcModelName = "VVV",
   hcUse = "SVD",
   subset = 2000,
+  fillEllipses = FALSE,
   bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1,
                                15, 5, 8, 9,
                                12, 7, 14, 0,

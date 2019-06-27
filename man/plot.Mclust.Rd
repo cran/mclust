@@ -1,11 +1,10 @@
 \name{plot.Mclust}
 \alias{plot.Mclust}
-\title{
-  Plot Model-Based Clustering Results
-}
+
+\title{Plotting method for Mclust model-based clustering}
+
 \description{
-  Plot model-based clustering results: BIC, classification, uncertainty and 
-  (for univariate and bivariate data) density.
+Plots for model-based clustering results, such as BIC, classification, uncertainty and density.
 }
 \usage{
 \method{plot}{Mclust}(x, what = c("BIC", "classification", "uncertainty", "density"), 
@@ -17,19 +16,19 @@
     Output from \code{Mclust}.
   }
  \item{what}{
-    The type of graph requested:
+    A string specifying the type of graph requested. Available choices are:
     \describe{
-      \item{\code{"BIC"}}{}
-      \item{\code{"classification"}}{}
-      \item{\code{"uncertainty"}}{}
-      \item{\code{"density"}}{}
+      \item{\code{"BIC"}}{plot of BIC values used for choosing the number of clusters.}
+      \item{\code{"classification"} =}{a plot showing the clustering. For data in more than two dimensions a pairs plot is produced, followed by a coordinate projection plot using specified \code{dimens}. Ellipses corresponding to covariances of mixture components are also drawn if \code{addEllipses = TRUE}.}
+      \item{\code{"uncertainty"}}{a plot of classification uncertainty. For data in more than two dimensions a coordinate projection plot is drawn using specified \code{dimens}.}
+      \item{\code{"density"}}{a plot of estimated density. For data in more than two dimensions a matrix of contours for coordinate projection plot is drawn using specified \code{dimens}.}
     }
-    By default, all the above graphs are produced. See the description below.
+    If not specified, in interactive sessions a menu of choices is proposed.
   }
 \item{dimens}{
-    A vector of length one or two giving the integer dimensions of the
-    desired coordinate projections for multivariate data in case of
-    \code{"classification"} or \code{"uncertainty"} plots. 
+    A vector of integers specifying the dimensions of the coordinate projections
+    in case of \code{"classification"}, \code{"uncertainty"}, or \code{"density"}
+    plots. 
   }
  \item{xlab, ylab}{
     Optional labels for the x-axis and the y-axis.
@@ -38,9 +37,9 @@
     Optional limits for the vertical axis of the BIC plot.
   }
  \item{addEllipses}{
-    A logical indicating whether or not to add ellipses with axes corresponding 
-    to the within-cluster covariances in case of \code{"classification"} or
-    \code{"uncertainty"} plots. 
+    A logical indicating whether or not to add ellipses with axes 
+    corresponding to the within-cluster covariances in case of 
+    \code{"classification"} or \code{"uncertainty"} plots. 
   }
  \item{main}{
     A logical or \code{NULL} indicating whether or not to add a title 
@@ -49,22 +48,6 @@
   \item{\dots}{
     Other graphics parameters.
   }
-}
-\value{
-  Model-based clustering plots: 
-  \describe{
-  \item{\code{"BIC"} =}{BIC values used for choosing the number of clusters.}
-  \item{\code{"classification"} =}{a plot showing the clustering. For data
-      in more than two dimensions a pairs plot is produced, followed by a
-      coordinate projection plot using specified \code{dimens}.} 
-  \item{\code{"uncertainty"} =}{a plot of classification uncertainty. For
-      data in more than two dimensions a coordinate projection plot is 
-      drawn using specified \code{dimens}.}
-  \item{\code{"density"} =}{a plot of estimated density. For two
-      dimensional a contour plot is drawn, while for data in more than 
-      two dimensions a matrix of contours for pairs of variables is 
-      produced.}
-    }
 }
 \details{
  For more flexibility in plotting, use \code{mclust1Dplot}, 
@@ -82,6 +65,7 @@
   \code{\link{randProj}}.
 }
 \examples{
+\dontrun{
 precipMclust <- Mclust(precip)
 plot(precipMclust)
 
@@ -91,5 +75,5 @@ plot(faithfulMclust)
 irisMclust <- Mclust(iris[,-5])
 plot(irisMclust)
 }
+}
 \keyword{cluster}
-% docclass is function

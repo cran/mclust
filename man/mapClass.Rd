@@ -1,8 +1,8 @@
 \name{mapClass}
 \alias{mapClass}
-\title{
-  Correspondence between classifications.
-}
+
+\title{Correspondence between classifications}
+
 \description{
   Best correspondence between classes given two vectors viewed
   as alternative classifications of the same object.

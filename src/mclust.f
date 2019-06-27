@@ -1,10 +1,11 @@
 C modified to avoid printing for calls from Fortran within R
-      double precision function dgamma (x)
+      double precision function dgam (x)
 c jan 1984 edition.  w. fullerton, c3, los alamos scientific lab.
 c jan 1994 wpp@ips.id.ethz.ch, ehg@research.att.com   declare xsml
+c jun 2019 renamed function from dgamma to avoid warning with intrinsic
+c          function already named dgamma
       double precision x, gamcs(42), dxrel, pi, sinpiy, sq2pil, xmax,
-     1  xmin, y, d9lgmc, dcsevl, d1mach, dexp, dint, dlog,
-     2  dsin, dsqrt, xsml
+     1  xmin, y, d9lgmc, dcsevl, d1mach, xsml
 C     external d1mach, d9lgmc, dcsevl, dexp, dint, dlog, dsin, dsqrt,
 C    1  initds
       external d1mach, d9lgmc, dcsevl
@@ -80,7 +81,7 @@ c
       if (x.lt.0.d0) n = n - 1
       y = x - dble(float(n))
       n = n - 1
-      dgamma = 0.9375d0 + dcsevl (2.d0*y-1.d0, gamcs, ngam)
+      dgam = 0.9375d0 + dcsevl (2.d0*y-1.d0, gamcs, ngam)
       if (n.eq.0) return
 c
       if (n.gt.0) go to 30
@@ -88,64 +89,58 @@ c
 c compute gamma(x) for x .lt. 1.0
 c
       n = -n
-C     if (x.eq.0.d0) call seteru (14hdgamma  x is 0, 14, 4, 2)
-      if (x.eq.0.d0) dgamma = d1mach(2)
-      if (x.eq.0.d0) return
-C     if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) call seteru (
-C    1  31hdgamma  x is a negative integer, 31, 4, 2)
-      if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) 
-     1  dgamma = -d1mach(2)
-      if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) return
-C     if (x.lt.(-0.5d0) .and. dabs((x-dint(x-0.5d0))/x).lt.dxrel) call
-C    1  seteru (68hdgamma  answer lt half precision because x too near n
-C    2egative integer, 68, 1, 1)
-C     if (y.lt.xsml) call seteru (
-C    1  54hdgamma  x is so close to 0.0 that the result overflows,
-C    2  54, 5, 2)
-      if (y.lt.xsml) dgamma = d1mach(2)
-      if (y.lt.xsml) return
+      if (x.eq.0.d0) then
+        dgam = d1mach(2)
+        return
+      endif
+
+      if (x.lt.0.0d0 .and. x+dble(float(n-2)).eq.0.d0) then
+        dgam = -d1mach(2)
+        return
+      endif
+      
+      if (y.lt.xsml) then
+        dgam = d1mach(2)
+        return
+      endif
 c
       do 20 i=1,n
-        dgamma = dgamma/(x+dble(float(i-1)) )
+        dgam = dgam/(x+dble(float(i-1)) )
  20   continue
       return
 c
 c gamma(x) for x .ge. 2.0 and x .le. 10.0
 c
  30   do 40 i=1,n
-        dgamma = (y+dble(float(i))) * dgamma
+        dgam = (y+dble(float(i))) * dgam
  40   continue
       return
 c
 c gamma(x) for dabs(x) .gt. 10.0.  recall y = dabs(x).
 c
-C50   if (x.gt.xmax) call seteru (32hdgamma  x so big gamma overflows,
-C    1  32, 3, 2)
- 50   if (x.gt.xmax) dgamma = d1mach(2)
-      if (x.gt.xmax) return
+ 50   if (x.gt.xmax) then
+        dgam = d1mach(2)
+        return
+      endif
 c
-      dgamma = 0.d0
-C     if (x.lt.xmin) call seteru (35hdgamma  x so small gamma underflows
-C    1  , 35, 2, 0)
+      dgam = 0.d0
       if (x.lt.xmin) return
 c
-      dgamma = exp ((y-0.5d0)*log(y) - y + sq2pil + d9lgmc(y) )
+      dgam = exp ((y-0.5d0)*log(y) - y + sq2pil + d9lgmc(y) )
       if (x.gt.0.d0) return
 c
-C     if (dabs((x-dint(x-0.5d0))/x).lt.dxrel) call seteru (
-C    1  61hdgamma  answer lt half precision, x too near negative integer
-C    2  , 61, 1, 1)
-c
       sinpiy = sin (pi*y)
-C     if (sinpiy.eq.0.d0) call seteru (
-C    1  31hdgamma  x is a negative integer, 31, 4, 2)
-      if (sinpiy.eq.0.d0) dgamma = -d1mach(2)
-      if (sinpiy.eq.0.d0) return
 c
-      dgamma = -pi/(y*sinpiy*dgamma)
+      if (sinpiy.eq.0.d0) then
+        dgam = -d1mach(2)
+        return
+      endif
+c
+      dgam = -pi/(y*sinpiy*dgam)
 c
       return
       end
+
 C modified to omit priniting for calls from Fortran within R
       subroutine d9gaml (xmin, xmax)
 c june 1977 edition.   w. fullerton, c3, los alamos scientific lab.
@@ -160,8 +155,7 @@ c        value of x might result in underflow.
 c xmax   dble prec maximum legal value of x in gamma(x).  any larger
 c        value of x might cause overflow.
 c
-      double precision xmin, xmax, alnbig, alnsml, xln, xold, d1mach,
-     1  dlog
+      double precision xmin, xmax, alnbig, alnsml, xln, xold, d1mach
 C     external d1mach, dlog
       external d1mach
 c
@@ -208,17 +202,18 @@ c
       double precision d1mach
       external         d1mach
 c
-C     if (n.lt.1) call seteru (28hdcsevl  number of terms le 0, 28, 2,2)
-      if (n.lt.1) dcsevl = -d1mach(2)
-      if (n.lt.1) return
-C     if (n.gt.1000) call seteru (31hdcsevl  number of terms gt 1000,
-C    1  31, 3, 2)
-      if (n.gt.1000) dcsevl = d1mach(2)
-      if (n.gt.1000) return
-C     if (x.lt.(-1.1d0) .or. x.gt.1.1d0) call seteru (
-C    1  25hdcsevl  x outside (-1,+1), 25, 1, 1)
-      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) dcsevl = d1mach(2)
-      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) return
+      if (n.lt.1) then
+        dcsevl = -d1mach(2)
+        return
+      endif
+      if (n.gt.1000) then
+        dcsevl = d1mach(2)
+        return
+      endif
+      if (x.lt.(-1.1d0) .or. x.gt.1.1d0) then
+        dcsevl = d1mach(2)
+        return
+      endif
 
 C added by CF to avoid uninitialized warnings
       b2 = 0
@@ -267,9 +262,11 @@ c
       xbig = 1.0d0/sqrt(d1mach(3))
       xmax = exp (dmin1(log(d1mach(2)/12.d0), -log(12.d0*d1mach(1))))
 c
-C10   if (x.lt.10.d0) 
- 10   if (x.lt.10.d0) d9lgmc = d1mach(2)
-      if (x.lt.10.d0) return
+ 10   if (x.lt.10.d0) then
+        d9lgmc = d1mach(2)
+        return
+      endif
+c
       if (x.ge.xmax) go to 20
 c
       d9lgmc = 1.d0/(12.d0*x)
@@ -285,11 +282,12 @@ c
 
       double precision function dlngam (x)
 
-      double precision x, dxrel, pi, sinpiy, sqpi2l, sq2pil,
-     1  y, xmax, d9lgmc, d1mach
-C    1  y, xmax, dgamma, d9lgmc, d1mach
+      double precision x, y, xmax, dxrel, pi
+      double precision sinpiy, sqpi2l, sq2pil
+      double precision d1mach, d9lgmc
       external d1mach, d9lgmc
-
+      double precision dgam
+c     external dgamma
 c
       data sq2pil / 0.9189385332 0467274178 0329736405 62 d0 /
 c sq2pil = alog (sqrt(2*pi)),  sqpi2l = alog(sqrt(pi/2))
@@ -309,12 +307,12 @@ c
  10   y = abs (x)
       if (y.gt.10.d0) go to 20
 c
-c dlog (dabs (dgamma(x)) ) for dabs(x) .le. 10.0
+c dlog (dabs (dgam(x)) ) for dabs(x) .le. 10.0
 c
-      dlngam = log (abs (dgamma(x)) )
+      dlngam = log (abs (dgam(x)) )
       return
 c
-c dlog ( dabs (dgamma(x)) ) for dabs(x) .gt. 10.0
+c dlog ( dabs (dgam(x)) ) for dabs(x) .gt. 10.0
 c
 C20   if (y.gt.xmax) call seteru (
 C    1  39hdlngam  dabs(x) so big dlngam overflows, 39, 2, 2)
@@ -1971,7 +1969,7 @@ c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
 
       integer                 info, i, j, k, nz
 
-      double precision        rteps, detlog, prok, tmin, tmax
+      double precision        detlog, prok, tmin, tmax
       double precision        umin, umax, const, temp, sum
 
       double precision        zero, one, two
@@ -3736,7 +3734,7 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       integer                 i, j, k, nz
 
       double precision        const, temp, tmin, tmax
-      double precision        smin, smax, prok, eps, sum
+      double precision        smin, smax, prok, sum
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -5718,7 +5716,7 @@ c     double precision    x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
 
       integer             i, j, k
 
-      double precision    sum, sumz, zsum, pmupmu
+      double precision    sum, sumz, pmupmu
       double precision    const, temp, dnp
 
       double precision    zero, one, two
@@ -5737,6 +5735,7 @@ c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
 
+      pscale = pscale*1.d0
       dnp = dble(n*p)
 
       pmupmu = ddot( p, pmu, 1, pmu, 1)
@@ -9896,6 +9895,7 @@ c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
      
+      pdof = pdof*1.d0
       maxi1  = maxi(1)
       maxi2  = maxi(2)
 
@@ -10297,7 +10297,7 @@ c     double precision   scale(G), shape(p), O(p,p,G), mu(p,G), pro(G)
 
       integer                 p1, i, j, k, j1, inner, info
 
-      double precision        dnp, err, dummy
+      double precision        err, dummy
       double precision        temp, sum, smin, smax, cs, sn
 
       double precision        zero, one
@@ -10560,12 +10560,10 @@ c------------------------------------------------------------------------------
 
       if (pshrnk .le. zero) pshrnk = zero
 
+      pdof  = pdof*1.d0
       tol   = max(tol,zero)
-
       p1    = p + 1
-
       err   = FLMAX
-
       inner = 0
       l     = 0 
 
@@ -14847,7 +14845,7 @@ c     double precision   x(n)
 
       integer                 i
 
-      double precision   dn, scl, const, term, temp, xbar
+      double precision   dn, const, term, temp, xbar
       double precision   cmu, cgam, rmu, rgam
 
       double precision   zero, one, two
@@ -15619,6 +15617,18 @@ c------------------------------------------------------------------------------
 
       i1 = 0
       i2 = 0
+      trcw = 0.d0
+      tijo = 0.d0
+      tdet = 0.d0
+      sjdt = 0.d0
+      sidt = 0.d0
+      dijo = 0.d0
+      ndet = 0
+      jdet = 0
+      idet = 0
+      iopt = 0
+      nopt = 0
+      jopt = 0
 
       lw = p*p
 
@@ -15677,7 +15687,6 @@ c group heads should be first among rows of x
 
 c     call intpr( 'ic', -1, ic, n)
 
-      trcw = zero
       call dcopy( lw, zero, 0, r, 1)
 
       q = 1

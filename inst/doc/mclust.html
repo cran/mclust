@@ -12,7 +12,7 @@
 
 <meta name="author" content="Luca Scrucca" />
 
-<meta name="date" content="2019-06-25" />
+<meta name="date" content="2019-07-07" />
 
 <title>A quick tour of mclust</title>
 
@@ -348,7 +348,7 @@ code span.wa { font-style: italic; }
 
 <h1 class="title toc-ignore">A quick tour of mclust</h1>
 <h4 class="author">Luca Scrucca</h4>
-<h4 class="date">25 Jun 2019</h4>
+<h4 class="date">07 Jul 2019</h4>
 
 
 <div id="TOC">
@@ -379,13 +379,13 @@ code span.wa { font-style: italic; }
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p><strong>mclust</strong> is a contributed R package for model-based clustering, classification, and density estimation based on finite normal mixture modelling. It provides functions for parameter estimation via the EM algorithm for normal mixture models with a variety of covariance structures, and functions for simulation from these models. Also included are functions that combine model-based hierarchical clustering, EM for mixture estimation and the Bayesian Information Criterion (BIC) in comprehensive strategies for clustering, density estimation and discriminant analysis. Additional functionalities are available for displaying and visualizing fitted models along with clustering, classification, and density estimation results.</p>
-<p>This document gives a quick tour of <strong>mclust</strong> (version 5.4.4) functionalities. It was written in R Markdown, using the <a href="https://cran.r-project.org/package=knitr">knitr</a> package for production. See <code>help(package=&quot;mclust&quot;)</code> for further details and references provided by <code>citation(&quot;mclust&quot;)</code>.</p>
+<p>This document gives a quick tour of <strong>mclust</strong> (version 5.4.5) functionalities. It was written in R Markdown, using the <a href="https://cran.r-project.org/package=knitr">knitr</a> package for production. See <code>help(package=&quot;mclust&quot;)</code> for further details and references provided by <code>citation(&quot;mclust&quot;)</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="kw">library</span>(mclust)</span>
 <span id="cb1-2"><a href="#cb1-2"></a><span class="co">##     __  ___________    __  _____________</span></span>
 <span id="cb1-3"><a href="#cb1-3"></a><span class="co">##    /  |/  / ____/ /   / / / / ___/_  __/</span></span>
 <span id="cb1-4"><a href="#cb1-4"></a><span class="co">##   / /|_/ / /   / /   / / / /\__ \ / /   </span></span>
 <span id="cb1-5"><a href="#cb1-5"></a><span class="co">##  / /  / / /___/ /___/ /_/ /___/ // /    </span></span>
-<span id="cb1-6"><a href="#cb1-6"></a><span class="co">## /_/  /_/\____/_____/\____//____//_/    version 5.4.4</span></span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="co">## /_/  /_/\____/_____/\____//____//_/    version 5.4.5</span></span>
 <span id="cb1-7"><a href="#cb1-7"></a><span class="co">## Type &#39;citation(&quot;mclust&quot;)&#39; for citing this R package in publications.</span></span></code></pre></div>
 </div>
 <div id="clustering" class="section level1">
@@ -1060,18 +1060,18 @@ code span.wa { font-style: italic; }
 <span id="cb41-8"><a href="#cb41-8"></a><span class="co">## LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib</span></span>
 <span id="cb41-9"><a href="#cb41-9"></a><span class="co">## </span></span>
 <span id="cb41-10"><a href="#cb41-10"></a><span class="co">## locale:</span></span>
-<span id="cb41-11"><a href="#cb41-11"></a><span class="co">## [1] C/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8</span></span>
+<span id="cb41-11"><a href="#cb41-11"></a><span class="co">## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8</span></span>
 <span id="cb41-12"><a href="#cb41-12"></a><span class="co">## </span></span>
 <span id="cb41-13"><a href="#cb41-13"></a><span class="co">## attached base packages:</span></span>
 <span id="cb41-14"><a href="#cb41-14"></a><span class="co">## [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span id="cb41-15"><a href="#cb41-15"></a><span class="co">## </span></span>
 <span id="cb41-16"><a href="#cb41-16"></a><span class="co">## other attached packages:</span></span>
-<span id="cb41-17"><a href="#cb41-17"></a><span class="co">## [1] mclust_5.4.4 knitr_1.22  </span></span>
+<span id="cb41-17"><a href="#cb41-17"></a><span class="co">## [1] mclust_5.4.5 knitr_1.23  </span></span>
 <span id="cb41-18"><a href="#cb41-18"></a><span class="co">## </span></span>
 <span id="cb41-19"><a href="#cb41-19"></a><span class="co">## loaded via a namespace (and not attached):</span></span>
 <span id="cb41-20"><a href="#cb41-20"></a><span class="co">##  [1] compiler_3.6.0  magrittr_1.5    htmltools_0.3.6 tools_3.6.0    </span></span>
-<span id="cb41-21"><a href="#cb41-21"></a><span class="co">##  [5] yaml_2.2.0      Rcpp_1.0.1      stringi_1.4.3   rmarkdown_1.12 </span></span>
-<span id="cb41-22"><a href="#cb41-22"></a><span class="co">##  [9] stringr_1.4.0   digest_0.6.19   xfun_0.6        evaluate_0.13</span></span></code></pre></div>
+<span id="cb41-21"><a href="#cb41-21"></a><span class="co">##  [5] yaml_2.2.0      Rcpp_1.0.1      stringi_1.4.3   rmarkdown_1.13 </span></span>
+<span id="cb41-22"><a href="#cb41-22"></a><span class="co">##  [9] stringr_1.4.0   digest_0.6.19   xfun_0.8        evaluate_0.14</span></span></code></pre></div>
 </div>
 
 

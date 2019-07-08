@@ -1,12 +1,17 @@
-# mclust 5.4.4  (NOT ON CRAN)
+# mclust 5.4.5
 
-- Add `classPriorProbs()` to estimate prior class probabilities.
-- Add `BrierScore()` to compute the Brier score for assessing the accuracy of probabilistic predictions.
-- Add `randomOrthogonalMatrix()` to generate random orthogonal basis matrices.
-- Rewrite of `plot.MclustDA()` internals.
-- Add `dmvnorm()` for computing the density of a general multivariate Gaussian distribution via efficient Fortran code.
-- Add Wisconsin diagnostic breast cancer (WDBC) data.
-- Add EuroUnemployment data.
+* Fixed warnings in Fortran calls raised by CRAN.
+
+# mclust 5.4.4
+
+- Added `classPriorProbs()` to estimate prior class probabilities.
+- Added `BrierScore()` to compute the Brier score for assessing the accuracy of probabilistic predictions.
+- Added `randomOrthogonalMatrix()` to generate random orthogonal basis matrices.
+- Partial rewriting of `summary.MclustDA()` internals to provide both the classification error and the Brier score for training and/or test data.
+- Partial rewriting of `plot.MclustDA()` internals.
+- Added `dmvnorm()` for computing the density of a general multivariate Gaussian distribution via efficient Fortran code.
+- Added Wisconsin diagnostic breast cancer (WDBC) data.
+- Added EuroUnemployment data.
 - Fixed mismatches in Fortran calls.
 - Bugs fix.
 
@@ -54,7 +59,7 @@
 - Vignette updated to include references, startup message, css style, etc.
 - Various bug fixes in plotting methods when noise is present.
 - Updated references in `citation()` and man pages.
-    
+  
 # mclust 5.3 (2017-05)
 
 - Added `gmmhd()` function and relative methods.
@@ -291,7 +296,7 @@
 - Default seed changed in `sim*()` functions.
 - Added model name check to various functions. 
 - Otherwise backward compatible with version 3.0
- 
+
 # mclust 3.1  (2007-01)
 
 - Most plotting functions changed to use color.

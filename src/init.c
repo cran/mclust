@@ -84,7 +84,7 @@ extern void F77_NAME(mseve)(void *, void *, void *, void *, void *, void *, void
 extern void F77_NAME(msevi)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(msevip)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(msevv)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-extern void F77_NAME(msvee)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(msvee)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(msvei)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(msveip)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(msvev)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
@@ -179,7 +179,7 @@ static const R_FortranMethodDef FortranEntries[] = {
     {"msevi",      (DL_FUNC) &F77_NAME(msevi),       9},
     {"msevip",     (DL_FUNC) &F77_NAME(msevip),     13},
     {"msevv",      (DL_FUNC) &F77_NAME(msevv),      14},
-    {"msvee",      (DL_FUNC) &F77_NAME(msvee),      17},
+    {"msvee",      (DL_FUNC) &F77_NAME(msvee),      16},
     {"msvei",      (DL_FUNC) &F77_NAME(msvei),      14},
     {"msveip",     (DL_FUNC) &F77_NAME(msveip),     18},
     {"msvev",      (DL_FUNC) &F77_NAME(msvev),      14},

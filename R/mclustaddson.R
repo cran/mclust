@@ -729,7 +729,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
                           tol = as.double(tol),
                           niterin = integer(1),
                           errin = double(1),
-                          eps = as.double(.Machine$double.eps),
+                          # eps = as.double(.Machine$double.eps),
                           PACKAGE = "mclust")
     } else {
         # with prior

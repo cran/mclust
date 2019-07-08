@@ -99,9 +99,9 @@
       double precision :: scale(G), shape(p,G)
       
       double precision :: sumz(G)
-      integer :: i, j, k, info, lwork, dummy, l
+      integer :: i, j, k, info, lwork, l
           
-      double precision :: temp(p), wrk(lwork), eps
+      double precision :: temp(p), wrk(lwork), eps, dummy
       
       double precision :: FLMAX
       parameter (FLMAX = 1.7976931348623157d308)
@@ -290,8 +290,8 @@
       double precision :: temp1(p), temp2(p), temp3, scsh(p)
 *      double precision :: temp(*)
       
-      integer :: i, j, k, info, lwork, dummy, l, itmax, niterout
-      double precision :: tol, eps, errout, rteps
+      integer :: i, j, k, info, lwork, l, itmax, niterout
+      double precision :: tol, eps, errout, rteps, dummy
       double precision :: const, logdet, loglik, lkprev, wrk(lwork)
       
       double precision :: log2pi

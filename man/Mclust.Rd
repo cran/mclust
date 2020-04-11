@@ -132,14 +132,17 @@ Mclust(data, G = NULL, modelNames = NULL,
   \item{BIC}{
   All BIC values.
   }
-  \item{bic}{
-  Optimal BIC value.
-  }
   \item{loglik}{
   The log-likelihood corresponding to the optimal BIC.
   }
   \item{df}{
   The number of estimated parameters.
+  }
+  \item{bic}{
+  BIC value of the selected model.
+  }
+  \item{icl}{
+  ICL value of the selected model.
   }
   \item{hypvol}{
   The hypervolume parameter for the noise component if required, otherwise set to \code{NULL} (see \code{\link{hypvol}}).
@@ -177,7 +180,7 @@ Mclust(data, G = NULL, modelNames = NULL,
   }
 }
 \references{
-Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 205-233. 
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 289-317. 
 
 Fraley C. and Raftery A. E. (2002) Model-based clustering, discriminant analysis and density estimation, \emph{Journal of the American Statistical Association}, 97/458, pp. 611-631.
 

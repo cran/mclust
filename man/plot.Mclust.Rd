@@ -8,7 +8,7 @@ Plots for model-based clustering results, such as BIC, classification, uncertain
 }
 \usage{
 \method{plot}{Mclust}(x, what = c("BIC", "classification", "uncertainty", "density"), 
-     dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,
+     dimens = NULL, xlab = NULL, ylab = NULL,
      addEllipses = TRUE, main = FALSE, \dots)
 }
 \arguments{
@@ -32,9 +32,6 @@ Plots for model-based clustering results, such as BIC, classification, uncertain
   }
  \item{xlab, ylab}{
     Optional labels for the x-axis and the y-axis.
-  }
- \item{ylim}{
-    Optional limits for the vertical axis of the BIC plot.
   }
  \item{addEllipses}{
     A logical indicating whether or not to add ellipses with axes 

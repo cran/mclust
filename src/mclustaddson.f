@@ -101,7 +101,7 @@
       double precision :: sumz(G)
       integer :: i, j, k, info, lwork, l
           
-      double precision :: temp(p), wrk(lwork), eps, dummy
+      double precision :: temp(p), wrk(lwork), eps, dummy(1)
       
       double precision :: FLMAX
       parameter (FLMAX = 1.7976931348623157d308)
@@ -202,6 +202,7 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
       
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
@@ -227,7 +228,9 @@
 *       ##### NOTE: O is transposed   
         do i = 1,n
             temp1 = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2, 1)
+*           call dcopy(p, 0.d0, 0, temp2, 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2, 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O(:,:,k), p, temp1, 1, 0.d0, temp2, 1)
             temp2 = temp2/sqrt(scale*shape(:,k))
@@ -246,7 +249,9 @@
 
 *       noise component
       if (Vinv .gt. 0.d0) then
-        call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+*       call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(:,Gnoise), 1)
       end if 
 *       now column Gnoise of z contains log(Vinv)           
       
@@ -291,7 +296,7 @@
 *      double precision :: temp(*)
       
       integer :: i, j, k, info, lwork, l, itmax, niterout
-      double precision :: tol, eps, errout, rteps, dummy
+      double precision :: tol, eps, errout, rteps
       double precision :: const, logdet, loglik, lkprev, wrk(lwork)
       
       double precision :: log2pi
@@ -302,6 +307,8 @@
       
       external :: ddot
       double precision :: ddot
+
+      double precision :: dummy(1)
 
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
@@ -337,7 +344,9 @@
       end if
       
 *       re-initialise U      
-      call dcopy(p*p*G, 0.d0, 0, U, 1)
+*     call dcopy(p*p*G, 0.d0, 0, U, 1)
+      dummy(1) = 0.d0
+      call dcopy(p*p*G, dummy, 0, U, 1)
       
 *       M step..........................................................      
       do k = 1,G
@@ -400,7 +409,9 @@
         scsh = sqrt(scale(1)*shape(:,k))
         do i = 1,n
             temp1 = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2, 1)
+*           call dcopy(p, 0.d0, 0, temp2, 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2, 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O(:,:,k), p, temp1, 1, 0.d0, temp2, 1)
             temp2 = temp2/scsh
@@ -501,6 +512,8 @@
       
       external :: ddot
       double precision :: ddot
+
+      double precision :: dummy(1)
         
 *-----------------------------------------------------------------------
 
@@ -554,7 +567,9 @@
       niterin = niterin + 1
       
 *       initialise C      
-      call dcopy(p*p, 0.d0, 0, C, 1)
+*     call dcopy(p*p, 0.d0, 0, C, 1)
+      dummy(1) = 0.d0
+      call dcopy(p*p, dummy, 0, C, 1)
 *       ### NOTE: scale is initialised in R
       
       do k = 1,G
@@ -652,6 +667,7 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
       
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
@@ -678,7 +694,9 @@
 *       ##### NOTE: O is transposed   
         do i = 1,n
             temp1 = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2, 1)
+*           call dcopy(p, 0.d0, 0, temp2, 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2, 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O, p, temp1, 1, 0.d0, temp2, 1)
             temp2 = temp2/sqrt(scale(k)*shape)
@@ -697,7 +715,9 @@
 
 *       noise component
       if (Vinv .gt. 0.d0) then
-        call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+*       call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(:,Gnoise), 1)
       end if 
 *       now column Gnoise of z contains log(Vinv)           
       
@@ -754,6 +774,8 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
+
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
       
@@ -788,7 +810,9 @@
       end if
       
 *       re-initialise U      
-      call dcopy(p*p*G, 0.d0, 0, U, 1)
+*     call dcopy(p*p*G, 0.d0, 0, U, 1)
+      dummy(1) = 0.d0
+      call dcopy(p*p*G, dummy, 0, U, 1)
       
 *       compute weighted scattering matrix and means      
       do k = 1,G
@@ -827,7 +851,9 @@
       trgt = FLMAX
       trgtprev = FLMAX/2
 *       initialise scale        
-      call dcopy(G, 1.d0, 0, scale, 1)
+*     call dcopy(G, 1.d0, 0, scale, 1)
+      dummy(1) = 1.d0
+      call dcopy(G, dummy, 0, scale, 1)
            
 *       WHILE loop for M step
 110   continue
@@ -835,7 +861,9 @@
       niterin = niterin + 1
       
 *       initialise C      
-      call dcopy(p*p, 0.d0, 0, C, 1)
+*     call dcopy(p*p, 0.d0, 0, C, 1)
+      dummy(1) = 0.d0
+      call dcopy(p*p, dummy, 0, C, 1)
       
       do k = 1,G
         C = C + U(:,:,k)/scale(k)
@@ -924,7 +952,9 @@
 *       compute mahalanobis distance for each observation
         do i = 1,n
             temp1 = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp4, 1)
+*           call dcopy(p, 0.d0, 0, temp4, 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp4, 1)
             call dgemv('N', p, p, 1.d0, 
      *                 temp2, p, temp1, 1, 0.d0, temp4, 1)
             temp4 = temp4/scale(k)
@@ -1245,6 +1275,7 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
       
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
@@ -1270,7 +1301,9 @@
 *       ##### NOTE: O is transposed   
         do i = 1,n
             temp1 = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2, 1)
+*           call dcopy(p, 0.d0, 0, temp2, 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2, 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O, p, temp1, 1, 0.d0, temp2, 1)
             temp2 = temp2/sqrt(scale*shape(:,k))
@@ -1290,7 +1323,9 @@
 
 *       noise component
       if (Vinv .gt. 0.d0) then
-        call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+*       call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(:,Gnoise), 1)
       end if 
 *       now column Gnoise of z contains log(Vinv)           
       
@@ -1347,6 +1382,8 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
+
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
       
@@ -1380,7 +1417,9 @@
       end if
       
 *       re-initialise U      
-      call dcopy(p*p*G, 0.d0, 0, U, 1)
+*     call dcopy(p*p*G, 0.d0, 0, U, 1)
+      dummy(1) = 0.d0
+      call dcopy(p*p*G, dummy, 0, U, 1)
       
 *       compute weighted scattering matrix and means      
       do k = 1,G
@@ -1581,7 +1620,9 @@
 *       ##### NOTE: O is transposed   
         do i = 1,n
             temp1(:,1) = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2(:,1), 1)
+*           call dcopy(p, 0.d0, 0, temp2(:,1), 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2(:,1), 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O, p, temp1(:,1), 1, 0.d0, temp2(:,1), 1)
             temp2(:,1) = temp2(:,1)/sqrt(scale*shape(:,k))
@@ -1898,6 +1939,7 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
       
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
@@ -1924,7 +1966,9 @@
 *       ##### NOTE: O is transposed   
         do i = 1,n
             temp1 = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2, 1)
+*           call dcopy(p, 0.d0, 0, temp2, 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2, 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O, p, temp1, 1, 0.d0, temp2, 1)
             temp2 = temp2/sqrt(scale(k)*shape(:,k))
@@ -1944,7 +1988,9 @@
 
 *       noise component
       if (Vinv .gt. 0.d0) then
-        call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+*        call dcopy( n, log(Vinv), 0, z(:,Gnoise), 1)
+         dummy(1) = log(Vinv)
+         call dcopy( n, dummy, 0, z(:,Gnoise), 1)
       end if 
 *       now column Gnoise of z contains log(Vinv)           
       
@@ -2001,6 +2047,8 @@
       external :: ddot
       double precision :: ddot
 
+      double precision :: dummy(1)
+
 *      double precision :: smalog
 *      parameter (smalog = -708.d0)
       
@@ -2034,7 +2082,9 @@
       end if
       
 *       re-initialise U      
-      call dcopy(p*p*G, 0.d0, 0, U, 1)
+*     call dcopy(p*p*G, 0.d0, 0, U, 1)
+      dummy(1) = 0.d0
+      call dcopy(p*p*G, dummy, 0, U, 1)
       
 *       compute weighted scattering matrix and means      
       do k = 1,G
@@ -2239,7 +2289,9 @@
 *       ##### NOTE: O is transposed   
         do i = 1,n
             temp1(:,1) = ( x(i,:) - mu(:,k) )
-            call dcopy(p, 0.d0, 0, temp2(:,1), 1)
+*           call dcopy(p, 0.d0, 0, temp2(:,1), 1)
+            dummy(1) = 0.d0
+            call dcopy(p, dummy, 0, temp2(:,1), 1)
             call dgemv('N', p, p, 1.d0, 
      *                 O, p, temp1(:,1), 1, 0.d0, temp2(:,1), 1)
             temp2(:,1) = temp2(:,1)/sqrt(scale(k)*shape(:,k))

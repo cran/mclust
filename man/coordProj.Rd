@@ -13,7 +13,7 @@ coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
           what = c("classification", "error", "uncertainty"),
           addEllipses = TRUE, fillEllipses = mclust.options("fillEllipses"),
           symbols = NULL, colors = NULL, scale = FALSE, 
-          xlim = NULL, ylim = NULL, CEX = 1, PCH = ".", main = FALSE, \dots)
+          xlim = NULL, ylim = NULL, cex = 1, PCH = ".", main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -106,8 +106,8 @@ coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
     Arguments specifying bounds for the ordinate, abscissa of the plot.
     This may be useful for when comparing plots.
   }
-  \item{CEX}{
-    An argument specifying the size of the plotting symbols. 
+  \item{cex}{
+    A numerical value specifying the size of the plotting symbols. 
     The default value is 1.
   }
   \item{PCH}{

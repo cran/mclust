@@ -13,22 +13,39 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
   if(is.null(modelName))
     stop("A 'modelName' must be provided. Please see help(mclustModelNames) which describes the available models.")
   modelName <- modelName[1]
-  if(is.null(maxG)) G <- seq.int(1, 9)
-  else { maxG <- as.numeric(maxG); G <- seq.int(1, maxG+1) }
-  Bic <- mclustBIC(data, G = G, modelNames = modelName, 
+  if(is.null(maxG))
+  { 
+    G <- seq.int(1, 9)
+  } else 
+  { 
+    maxG <- as.numeric(maxG)
+    G <- seq.int(1, maxG+1) 
+  }
+  BIC <- mclustBIC(data, G = G, modelNames = modelName, 
                    warn = FALSE, verbose = FALSE, ...)
-  if(!(modelName %in% attr(Bic, "modelNames")))
+  
+  if(!(modelName %in% attr(BIC, "modelNames")))
     stop("'modelName' not compatibile with data. Please see help(mclustModelNames) which describes the available models.")
-  if(all(is.na(Bic)))
+  
+  # select only sequential models that can be fit
+  bic <- BIC[, attr(BIC, "modelNames") == modelName]
+  G <- G[!is.na(BIC)]
+  if(length(G) == 0)
     stop(paste("no model", modelName, "can be fitted."))
-  # select only models that can be fit
-  G <- which(!is.na(Bic[, attr(Bic, "modelNames") == modelName]))
+  if(all(G == 1))
+  {
+    warning("only 1-component model could be fitted. No LRT is performed!")
+    return()
+  }
+  if(sum(is.na(bic)) > 0)
+    warning("some model(s) could not be fitted!")
 
   if(verbose) 
-    { cat("bootstrapping LRTS ...\n")
-      flush.console()
-      pbar <- txtProgressBar(min = 0, max = (max(G)-1)*nboot, style = 3)
-      on.exit(close(pbar))
+  { 
+    flush.console()
+    cat("bootstrapping LRTS ...\n")
+    pbar <- txtProgressBar(min = 0, max = (max(G)-1)*nboot, style = 3)
+    on.exit(close(pbar))
   }
 
   obsLRTS <- p.value <- vector("numeric", length = max(G)-1)
@@ -37,9 +54,9 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
   while(g < (max(G)-1) & continue)
   { g <- g + 1
     # fit model under H0
-    Mod0 <- summary(Bic, data, G = g, modelNames = modelName)
+    Mod0 <- summary(BIC, data, G = g, modelNames = modelName)
     # fit model under H1
-    Mod1 <- summary(Bic, data, G = g+1, modelNames = modelName)
+    Mod1 <- summary(BIC, data, G = g+1, modelNames = modelName)
     # observed LRTS
     obsLRTS[g] <- 2*(Mod1$loglik - Mod0$loglik)
     # bootstrap

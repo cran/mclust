@@ -50,7 +50,7 @@ classError <- function(classification, class)
     }
     best
   }
-  if (any(isNA <- is.na(classification))) 
+  if(any(isNA <- is.na(classification))) 
   {
     classification <- as.character(classification)
     nachar <- paste(unique(classification[!isNA]),collapse="")
@@ -87,12 +87,34 @@ mapClass <- function(a, b)
 {
   l <- length(a)
   x <- y <- rep(NA, l)
-  if(l != length(b)) {
+  if(l != length(b)) 
+  {
     warning("unequal lengths")
     return(x)
   }
-  aChar <- as.character(a)
-  bChar <- as.character(b)
+  # LS: new - check if both a & b are factors or character vectors
+  # with the same levels then assume they are known classes and 
+  # match by level names
+  if(is.factor(a) & is.factor(b) & nlevels(a) == nlevels(b))
+  {
+    aTOb <- as.list(levels(b))
+    names(aTOb) <- levels(a)
+    bTOa <- as.list(levels(a))
+    names(bTOa) <- levels(b)
+    out <- list(aTOb = aTOb, bTOa = bTOa)
+    return(out)
+  }
+  if(is.character(a) & is.character(b) & 
+     length(unique(a)) == length(unique(b)))
+  {
+    aTOb <- as.list(unique(b))
+    names(aTOb) <- unique(a)
+    bTOa <- as.list(unique(a))
+    names(bTOa) <- unique(b)
+    out <- list(aTOb = aTOb, bTOa = bTOa)
+    return(out)
+  }
+  # otherwise match by closest class correspondence
   Tab <- table(a, b)
   Ua <- dimnames(Tab)[[1]]
   Ub <- dimnames(Tab)[[2]]
@@ -104,13 +126,14 @@ mapClass <- function(a, b)
   k <- nrow(Tab)
   Map <- rep(0, k)
   Max <- apply(Tab, 1, max)
-  for(i in 1:k) 
+  for(i in 1:k)
   {
     I <- match(Max[i], Tab[i,  ], nomatch = 0)
     aTOb[[i]] <- Ub[I]
   }
   if(is.numeric(b))
     aTOb <- lapply(aTOb, as.numeric)
+  #
   k <- ncol(Tab)
   Map <- rep(0, k)
   Max <- apply(Tab, 2, max)
@@ -121,7 +144,8 @@ mapClass <- function(a, b)
   if(is.numeric(a))
     bTOa <- lapply(bTOa, as.numeric)
   #
-  return(list(aTOb = aTOb, bTOa = bTOa))
+  out <- list(aTOb = aTOb, bTOa = bTOa)
+  return(out)
 }
 
 map <- function(z, warn = mclust.options("warn"), ...)

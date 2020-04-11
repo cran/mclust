@@ -99,7 +99,7 @@ Biernacki, C., Celeux, G., Govaert, G. (2000).
 Assessing a mixture model for clustering with the integrated completed likelihood.
 \emph{IEEE Trans. Pattern Analysis and Machine Intelligence}, 22 (7), 719-725.
 
-Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 205-233. 
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 289-317. 
 }
 
 \seealso{

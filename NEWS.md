@@ -1,6 +1,17 @@
+# mclust 5.4.6
+
+- Fixed issues with source Fortran code with gfortran 10 as reported by CRAN.
+- Clean code of `hcCriterion()`.
+- Replaced `CEX` argument in functions with standard base graph `cex` argument.
+- Removed `ylim` argument in function; it can be passed via `...`.
+- MclustDA models use the default SVD transformation of the data for initialisation of the EM algorithm.
+- Added `icl` criterion to object returned by `Mclust()`.
+- Fixed number of pages for the RJ reference.
+- quantileMclust() uses bisection line search method for numerically computing quantiles.
+
 # mclust 5.4.5
 
-* Fixed warnings in Fortran calls raised by CRAN.
+- Fixed warnings in Fortran calls raised by CRAN.
 
 # mclust 5.4.4
 

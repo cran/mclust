@@ -1,4 +1,4 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 library(knitr)
 opts_chunk$set(fig.align = "center", 
                out.width = "90%",
@@ -14,11 +14,11 @@ knit_hooks$set(par = function(before, options, envir)
 })
 set.seed(1) # for exact reproducibility
 
-## ---- message = FALSE, echo=-2-------------------------------------------
+## ---- message = FALSE, echo=-2------------------------------------------------
 library(mclust)
 cat(mclust:::mclustStartupMessage(), sep="")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data(diabetes)
 class <- diabetes$class
 table(class)
@@ -45,7 +45,7 @@ plot(ICL)
 LRT <- mclustBootstrapLRT(X, modelName = "VVV")
 LRT
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 (hc1 <- hc(X, modelName = "VVV", use = "SVD"))
 BIC1 <- mclustBIC(X, initialization = list(hcPairs = hc1)) # default 
 summary(BIC1)
@@ -58,12 +58,12 @@ summary(BIC2)
 BIC3 <- mclustBIC(X, initialization = list(hcPairs = hc3))
 summary(BIC3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 BIC <- mclustBICupdate(BIC1, BIC2, BIC3)
 summary(BIC)
 plot(BIC)
 
-## ---- echo=-1------------------------------------------------------------
+## ---- echo=-1-----------------------------------------------------------------
 set.seed(20181116)
 data(galaxies, package = "MASS") 
 galaxies <- galaxies / 1000
@@ -79,7 +79,7 @@ plot(BIC)
 mod <- Mclust(galaxies, x = BIC)
 summary(mod)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data(iris)
 class <- iris$Species
 table(class)
@@ -90,7 +90,7 @@ summary(mod2)
 plot(mod2, what = "scatterplot")
 plot(mod2, what = "classification")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data(banknote)
 class <- banknote$Status
 table(class)
@@ -101,7 +101,7 @@ summary(mod3)
 plot(mod3, what = "scatterplot")
 plot(mod3, what = "classification")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 cv <- cvMclustDA(mod2, nfold = 10)
 str(cv)
 unlist(cv[3:4])
@@ -109,7 +109,7 @@ cv <- cvMclustDA(mod3, nfold = 10)
 str(cv)
 unlist(cv[3:4])
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data(acidity)
 mod4 <- densityMclust(acidity)
 summary(mod4)
@@ -118,7 +118,7 @@ plot(mod4, what = "density", data = acidity, breaks = 15)
 plot(mod4, what = "diagnostic", type = "cdf")
 plot(mod4, what = "diagnostic", type = "qq")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data(faithful)
 mod5 <- densityMclust(faithful)
 summary(mod5)
@@ -129,7 +129,7 @@ plot(mod5, what = "density", type = "hdr",
      data = faithful, points.cex = 0.5)
 plot(mod5, what = "density", type = "persp")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 boot1 <- MclustBootstrap(mod1, nboot = 999, type = "bs")
 summary(boot1, what = "se")
 summary(boot1, what = "ci")
@@ -139,7 +139,7 @@ plot(boot1, what = "pro")
 plot(boot1, what = "mean")
 par(mfrow=c(1,1))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 boot4 <- MclustBootstrap(mod4, nboot = 999, type = "bs")
 summary(boot4, what = "se")
 summary(boot4, what = "ci")
@@ -149,7 +149,7 @@ plot(boot4, what = "pro")
 plot(boot4, what = "mean")
 par(mfrow=c(1,1))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 mod1dr <- MclustDR(mod1)
 summary(mod1dr)
 plot(mod1dr, what = "pairs")
@@ -160,7 +160,7 @@ summary(mod1dr)
 plot(mod1dr, what = "scatterplot")
 plot(mod1dr, what = "boundaries", ngrid = 200)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 mod2dr <- MclustDR(mod2)
 summary(mod2dr)
 plot(mod2dr, what = "scatterplot")
@@ -171,11 +171,11 @@ summary(mod3dr)
 plot(mod3dr, what = "scatterplot")
 plot(mod3dr, what = "boundaries", ngrid = 200)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 mclust.options("bicPlotColors")
 mclust.options("classPlotColors")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#999999", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 bicPlotColors <- mclust.options("bicPlotColors")
 bicPlotColors[1:14] <- c(cbPalette, cbPalette[1:6])
@@ -187,6 +187,6 @@ mod <- Mclust(iris[,-5])
 plot(mod, what = "BIC")
 plot(mod, what = "classification")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 sessionInfo()
 

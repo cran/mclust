@@ -4,7 +4,7 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
                          symbols = NULL, colors = NULL, ngrid = length(data),  
                          xlab = NULL, ylab = NULL, 
                          xlim = NULL, ylim = NULL, 
-                         CEX  = 1, main = FALSE, ...) 
+                         cex = 1, main = FALSE, ...) 
 {
   p <- ncol(as.matrix(data))
   if (p != 1) 
@@ -94,14 +94,14 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
            {
              I <- classification == U[k]
              if(symbols[k] == "|")
-             { vpoints(data[I], rep(0, length(data[I])), cex = CEX)
+             { vpoints(data[I], rep(0, length(data[I])), cex = cex)
                vpoints(data[I], rep(k, length(data[I])), 
-                       col = colors[k], cex = CEX)
+                       col = colors[k], cex = cex)
              } else
              { points(data[I], rep(0, length(data[I])),
-                      pch = symbols[k], cex = CEX)
+                      pch = symbols[k], cex = cex)
                points(data[I], rep(k, length(data[I])),
-                      pch = symbols[k], col = colors[k], cex = CEX)
+                      pch = symbols[k], col = colors[k], cex = cex)
              }
            }
          },
@@ -128,18 +128,18 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
                  { sym <- if (L > 4) 1 else if (k == 4) 5 else k - 1 }
                l <- sum(as.numeric(I))
                if(sym == "|")
-                 vpoints(data[I], rep(0, l), col = colors[k], cex = CEX)
+                 vpoints(data[I], rep(0, l), col = colors[k], cex = cex)
                else
-                 points(data[I], rep(0, l), pch = sym, col = colors[k], cex = CEX)
+                 points(data[I], rep(0, l), pch = sym, col = colors[k], cex = cex)
              }
              I <- K & !good
              if(any(I)) 
              { if(FALSE) { sym <- if (L > 5) 16 else k + 14 }
                l <- sum(as.numeric(I))
                if(sym == "|") 
-                 vpoints(data[I], rep(k, l), col = colors[k], cex = CEX)
+                 vpoints(data[I], rep(k, l), col = colors[k], cex = cex)
                else
-                 points(data[I], rep(k, l), pch = sym, col = colors[k], cex = CEX)
+                 points(data[I], rep(k, l), pch = sym, col = colors[k], cex = cex)
              }
            }
          },
@@ -147,7 +147,7 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
          { 
            u <- (uncertainty - min(uncertainty))/
                 (max(uncertainty) - min(uncertainty) + sqrt(.Machine$double.eps))
-           b <- bubble(u, cex = CEX*c(0.3, 2), alpha = c(0.3, 1))
+           b <- bubble(u, cex = cex*c(0.3, 2), alpha = c(0.3, 1))
            if(is.null(classification))
            { 
              classification <- rep(1, length(u))
@@ -183,7 +183,7 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
          { 
            plot(data, rep(0, n), type = "n", xlab = "", ylab = "", 
                 xlim = xlim, main = "", ...)
-           vpoints(data, rep(0, n), cex = CEX)
+           vpoints(data, rep(0, n), cex = cex)
            if(main) title("Point Plot")
          }
   )
@@ -199,7 +199,7 @@ mclust2Dplot <- function(data, parameters = NULL, z = NULL,
                          symbols = NULL, colors = NULL, 
                          xlim = NULL, ylim = NULL, 
                          xlab = NULL, ylab = NULL, 
-                         scale = FALSE, CEX = 1, PCH = ".", 
+                         scale = FALSE, cex = 1, PCH = ".", 
                          main = FALSE, swapAxes = FALSE, ...) 
 {
   if(dim(data)[2] != 2)
@@ -325,7 +325,7 @@ mclust2Dplot <- function(data, parameters = NULL, z = NULL,
            for(k in 1:L) 
               { I <- classification == U[k]
                 points(data[I, 1], data[I, 2], pch = symbols[k], 
-                       col = colors[k], cex = if(U[k] == "0") CEX/2 else CEX)
+                       col = colors[k], cex = if(U[k] == "0") cex/2 else cex)
            }
          },
          "error" = 
@@ -341,18 +341,18 @@ mclust2Dplot <- function(data, parameters = NULL, z = NULL,
            good[ERRORS] <- FALSE
            if(L > 4) 
            { points(data[good, 1], data[good, 2], pch = 1, 
-                    col = colors, cex = CEX)
+                    col = colors, cex = cex)
              points(data[!good, 1], data[!good, 2], pch = 16, 
-                    cex = CEX)
+                    cex = cex)
            }
            else 
            { for(k in 1:L) 
            { K <- truth == CLASSES[k]
              points(data[K, 1], data[K, 2], pch = symOpen[k], 
-                    col = colors[k], cex = CEX)
+                    col = colors[k], cex = cex)
              if(any(I <- (K & !good))) 
              { points(data[I, 1], data[I, 2], 
-                      pch = symFill[k], cex = CEX)
+                      pch = symFill[k], cex = cex)
              }
            }
            }
@@ -361,7 +361,7 @@ mclust2Dplot <- function(data, parameters = NULL, z = NULL,
          { 
            u <- (uncertainty - min(uncertainty))/
                 (max(uncertainty) - min(uncertainty) + sqrt(.Machine$double.eps))
-           b <- bubble(u, cex = CEX*c(0.3, 2), alpha = c(0.3, 0.9))
+           b <- bubble(u, cex = cex*c(0.3, 2), alpha = c(0.3, 0.9))
            cl <- sapply(classification, function(cl) which(cl == U))
            plot(data[, 1], data[, 2], pch = 19, 
                 xlab = xlab, ylab = ylab, 
@@ -378,7 +378,7 @@ mclust2Dplot <- function(data, parameters = NULL, z = NULL,
                  xlab = xlab, ylab = ylab, 
                  xlim = xlim, ylim = ylim, main = "", ...)
             if(main) title("Point Plot")
-            points(data[, 1], data[, 2], pch = PCH, cex = CEX)
+            points(data[, 1], data[, 2], pch = PCH, cex = cex)
          }
   )
   if(haveParams && addEllipses) 
@@ -493,9 +493,10 @@ mvn2plot <- function(mu, sigma, k = 15, alone = FALSE,
   invisible()
 }
 
-clPairs <- function (data, classification, symbols = NULL, colors = NULL, 
+clPairs <- function (data, classification, 
+                     symbols = NULL, colors = NULL, cex = 1, 
                      labels = dimnames(data)[[2]], cex.labels = 1.5, 
-                     gap = 0.2, ...) 
+                     gap = 0.2, grid = FALSE, ...) 
 {
   data <- as.matrix(data)
   n <- nrow(data)
@@ -507,7 +508,7 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
   l <- length(levels(classification))
   if(length(classification) != n)
     stop("classification variable must have the same length as nrows of data!")
-  if(missing(symbols)) 
+  if(is.null(symbols)) 
     { if(l == 1) 
         { symbols <- "." }
       if(l <= length(mclust.options("classPlotSymbols")))
@@ -531,22 +532,29 @@ clPairs <- function (data, classification, symbols = NULL, colors = NULL,
     { colors <- rep( "black", l)
       warning("more colors needed")
   }
-
+  grid <- isTRUE(as.logical(grid))
+  
   if(d > 2)
     { pairs(x = data, labels = labels, 
+            panel = function(...) 
+            { if(grid) grid()
+              points(...) 
+            },
             pch = symbols[classification], 
             col = colors[classification], 
             gap = gap, 
+            cex = cex, 
             cex.labels = cex.labels,
             ...) }
   else if(d == 2)
-    { plot(data, 
+    { plot(data, cex = cex, 
             pch = symbols[classification], 
             col = colors[classification], 
+            panel.first = if(grid) grid(),
             ...) }
   
   invisible(list(d = d,
-                 class = levels(classification), 
+                 class = levels(classification),
                  col = colors,
                  pch = symbols[seq(l)]))
 }
@@ -590,7 +598,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
                       fillEllipses = mclust.options("fillEllipses"),
                       symbols = NULL, colors = NULL, scale = FALSE, 
                       xlim = NULL, ylim = NULL, 
-                      CEX = 1, PCH = ".", main = FALSE, ...)
+                      cex = 1, PCH = ".", main = FALSE, ...)
 {
   if(is.null(dimens)) dimens <- c(1, 2)
   if(is.null(classification) && !is.null(z))
@@ -731,7 +739,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
              I <- classification == U[k]
              points(data[I, 1], data[I, 2], 
                     pch = symbols[k], col = colors[k], 
-                    cex = if(U[k] == "0") CEX/3 else CEX)
+                    cex = if(U[k] == "0") cex/3 else cex)
            }
          },
          "error" = { 
@@ -751,18 +759,18 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
            good[ERRORS] <- FALSE
            if(L > length(symOpen)) 
            {
-             points(data[good, 1], data[good, 2], pch = 1, col = colors, cex = CEX)
-             points(data[!good, 1], data[!good, 2], pch = 16, cex = CEX)
+             points(data[good, 1], data[good, 2], pch = 1, col = colors, cex = cex)
+             points(data[!good, 1], data[!good, 2], pch = 16, cex = cex)
            }
            else {
              for(k in 1:L) {
                K <- truth == CLASSES[k]
                if(any(I <- (K & good))) {
                  points(data[I, 1], data[I, 2], pch = symOpen[k], 
-                        col = colors[k], cex = CEX)
+                        col = colors[k], cex = cex)
                }
                if(any(I <- (K & !good))) {
-                 points(data[I, 1], data[I, 2], cex = CEX,
+                 points(data[I, 1], data[I, 2], cex = cex,
                         pch = symFill[k], col = "black", bg = "black")
                }
              }
@@ -771,7 +779,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
          "uncertainty" = { 
            u <- (uncertainty - min(uncertainty)) /
                 (max(uncertainty) - min(uncertainty) + sqrt(.Machine$double.eps))
-           b <- bubble(u, cex = CEX * c(0.3, 2), alpha = c(0.3, 0.9))
+           b <- bubble(u, cex = cex * c(0.3, 2), alpha = c(0.3, 0.9))
            cl <- sapply(classification, function(cl) which(cl == U))
            plot(data[, 1], data[, 2], pch = 19, main = "", 
                 xlab = xlab, ylab = ylab, 
@@ -793,7 +801,7 @@ coordProj <- function(data, dimens = c(1,2), parameters = NULL,
            if(main) 
              { TITLE <- paste(paste(dimens, collapse = ","), "Coordinate Projection")
                title(main = TITLE) }
-           points(data[, 1], data[, 2], pch = PCH, cex = CEX)
+           points(data[, 1], data[, 2], pch = PCH, cex = cex)
          }
   )
   if(haveParams && addEllipses)
@@ -837,7 +845,7 @@ randProj <- function(data, seeds = NULL,
 										 symbols = NULL, colors = NULL, scale = FALSE, 
                      xlim = NULL, ylim = NULL, 
                      xlab = NULL, ylab = NULL,
-                     CEX = 1, PCH = ".", 
+                     cex = 1, PCH = ".", 
                      main = FALSE, ...)
 {
   if(is.null(classification) && !is.null(z))
@@ -986,7 +994,7 @@ randProj <- function(data, seeds = NULL,
              {
                I <- classification == U[k]
                points(dataProj[I,1:2], pch = symbols[k], 
-                      col = colors[k], cex = CEX)
+                      col = colors[k], cex = cex)
              }
              if(main) 
              {
@@ -1011,17 +1019,17 @@ randProj <- function(data, seeds = NULL,
              good <- !ERRORS
              if(L > 4) 
              {
-               points(dataProj[good, 1:2], pch = 1, col = colors, cex = CEX)
-               points(dataProj[!good, 1:2], pch = 16, cex = CEX)
+               points(dataProj[good, 1:2], pch = 1, col = colors, cex = cex)
+               points(dataProj[!good, 1:2], pch = 16, cex = cex)
              } else 
              {
                for(k in 1:L) 
                {
                  K <- which(truth == CLASSES[k])
                  points(dataProj[K, 1:2], pch = symOpen[k], 
-                        col = colors[k], cex = CEX)
+                        col = colors[k], cex = cex)
                  if(any(I <- intersect(K, ERRORS)))
-                   points(dataProj[I,1:2], pch = symFill[k], cex = CEX)
+                   points(dataProj[I,1:2], pch = symFill[k], cex = cex)
                }
              }
            },
@@ -1038,13 +1046,13 @@ randProj <- function(data, seeds = NULL,
              breaks <- quantile(uncertainty, probs = sort(quantiles))
              I <- uncertainty <= breaks[1]
              points(dataProj[I, 1:2], 
-                    pch = 16, col = "gray75", cex = 0.5 * CEX)
+                    pch = 16, col = "gray75", cex = 0.5 * cex)
              I <- uncertainty <= breaks[2] & !I
              points(dataProj[I, 1:2],
-                    pch = 16, col = "gray50", cex = 1 * CEX)
+                    pch = 16, col = "gray50", cex = 1 * cex)
              I <- uncertainty > breaks[2] & !I
              points(dataProj[I, 1:2], 
-                    pch = 16, col = "black", cex = 1.5 * CEX)
+                    pch = 16, col = "black", cex = 1.5 * cex)
              fillEllipses <- FALSE
            },
            {
@@ -1056,7 +1064,7 @@ randProj <- function(data, seeds = NULL,
                TITLE <- paste("Random Projection: seed = ", seed)
                title(TITLE)
              }
-             points(dataProj[, 1:2], pch = PCH, cex = CEX)
+             points(dataProj[, 1:2], pch = PCH, cex = cex)
            }
     )
 

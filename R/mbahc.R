@@ -396,7 +396,7 @@ as.hclust.hc <- function(x, ...)
   # compute heights
   height <- attr(x, "deviance")
   if(is.null(height)) 
-    height <- hcCriterion(x, ...)
+    height <- hcCriterion(x, Gmax = nrow(HC), what = "deviance")
   # create 'hclust' object
   obj <- structure(list(merge = HCm, 
                         height = rev(height), 
@@ -439,12 +439,12 @@ hcCriterion <- function(hcPairs, Gmax, what = c("deviance", "loglik"), ...)
   what <- match.arg(what, choices = eval(formals(hcCriterion)$what))
   data <- as.matrix(attr(hcPairs, "data"))
   N <- nrow(data)
-  p <- ncol(data)
+  d <- ncol(data)
   model <- attr(hcPairs, "model")
-  m <- ifelse(missing(Gmax), ncol(hcPairs), as.integer(Gmax))
+  m <- as.integer(ifelse(missing(Gmax), N, Gmax))
   hc <- hclass(hcPairs, seq_len(m))
   Wdata <- var(data)*(N-1)
-  trWnp <- tr(Wdata)/(N*p)
+  trWnd <- tr(Wdata)/(N*d)
   # detS <- det(Wdata/N)
   loglik <- rep(as.double(NA), length = m)
   # loglik[1] <- mvn(model, data)$loglik
@@ -456,18 +456,20 @@ hcCriterion <- function(hcPairs, Gmax, what = c("deviance", "loglik"), ...)
                 # mu <- by(data, as.factor(hc[,k]), FUN = colMeans, 
                 #          simplify = FALSE)
                 W <- WSS(data, hc[,k])
-                sigmasq <- sum(apply(W, 3, tr), na.rm=TRUE)/(N*p)
-                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
-                             -0.5*sum(n*log(sigmasq^p + apply(W, 3, tr)/n + trWnp))
-           }
+                sigmasq <- sum(apply(W, 3, tr), na.rm=TRUE)/(N*d)
+                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
+                             -0.5*sum(n*log(sigmasq^d + 
+                                            apply(W, 3, tr)/n + trWnd))
+             }
           },
          "VII" =
          { for(k in 1:m)
               { n <- tabulate(hc[,k], k)
                 W <- WSS(data, hc[,k])
-                sigmasq <- apply(W, 3, tr)/(n*p)
-                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
-                             -0.5*sum(n*log(sigmasq^p + apply(W, 3, tr)/n + trWnp))
+                sigmasq <- apply(W, 3, tr)/(n*d)
+                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
+                             -0.5*sum(n*log(sigmasq^d + 
+                                            apply(W, 3, tr)/n + trWnd))
            }
          },
          "EEE" = 
@@ -475,8 +477,9 @@ hcCriterion <- function(hcPairs, Gmax, what = c("deviance", "loglik"), ...)
               { n <- tabulate(hc[,k], k)
                 W <- WSS(data, hc[,k])
                 Sigma <- apply(W, 1:2, sum)/N
-                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
-                             -0.5*sum(n*log(det(Sigma) + apply(W, 3, tr)/n + trWnp))
+                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
+                             -0.5*sum(n*log(det(Sigma) + 
+                                            apply(W, 3, tr)/n + trWnd))
            }
          },
          "VVV" = 
@@ -484,13 +487,15 @@ hcCriterion <- function(hcPairs, Gmax, what = c("deviance", "loglik"), ...)
               { n <- tabulate(hc[,k], k)
                 W <- WSS(data, hc[,k])
                 Sigma <- sapply(1:k, function(k) W[,,k]/n[k], simplify = "array")
-                loglik[k] <- -0.5*p*N*log(2*pi) -0.5*N*p +
+                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
                              -0.5*sum(n*log(apply(Sigma, 3, det) + 
-                                            apply(W, 3, tr)/n + trWnp))
+                                            apply(W, 3, tr)/n + trWnd))
            }
           }
   )              
-  deviance <- -2*(loglik - max(loglik, na.rm = TRUE))
+  
+  maxloglik <- -0.5*N*d*log(2*pi) -0.5*N*d -0.5*N*log(trWnd)
+  deviance <- -2*(loglik - maxloglik)
   # attr(hcPairs, "loglik") <- loglik
   # attr(hcPairs, "deviance") <- deviance
   # assign(hcPairsName, hcPairs, envir = parent.frame())

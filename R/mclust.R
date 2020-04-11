@@ -35,6 +35,7 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
   oldClass(Sumry) <- NULL
   
   Sumry$bic <- Sumry$bic[1]
+  Sumry$icl <- icl.Mclust(Sumry)
   Sumry$hypvol <- if(is.null(attr(BIC, "Vinv"))) 
                     as.double(NA) else 1/attr(BIC, "Vinv")
   # df <- (2*Sumry$loglik - Sumry$bic)/log(Sumry$n)
@@ -46,59 +47,11 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
   ans <- c(list(call = call, data = data, BIC = BIC, df = df), Sumry)
   orderedNames <- c("call", "data", "modelName", 
                     "n", "d", "G", 
-                    "BIC", "bic", "loglik", "df", 
+                    "BIC", "loglik", "df", "bic", "icl",
                     "hypvol", "parameters", "z", 
                     "classification", "uncertainty")
   structure(ans[orderedNames], class = "Mclust")  
 }
-
-# Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, 
-#                    control = emControl(), initialization = NULL, 
-#                    warn = mclust.options("warn"), x = NULL, 
-#                    verbose = interactive(), ...) 
-# {
-#   call <- match.call()
-#   data <- data.matrix(data)
-#   if(!is.null(x))
-#     if(!inherits(x, "mclustBIC"))
-#       stop("If provided, argument x must be an object of class 'mclustBIC'.")
-#   mc <- match.call(expand.dots = TRUE)
-#   mc[[1]] <- as.name("mclustBIC")
-#   mc[[2]] <- data
-#   Bic <- eval(mc, parent.frame())
-#   G <- attr(Bic, "G")
-#   modelNames <- attr(Bic, "modelNames")
-#   Sumry <- summary(Bic, data, G = G, modelNames = modelNames)
-#   if(length(Sumry)==0) return()
-#   if(!(length(G) == 1)) 
-#     { bestG <- length(tabulate(Sumry$cl))
-#       if(warn) 
-#         { if(bestG == max(G) & warn) 
-#              warning("optimal number of clusters occurs at max choice")
-#           else if(bestG == min(G) & warn) 
-#                warning("optimal number of clusters occurs at min choice")
-#         }
-#   }
-#   oldClass(Sumry) <- NULL
-#   
-#   Sumry$bic <- Sumry$bic[1]
-#   Sumry$hypvol <- if(is.null(attr(Bic, "Vinv"))) 
-#                     as.double(NA) else 1/attr(Bic, "Vinv")
-#   # df <- (2*Sumry$loglik - Sumry$bic)/log(Sumry$n)
-#   df <- if(is.null(Sumry$modelName)) NULL 
-#         else with(Sumry, nMclustParams(modelName, d, G, 
-#                                        noise = (!is.na(hypvol)),
-#                                        equalPro = attr(Sumry, "control")$equalPro))
-# 
-#   ans <- c(list(call = call, data = data, BIC = Bic, df = df), Sumry)
-#   orderedNames <- c("call", "data", "modelName", 
-#                     "n", "d", "G", 
-#                     "BIC", "bic", "loglik", "df", 
-#                     "hypvol", "parameters", "z", 
-#                     "classification", "uncertainty")
-#   structure(ans[orderedNames], class = "Mclust")  
-# }
-
 
 print.Mclust <- function(x, digits = getOption("digits"), ...)
 {
@@ -116,8 +69,10 @@ print.Mclust <- function(x, digits = getOption("digits"), ...)
   invisible(x)
 }
 
-summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, ...)
+summary.Mclust <- function(object, classification = TRUE, parameters = FALSE, ...)
 {
+  classification <- as.logical(classification)
+  parameters <- as.logical(parameters)
   # collect info
   G  <- object$G
   noise <- if(is.na(object$hypvol)) FALSE else object$hypvol
@@ -133,25 +88,31 @@ summary.Mclust <- function(object, parameters = FALSE, classification = FALSE, .
   if(is.null(object$density))
   {
     title <- paste("Gaussian finite mixture model fitted by EM algorithm")
-    classification <- factor(object$classification, 
-                             levels = { l <- seq_len(object$G)
-                                        if(is.numeric(noise)) l <- c(l,0) 
-                                        l })
+    printClassification <- classification
+    classification <- if(printClassification)
+    {
+      factor(object$classification, 
+             levels = { l <- seq_len(object$G)
+                        if(is.numeric(noise)) l <- c(l,0) 
+                        l })
+    } else NULL
   } else
   {
     title <- paste("Density estimation via Gaussian finite mixture modeling")
+    printClassification <- FALSE
     classification <- NULL
   }           
   #
   obj <- list(title = title, n = object$n, d = object$d, 
               G = G, modelName = object$modelName, 
               loglik = object$loglik, df = object$df, 
-              bic = object$bic, icl = icl(object),
+              bic = object$bic, icl = object$icl,
               pro = pro, mean = mean, variance = sigma,
               noise = noise,
               prior = attr(object$BIC, "prior"), 
-              classification = classification,
-              printParameters = parameters)
+              printParameters = parameters,
+              printClassification = printClassification,
+              classification = classification)
   class(obj) <- "summary.Mclust"
   return(obj)
 }
@@ -189,7 +150,7 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
                     row.names = "", check.names = FALSE)
   print(tab, digits = digits)
   #
-  if(!is.null(x$classification))
+  if(x$printClassification)
   {
     cat("\nClustering table:")
     print(table(x$classification), digits = digits)
@@ -218,7 +179,7 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
 
 plot.Mclust <- function(x, 
                         what = c("BIC", "classification", "uncertainty", "density"), 
-                        dimens = NULL, xlab = NULL, ylab = NULL, ylim = NULL,  
+                        dimens = NULL, xlab = NULL, ylab = NULL,  
                         addEllipses = TRUE, main = FALSE,
                         ...) 
 {
@@ -240,7 +201,7 @@ plot.Mclust <- function(x,
   oldpar <- par(no.readonly = TRUE)
 
   plot.Mclust.bic <- function(...)
-    plot.mclustBIC(object$BIC, xlab = xlab, ylim = ylim, ...)
+    plot.mclustBIC(object$BIC, xlab = xlab, ...)
 
   plot.Mclust.classification <- function(...)
   {  
@@ -1285,17 +1246,17 @@ print.summary.mclustBIC <- function(x, digits = getOption("digits"), ...)
 
 plot.mclustBIC <- function(x, G = NULL, modelNames = NULL, 
                            symbols = NULL, colors = NULL, 
-                           xlab = NULL, ylab = "BIC", ylim = NULL, 
+                           xlab = NULL, ylab = "BIC",
                            legendArgs = list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01), 
                            ...)
 {
-  
+  args <- list(...)
   if(is.null(xlab)) xlab <- "Number of components"
-  fill <- FALSE
   subset <- !is.null(attr(x, "initialization")$subset)
   noise <- !is.null(attr(x, "initialization")$noise)
   ret <- attr(x, "returnCodes") == -3
-  legendArgsDefault <- list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01)
+  # legendArgsDefault <- list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01)
+  legendArgsDefault <- eval(formals(plot.mclustBIC)$legendArgs)
   legendArgs <- append(as.list(legendArgs), legendArgsDefault)
   legendArgs <- legendArgs[!duplicated(names(legendArgs))]
 
@@ -1336,8 +1297,9 @@ plot.mclustBIC <- function(x, G = NULL, modelNames = NULL,
     }
   }
   x <- x[,modelNames, drop = FALSE]
-  if(is.null(ylim))
-    ylim <- range(as.vector(x[!is.na(x)]))
+  ylim <- if(is.null(args$ylim)) 
+          range(as.vector(x[!is.na(x)])) else args$ylim
+  
   matplot(as.numeric(dnx[[1]]), x, type = "b", 
           xaxt = "n", xlim = range(G), ylim = ylim,
           pch = symbols, col = colors, lty = 1,
@@ -2960,8 +2922,8 @@ meEEV <- function(data, z, prior = NULL, control = emControl(),
   info <- c(iterations = its, error = err)
   dimnames(z) <- list(dimnames(data)[[1]], NULL)
   dimnames(mu) <- list(dimnames(data)[[2]], NULL)
-  dimnames(O) <- list(dimnames(data)[[2]], dimnames(data)[[2]], 
-                      NULL)
+  dimnames(sigma) <- dimnames(O) <- 
+	    list(dimnames(data)[[2]], dimnames(data)[[2]], NULL)
   ## Sigma = scale * O %*% diag(shape) %*% t(O)
   variance <- list(modelName = "EEV", d = p, G = G, sigma = sigma,
                    scale = scale, shape = shape, orientation = O) 

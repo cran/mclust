@@ -14,7 +14,7 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
              addEllipses = TRUE, fillEllipses = mclust.options("fillEllipses"),
              symbols = NULL, colors = NULL, 
              xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
-             scale = FALSE, CEX  = 1, PCH = ".",
+             scale = FALSE, cex  = 1, PCH = ".",
              main = FALSE, swapAxes = FALSE, \dots) 
 }
 \arguments{
@@ -111,7 +111,7 @@ mclust2Dplot(data, parameters = NULL, z = NULL,
     thus preserve the shape of the distribution.
     Default: \code{scale=FALSE} 
   }
-  \item{CEX}{
+  \item{cex}{
     An argument specifying the size of the plotting symbols. 
     The default value is 1.
   }

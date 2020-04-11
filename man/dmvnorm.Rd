@@ -4,7 +4,7 @@
 \title{Density of multivariate Gaussian distribution}
 
 \description{
-Efficiently computes the densities of observations for a generic multivariate Gaussian distribution
+Efficiently computes the density of observations for a generic multivariate Gaussian distribution.
 }
 
 \usage{
@@ -29,9 +29,9 @@ dmvnorm(data, mean, sigma, log = FALSE)
   }
 }
 \value{
-  A numeric vector whose \emph{i}th component is the density of the
-  \emph{ith} observation in \code{data} in the MVN mixture specified 
-  by \code{parameters}.
+  A numeric vector whose \emph{i}th element gives the density of the
+  \emph{ith} observation in \code{data} for the multivariate Gaussian 
+	distribution with parameters \code{mean} and \code{sigma}.
 }
 
 \seealso{

@@ -10,9 +10,10 @@ Observations in different classes are represented by different colors and symbol
 }
 
 \usage{
-clPairs(data, classification, symbols, colors, 
+clPairs(data, classification, 
+        symbols = NULL, colors = NULL, cex = 1,
         labels = dimnames(data)[[2]], cex.labels = 1.5, 
-        gap = 0.2, \dots)
+        gap = 0.2, grid = FALSE, \dots)
 
 clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
 }
@@ -41,15 +42,21 @@ clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
     observations (the order used by the function \code{unique}). 
     The default is given by \code{mclust.options("classPlotColors")}.
   }
+  \item{cex}{
+    A numerical value specifying the size of the plotting symbols.
+  }
   \item{labels}{
     A vector of character strings for labelling the variables. The default
     is to use the column dimension names of \code{data}.
   }
   \item{cex.labels}{
-    An argument specifying the size of the text labels.
+    A numerical value specifying the size of the text labels.
   }
   \item{gap}{
     An argument specifying the distance between subplots (see \code{\link{pairs}}).
+  }
+  \item{grid}{
+    A logical specifying if grid lines should be added to panels (see \code{\link{grid}}).
   }
   \item{x,y}{
     The x and y co-ordinates with respect to a graphic device having 

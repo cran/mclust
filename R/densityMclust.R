@@ -460,6 +460,7 @@ cdfMclust <- function(object, data, ngrid = 100, ...)
   return(out)
 }
 
+# old version using spline approx
 quantileMclust <- function(object, p, ...)
 {
 # Calculate the quantile of a univariate mixture corresponding to cdf equal to p 
@@ -470,11 +471,46 @@ quantileMclust <- function(object, p, ...)
 
   if(!any(class(object) == "densityMclust"))
     { stop("first argument must be an object of class 'densityMclust'") }
-  
   eval.points <- extendrange(object$data, f = 1)
   eval.points <- seq(eval.points[1], eval.points[2], length.out = 10000) 
   cdf <- cdfMclust(object, data = eval.points)
-  q <- spline(cdf$y, cdf$x, method = "fmm", xmin = 0, xmax = 1, xout = p)$y
+  dup <- duplicated(cdf$y)
+  q <- spline(cdf$y[!dup], cdf$x[!dup], method = "fmm", 
+              xmin = 0, xmax = 1, xout = p)$y
+  q[ p < 0 | p > 1] <- NaN
+  q[ p == 0 ] <- -Inf
+  q[ p == 1 ] <- Inf
+  return(q)  
+}
+
+quantileMclust <- function(object, p, ...)
+{
+# Calculate the quantile of a univariate mixture corresponding to cdf
+# equal to p using bisection line search method.
+#
+# Arguments:
+# object = a 'densityMclust' object
+# p = vector of probabilities (0 <= p <= 1)
+
+  stopifnot(inherits(object, "densityMclust"))
+  if(object$d != 1)
+    { stop("quantile function only available for 1-dimensional data") }
+  p <- as.vector(p)
+  m <- object$parameters$mean
+  s <- sqrt(object$parameters$variance$sigmasq)
+  if(object$modelName == "E") s <- rep(s, object$G)
+  r <- matrix(as.double(NA), nrow = length(p), ncol = object$G)
+  for(g in 1:object$G)
+  {
+    r[,g] <- qnorm(p, mean = m[g], sd = s[g])
+  }
+  if(object$G == 1) return(as.vector(r))
+  q <- rep(as.double(NA), length(p))
+  for(i in 1:length(p))
+  {
+    F <- function(x) cdfMclust(object, x)$y - p[i]
+    q[i] <- uniroot(F, interval = range(r[i,]), tol = sqrt(.Machine$double.eps))$root
+  }
   q[ p < 0 | p > 1] <- NaN
   q[ p == 0 ] <- -Inf
   q[ p == 1 ] <- Inf

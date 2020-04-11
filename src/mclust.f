@@ -558,11 +558,15 @@ c     double precision   x(n,p), u(p)
       double precision        zero, one
       parameter              (zero = 0.d0, one = 1.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
 c form mean
       fac = one / sqrt(dble(n))
-      call dcopy( p, zero, 0, u, 1)
+c     call dcopy( p, zero, 0, u, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, u, 1)
       do i = 1, n
         call daxpy( p, fac, x(i,1), n, u, 1)
       end do
@@ -596,12 +600,12 @@ c     integer            iwork(liwork)
 c     double precision   x(n,p), u(p), v(p,p), w(p,p), work(lwork),
       double precision   x(n,*), u(*), v(p,*), w(p,p), work(*)
 
-      integer                 i, j
+      integer            i, j
 
-      double precision        temp, dummy, cmin, cmax
+      double precision   temp, cmin, cmax
 
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
+      double precision   zero, one
+      parameter         (zero = 0.d0, one = 1.d0)
 
       double precision    EPSMAX
       parameter          (EPSMAX = 2.2204460492503131d-16)
@@ -609,11 +613,15 @@ c     double precision   x(n,p), u(p), v(p,p), w(p,p), work(lwork),
       double precision    FLMAX
       parameter          (FLMAX = 1.7976931348623157D+308)
 
+      double precision   dummy(1)
+
 c------------------------------------------------------------------------------
 
 c form mean
       temp = one / dble(n)
-      call dcopy( p, zero, 0, u, 1)
+c     call dcopy( p, zero, 0, u, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, u, 1)
       do i = 1, n
         call daxpy( p, temp, x(i,1), n, u, 1)
       end do
@@ -987,6 +995,8 @@ c     double precision   x(n), mu(G), pro(G[+1]), z(n,G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (sigsq .le. zero) then
@@ -1016,8 +1026,9 @@ c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsq)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -1435,6 +1446,7 @@ c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
 
 c------------------------------------------------------------------------------
 
@@ -1445,7 +1457,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( nz, one/dble(nz), 0, pro, 1)
+          dummy(1) = one/dble(nz)
+          call dcopy( nz, dummy, 0, pro, 1)
+        end if
       end if
  
       eps   = max(eps,zero)
@@ -1515,11 +1531,15 @@ c     FLMAX = d1mach(2)
          
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -1627,6 +1647,8 @@ c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
       double precision        dlngam
       external                dlngam
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -1636,7 +1658,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( nz, one/dble(nz), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( nz, one/dble(nz), 0, pro, 1)
+          dummy(1) = one/dble(nz)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
  
       eps    = max(eps,zero)
@@ -1713,11 +1739,15 @@ c     end if
          
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -1990,8 +2020,10 @@ c     double precision   mu(p,G), Sigma(p,p), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-      double precision        ddot
+      double precision        ddot 
       external                ddot
+
+      double precision        dummy(1)
 
 c------------------------------------------------------------------------------
 
@@ -2051,8 +2083,9 @@ c         z(i,k) = prok*exp(-(const+temp))
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -2191,6 +2224,8 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -2200,7 +2235,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       piterm = dble(p)*pi2log/two
@@ -2219,8 +2258,10 @@ c     FLMAX  = d1mach(2)
 
 c zero out the lower triangle
       i = 1
+      dummy(1) = zero
       do j = 2, p
-        call dcopy( p-i, zero, 0, U(j,i), 1)
+c       call dcopy( p-i, zero, 0, U(j,i), 1)
+        call dcopy( p-i, dummy, 0, U(j,i), 1)
         i = j
       end do
 
@@ -2230,14 +2271,18 @@ c zero out the lower triangle
 
       iter = iter + 1
 
+      dummy(1) = zero
       do j = 1, p
-        call dcopy( j, zero, 0, U(1,j), 1)
+c       call dcopy( j, zero, 0, U(1,j), 1)
+        call dcopy( j, dummy, 0, U(1,j), 1)
       end do
 
       sumz = zero
       zsum = one
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         sum = zero
         do i = 1, n
           temp = z(i,k)
@@ -2297,11 +2342,15 @@ c condition number
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if   
 
       end if
@@ -2431,6 +2480,8 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        ddot, dlngam
       external                ddot, dlngam
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero 
@@ -2442,7 +2493,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       piterm = dble(p)*pi2log/two
@@ -2474,9 +2529,12 @@ c copy pscale to U
 
       sumz = zero
       zsum = one
+      
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -2544,11 +2602,15 @@ c copy pscale to U
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if   
       end if
 
@@ -2703,10 +2765,14 @@ c  pro     double    (output) (G) mixing proportions (ignore result if equal).
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
 
+c-----------------------------------------------------------------------------
+
+      dummy(1) = zero
       do j = 1, p
-        call dcopy( p, zero, 0, U(1,j), 1)
+c       call dcopy p, zero, 0, U(1,j), 1)
+        call dcopy( p, dummy, 0, U(1,j), 1)
       end do
 
       sumz = zero
@@ -2714,7 +2780,9 @@ c------------------------------------------------------------------------------
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -2739,7 +2807,9 @@ c------------------------------------------------------------------------------
           end do
         else 
           zsum = zero
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -2786,6 +2856,8 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .le. zero) pshrnk = zero
@@ -2799,7 +2871,9 @@ c------------------------------------------------------------------------------
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -2838,7 +2912,9 @@ c------------------------------------------------------------------------------
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else
           zsum = zero 
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -2895,6 +2971,8 @@ c     double precision   mu(p,G), shape(p), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (scale .le. zero) then
@@ -2939,8 +3017,9 @@ c         z(i,k) = prok*exp(-(const+sum)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -3034,6 +3113,8 @@ c     double precision    mu(p,G), shape(p), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -3043,7 +3124,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps   = max(eps,zero)
@@ -3062,13 +3147,17 @@ c     FLMAX = d1mach(2)
 
       iter  = iter + 1
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       sumz = zero
       zsum = one
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         sum = zero
         do i = 1, n
           temp   = z(i,k)
@@ -3162,11 +3251,15 @@ c     FLMAX = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -3276,6 +3369,8 @@ c     double precision    mu(p,G), shape(p), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -3287,7 +3382,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps   = max(eps,zero)
@@ -3306,14 +3405,18 @@ c     FLMAX = d1mach(2)
 
       iter  = iter + 1
 
-      call dcopy( p, pscale, 0, shape, 1)
+c     call dcopy( p, pscale, 0, shape, 1)
+      dummy(1) = pscale
+      call dcopy( p, dummy, 0, shape, 1)
 
       sumz  = zero
       zsum  = one
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -3413,11 +3516,15 @@ c     FLMAX = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -3512,13 +3619,17 @@ c     double precision   mu(p,G), scale, shape(p), pro(G)
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       sumz = zero
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -3530,11 +3641,15 @@ c------------------------------------------------------------------------------
         if (sum .gt. one .or. one .lt. sum*FLMAX) then
           call dscal( p, (one/sum), mu(1,k), 1)
          else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       do j = 1, p
         sum = zero
@@ -3566,7 +3681,9 @@ c------------------------------------------------------------------------------
   
       if (temp .gt. BIGLOG) then
         scale = FLMAX
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         return
       end if 
   
@@ -3578,14 +3695,18 @@ c------------------------------------------------------------------------------
 
       if (sumz .lt. one .and. temp .ge. sumz*FLMAX) then
         scale = FLMAX
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         return
       end if
   
       scale = temp/sumz
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         return
       end if
 
@@ -3633,17 +3754,23 @@ c     double precision    mu(p,G), scale, shape(p), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
 
-      call dcopy( p, pscale, 0, shape, 1)
+c     call dcopy( p, pscale, 0, shape, 1)
+      dummy(1) = pscale
+      call dcopy( p, dummy, 0, shape, 1)
 
       sumz  = zero
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -3667,7 +3794,9 @@ c------------------------------------------------------------------------------
             shape(j) = shape(j) + const*(temp*temp)
           end do
         else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -3686,7 +3815,9 @@ c------------------------------------------------------------------------------
 
       if (temp .ge. BIGLOG) then
         scale = FLMAX
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         return
       end if 
 
@@ -3701,7 +3832,9 @@ c------------------------------------------------------------------------------
       scale = smin/term
 
       if (smin .lt. one .and. one .ge. smin*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         return
       end if
 
@@ -3750,6 +3883,8 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
 
       double precision        ddot
       external                ddot
+
+      double precision        dummy(1)
 
 c------------------------------------------------------------------------------
 
@@ -3801,8 +3936,9 @@ c         z(i,k) = prok*exp(-(const+temp)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -3875,7 +4011,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
 
       integer                 nz, p1, iter, i, j, k, l, j1, info
 
-      double precision        dnp, dummy, temp, term, rteps
+      double precision        dnp, temp, term, rteps
       double precision        sumz, sum, smin, smax, cs, sn
       double precision        const, rc, hood, hold, err
       double precision        prok, tmin, tmax, ViLog, zsum
@@ -3895,6 +4031,8 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -3904,7 +4042,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       p1     = p + 1
@@ -3927,7 +4069,9 @@ c     FLMAX  = d1mach(2)
 
       iter = iter + 1
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       sumz = zero
       zsum = one
@@ -3935,9 +4079,12 @@ c     FLMAX  = d1mach(2)
       l = 0
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
+c         call dcopy( p, zero, 0, O(1,j,k), 1)
+          call dcopy( p, dummy, 0, O(1,j,k), 1)
         end do
         sum = zero
         do i = 1, n
@@ -3997,11 +4144,15 @@ c       w(1)  = FLMAX
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -4183,7 +4334,7 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
 
       integer                 nz, p1, iter, i, j, k, l, j1, info
 
-      double precision        dnp, dummy, temp, term, rteps
+      double precision        dnp, temp, term, rteps
       double precision        sumz, sum, smin, smax, cs, sn
       double precision        const, rc, hood, hold, err
       double precision        prok, tmin, tmax, ViLog, zsum
@@ -4203,6 +4354,8 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -4214,7 +4367,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       p1    = p + 1
@@ -4236,7 +4393,9 @@ c------------------------------------------------------------------------------
 
       iter  = iter + 1
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       zsum  = one
       sumz  = zero
@@ -4244,7 +4403,9 @@ c------------------------------------------------------------------------------
       l     = 0
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
           call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
         end do
@@ -4320,11 +4481,15 @@ c       w(1)  = FLMAX
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -4496,7 +4661,7 @@ c     double precision   shape(p), O(p,p,G), mu(p,G), pro(G)
 
       integer                 i, j, k, j1, l, info
 
-      double precision        dummy, sum, sumz, temp
+      double precision        sum, sumz, temp
       double precision        cs, sn, smin, smax
 
       double precision        zero, one
@@ -4511,9 +4676,13 @@ c     double precision   shape(p), O(p,p,G), mu(p,G), pro(G)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       l     = 0
 
@@ -4521,9 +4690,12 @@ c------------------------------------------------------------------------------
       scale = zero
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
+c         call dcopy( p, zero, 0, O(1,j,k), 1)
+          call dcopy( p, dummy, 0, O(1,j,k), 1)
         end do
         sum = zero
         do i = 1, n
@@ -4559,7 +4731,9 @@ c------------------------------------------------------------------------------
           end if
         else
           scale = FLMAX          
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -4570,7 +4744,9 @@ c------------------------------------------------------------------------------
         else
           scale = -FLMAX
         end if
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if
 
@@ -4591,7 +4767,9 @@ c------------------------------------------------------------------------------
 
       if (temp .gt. BIGLOG) then
         scale = FLMAX
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if 
 
@@ -4603,14 +4781,18 @@ c------------------------------------------------------------------------------
 
       if (temp .ge. sumz*FLMAX) then
         scale = FLMAX 
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if
 
       scale = temp/sumz
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if
 
@@ -4645,7 +4827,7 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G)
 
       integer            p1, i, j, k, l, j1, info
 
-      double precision   dummy, temp, term, const
+      double precision   temp, term, const
       double precision   sumz, sum, smin, smax, cs, sn
 
       double precision   zero, one, two
@@ -4660,13 +4842,17 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G)
       double precision   SMALOG
       parameter         (SMALOG = -708.d0)
 
+      double precision   dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .gt. zero) pshrnk = zero
 
       p1     = p + 1
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       l      = 0
 
@@ -4674,7 +4860,9 @@ c------------------------------------------------------------------------------
       scale  = zero
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
           call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
         end do
@@ -4726,7 +4914,9 @@ c------------------------------------------------------------------------------
           end if
         else
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -4737,7 +4927,9 @@ c------------------------------------------------------------------------------
         else
           scale = -FLMAX
         end if
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if
 
@@ -4758,7 +4950,9 @@ c------------------------------------------------------------------------------
 
       if (temp .gt. BIGLOG) then
         scale = FLMAX
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1) 
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if
 
@@ -4773,7 +4967,9 @@ c------------------------------------------------------------------------------
       scale = temp/(term + sumz)
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1) 
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1) 
         return
       end if
 
@@ -4814,7 +5010,9 @@ c     double precision   x(n,p), mu(p,G), pro(G[+1]), z(n,G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (sigsq .le. zero) then
         hood = FLMAX
@@ -4845,8 +5043,9 @@ c         z(i,k) = prok*exp(-(const+sum/sigsq)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -5250,6 +5449,8 @@ c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       double precision    SMALOG
       parameter          (SMALOG = -708.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -5261,7 +5462,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps   = max(eps,zero)
@@ -5287,7 +5492,9 @@ c     FLMAX = d1mach(2)
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -5310,7 +5517,9 @@ c     FLMAX = d1mach(2)
           end do
         else
           sigsq = FLMAX 
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -5336,11 +5545,15 @@ c     FLMAX = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -5449,6 +5662,8 @@ c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       double precision    ddot, dlngam
       external            ddot, dlngam
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -5460,7 +5675,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps    = max(eps,zero)
@@ -5488,7 +5707,9 @@ c     FLMAX  = d1mach(2)
 
       do k = 1, G
         sumk = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumk = sumk + temp
@@ -5538,11 +5759,15 @@ c     FLMAX  = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -5655,6 +5880,8 @@ c     double precision   x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
       double precision        RTMIN
       parameter              (RTMIN = 1.49166814624d-154)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       sumz  = zero
@@ -5662,7 +5889,9 @@ c------------------------------------------------------------------------------
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -5685,7 +5914,9 @@ c------------------------------------------------------------------------------
           end if
         else
           sigsq = FLMAX  
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if      
       end do
 
@@ -5731,6 +5962,8 @@ c     double precision    x(n,p), z(n,G), mu(p,G), sigsq, pro(G)
       double precision    ddot
       external            ddot
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -5745,7 +5978,9 @@ c------------------------------------------------------------------------------
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -5774,7 +6009,9 @@ c------------------------------------------------------------------------------
           end if
         else
           sigsq = FLMAX  
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -5830,6 +6067,8 @@ c     double precision   mu(p,G), shape(p,G), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (scale .le. zero) then
@@ -5883,8 +6122,9 @@ c         z(i,k) = prok*exp(-(const+sum)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -5978,6 +6218,8 @@ c     double precision    mu(p,G), shape(p,G), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -5987,7 +6229,12 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+c       if (EQPRO) call dscal( G, one/dble(G), pro, 1)  wrong?
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps   = max(eps,zero)
@@ -6010,9 +6257,12 @@ c     FLMAX = d1mach(2)
       zsum  = one
        
       do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
+        dummy(1) = zero
+c       call dcopy( p, zero, 0, shape(1,k), 1)
+        call dcopy( p, dummy, 0, shape(1,k), 1)
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -6033,8 +6283,11 @@ c     FLMAX = d1mach(2)
             shape(j,k) = shape(j,k) + sum
           end do
         else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         end if
       end do
 
@@ -6058,7 +6311,9 @@ c     FLMAX = d1mach(2)
           temp = sum/dble(p)
           if (temp .gt. BIGLOG) then
             scale = FLMAX 
-            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape(1,k), 1)
             tol   = err
             eps   = FLMAX
             maxi  = iter
@@ -6073,7 +6328,9 @@ c     FLMAX = d1mach(2)
           epsmin = min(temp,epsmin)
           if (temp .lt. eps) then
             scale = FLMAX 
-            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape(1,k), 1)
             tol   = err
             eps   = FLMAX
             maxi  = iter
@@ -6092,11 +6349,15 @@ c     FLMAX = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
       else
         scale = scale /dble(n)
@@ -6226,6 +6487,8 @@ c     double precision    mu(p,G), shape(p,G), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -6237,7 +6500,12 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+c       if (EQPRO) call dscal( G, one/dble(G), pro, 1)  wrong?
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps   = max(eps,zero)
@@ -6260,9 +6528,13 @@ c     FLMAX = d1mach(2)
       zsum  = one
 
       do k = 1, G
-        call dcopy( p, pscale, 0, shape(1,k), 1)
+c       call dcopy( p, pscale, 0, shape(1,k), 1)
+        dummy(1) = pscale
+        call dcopy( p, dummy, 0, shape(1,k), 1)
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -6287,8 +6559,11 @@ c     FLMAX = d1mach(2)
           call dscal( p, sum/term, mu(1,k), 1)
           call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
         else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         end if 
       end do
 
@@ -6312,7 +6587,9 @@ c     FLMAX = d1mach(2)
           temp = sum/dble(p)
           if (temp .gt. BIGLOG) then
             scale = FLMAX 
-            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape(1,k), 1)
             tol   = err
             eps   = FLMAX
             maxi  = iter
@@ -6327,7 +6604,9 @@ c     FLMAX = d1mach(2)
           epsmin = min(temp,epsmin)
           if (temp .lt. eps) then
             scale = FLMAX 
-            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape(1,k), 1)
             tol   = err
             eps   = FLMAX
             maxi  = iter
@@ -6355,11 +6634,15 @@ c     FLMAX = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
       end if
 
@@ -6473,15 +6756,20 @@ c     double precision   mu(p,G), scale, shape(p,G), pro(G)
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       scale = zero
       sumz  = zero
 
       do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
+        dummy(1) = zero
+c       call dcopy( p, zero, 0, shape(1,k), 1)
+        call dcopy( p, dummy, 0, shape(1,k), 1)
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -6494,8 +6782,11 @@ c------------------------------------------------------------------------------
           call dscal( p, (one/sum), mu(1,k), 1)
         else
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         end if
       end do
 
@@ -6522,7 +6813,9 @@ c pro(k) now contains n_k
 
         if (smin .le. zero) then
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100 
         end if
 
@@ -6534,7 +6827,9 @@ c pro(k) now contains n_k
 
         if (temp .ge. BIGLOG) then
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
  
@@ -6548,7 +6843,9 @@ c pro(k) now contains n_k
      
         if (temp .lt. one .and. one .ge. temp*FLMAX) then
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
@@ -6607,6 +6904,8 @@ c     double precision    mu(p,G), scale, shape(p,G), pro(G)
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -6615,9 +6914,13 @@ c------------------------------------------------------------------------------
       scale = zero
 
       do k = 1, G
-        call dcopy( p, pscale, 0, shape(1,k), 1)
+c       call dcopy( p, pscale, 0, shape(1,k), 1)
+        dummy(1) = pscale
+        call dcopy( p, dummy, 0, shape(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -6642,8 +6945,11 @@ c------------------------------------------------------------------------------
           call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
         else
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         end if 
       end do
 
@@ -6655,7 +6961,9 @@ c------------------------------------------------------------------------------
         call sgnrng(p, shape(1,k), 1, smin, smax)
 
         if (smin .le. zero) then
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
@@ -6667,7 +6975,9 @@ c------------------------------------------------------------------------------
 
         if (temp .ge. BIGLOG) then
           scale = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
@@ -6680,7 +6990,9 @@ c------------------------------------------------------------------------------
         if (scale .ne. FLMAX) scale  = scale + temp
 
         if (temp .le. one .and. one .ge. temp*FLMAX) then
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
  
@@ -6734,6 +7046,8 @@ c     double precision   x(n), mu(G), sigsq(G), pro(G[+1]), z(n,G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       call sgnrng( G, sigsq, 1, sigmin, temp)  
@@ -6765,8 +7079,9 @@ c         z(i,k) = prok*exp(-(const+(temp*temp)/sigsqk)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -7414,6 +7729,8 @@ c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -7423,7 +7740,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps    = max(eps,zero)
@@ -7484,11 +7805,15 @@ c     FLMAX  = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
         
       end if
@@ -7607,6 +7932,8 @@ c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
       double precision        dlngam
       external                dlngam
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -7616,7 +7943,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps    = max(eps,zero)
@@ -7682,11 +8013,15 @@ c     FLMAX  = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
         
       end if
@@ -7950,7 +8285,9 @@ c     double precision   mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       call sgnrng( G, scale, 1, smin, smax)
 
@@ -8005,8 +8342,9 @@ c         z(i,k) = prok*exp(-(const+sum/scalek)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -8103,6 +8441,8 @@ c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision    SMALOG, BIGLOG 
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       maxi1 = maxi(1)
@@ -8135,9 +8475,11 @@ c     FLMAX = d1mach(2)
 
 c start with shape and scale equal to 1
 
-      call dcopy(p, one, 0, shape, 1) 
-
-      call dcopy(G, one, 0, scale, 1) 
+c     call dcopy(p, one, 0, shape, 1) 
+c     call dcopy(G, one, 0, scale, 1) 
+      dummy(1) = one
+      call dcopy(p, dummy, 0, shape, 1) 
+      call dcopy(G, dummy, 0, scale, 1) 
 
       iter  = 0
 
@@ -8149,7 +8491,9 @@ c start with shape and scale equal to 1
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -8305,14 +8649,22 @@ c shape estimate
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
       else
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+c       if (EQPRO) call dscal( G, one/dble(G), pro, 1) wrong?
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if 
       end if
 
       call sgnrng( G, scale, 1, smin, smax)
@@ -8443,6 +8795,8 @@ c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -8477,9 +8831,11 @@ c     FLMAX = d1mach(2)
 
 c start with shape and scale equal to 1
 
-      call dcopy(p, one, 0, shape, 1) 
-
-      call dcopy(G, one, 0, scale, 1) 
+c     call dcopy(p, one, 0, shape, 1) 
+c     call dcopy(G, one, 0, scale, 1)
+      dummy(1) = one
+      call dcopy(p, dummy, 0, shape, 1) 
+      call dcopy(G, dummy, 0, scale, 1) 
 
       iter  = 0
 
@@ -8491,7 +8847,9 @@ c start with shape and scale equal to 1
 
       do k = 1, G
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sumz   = sumz + temp
@@ -8654,14 +9012,22 @@ c shape estimate
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
       else
-        if (EQPRO) call dscal( G, one/dble(G), pro, 1)
+c       if (EQPRO) call dscal( G, one/dble(G), pro, 1) wrong?
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 1, pro, 1)
+        end if
       end if
 
       call sgnrng( G, scale, 1, smin, smax)
@@ -8778,6 +9144,8 @@ c     double precision   mu(p,G), scale(G), shape(p), pro(G)
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       tol = max(tol,zero)
@@ -8787,7 +9155,9 @@ c start with the equal volume and shape estimate
 
       do k = 1, G
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sum  = sum + temp
@@ -8809,22 +9179,29 @@ c start with the equal volume and shape estimate
           end do
         else
           err = -FLMAX
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
       if (err .lt. zero) then
         call dscal( G, one/dble(n), pro, 1)
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         tol  = FLMAX
         maxi = 0
         return
       end if
 
-      call dcopy( p, one, 0, shape, 1)
-
-      call dcopy( G, one, 0, scale, 1)
+c     call dcopy( p, one, 0, shape, 1)
+c     call dcopy( G, one, 0, scale, 1)
+      dummy(1) = one
+      call dcopy( p, dummy, 0, shape, 1)
+      call dcopy( G, dummy, 0, scale, 1)
 
       call dscal( G, dble(p), pro, 1)
 
@@ -8891,8 +9268,11 @@ c shape estimate
       temp = sum/dble(p)
 
       if (temp .gt. BIGLOG) then
-        call dcopy( G, FLMAX, 0, scale, 1)
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( G, dummy, 0, scale, 1)
+        call dcopy( p, dummy, 0, shape, 1)
         goto 200 
       end if 
   
@@ -8903,7 +9283,9 @@ c shape estimate
       end if 
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         goto 200
       end if
 
@@ -8970,6 +9352,8 @@ c     double precision    mu(p,G), scale(G), shape(p), pro(G)
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
+      double precision    dummy(1)
+
 c------------------------------------------------------------------------------
     
       tol   = max(tol,zero)
@@ -8980,7 +9364,9 @@ c start with shape and scale equal to 1
 
       do k = 1, G
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -9005,22 +9391,29 @@ c start with shape and scale equal to 1
           call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1) 
         else
           err = -FLMAX
-          call dcopy( p, FLMAX, 0,  mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0,  mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0,  mu(1,k), 1)
         end if
       end do
 
       if (err .lt. zero) then
         call dscal( G, one/dble(n), pro, 1)
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         tol  = FLMAX
         maxi = 0
         return
       end if
 
-      call dcopy(p, one, 0, shape, 1) 
-
-      call dcopy(G, one, 0, scale, 1) 
+c     call dcopy(p, one, 0, shape, 1) 
+c     call dcopy(G, one, 0, scale, 1)
+      dummy(1) = one
+      call dcopy(p, dummy, 0, shape, 1) 
+      call dcopy(G, dummy, 0, scale, 1) 
 
       call dscal( G, dble(p), pro, 1)
 
@@ -9061,8 +9454,11 @@ c scale estimate
       call sgnrng(G, scale, 1, smin, smax)
 
       if (smin .le. zero .or. smax .ge. FLMAX) then
-        call dcopy( G, FLMAX, 0, scale, 1)
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -9088,8 +9484,11 @@ c shape estimate
       call sgnrng(p, shape, 1, smin, smax)
 
       if (smin .le. zero .or. smax .ge. FLMAX) then
-        call dcopy( G, FLMAX, 0, scale, 1)
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -9100,8 +9499,11 @@ c shape estimate
       temp = sum/dble(p)
 
       if (temp .ge. BIGLOG) then
-        call dcopy( G, FLMAX, 0, scale, 1)
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -9112,7 +9514,9 @@ c shape estimate
       end if
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         goto 200         
       end if
 
@@ -9184,6 +9588,8 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       call sgnrng( G, scale, 1, smin, smax)
@@ -9242,8 +9648,9 @@ c         z(i,k) = prok*exp(-(const+temp)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -9322,7 +9729,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
 
       double precision        tol1, tol2, dnp, term, rteps, ViLog
       double precision        errin, smin, smax, sumz, tmin, tmax
-      double precision        cs, sn, dummy, hold, hood, err, zsum
+      double precision        cs, sn, hold, hood, err, zsum
       double precision        const, temp, sum, prok, scalek
 
       double precision        zero, one, two
@@ -9339,6 +9746,8 @@ c        http://www.stat.washington.edu/mclust/license.txt
 
       double precision        ddot
       external                ddot
+
+      double precision        dummy(1)
 
 c------------------------------------------------------------------------------
      
@@ -9383,9 +9792,11 @@ c     FLMAX  = d1mach(2)
 
       l    = 0
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
+          call dcopy( p, dummy, 0, O(1,j,k), 1)
         end do
         sum = zero
         do i = 1, n
@@ -9435,14 +9846,22 @@ c     FLMAX  = d1mach(2)
           temp    = term / dble(n)
           pro(nz) = temp
 
-          call dcopy( n, ViLog, 0, z(1,nz), 1)
+c         call dcopy( n, ViLog, 0, z(1,nz), 1)
+          dummy(1) = ViLog
+          call dcopy( n, dummy, 0, z(1,nz), 1)
 
           if (EQPRO) then
-            temp = (one - pro(nz))/dble(G)
-            call dcopy( G, temp, 0, pro, 1)
+c           temp = (one - pro(nz))/dble(G)
+c           call dcopy( G, temp, 0, pro, 1)
+            dummy(1) = (one - pro(nz))/dble(G)
+            call dcopy( G, dummy, 0, pro, 1)
           end if
         else
-          if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c         if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+           if (EQPRO) then
+             dummy(1) = one/dble(G)
+             call dcopy( G, dummy, 0, pro, 1)
+          end if
         end if
         lwork   = l
 c       w(1)    = FLMAX
@@ -9459,7 +9878,9 @@ c       w(1)    = FLMAX
       end if
 
       if (iter .eq. 1) then
-        call dcopy( p, zero, 0, shape, 1)
+c       call dcopy( p, zero, 0, shape, 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, shape, 1)
         do j = 1, p
           sum = zero
           do k = 1, G
@@ -9480,14 +9901,20 @@ c       w(1)    = FLMAX
             temp    = term / dble(n)
             pro(nz) = temp
 
-            call dcopy( n, ViLog, 0, z(1,nz), 1)
+c           call dcopy( n, ViLog, 0, z(1,nz), 1)
+            dummy(1) = ViLog
+            call dcopy( n, dummy, 0, z(1,nz), 1)
 
             if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
+c             temp = (one - pro(nz))/dble(G)
+c             call dcopy( G, temp, 0, pro, 1)
+              dummy(1) = (one - pro(nz))/dble(G)
+              call dcopy( G, dummy, 0, pro, 1)
             end if
           else if (EQPRO) then
-            call dcopy( G, one/dble(G), 0, pro, 1)
+c           call dcopy( G, one/dble(G), 0, pro, 1)
+            dummy(1) = one/dble(G)
+            call dcopy( G, dummy, 0, pro, 1)
           end if
           lwork   = 0
 c         w(1)    = smin
@@ -9521,9 +9948,13 @@ c         w(1)    = smin
         end if 
 
         if (Vinv .le. zero) then
-          call dcopy (G, temp/dble(n), 0, scale, 1)
+c         call dcopy (G, temp/dble(n), 0, scale, 1)
+          dummy(1) = temp/dble(n)
+          call dcopy (G, dummy, 0, scale, 1)
         else
-          call dcopy (G, temp/sumz, 0, scale, 1)
+c         call dcopy (G, temp/sumz, 0, scale, 1)
+          dummy(1) = temp/sumz
+          call dcopy (G, dummy, 0, scale, 1)
         end if
 
         if (temp .le. eps) then
@@ -9536,14 +9967,22 @@ c         w(1)    = smin
             temp    = term / dble(n)
             pro(nz) = temp
 
-            call dcopy( n, ViLog, 0, z(1,nz), 1)
+c           call dcopy( n, ViLog, 0, z(1,nz), 1)
+            dummy(1) = ViLog
+            call dcopy( n, dummy, 0, z(1,nz), 1)
 
             if (EQPRO) then
-              temp = (one - pro(nz))/dble(G)
-              call dcopy( G, temp, 0, pro, 1)
+c             temp = (one - pro(nz))/dble(G)
+c             call dcopy( G, temp, 0, pro, 1)
+              dummy(1) = (one - pro(nz))/dble(G)
+              call dcopy( G, dummy, 0, pro, 1)
             end if
           else 
-           if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c          if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+           if (EQPRO) then
+             dummy(1) = one/dble(G)
+             call dcopy( G, dummy, 0, pro, 1)
+           end if
           end if
           lwork   = 0
 c         w(1)    = temp
@@ -9573,7 +10012,9 @@ c pro now contains n*pro
         call dcopy( p, shape, 1, w    , 1)
         call dcopy( G, scale, 1, w(p1), 1)
 
-        call dcopy( p, zero, 0, shape, 1)
+c       call dcopy( p, zero, 0, shape, 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, shape, 1)
 
         do k = 1, G
           sum = zero
@@ -9611,14 +10052,22 @@ c           w(1)    = temp
              temp    = term / dble(n)
              pro(nz) = temp
 
-             call dcopy( n, ViLog, 0, z(1,nz), 1)
+c            call dcopy( n, ViLog, 0, z(1,nz), 1)
+             dummy(1) = ViLog
+             call dcopy( n, dummy, 0, z(1,nz), 1)
 
              if (EQPRO) then
-               temp = (one - pro(nz))/dble(G)
-               call dcopy( G, temp, 0, pro, 1)
+c              temp = (one - pro(nz))/dble(G)
+c              call dcopy( G, temp, 0, pro, 1)
+               dummy(1) = (one - pro(nz))/dble(G)
+               call dcopy( G, dummy, 0, pro, 1)
              end if
           else 
-            if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c           if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+            if (EQPRO) then
+              dummy(1) = one/dble(G)
+              call dcopy( G, dummy, 0, pro, 1)
+            end if
           end if
           lwork   = 0
 c         w(1)    = smin
@@ -9662,13 +10111,22 @@ c normalize the shape matrix
              temp    = term / dble(n)
              pro(nz) = temp
 
-             call dcopy( n, ViLog, 0, z(1,nz), 1)
+c            call dcopy( n, ViLog, 0, z(1,nz), 1)
+             dummy(1) = ViLog
+             call dcopy( n, dummy, 0, z(1,nz), 1)
+
              if (EQPRO) then
-               temp = (one - pro(nz))/dble(G)
-               call dcopy( G, temp, 0, pro, 1)
+c              temp = (one - pro(nz))/dble(G)
+c              call dcopy( G, temp, 0, pro, 1)
+               dummy(1) = (one - pro(nz))/dble(G)
+               call dcopy( G, dummy, 0, pro, 1)
              end if
           else 
-            if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c           if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+            if (EQPRO) then
+              dummy(1) = one/dble(G)   
+              call dcopy( G, dummy, 0, pro, 1)
+            end if
           end if
           lwork   = 0
 c         w(1)    = temp
@@ -9709,14 +10167,22 @@ c         w(1)    = temp
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
       else 
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       call sgnrng( p, shape, 1, smin, smax)
@@ -9873,7 +10339,7 @@ c     double precision   scale(G), shape(p), O(p,p,G)
 
       double precision        tol1, tol2, dnp, term, rteps, ViLog
       double precision        errin, smin, smax, sumz, tmin, tmax
-      double precision        cs, sn, dummy, hold, hood, err, zsum 
+      double precision        cs, sn, hold, hood, err, zsum 
       double precision        const, temp, sum, prok, scalek
 
       double precision        zero, one, two
@@ -9891,7 +10357,9 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       double precision        ddot
       external                ddot
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
      
@@ -9936,7 +10404,9 @@ c     FLMAX  = d1mach(2)
       zsum = one
       l    = 0
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
           call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
         end do
@@ -9993,8 +10463,11 @@ c     FLMAX  = d1mach(2)
 
       if (l .ne. 0 .or. zsum .le. rteps) then
         lwork   = l
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         if (l .ne. 0) then          
           eps =  FLMAX
         else 
@@ -10005,7 +10478,10 @@ c     FLMAX  = d1mach(2)
 
       if (iter .eq. 1) then
 
-        call dcopy( p, zero, 0, shape, 1)
+c       call dcopy( p, zero, 0, shape, 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, shape, 1)
+        
         do j = 1, p
           sum = zero
           do k = 1, G
@@ -10068,19 +10544,27 @@ c     FLMAX  = d1mach(2)
         call sgnrng( p+G, w, 1, smin, smax)
 
         if (smin .le. zero) then
-          call dcopy( p, FLMAX, 0, shape, 1)
-          call dcopy( G, FLMAX, 0, scale, 1)
+c         call dcopy( p, FLMAX, 0, shape, 1)
+c         call dcopy( G, FLMAX, 0, scale, 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1)
+          call dcopy( G, dummy, 0, scale, 1)
           goto 200
         end if
 
-        call dcopy( p, zero, 0, shape, 1)
+c       call dcopy( p, zero, 0, shape, 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, shape, 1)
 
         do k = 1, G
           sum = zero
           do j = 1, p
             if (w(j) .le. z(j,k) .and. z(j,k) .lt. w(j)*rteps) then
-              call dcopy( p, FLMAX, 0, shape, 1) 
-              call dcopy( G, FLMAX, 0, scale, 1)
+c             call dcopy( p, FLMAX, 0, shape, 1) 
+c             call dcopy( G, FLMAX, 0, scale, 1)
+              dummy(1) = FLMAX
+              call dcopy( p, dummy, 0, shape, 1)
+              call dcopy( G, dummy, 0, scale, 1)
               goto 200
             end if
             sum = sum + z(j,k)/w(j)
@@ -10089,8 +10573,11 @@ c     FLMAX  = d1mach(2)
           scale(k) = temp
           do j = 1, p
             if (temp .le. z(j,k) .and. z(j,k) .lt. temp*rteps) then
-              call dcopy( p, FLMAX, 0, shape, 1) 
-              call dcopy( G, FLMAX, 0, scale, 1)
+c             call dcopy( p, FLMAX, 0, shape, 1) 
+c             call dcopy( G, FLMAX, 0, scale, 1)
+              dummy(1) = FLMAX
+              call dcopy( p, dummy, 0, shape, 1)
+              call dcopy( G, dummy, 0, scale, 1)
               goto 200
             end if
             shape(j) = shape(j) + z(j,k)/temp
@@ -10159,14 +10646,22 @@ c     FLMAX  = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
       else 
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       call sgnrng( p, shape, 1, smin, smax)
@@ -10297,8 +10792,8 @@ c     double precision   scale(G), shape(p), O(p,p,G), mu(p,G), pro(G)
 
       integer                 p1, i, j, k, j1, inner, info
 
-      double precision        err, dummy
-      double precision        temp, sum, smin, smax, cs, sn
+      double precision        temp
+      double precision        err, sum, smin, smax, cs, sn
 
       double precision        zero, one
       parameter              (zero = 0.d0, one = 1.d0)
@@ -10312,7 +10807,9 @@ c     double precision   scale(G), shape(p), O(p,p,G), mu(p,G), pro(G)
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       tol   = max(tol,zero)
 
@@ -10322,12 +10819,17 @@ c------------------------------------------------------------------------------
       
       inner = 0
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
-          call dcopy( p, zero, 0, O(1,j,k), 1)
+c         call dcopy( p, zero, 0, O(1,j,k), 1)
+          call dcopy( p, dummy, 0, O(1,j,k), 1)
         end do
         sum = zero
         do i = 1, n
@@ -10366,7 +10868,9 @@ c------------------------------------------------------------------------------
           end if
         else
           err = zero
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -10375,8 +10879,11 @@ c pro now contains n*pro
    
       if (inner .ne. 0 .or. err .eq. zero) then
         lwork = inner
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -10385,8 +10892,11 @@ c pro now contains n*pro
       call sgnrng( p, shape, 1, smin, smax)
   
       if (smin .eq. zero) then
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -10398,8 +10908,11 @@ c pro now contains n*pro
       temp = sum/dble(p)
 
       if (temp .gt. BIGLOG) then
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -10414,7 +10927,9 @@ c pro now contains n*pro
       end do
      
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
         goto 200
       end if  
 
@@ -10427,18 +10942,23 @@ c pro now contains n*pro
       
 100   continue
 
-        call dcopy( p, shape, 1, w    , 1)
-        call dcopy( G, scale, 1, w(p1), 1)
+      call dcopy( p, shape, 1, w    , 1)
+      call dcopy( G, scale, 1, w(p1), 1)
 
-        call absrng( p, w, 1, smin, smax)
+      call absrng( p, w, 1, smin, smax)
 
-        if (smin .le. one .and. one .ge. smin*FLMAX) then
-          call dcopy( p, FLMAX, 0, shape, 1)
-          call dcopy( G, FLMAX, 0, scale, 1)
-          goto 200
-        end if
+      if (smin .le. one .and. one .ge. smin*FLMAX) then
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
+        goto 200
+      end if
 
-        call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
         do k = 1, G
           sum = zero
@@ -10448,7 +10968,9 @@ c pro now contains n*pro
           temp     = (sum/pro(k))/dble(p)
           scale(k) = temp
           if (temp .lt. one .and. one .ge. temp*FLMAX) then
-            call dcopy( p, FLMAX, 0, shape, 1) 
+c           call dcopy( p, FLMAX, 0, shape, 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape, 1) 
             goto 200
           end if
           do j = 1, p
@@ -10461,7 +10983,9 @@ c pro now contains n*pro
         call sgnrng( p, shape, 1, smin, smax)
  
         if (smin .le. zero) then
-          call dcopy( p, FLMAX, 0, shape, 1) 
+c         call dcopy( p, FLMAX, 0, shape, 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1) 
           goto 200
         end if
 
@@ -10474,7 +10998,9 @@ c normalize the shape matrix
         temp = sum/dble(p)
  
         if (temp .ge. BIGLOG) then
-          call dcopy( p, FLMAX, 0, shape, 1)
+c         call dcopy( p, FLMAX, 0, shape, 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1) 
           goto 200
         end if
 
@@ -10485,7 +11011,9 @@ c normalize the shape matrix
         end if
 
         if (temp .lt. one .and. one .ge. temp*FLMAX) then
-          call dcopy( p, FLMAX, 0, shape, 1)
+c         call dcopy( p, FLMAX, 0, shape, 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1) 
           goto 200
         end if
 
@@ -10543,7 +11071,7 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       integer            p1, i, j, k, l, j1, inner, info
 
       double precision   sum, term, temp, err, smin, smax
-      double precision   sumz, cs, sn, dummy, const
+      double precision   sumz, cs, sn, const
 
       double precision   zero, one, two
       parameter         (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -10554,7 +11082,9 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       double precision   SMALOG, BIGLOG
       parameter         (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-c------------------------------------------------------------------------------
+      double precision   dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (maxi .le. 0) return
 
@@ -10567,10 +11097,14 @@ c------------------------------------------------------------------------------
       inner = 0
       l     = 0 
 
-      call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
           call dcopy( p, pscale(1,j), 1, O(1,j,k), 1)
         end do
@@ -10623,21 +11157,29 @@ c------------------------------------------------------------------------------
           end if
         else
           err = zero 
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
       if (l .ne. 0 .or. err .eq. zero) then
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
       call sgnrng( p, shape, 1, smin, smax)
 
       if (smin .le. zero) then
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -10649,8 +11191,11 @@ c------------------------------------------------------------------------------
       temp  = sum/dble(p)
 
       if (temp .gt. BIGLOG) then
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if
 
@@ -10665,8 +11210,11 @@ c------------------------------------------------------------------------------
       end do
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
-        call dcopy( G, FLMAX, 0, scale, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
         goto 200
       end if  
   
@@ -10676,25 +11224,33 @@ c------------------------------------------------------------------------------
 
 100   continue
 
-        call dcopy( p, shape, 1, w    , 1)
-        call dcopy( G, scale, 1, w(p1), 1)
+      call dcopy( p, shape, 1, w    , 1)
+      call dcopy( G, scale, 1, w(p1), 1)
 
-        call sgnrng( p+G, w, 1, smin, smax)
+      call sgnrng( p+G, w, 1, smin, smax)
 
-        if (smin .le. zero) then
-          call dcopy( p, FLMAX, 0, shape, 1)
-          call dcopy( G, FLMAX, 0, scale, 1)
-          goto 200
-        end if
+      if (smin .le. zero) then
+c       call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( G, FLMAX, 0, scale, 1)
+        dummy(1) = FLMAX
+        call dcopy( p, dummy, 0, shape, 1)
+        call dcopy( G, dummy, 0, scale, 1)
+        goto 200
+      end if
 
-        call dcopy( p, zero, 0, shape, 1)
+c     call dcopy( p, zero, 0, shape, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, shape, 1)
 
         do k = 1, G
           sum = zero
           do j = 1, p
             if (w(j) .le. z(j,k) .and. z(j,k) .ge. w(j)*FLMAX) then
-              call dcopy( p, FLMAX, 0, shape, 1) 
-              call dcopy( G, FLMAX, 0, scale, 1)
+c             call dcopy( p, FLMAX, 0, shape, 1) 
+c             call dcopy( G, FLMAX, 0, scale, 1)
+              dummy(1) = FLMAX
+              call dcopy( p, dummy, 0, shape, 1) 
+              call dcopy( G, dummy, 0, scale, 1)
               goto 200
             end if
             sum = sum + z(j,k)/w(j)
@@ -10703,8 +11259,11 @@ c------------------------------------------------------------------------------
           scale(k) = temp
           do j = 1, p
             if (temp .le. z(j,k) .and. z(j,k) .ge. temp*FLMAX) then
-              call dcopy( p, FLMAX, 0, shape, 1) 
-              call dcopy( G, FLMAX, 0, scale, 1)
+c             call dcopy( p, FLMAX, 0, shape, 1) 
+c             call dcopy( G, FLMAX, 0, scale, 1)
+              dummy(1) = FLMAX
+              call dcopy( p, dummy, 0, shape, 1) 
+              call dcopy( G, dummy, 0, scale, 1)
               goto 200
             end if
             shape(j) = shape(j) + z(j,k)/temp
@@ -10716,7 +11275,9 @@ c------------------------------------------------------------------------------
         call sgnrng( p, shape, 1, smin, smax)
 
         if (smin .le. zero) then
-          call dcopy( p, FLMAX, 0, shape, 1) 
+c         call dcopy( p, FLMAX, 0, shape, 1) 
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1) 
           goto 200
         end if
 
@@ -10728,7 +11289,9 @@ c------------------------------------------------------------------------------
         temp = sum/dble(p)
 
         if (temp .ge. BIGLOG) then
-          call dcopy( p, FLMAX, 0, shape, 1)
+c         call dcopy( p, FLMAX, 0, shape, 1) 
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1) 
           goto 200
         end if
 
@@ -10739,7 +11302,9 @@ c------------------------------------------------------------------------------
         end if
 
         if (temp .lt. one .and. one .ge. temp*FLMAX) then
-          call dcopy( p, FLMAX, 0, shape, 1)
+c         call dcopy( p, FLMAX, 0, shape, 1) 
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape, 1) 
           goto 200
         end if
 
@@ -10807,7 +11372,9 @@ c     double precision   mu(p,G), sigsq(G), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       call sgnrng( G, sigsq, 1, sigmin, temp)    
 
@@ -10844,8 +11411,9 @@ c         z(i,k) = prok*exp(-(const+sum/sigsqk)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -11456,7 +12024,9 @@ c     double precision    mu(p,G), sigsq(G), pro(G[+1])
       double precision    SMALOG
       parameter          (SMALOG = -708.d0)
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (maxi .le. 0) return
 
@@ -11465,7 +12035,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps   = max(eps,zero)
@@ -11488,7 +12062,9 @@ c     FLMAX = d1mach(2)
 
       do k = 1, G
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -11512,7 +12088,9 @@ c     FLMAX = d1mach(2)
           sigsq(k) = (sigsqk/sumz)/dble(p)
         else
           sigsq(k) = FLMAX
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -11532,11 +12110,15 @@ c     FLMAX = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -11655,7 +12237,9 @@ c     double precision    mu(p,G), sigsq(G), pro(G[+1])
       double precision    ddot, dlngam
       external            ddot, dlngam 
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
 
@@ -11666,7 +12250,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then 
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       eps    = max(eps,zero)
@@ -11691,7 +12279,9 @@ c     FLMAX  = d1mach(2)
 
       do k = 1, G
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -11723,7 +12313,9 @@ c         sigsq(k) = sigsqk/(pdof+(sumz+one)*dble(p)+two)
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else
           sigsq(k) = FLMAX
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -11743,11 +12335,15 @@ c         sigsq(k) = sigsqk/(pdof+(sumz+one)*dble(p)+two)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -11855,12 +12451,12 @@ c        http://www.stat.washington.edu/mclust/license.txt
 c     double precision   x(n,p), z(n,G), mu(p,G), sigsq(G), pro(G)
       double precision   x(n,*), z(n,*), mu(p,*), sigsq(*), pro(*)
       
-      integer                 i, j, k
+      integer                i, j, k
      
-      double precision        sum, sumz, temp, sigsqk
+      double precision       sum, sumz, temp, sigsqk
 
-      double precision        zero, one
-      parameter              (zero = 0.d0, one = 1.d0)
+      double precision       zero, one
+      parameter             (zero = 0.d0, one = 1.d0)
 
       double precision       FLMAX
       parameter             (FLMAX = 1.7976931348623157d308)
@@ -11868,11 +12464,15 @@ c     double precision   x(n,p), z(n,G), mu(p,G), sigsq(G), pro(G)
       double precision       RTMIN
       parameter             (RTMIN = 1.49166814624d-154)
 
-c------------------------------------------------------------------------------
+      double precision       dummy(1)
+      
+c-----------------------------------------------------------------------------
 
       do k = 1, G
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -11899,7 +12499,9 @@ c------------------------------------------------------------------------------
           end if
         else
           sigsq(k) = FLMAX 
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if   
       end do
 
@@ -11948,7 +12550,9 @@ c     double precision    mu(p,G), sigsq(G), pro(G)
       double precision    ddot
       external            ddot
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
 
@@ -11956,7 +12560,9 @@ c------------------------------------------------------------------------------
 
       do k = 1, G
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -11986,7 +12592,9 @@ c------------------------------------------------------------------------------
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else 
           sigsq(k) = FLMAX 
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -12036,7 +12644,9 @@ c     double precision   mu(p,G), scale(G), shape(p,G), pro(G[+1])
       double precision        SMALOG
       parameter              (SMALOG = -708.d0)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       call sgnrng( G, scale, 1, smin, smax)
 
@@ -12083,8 +12693,9 @@ c         z(i,k) = prok*exp(-(const+sum)/two)
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -12173,7 +12784,10 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c----------------------------------------------------------------------------
+
 
       if (maxi .le. 0) return
 
@@ -12202,8 +12816,11 @@ c     FLMAX = d1mach(2)
       zsum  = one
 
       do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, shape(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, shape(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         sum = zero
         do i = 1, n
           temp   = z(i,k)
@@ -12287,11 +12904,15 @@ c pro(k) now contains n_k
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -12426,7 +13047,9 @@ c     double precision    mu(p,G), scale(G), shape(p,G), pro(G[+1])
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
 
@@ -12458,8 +13081,12 @@ c     FLMAX = d1mach(2)
       zsum  = one 
 
       do k = 1, G
-        call dcopy( p, pscale, 0, shape(1,k), 1)
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, pscale, 0, shape(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = pscale
+        call dcopy( p, dummy, 0, shape(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         sumz = zero
         do i = 1, n
           temp   = z(i,k)
@@ -12541,7 +13168,9 @@ c pro(k) contains n_k
       if (.not. EQPRO) then
         call dscal( G, one/dble(n), pro, 1)
       else if (Vinv .le. zero) then
-        call dcopy( G, one/dble(G), 0, pro, 1)
+c       call dcopy( G, one/dble(G), 0, pro, 1)
+        dummy(1) = one/dble(G)
+        call dcopy( G, dummy, 0, pro, 1)
       end if
 
       term = zero
@@ -12553,11 +13182,15 @@ c pro(k) contains n_k
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -12677,12 +13310,17 @@ c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
       double precision        SMALOG, BIGLOG
       parameter              (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+      
+c-----------------------------------------------------------------------------
 
       do k = 1, G
-        call dcopy( p, zero, 0, shape(1,k), 1)
+        dummy(1) = zero
+c       call dcopy( p, zero, 0, shape(1,k), 1)
+        call dcopy( p, dummy, 0, shape(1,k), 1)
         sum = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sum    = sum + temp
@@ -12693,7 +13331,9 @@ c------------------------------------------------------------------------------
         if (sum .ge. one .or. one .lt. sum*FLMAX) then
           call dscal( p, (one/sum), mu(1,k), 1)
         else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
       end do
 
@@ -12710,7 +13350,9 @@ c pro(k) now contains n_k
             shape(j,k) = shape(j,k) + sum
           end do
         else
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         end if
       end do
 
@@ -12720,13 +13362,17 @@ c pro(k) now contains n_k
 
         if (smin .le. zero) then
           scale(k) = zero
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
         if (smax .eq. FLMAX) then 
           scale(k) = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
@@ -12738,27 +13384,35 @@ c pro(k) now contains n_k
 
         if (temp .gt. BIGLOG) then
           scale(k) = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
         if (temp .lt. SMALOG) then
           temp     = zero
           scale(k) = zero
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
         temp = exp(temp)
         if (pro(k) .lt. one .and. temp .ge. pro(k)*FLMAX) then
           scale(k) = FLMAX
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
 
         scale(k) = temp/pro(k)
         if (temp .lt. one .and. one .ge. temp*FLMAX) then
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
           goto 100
         end if
             
@@ -12790,6 +13444,9 @@ c     double precision   pshrnk, pmu(p), pscale, pdof
       double precision   pshrnk, pmu(*), pscale, pdof
 
 c     double precision   x(n,p), z(n,G)
+
+
+
       double precision   x(n,*), z(n,*)
 
 c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
@@ -12809,14 +13466,20 @@ c     double precision   mu(p,G), scale(G), shape(p,G), pro(G)
       double precision    SMALOG, BIGLOG
       parameter          (SMALOG = -708.d0, BIGLOG = 709.d0)
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c-----------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
 
       do k = 1, G
-        call dcopy( p, pscale, 0, shape(1,k), 1)
+c       call dcopy( p, pscale, 0, shape(1,k), 1)
+        dummy(1) = pscale
+        call dcopy( p, dummy, 0, shape(1,k), 1)
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp   = z(i,k)
           sumz   = sumz + temp
@@ -12841,8 +13504,11 @@ c------------------------------------------------------------------------------
           call dscal( p, sumz/term, mu(1,k), 1)
           call daxpy( p, pshrnk/term, pmu, 1, mu(1,k), 1)
         else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         end if
       end do
 
@@ -12852,7 +13518,9 @@ c pro(k) now contains n_k
         call sgnrng(p, shape(1,k), 1, smin, smax)
         if (smin .le. zero) then
           scale(k) = zero
-          call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c         call dcopy( p, FLMAX, 0, shape(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, shape(1,k), 1)
         else if (smax .eq. FLMAX) then
           scale(k) = FLMAX
         else
@@ -12863,12 +13531,16 @@ c pro(k) now contains n_k
           temp = sum/dble(p)
           if (temp .gt. BIGLOG) then
             scale(k) = FLMAX
-            call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape(1,k), 1)
           else if (temp .lt. SMALOG) then
             temp     = zero
             scale(k) = zero
-            call dcopy( p, FLMAX, 0, shape(1,k), 1)
-          else
+c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
+            dummy(1) = FLMAX
+            call dcopy( p, dummy, 0, shape(1,k), 1)
+         else
             temp     = exp(temp)
 c pro(k) contains n_k
             term = pro(k) + pdof + two
@@ -12877,7 +13549,9 @@ c pro(k) contains n_k
             if (temp .ge. one .or. one .le. temp*FLMAX) then
               call dscal( p, one/temp, shape(1,k), 1)
             else
-              call dcopy( p, FLMAX, 0, shape(1,k), 1)
+c             call dcopy( p, FLMAX, 0, shape(1,k), 1)
+              dummy(1) = FLMAX
+              call dcopy( p, dummy, 0, shape(1,k), 1)
             end if
           end if
         end if
@@ -12938,7 +13612,9 @@ c     double precision   mu(p,G), Sigma(p,p,G), pro(G[+1])
       double precision        ddot
       external                ddot
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
+
+c-----------------------------------------------------------------------------
 
       p1    = p + 1
 
@@ -13006,8 +13682,9 @@ c         z(i,k) = prok*exp(-(const+temp))
       nz = G
       if (Vinv .gt. zero) then
         nz = nz + 1
-c       call dcopy( n, pro(nz)*Vinv, 0, z(1,nz), 1)
-        call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+c       call dcopy( n, log(Vinv), 0, z(1,nz), 1)
+        dummy(1) = log(Vinv)
+        call dcopy( n, dummy, 0, z(1,nz), 1)
       end if
 
 c     hood = zero
@@ -13110,7 +13787,9 @@ c     double precision   r(p,p), d(ng*(ng-1)/2)
       double precision    EPSMAX
       parameter          (EPSMAX = 2.2204460492503131d-16)
 
-c------------------------------------------------------------------------------
+      double precision    dummy(1)
+
+c-----------------------------------------------------------------------------
 
       iopt = 0
       niop = 0
@@ -13191,7 +13870,9 @@ c initialize by simulating merges
         j = ic(k)
         if (j .ne. k) then
 c non-singleton
-          call dcopy( psq, zero, 0, r, 1)
+c         call dcopy( psq, zero, 0, r, 1)
+          dummy(1) = zero
+          call dcopy( psq, dummy, 0, r, 1)
           trcij = zero
           l     = 1
  10       continue
@@ -13517,7 +14198,9 @@ c     trac(iopt) = trop
       ij = ((iold-1)*(iold-2))/2
       if (iold .gt. 1) then
         do j = 1, (iold-1)
-          call dcopy(psq, zero, 0, u, 1)
+c         call dcopy(psq, zero, 0, u, 1)
+          dummy(1) = zero
+          call dcopy(psq, dummy, 0, u, 1)
           m = p
           do k = 1, min(ni-1,p)
             call dcopy(m, r(k,k), p, u(k,k), p)
@@ -13598,7 +14281,9 @@ c           call vvvget(j,nj,n,p,ic,x,tracj,termj)
         i  = iold
         ij = ij + i
         do j = (iold+1), lg
-          call dcopy(psq, zero, 0, u, 1)
+c         call dcopy(psq, zero, 0, u, 1)
+          dummy(1) = zero
+          call dcopy(psq, dummy, 0, u, 1)
           m = p
           do k = 1, min(ni-1,p)
             call dcopy(m, r(k,k), p, u(k,k), p)
@@ -13706,8 +14391,10 @@ c     call dblepr("d", 1, d, ld)
         end do
       end if
 
+      dummy(1) = zero
       do k = 1, p
-        call dcopy( p, zero, 0, r(1,k), 1)
+c       call dcopy( p, zero, 0, r(1,k), 1)
+        call dcopy( p, dummy, 0, r(1,k), 1)
       end do
 
       if (iopt .ne. iold .and. jopt .ne. iold) then
@@ -14061,6 +14748,8 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (maxi .le. 0) return
@@ -14070,7 +14759,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       piterm = dble(p)*pi2log/two
@@ -14096,7 +14789,9 @@ c zero out the lower triangle
         end do
         i = 1
         do j = 2, p
-          call dcopy( p-i, zero, 0, S(j,i), 1)
+c         call dcopy( p-i, zero, 0, S(j,i), 1)
+          dummy(1) = zero
+          call dcopy( p-i, dummy, 0, S(j,i), 1)
           i = j
         end do
         do j = 1, p
@@ -14119,10 +14814,13 @@ c zero out the lower triangle
             S(l,j) = U(l,j,k)
           end do
         end do
+        dummy(1) = zero
         do j = 1, p
-          call dcopy( j, zero, 0, S(1,j), 1)
+c         call dcopy( j, zero, 0, S(1,j), 1)
+          call dcopy( j, dummy, 0, S(1,j), 1)
         end do
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         sumz = zero
         do i = 1, n
           temp = z(i,k)
@@ -14149,7 +14847,9 @@ c zero out the lower triangle
             call dscal( j, one/sqrt(sumz), S(1,j), 1)
           end do
         else
-          call dcopy( p, FLMAX, 0,  z(1,k), 1) 
+c         call dcopy( p, FLMAX, 0,  z(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0,  z(1,k), 1) 
         end if
         do j = 1, p
           do l = 1, p
@@ -14174,11 +14874,15 @@ c zero out the lower triangle
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = Vilog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -14327,6 +15031,8 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        ddot, dlngam
       external                ddot, dlngam
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       if (pshrnk .lt. zero) pshrnk = zero
@@ -14338,7 +15044,11 @@ c------------------------------------------------------------------------------
         ViLog = log(Vinv)
       else
         nz = G
-        if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
+        if (EQPRO) then
+c         call dcopy( G, one/dble(G), 0, pro, 1)
+          dummy(1) = one/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
+        end if
       end if
 
       piterm = dble(p)*pi2log/two
@@ -14372,7 +15082,9 @@ c     FLMAX  = d1mach(2)
           call dcopy( p, pscale(1,j), 1, S(1,j), 1)
         end do
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -14413,7 +15125,9 @@ c     FLMAX  = d1mach(2)
           call dscal( p, sumz/const, mu(1,k), 1)
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else
-          call dcopy( p, FLMAX, 0,  z(1,k), 1) 
+c         call dcopy( p, FLMAX, 0,  z(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0,  z(1,k), 1) 
         end if
         do j = 1, p
           do l = 1, p
@@ -14438,11 +15152,15 @@ c     FLMAX  = d1mach(2)
         temp    = term / dble(n)
         pro(nz) = temp
 
-        call dcopy( n, ViLog, 0, z(1,nz), 1)
+c       call dcopy( n, ViLog, 0, z(1,nz), 1)
+        dummy(1) = ViLog
+        call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
-          temp = (one - pro(nz))/dble(G)
-          call dcopy( G, temp, 0, pro, 1)
+c         temp = (one - pro(nz))/dble(G)
+c         call dcopy( G, temp, 0, pro, 1)
+          dummy(1) = (one - pro(nz))/dble(G)
+          call dcopy( G, dummy, 0, pro, 1)
         end if
 
       end if
@@ -14605,13 +15323,18 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
-c------------------------------------------------------------------------------
+      double precision        dummy(1)
 
+c-----------------------------------------------------------------------------
+
+      dummy(1) = zero
       do k = 1, G
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do j = 1, p
 c         call dcopy( j, zero, 0, U(1,j,k), 1)
-          call dcopy( j, zero, 0, S(1,j), 1)
+c         call dcopy( j, zero, 0, S(1,j), 1)
+          call dcopy( j, dummy, 0, S(1,j), 1)
         end do
         sum = zero
         do i = 1, n
@@ -14641,11 +15364,15 @@ c         call dcopy( j, zero, 0, U(1,j,k), 1)
             end do
           else
             do j = 1, p
-              call dcopy( j, FLMAX, 0, S(1,j), 1)
+c             call dcopy( j, FLMAX, 0, S(1,j), 1)
+              dummy(1) = FLMAX
+              call dcopy( j, dummy, 0, S(1,j), 1)
             end do
           end if
         else
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = zero
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
         do j = 1, p
           do l = 1, p
@@ -14701,6 +15428,8 @@ c  w       double  (scratch) (max(p,G))
       double precision        FLMAX
       parameter              (FLMAX = 1.7976931348623157d308)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       do k = 1, G
@@ -14713,7 +15442,9 @@ c------------------------------------------------------------------------------
           call dcopy( p, pscale(1,j), 1, S(1,j), 1 )
         end do
         sumz = zero
-        call dcopy( p, zero, 0, mu(1,k), 1)
+c       call dcopy( p, zero, 0, mu(1,k), 1)
+        dummy(1) = zero
+        call dcopy( p, dummy, 0, mu(1,k), 1)
         do i = 1, n
           temp = z(i,k)
           sumz = sumz + temp
@@ -14754,7 +15485,9 @@ c------------------------------------------------------------------------------
           call dscal( p, sumz/const, mu(1,k), 1)
           call daxpy( p, pshrnk/const, pmu, 1, mu(1,k), 1)
         else 
-          call dcopy( p, FLMAX, 0, mu(1,k), 1)
+c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
+          dummy(1) = FLMAX
+          call dcopy( p, dummy, 0, mu(1,k), 1)
         end if
         do j = 1, p
           do l = 1, p
@@ -15115,6 +15848,8 @@ c     double precision   x(n,p), mu(p), shape(p)
       double precision   ddot
       external           ddot
 
+      double precision   dummy(1)
+
 c------------------------------------------------------------------------------
 
       temp = one/dble(n)
@@ -15145,7 +15880,9 @@ c------------------------------------------------------------------------------
       call sgnrng(p, shape, 1, smin, smax)
 
       if (smin .le. zero) then
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)  
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)       
         scale = zero
         hood  = FLMAX
         return
@@ -15158,14 +15895,18 @@ c------------------------------------------------------------------------------
       temp  = sum/dble(p)
 
       if (temp .ge. BIGLOG) then
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1) 
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)       
         scale = FLMAX
         hood  = FLMAX
        return
       end if
 
       if (temp .le. SMALOG) then
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1) 
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)       
         scale = zero
         hood  = FLMAX
        return
@@ -15179,7 +15920,9 @@ c------------------------------------------------------------------------------
       scale = temp/term
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1) 
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)       
         hood = FLMAX
         return
       end if 
@@ -15240,6 +15983,8 @@ c     double precision   x(n,p), mu(p), shape(p)
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       dn  = dble(n)
@@ -15262,7 +16007,9 @@ c------------------------------------------------------------------------------
       call sgnrng(p, shape, 1, smin, smax)
 
       if (smin .le. zero) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)
         scale = zero
         hood  = FLMAX
         return
@@ -15276,14 +16023,18 @@ c------------------------------------------------------------------------------
       temp  = sum/dble(p)
 
       if (temp .gt. BIGLOG) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)
         scale = FLMAX
         hood  = FLMAX
         return
       end if
 
       if (temp .lt. SMALOG) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)
         scale = zero
         hood  = FLMAX
         return
@@ -15294,7 +16045,9 @@ c------------------------------------------------------------------------------
       scale = temp/dn
 
       if (temp .lt. one .and. one .ge. temp*FLMAX) then
-        call dcopy( p, FLMAX, 0, shape, 1)
+c       call dcopy( p, FLMAX, 0, shape, 1)
+        dummy(1) = FLMAX  
+        call dcopy( p, dummy, 0, shape, 1)
         hood = FLMAX
         return
       end if 
@@ -15492,6 +16245,8 @@ c     double precision   x(n,p), mu(p), U(p,p)
       double precision        ddot
       external                ddot
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       dn  = dble(n)
@@ -15500,7 +16255,9 @@ c------------------------------------------------------------------------------
       scl = one/dn
       do j = 1, p
         mu(j) = ddot( n, scl, 0, x(1,j), 1)
-        call dcopy( p, zero, 0, U(1,j), 1)
+c       call dcopy( p, zero, 0, U(1,j), 1)
+        dummy(1) = zero 
+        call dcopy( p, dummy, 0, U(1,j), 1)
       end do
 
       do i = 1, n
@@ -15613,6 +16370,8 @@ c  u,r      double  (scratch) (p,p)
       double precision    EPSMIN
       parameter          (EPSMIN = 1.1102230246251565d-16)
 
+      double precision        dummy(1)
+
 c------------------------------------------------------------------------------
 
       i1 = 0
@@ -15639,13 +16398,17 @@ c form scaled column sums
 
       si = one/sqrt(dble(p))
       sj = si / dble(n)
-      call dcopy( p, zero, 0, v, 1)
+c     call dcopy( p, zero, 0, v, 1)
+      dummy(1) = zero
+      call dcopy( p, dummy, 0, v, 1)
       do k = 1, n
         call daxpy( p, sj, x(k,1), n, v, 1)
       end do
 
       trc0 = zero
-      call dcopy( lw, zero, 0, r, 1)
+c     call dcopy( lw, zero, 0, r, 1)
+      dummy(1) = zero
+      call dcopy( lw, dummy, 0, r, 1)
       do k = 1, n
         call dcopy( p, v, 1, s, 1)
         call daxpy( p, (-si), x(k,1), n, s, 1)
@@ -15687,7 +16450,9 @@ c group heads should be first among rows of x
 
 c     call intpr( 'ic', -1, ic, n)
 
-      call dcopy( lw, zero, 0, r, 1)
+c     call dcopy( lw, zero, 0, r, 1)
+      dummy(1) = zero
+      call dcopy( lw, dummy, 0, r, 1)
 
       q = 1
       do j = 1, n

@@ -14,7 +14,7 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
              symbols = NULL, colors = NULL, ngrid = length(data), 
              xlab = NULL, ylab = NULL, 
              xlim = NULL, ylim = NULL,
-             CEX = 1, main = FALSE, \dots)
+             cex = 1, main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -98,7 +98,7 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
     An argument specifying bounds of the plot.
     This may be useful for when comparing plots.
   }
-  \item{CEX}{
+  \item{cex}{
     An argument specifying the size of the plotting symbols. 
     The default value is 1.
   }

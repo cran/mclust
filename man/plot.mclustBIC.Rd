@@ -10,7 +10,7 @@ Plots the BIC values returned by the \code{\link{mclustBIC}} function.
 \usage{
 \method{plot}{mclustBIC}(x, G = NULL, modelNames = NULL, 
      symbols = NULL, colors = NULL, 
-     xlab = NULL, ylab = "BIC", ylim = NULL,
+     xlab = NULL, ylab = "BIC", 
      legendArgs = list(x = "bottomright", ncol = 2, cex = 1, inset = 0.01), 
      \dots)
 }
@@ -45,9 +45,6 @@ Plots the BIC values returned by the \code{\link{mclustBIC}} function.
   }
  \item{ylab}{
     Label for the vertical axis of the BIC plot.
-  }
- \item{ylim}{
-    Optional limits for the vertical axis of the BIC plot.
   }
  \item{legendArgs}{
     Arguments to pass to the \code{legend} function. Set to \code{NULL}

@@ -47,9 +47,9 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   if(!is.list(modelNames))
     { modelNames <- rep(list(modelNames), ncl) }
   #
-  hcUse <- mclust.options("hcUse")
-  mclust.options("hcUse" = "VARS")
-  on.exit(mclust.options("hcUse" = hcUse))
+  # hcUse <- mclust.options("hcUse")
+  # mclust.options("hcUse" = "VARS")
+  # on.exit(mclust.options("hcUse" = hcUse))
   #
   if(modelType == "EDDA")
   { 
@@ -718,7 +718,7 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
     if(d == 2)
     { 
       coordProj(Data, dimens = dimens[1:2], what = "classification",
-                classification = cl, CEX = 0.8,
+                classification = cl, cex = 0.8,
                 symbols = c(19,3), colors = c("grey80", "grey20"),
                 main = FALSE, ...)
       if(!is.null(main))
@@ -1129,7 +1129,8 @@ classPriorProbs <- function(object, newdata = object$data,
   p <- colMeans(z)
   p0 <- p+1
   it <- 0
-  while(max(abs(p-p0)/abs(p)) > eps & it < itmax)
+  # while(max(abs(p-p0)/abs(p)) > eps & it < itmax)
+  while(any(abs(p-p0) > eps*(1+abs(p))) & it < itmax)
   {
     it <- it+1
     p0 <- p

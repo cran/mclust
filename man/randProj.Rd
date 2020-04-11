@@ -15,7 +15,7 @@ randProj(data, seeds = NULL, parameters = NULL, z = NULL,
          addEllipses = TRUE, fillEllipses = mclust.options("fillEllipses"),
          symbols = NULL, colors = NULL, scale = FALSE, 
          xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
-         CEX = 1, PCH = ".", main = FALSE, \dots)
+         cex = 1, PCH = ".", main = FALSE, \dots)
 }
 \arguments{
   \item{data}{
@@ -121,8 +121,8 @@ randProj(data, seeds = NULL, parameters = NULL, z = NULL,
     Optional arguments specifying the labels for, respectively, the horizontal 
     and vertical axis.
   } 
-  \item{CEX}{
-    An argument specifying the size of the plotting symbols. 
+  \item{cex}{
+    A numerical value specifying the size of the plotting symbols. 
     The default value is 1.
   }
   \item{PCH}{

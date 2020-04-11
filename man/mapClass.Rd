@@ -36,7 +36,6 @@ mapClass(a, b)
   that result in the closest class correspondence.
 }
 \seealso{
-  \code{\link{mapClass}},
   \code{\link{classError}},
   \code{\link{table}}
 }

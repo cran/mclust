@@ -222,13 +222,28 @@ orth2 <- function (n)
   Q
 }
 
-randomOrthogonalMatrix <- function(n, d)
+randomOrthogonalMatrix <- function(nrow, ncol, n = nrow, d = ncol, seed = NULL)
 {
-# Generate a random orthogonal basis matrix of dimension (n x d) using 
-# the method in
+# Generate a random orthogonal basis matrix of dimension (nrow x ndim) using 
+# the algorithm in
 # Heiberger R. (1978) Generation of random orthogonal matrices. JRSS C, 27,
 #   199-206.
-  Q <- qr.Q(qr(matrix(rnorm(n*d), nrow = n, ncol = d)))
+
+  if(!is.null(seed)) set.seed(seed)
+  if(missing(nrow) & missing(n)) stop()
+  if(missing(nrow)) 
+  {
+    warning("Use of argument 'n' is deprecated. Please use 'nrow'")
+    nrow <- n
+  }
+  if(missing(ncol) & missing(d)) stop()
+  if(missing(ncol)) 
+  {
+    warning("Use of argument 'd' is deprecated. Please use 'ncol'")
+    ncol <- d
+  }
+  
+  Q <- qr.Q(qr(matrix(rnorm(n*d), nrow = nrow, ncol = ncol)))
   return(Q)
 }
 
@@ -292,7 +307,7 @@ dmvnorm <- function(data, mean, sigma, log = FALSE)
   sigma <- as.matrix(sigma)
   if(ncol(sigma) != d) 
     stop("data and sigma have non-conforming size")
-  if(max(abs(sigma - t(sigma))) > .Machine$double.eps) 
+  if(max(abs(sigma - t(sigma))) > sqrt(.Machine$double.eps))
     stop("sigma must be a symmetric matrix")
   
   # - 1st approach

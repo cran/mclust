@@ -59,5 +59,3 @@ adjustedRandIndex(summary(irisBIC,iris[,-5])$classification,iris[,5])
 adjustedRandIndex(summary(irisBIC,iris[,-5],G=3)$classification,iris[,5])
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -1,9 +1,6 @@
 \name{hc}
 \alias{hc}
 \alias{print.hc}
-\alias{plot.hc}
-\alias{as.dendrogram.hc}
-\alias{as.hclust.hc}
 
 \title{Model-based Agglomerative Hierarchical Clustering}
 
@@ -15,13 +12,8 @@
 \usage{
 hc(data,
    modelName = mclust.options("hcModelName"),  
-   use = mclust.options("hcUse"), \dots)
-
-\method{plot}{hc}(x, \dots)
-
-\method{as.dendrogram}{hc}(object, \dots)
-
-\method{as.hclust}{hc}(x, \dots)
+   partition, minclus = 1, \dots,
+   use = mclust.options("hcUse"))
 }
 
 \arguments{
@@ -45,6 +37,21 @@ hc(data,
     By default the model provided by \code{mclust.options("hcModelName")} is used. 
     See \code{\link{mclust.options}}.
   }
+  \item{partition}{
+    A numeric or character vector representing a partition of
+    observations (rows) of \code{data}. If provided, group merges will
+    start with this partition. Otherwise, each observation is assumed to
+    be in a cluster by itself at the start of agglomeration.
+  }
+  \item{minclus}{
+    A number indicating the number of clusters at which to stop the
+    agglomeration. The default is to stop when all observations have been
+    merged into a single cluster.
+  }
+  \item{\dots}{
+    Arguments for the method-specific \code{hc} functions. See for example
+    \code{\link{hcE}}.
+  }
   \item{use}{
     A string or a vector of character strings specifying the type of input 
     variables/data transformation to be used for model-based hierarchical 
@@ -52,14 +59,6 @@ hc(data,
     By default the method specified in \code{mclust.options("hcUse")} is used. 
     See \code{\link{mclust.options}}.
   }
-  \item{\dots}{
-    Arguments for the method-specific \code{hc} functions. See for example
-    \code{\link{hcE}}.
-  }
-  \item{object, x}{
-    An object of class \code{'hc'} resulting from a call to \code{hc()}.
-  }
-
 }
 \value{
   The function \code{hc()} returns a numeric two-column matrix in which 
@@ -68,14 +67,9 @@ hc(data,
   hierarchical clustering. Several other informations are also returned
   as attributes.
   
-  The plotting function \code{plot.hc()} draws a dendrogram by first
-  converting the input object from class \code{'hc'} to class 
-  \code{'dendrogram'} and then plot the transformed object using 
-  \code{\link{plot.dendrogram}}.
-  
-  The functions \code{as.dendrogram.hc()} and \code{as.hclust.hc()} are
-  used to convert the input object from class \code{'hc'} to class, 
-  respectively, \code{'dendrogram'} and \code{'hclust'}.
+  The plotting method \code{plot.hc()} draws a dendrogram, which can be based
+  on either the classification loglikelihood or the merge level (number of
+  clusters). For details, see the associated help file.
 }
 
 \details{
@@ -90,8 +84,8 @@ hc(data,
 \note{
   If \code{modelName = "E"} (univariate with equal variances) or
   \code{modelName = "EII"} (multivariate with equal spherical
-  covariances), then the method is equivalent to Ward's method for
-  hierarchical clustering.
+  covariances), then underlying model is the same as that for
+  Ward's method for hierarchical clustering.
 }
 \references{
   J. D. Banfield and A. E. Raftery (1993).
@@ -107,24 +101,22 @@ hc(data,
   \emph{Journal of the American Statistical Association 97:611-631}. 
 }
 \seealso{
-  \code{\link{hcE}},...,
+  \code{\link{hcE}}, \dots,
   \code{\link{hcVVV}},
+  \code{\link{plot.hc}},
   \code{\link{hclass}},
   \code{\link{mclust.options}}  
 }
 \examples{
 hcTree <- hc(modelName = "VVV", data = iris[,-5])
+hcTree
 cl <- hclass(hcTree,c(2,3))
+table(cl[,"2"])
+table(cl[,"3"])
 
 \dontrun{
-par(pty = "s", mfrow = c(1,1))
-clPairs(iris[,-5],cl=cl[,"2"])
-clPairs(iris[,-5],cl=cl[,"3"])
-
-par(mfrow = c(1,2))
-dimens <- c(1,2)
-coordProj(iris[,-5], dimens = dimens, classification=cl[,"2"])
-coordProj(iris[,-5], dimens = dimens, classification=cl[,"3"])
+clPairs(iris[,-5], classification = cl[,"2"])
+clPairs(iris[,-5], classification = cl[,"3"])
 }
 }
 \keyword{cluster}

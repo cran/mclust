@@ -1,3 +1,12 @@
+# mclust 5.4.7 (NOT ON CRAN)
+
+- Updated plot method (dendrogram) for hierarchical clustering --- now based on classification likelihood.
+- Added `MclustSSC()` function (and related `print`, `summary`, `plot`, and `predict`, methods) for semi-supervised classification.
+- Exchanged order of models VEE and EVE to account for increasing complexity of EVE.
+- Added `cex` argument to `clPairs()` to control character expansion used in plotting symbols.
+- `em()` and `me()` have now `data` as first argument.
+- Added fish length data. 
+
 # mclust 5.4.6
 
 - Fixed issues with source Fortran code with gfortran 10 as reported by CRAN.

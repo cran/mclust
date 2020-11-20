@@ -33,6 +33,5 @@ ans
 partconv(ans,consec=TRUE)
 }
 \keyword{cluster}
-% Converted by Sd2Rd version 0.3-2.
 
 

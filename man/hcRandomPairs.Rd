@@ -1,12 +1,13 @@
-\name{randomPairs}
+\name{hcRandomPairs}
+\alias{hcRandomPairs}
 \alias{randomPairs}
 
 \title{Random hierarchical structure}
 
-\description{Create a hierarchical structure using a random partition of the data.}
+\description{Create a hierarchical structure using a random hierarchical partition of the data.}
 
 \usage{
-randomPairs(data, seed, \dots)
+hcRandomPairs(data, seed = NULL, \dots)
 }
 \arguments{
   \item{data}{
@@ -36,7 +37,7 @@ randomPairs(data, seed, \dots)
 
 \examples{
 data <- iris[,1:4]
-randPairs <- randomPairs(data)
+randPairs <- hcRandomPairs(data)
 str(randPairs)
 # start model-based clustering from a random partition
 mod <- Mclust(data, initialization = list(hcPairs = randPairs))

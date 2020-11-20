@@ -11,11 +11,11 @@ Observations in different classes are represented by different colors and symbol
 
 \usage{
 clPairs(data, classification, 
-        symbols = NULL, colors = NULL, cex = 1,
+        symbols = NULL, colors = NULL, cex = NULL,
         labels = dimnames(data)[[2]], cex.labels = 1.5, 
         gap = 0.2, grid = FALSE, \dots)
 
-clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
+clPairsLegend(x, y, class, col, pch, cex, box = TRUE, \dots)
 }
 
 \arguments{
@@ -43,7 +43,11 @@ clPairsLegend(x, y, class, col, pch, box = TRUE, \dots)
     The default is given by \code{mclust.options("classPlotColors")}.
   }
   \item{cex}{
-    A numerical value specifying the size of the plotting symbols.
+    A vector of numerical values specifying the size of the plotting 
+		symbol for each unique class in \code{classification}. Values in 
+		\code{cex} correspond to classes in order of appearance in the 
+		sequence of observations (the order used by the function \code{unique}). 
+    By default \code{cex = 1} for all classes is used. 	
   }
   \item{labels}{
     A vector of character strings for labelling the variables. The default

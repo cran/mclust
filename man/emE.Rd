@@ -12,8 +12,8 @@
 \alias{emEEV}
 \alias{emVEV}
 \alias{emVVV}
-\alias{emEVE}
 \alias{emEVV}
+\alias{emEVE}
 \alias{emVEE}
 \alias{emVVE}
 \alias{emXII}
@@ -37,13 +37,13 @@ emVEI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emEVI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emVVI(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emEEE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVEE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emEVE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVVE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emEEV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emVEV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
-emVVV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
-emEVE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emEVV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
-emVEE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
-emVVE(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
+emVVV(data, parameters, prior = NULL, control = emControl(), warn = NULL, \dots)
 emXII(data, prior = NULL, warn = NULL, \dots)
 emXXI(data, prior = NULL, warn = NULL, \dots)
 emXXX(data, prior = NULL, warn = NULL, \dots)
@@ -159,6 +159,4 @@ names(msEst)
 
 emEEE(data = iris[,-5], parameters = msEst$parameters)}
 }
- \keyword{cluster}
-% docclass is function
- % Converted by Sd2Rd version 1.21.
+\keyword{cluster}

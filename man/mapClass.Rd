@@ -52,5 +52,3 @@ b
 mapClass(a, b)
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

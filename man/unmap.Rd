@@ -53,5 +53,3 @@ emEst$z[1:5,]
 map(emEst$z)
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

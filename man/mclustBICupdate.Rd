@@ -40,7 +40,7 @@ BIC <- NULL
 for(j in 1:100)
 {
   rBIC <- mclustBIC(galaxies, verbose = FALSE,
-                    initialization = list(hcPairs = randomPairs(galaxies)))
+                    initialization = list(hcPairs = hcRandomPairs(galaxies)))
   BIC <- mclustBICupdate(BIC, rBIC)
 }
 pickBIC(BIC)

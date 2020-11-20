@@ -2,7 +2,7 @@
 
 .mclust <- structure(list(
   emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI",
-                   "EEE", "EVE", "VEE", "VVE", 
+                   "EEE", "VEE", "EVE", "VVE", 
                    "EEV", "VEV", "EVV", "VVV"),
   # in mclust version <= 4.x
   # emModelNames = c("EII", "VII", "EEI", "VEI", "EVI", "VVI", "EEE", "EEV", "VEV", "VVV"), 
@@ -11,11 +11,11 @@
   subset = 2000,
   fillEllipses = FALSE,
   bicPlotSymbols = structure(c(17, 2, 16, 10, 13, 1,
-                               15, 5, 8, 9,
+                               15, 8, 5, 9,
                                12, 7, 14, 0,
                                17, 2),
                              .Names = c("EII", "VII", "EEI", "EVI", "VEI", "VVI",
-                                        "EEE", "EVE", "VEE", "VVE",
+                                        "EEE", "VEE", "EVE", "VVE",
                                         "EEV", "VEV", "EVV", "VVV",
                                         "E", "V")), 
   bicPlotColors = structure(
@@ -25,7 +25,7 @@
       c("gray", "black", pal(12), "gray", "black")
     },
                             .Names = c("EII", "VII", "EEI", "EVI", "VEI", "VVI",
-                                       "EEE", "EVE", "VEE", "VVE",
+                                       "EEE", "VEE", "EVE", "VVE",
                                        "EEV", "VEV", "EVV", "VVV",
                                        "E", "V")),
   classPlotSymbols = c(16, 0, 17, 3, 15, 4, 1, 8, 2, 7, 

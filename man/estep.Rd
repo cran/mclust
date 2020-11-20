@@ -8,18 +8,18 @@
   mixture models. 
 }
 \usage{
-  estep( modelName, data, parameters, warn = NULL, \dots)
+  estep(data, modelName, parameters, warn = NULL, \dots)
 }
 \arguments{
-  \item{modelName}{
-    A character string indicating the model. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-  }
  \item{data}{
     A numeric vector, matrix, or data frame of observations.
     Categorical variables are not allowed.
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
+  }
+ \item{modelName}{
+    A character string indicating the model. The help file for
+    \code{\link{mclustModelNames}} describes the available models.
   }
  \item{parameters}{
      A names list giving the parameters of the model.

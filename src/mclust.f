@@ -1,4 +1,4 @@
-C modified to avoid printing for calls from Fortran within R
+c modified to avoid printing for calls from Fortran within R
       double precision function dgam (x)
 c jan 1984 edition.  w. fullerton, c3, los alamos scientific lab.
 c jan 1994 wpp@ips.id.ethz.ch, ehg@research.att.com   declare xsml
@@ -1430,9 +1430,8 @@ c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
 
       integer                 nz, iter, k, i
 
-      double precision        hold, hood, err, prok, tmin, tmax, ViLog
+      double precision        hold, hood, err, prok, tmin, tmax, rteps
       double precision        const, sum, sumz, smu, temp, term, zsum
-      double precision        rteps
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -1454,7 +1453,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -1532,7 +1531,7 @@ c     FLMAX = d1mach(2)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -1628,7 +1627,7 @@ c     double precision    x(n), z(n,G[+1]), mu(G), sigsq, pro(G[+1])
 
       integer                 nz, iter, k, i
 
-      double precision        hold, hood, err, prok, tmin, tmax, ViLog
+      double precision        hold, hood, err, prok, tmin, tmax
       double precision        const, sum, sumz, smu, temp, term, zsum
       double precision        pmupmu, cgam, cmu, rmu, rgam, rteps
       
@@ -1655,7 +1654,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -1740,7 +1739,7 @@ c     end if
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -2207,7 +2206,7 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        piterm, sclfac, sumz, sum, zsum
       double precision        cs, sn, umin, umax, rc, detlog, rteps
       double precision        const, hold, hood, err, temp, term
-      double precision        prok, tmin, tmax, ViLog
+      double precision        prok, tmin, tmax
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -2232,7 +2231,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -2343,7 +2342,7 @@ c condition number
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -2456,7 +2455,7 @@ c     double precision   mu(p,G), U(p,p), pro(G)
       double precision        piterm, sclfac, sumz, sum, zsum
       double precision        cs, sn, umin, umax, rc, detlog, rteps
       double precision        const, hold, hood, err, temp, term
-      double precision        prok, tmin, tmax, ViLog
+      double precision        prok, tmin, tmax
       double precision        cmu, cgam, rmu, rgam
 
       double precision        zero, one, two
@@ -2490,7 +2489,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -2603,7 +2602,7 @@ c       call dcopy( p, zero, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -3096,7 +3095,7 @@ c     double precision    mu(p,G), shape(p), pro(G[+1])
 
       double precision    sum, sumz, temp, term, zsum
       double precision    const, hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog, rteps
+      double precision    prok, tmin, tmax, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -3121,7 +3120,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -3252,7 +3251,7 @@ c       call dcopy( p, zero, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -3352,7 +3351,7 @@ c     double precision    mu(p,G), shape(p), pro(G[+1])
 
       double precision    sum, sumz, temp, term, zsum
       double precision    const, hold, hood, err, smin, smax
-      double precision    prok, tmin, tmax, ViLog, rteps
+      double precision    prok, tmin, tmax, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -3379,7 +3378,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -3517,7 +3516,7 @@ c       call dcopy( p, zero, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -4014,7 +4013,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
       double precision        dnp, temp, term, rteps
       double precision        sumz, sum, smin, smax, cs, sn
       double precision        const, rc, hood, hold, err
-      double precision        prok, tmin, tmax, ViLog, zsum
+      double precision        prok, tmin, tmax, zsum
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -4039,7 +4038,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
 c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
@@ -4145,7 +4144,7 @@ c       w(1)  = FLMAX
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -4337,7 +4336,7 @@ c     double precision   mu(p,G), shape(p), O(p,p,G), pro(G[+1])
       double precision        dnp, temp, term, rteps
       double precision        sumz, sum, smin, smax, cs, sn
       double precision        const, rc, hood, hold, err
-      double precision        prok, tmin, tmax, ViLog, zsum
+      double precision        prok, tmin, tmax, zsum
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -4364,7 +4363,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -4482,7 +4481,7 @@ c       w(1)  = FLMAX
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -5432,7 +5431,7 @@ c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       integer             nz, iter, i, j, k
 
       double precision    sum, sumz, temp, term, prok, tmax, tmin, rteps
-      double precision    const, hold, hood, err, dnp, ViLog, zsum
+      double precision    const, hold, hood, err, dnp, zsum
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -5459,7 +5458,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -5546,7 +5545,7 @@ c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -5644,7 +5643,7 @@ c     double precision    x(n,p), z(n,G[+1]), mu(p,G), pro(G[+1])
       integer             nz, iter, i, j, k
 
       double precision    sum, sumk, sumz, temp, term, tmax, tmin
-      double precision    const, hold, hood, err, dnp, ViLog, prok
+      double precision    const, hold, hood, err, dnp, prok
       double precision    pmupmu, cmu, cgam, rmu, rgam, zsum, rteps 
 
       double precision    zero, one, two
@@ -5672,7 +5671,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -5760,7 +5759,7 @@ c       call dcopy( p, zero, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -6201,7 +6200,7 @@ c     double precision    mu(p,G), shape(p,G), pro(G[+1])
 
       double precision    sum, sumz, temp, term, epsmin
       double precision    hold, hood, err, smin, smax, const
-      double precision    prok, tmin, tmax, ViLog, zsum, rteps
+      double precision    prok, tmin, tmax, zsum, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -6226,7 +6225,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
 c       if (EQPRO) call dscal( G, one/dble(G), pro, 1)  wrong?
@@ -6350,7 +6349,7 @@ c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -6470,7 +6469,7 @@ c     double precision    mu(p,G), shape(p,G), pro(G[+1])
 
       double precision    sum, sumz, temp, term, epsmin, zsum
       double precision    hold, hood, err, smin, smax, const
-      double precision    prok, tmin, tmax, ViLog, rteps
+      double precision    prok, tmin, tmax, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -6497,7 +6496,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
 c       if (EQPRO) call dscal( G, one/dble(G), pro, 1)  wrong?
@@ -6635,7 +6634,7 @@ c           call dcopy( p, FLMAX, 0, shape(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -7715,7 +7714,7 @@ c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
 
       double precision        hold, hood, err, sum, smu, zsum
       double precision        const, temp, term, sigmin, sigsqk
-      double precision        prok, tmin, tmax, ViLog, rteps
+      double precision        prok, tmin, tmax, rteps
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -7737,7 +7736,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
 c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
@@ -7806,7 +7805,7 @@ c     FLMAX  = d1mach(2)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -7908,7 +7907,7 @@ c     double precision     x(n), z(n,G[+1]), mu(G), sigsq(G), pro(G[+1])
       double precision        hold, hood, err, pmupmu
       double precision        sumz, sum, smu, zsum, rteps
       double precision        const, temp, term, sigmin, sigsqk
-      double precision        prok, tmin, tmax, ViLog
+      double precision        prok, tmin, tmax
       double precision        cmu, cgam, rmu, rgam
 
       double precision        zero, one, two
@@ -7940,7 +7939,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
 c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
@@ -8014,7 +8013,7 @@ c     FLMAX  = d1mach(2)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -8427,7 +8426,7 @@ c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
 
       double precision    tol1, tol2, sum, temp, term, tmin, tmax
       double precision    prok, scalek, smin, smax, const, zsum
-      double precision    hold, hood, err, errin, dnp, ViLog, rteps
+      double precision    hold, hood, err, errin, dnp, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -8456,7 +8455,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
       end if
@@ -8650,7 +8649,7 @@ c shape estimate
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -8780,8 +8779,7 @@ c     double precision    mu(p,G), scale(G), shape(p), pro(G[+1])
 
       double precision    tol1, tol2, sum, temp, term, tmin, tmax
       double precision    prok, scalek, smin, smax, const, sumz
-      double precision    hold, hood, err, errin, dnp, ViLog, zsum
-      double precision    rteps
+      double precision    hold, hood, err, errin, dnp, zsum, rteps
     
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -8812,7 +8810,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
       end if
@@ -9013,7 +9011,7 @@ c shape estimate
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -9727,7 +9725,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
       integer                 maxi1, maxi2, p1, inmax, iter
       integer                 nz, i, j, k, l, j1, info, inner
 
-      double precision        tol1, tol2, dnp, term, rteps, ViLog
+      double precision        tol1, tol2, dnp, term, rteps
       double precision        errin, smin, smax, sumz, tmin, tmax
       double precision        cs, sn, hold, hood, err, zsum
       double precision        const, temp, sum, prok, scalek
@@ -9758,7 +9756,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
       end if
@@ -9847,7 +9845,7 @@ c       call dcopy( p, zero, 0, mu(1,k), 1)
           pro(nz) = temp
 
 c         call dcopy( n, ViLog, 0, z(1,nz), 1)
-          dummy(1) = ViLog
+          dummy(1) = log(Vinv)
           call dcopy( n, dummy, 0, z(1,nz), 1)
 
           if (EQPRO) then
@@ -9902,7 +9900,7 @@ c       call dcopy( p, zero, 0, shape, 1)
             pro(nz) = temp
 
 c           call dcopy( n, ViLog, 0, z(1,nz), 1)
-            dummy(1) = ViLog
+            dummy(1) = log(Vinv)
             call dcopy( n, dummy, 0, z(1,nz), 1)
 
             if (EQPRO) then
@@ -9968,7 +9966,7 @@ c         call dcopy (G, temp/sumz, 0, scale, 1)
             pro(nz) = temp
 
 c           call dcopy( n, ViLog, 0, z(1,nz), 1)
-            dummy(1) = ViLog
+            dummy(1) = log(Vinv)
             call dcopy( n, dummy, 0, z(1,nz), 1)
 
             if (EQPRO) then
@@ -10053,7 +10051,7 @@ c           w(1)    = temp
              pro(nz) = temp
 
 c            call dcopy( n, ViLog, 0, z(1,nz), 1)
-             dummy(1) = ViLog
+             dummy(1) = log(Vinv)
              call dcopy( n, dummy, 0, z(1,nz), 1)
 
              if (EQPRO) then
@@ -10112,7 +10110,7 @@ c normalize the shape matrix
              pro(nz) = temp
 
 c            call dcopy( n, ViLog, 0, z(1,nz), 1)
-             dummy(1) = ViLog
+             dummy(1) = log(Vinv)
              call dcopy( n, dummy, 0, z(1,nz), 1)
 
              if (EQPRO) then
@@ -10168,7 +10166,7 @@ c         w(1)    = temp
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -10337,7 +10335,7 @@ c     double precision   scale(G), shape(p), O(p,p,G)
       integer                 maxi1, maxi2, p1, inmax, iter
       integer                 nz, i, j, k, l, j1, info, inner
 
-      double precision        tol1, tol2, dnp, term, rteps, ViLog
+      double precision        tol1, tol2, dnp, term, rteps
       double precision        errin, smin, smax, sumz, tmin, tmax
       double precision        cs, sn, hold, hood, err, zsum 
       double precision        const, temp, sum, prok, scalek
@@ -10371,7 +10369,7 @@ c-----------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
       end if
@@ -10647,7 +10645,7 @@ c             call dcopy( G, FLMAX, 0, scale, 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -12007,7 +12005,7 @@ c     double precision    mu(p,G), sigsq(G), pro(G[+1])
 
       double precision    sumz, sum, temp, const, term, zsum
       double precision    sigmin, sigsqk, hold, hood, err
-      double precision    prok, tmin, tmax, ViLog, rteps
+      double precision    prok, tmin, tmax, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -12032,7 +12030,7 @@ c-----------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
 c       if (EQPRO) call dcopy( G, one/dble(G), 0, pro, 1)
@@ -12111,7 +12109,7 @@ c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -12216,7 +12214,7 @@ c     double precision    mu(p,G), sigsq(G), pro(G[+1])
 
       double precision    sumz, sum, temp, const, term, zsum
       double precision    sigmin, sigsqk, hold, hood, err
-      double precision    prok, tmin, tmax, ViLog, rteps
+      double precision    prok, tmin, tmax, rteps
       double precision    pmupmu, cmu, cgam, rmu, rgam
 
       double precision    zero, one, two
@@ -12247,7 +12245,7 @@ c-----------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then 
@@ -12336,7 +12334,7 @@ c         call dcopy( p, FLMAX, 0, mu(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -12770,7 +12768,7 @@ c        http://www.stat.washington.edu/mclust/license.txt
 
       double precision    sum, temp, term, scalek, epsmin
       double precision    hold, hood, err, smin, smax, const
-      double precision    prok, tmin, tmax, ViLog, zsum, rteps
+      double precision    prok, tmin, tmax, zsum, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -12793,7 +12791,7 @@ c----------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
       end if
@@ -12905,7 +12903,7 @@ c pro(k) now contains n_k
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -13033,7 +13031,7 @@ c     double precision    mu(p,G), scale(G), shape(p,G), pro(G[+1])
 
       double precision    sumz, sum, temp, term, scalek, epsmin
       double precision    hold, hood, err, smin, smax, const
-      double precision    prok, tmin, tmax, ViLog, zsum, rteps
+      double precision    prok, tmin, tmax, zsum, rteps
 
       double precision    zero, one, two
       parameter          (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -13057,7 +13055,7 @@ c-----------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
       end if
@@ -13183,7 +13181,7 @@ c       call dcopy( G, one/dble(G), 0, pro, 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -14731,7 +14729,7 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        piterm, hold, rcmin, rteps
       double precision        temp, term, cs, sn, umin, umax
       double precision        sumz, sum, detlog, const, hood, err
-      double precision        prok, tmin, tmax, ViLog, zsum
+      double precision        prok, tmin, tmax, zsum
 
       double precision        zero, one, two
       parameter              (zero = 0.d0, one = 1.d0, two = 2.d0)
@@ -14756,7 +14754,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -14875,7 +14873,7 @@ c         call dcopy( p, FLMAX, 0,  z(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = Vilog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then
@@ -15007,7 +15005,7 @@ c     double precision   mu(p,G), U(p,p,G), pro(G), S(p,p)
       double precision        piterm, hold, rcmin, rteps
       double precision        temp, term, cs, sn, umin, umax
       double precision        sum, sumz, detlog, const, hood, err
-      double precision        prok, tmin, tmax, ViLog
+      double precision        prok, tmin, tmax
       double precision        cmu, cgam, rmu, rgam, zsum
 
       double precision        zero, one, two
@@ -15041,7 +15039,7 @@ c------------------------------------------------------------------------------
 
       if (Vinv .gt. zero) then
         nz = G + 1
-        ViLog = log(Vinv)
+c       ViLog = log(Vinv)
       else
         nz = G
         if (EQPRO) then
@@ -15153,7 +15151,7 @@ c         call dcopy( p, FLMAX, 0,  z(1,k), 1)
         pro(nz) = temp
 
 c       call dcopy( n, ViLog, 0, z(1,nz), 1)
-        dummy(1) = ViLog
+        dummy(1) = log(Vinv)
         call dcopy( n, dummy, 0, z(1,nz), 1)
 
         if (EQPRO) then

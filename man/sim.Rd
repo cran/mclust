@@ -7,7 +7,7 @@
   Simulate data from parameterized MVN mixture models.
 }
 \usage{
-sim(modelName, parameters, n, seed = NULL, ...)
+sim(modelName, parameters, n, seed = NULL, \dots)
 }
 \arguments{
   \item{modelName}{
@@ -112,5 +112,3 @@ irisSim3 <- sim(modelName = irisModel3$modelName,
 clPairs(irisSim3[,-1], cl = irisSim3[,1])
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

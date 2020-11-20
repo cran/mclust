@@ -667,7 +667,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         }
         for(modelName in na.omit(modelNames[BIC[g,] == EMPTY])) 
         {  
-          out <- me(modelName = modelName, data = data, z = z, 
+          out <- me(data = data, modelName = modelName, z = z,
                     prior = prior, control = control, warn = warn)
           BIC[g, modelName] <- bic(modelName = modelName, 
                                    loglik = out$loglik,
@@ -720,17 +720,17 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
             z <-  t(apply( z, 1, function(x) x/sum(x)))
         }
         for (modelName in modelNames[!is.na(BIC[g,])]) {
-          ms <- mstep(modelName = modelName, z = z, 
-                      data = as.matrix(data)[initialization$subset,],
+          ms <- mstep(data = as.matrix(data)[initialization$subset,],
+	              modelName = modelName, z = z, 
                       prior = prior, control = control, warn = warn)
           #
           #  ctrl <- control
           #  ctrl$itmax[1] <- 1
-          #  ms <- me(modelName = modelName, data = as.matrix(data)[
-          #           initialization$subset,  ], z = z, prior = prior, control = ctrl)
+          #  ms <- me( data = as.matrix(data)[initialization$subset,  ],
+	  #      modelName = modelName, z = z, prior = prior, control = ctrl)
           #
           es <- do.call("estep", c(list(data = data, warn = warn), ms))
-          out <- me(modelName = modelName, data = data, z = es$z, 
+          out <- me(data = data, modelName = modelName, z = es$z, 
                     prior = prior, control = control, warn = warn)
           BIC[g, modelName] <- bic(modelName = modelName, 
                                    loglik = out$loglik,
@@ -816,7 +816,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         K <- 1:(k+1) 
         for (modelName in na.omit(modelNames[BIC[g,] == EMPTY])) 
         {  
-          out <- me(modelName = modelName, data = data, z = z[, K], 
+          out <- me(data = data, modelName = modelName, z = z[, K], 
                     prior = prior, Vinv = Vinv, 
                     control = control, warn = warn)
           BIC[g, modelName] <- bic(modelName = modelName, 
@@ -895,8 +895,8 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
         }
         for (modelName in na.omit(modelNames[BIC[g,] == EMPTY]))
         {
-          ms <- mstep(modelName = modelName, z = z, 
-                      data = as.matrix(data)[subset,],
+          ms <- mstep(data = as.matrix(data)[subset,],
+                      modelName = modelName, z = z, 
                       prior = prior, control = control, warn = warn)
           es <- do.call("estep", c(list(data = data, warn = warn), ms))
           
@@ -908,7 +908,7 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
             es$z <- cbind(es$z, 0)
             es$z[noise,] <- matrix(c(rep(0,k),1), byrow = TRUE,
                                    nrow = length(noise), ncol = k+1)
-            out <- me(modelName = modelName, data = data, z = es$z,
+            out <- me(data = data, modelName = modelName, z = es$z, 
                       prior = prior, Vinv = Vinv, 
                       control = control, warn = warn)
             BIC[g, modelName] <- bic(modelName = modelName, 
@@ -1052,14 +1052,13 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
       { z <- unmap(hclass(hcPairs, G)) }
     else 
       { z <- unmap(qclass(data, G), groups = 1:G) }
-    out <- me(modelName = bestModel, data = data, z = z, 
+    out <- me(data = data, modelName = bestModel, z = z, 
               prior = prior, control = control, warn = warn)
     if(sum((out$parameters$pro - colMeans(out$z))^2) > 
        sqrt(.Machine$double.eps))
       { # perform extra M-step and update parameters
-        ms <- mstep(modelName = bestModel, data = data,
-                    z = out$z, prior = prior, 
-                    warn = warn)
+        ms <- mstep(data = data, modelName = bestModel, z = out$z,
+	            prior = prior, warn = warn)
         if(attr(ms, "returnCode") == 0)
           out$parameters <- ms$parameters
     }
@@ -1070,16 +1069,14 @@ summaryMclustBIC <- function (object, data, G = NULL, modelNames = NULL, ...)
       { z <- unmap(hclass(hcPairs, G)) }
     else 
       { z <- unmap(qclass(data[subset], G)) }
-    ms <- mstep(modelName = bestModel, prior = prior, z = z, 
-                data = as.matrix(data)[subset,], control = control, 
-                warn = warn)
+    ms <- mstep(data = as.matrix(data)[subset,], modelName = bestModel,
+                prior = prior, z = z, control = control, warn = warn)
     es <- do.call("estep", c(list(data = data), ms))
-    out <- me(modelName = bestModel, data = data, z = es$z, 
+    out <- me(data = data, modelName = bestModel, z = es$z, 
               prior = prior, control = control, warn = warn)
     # perform extra M-step and update parameters
-    ms <- mstep(modelName = bestModel, data = data, 
-                z = out$z, prior = prior, 
-                warn = warn)
+    ms <- mstep(data = data, modelName = bestModel, 
+                z = out$z, prior = prior, warn = warn)
     if(attr(ms, "returnCode") == 0)
       out$parameters <- ms$parameters
   }
@@ -1173,7 +1170,7 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
     else 
     { z[-noise, 1:G] <- unmap(qclass(data[-noise], G)) }
     z[noise, G1] <- 1
-    out <- me(modelName = bestModel, data = data, z = z, 
+    out <- me(data = data, modelName = bestModel, z = z, 
               prior = prior, Vinv = Vinv,
               control = control, warn = warn)
   }
@@ -1183,13 +1180,13 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
   { z <- unmap(hclass(hcPairs, G)) }
   else 
   { z <- unmap(qclass(data[subset], G)) }
-  ms <- mstep(modelName = bestModel, data = as.matrix(data)[subset,], z = z, 
+  ms <- mstep(data = as.matrix(data)[subset,], modelName = bestModel, z = z, 
               prior = prior, control = control, warn = warn)
   es <- do.call("estep", c(list(data = data, warn = warn), ms))
   es$z <- cbind(es$z, 0)
   es$z[noise,] <- matrix(c(rep(0,G),1), byrow = TRUE,
                          nrow = length(noise), ncol = G+1)
-  out <- me(modelName = bestModel, data = data, z = es$z,
+  out <- me(data = data, modelName = bestModel, z = es$z,
             prior = prior, Vinv = Vinv, 
             control = control, warn = warn)
   }
@@ -4394,7 +4391,7 @@ checkModelName <- function(modelName)
          stop("invalid model name"))
 }
 
-em <- function(modelName, data, parameters, prior = NULL, control = emControl(), 
+em <- function(data, modelName, parameters, prior = NULL, control = emControl(), 
                warn = NULL, ...)
 {
   checkModelName(modelName)
@@ -4405,7 +4402,7 @@ em <- function(modelName, data, parameters, prior = NULL, control = emControl(),
   eval(mc, parent.frame())
 }
 
-estep <- function(modelName, data, parameters, warn = NULL, ...)
+estep <- function(data, modelName, parameters, warn = NULL, ...)
 {
   checkModelName(modelName)
   funcName <- paste("estep", modelName, sep = "")
@@ -4479,7 +4476,7 @@ mclustVariance <- function(modelName, d=NULL, G=2)
   c(modelName = modelName, d = d, G = G, varList)
 }
 
-me <- function(modelName, data, z, prior = NULL, control = emControl(), 
+me <- function(data, modelName, z, prior = NULL, control = emControl(), 
                Vinv = NULL, warn = NULL, ...)
 {
   checkModelName(modelName)
@@ -4490,7 +4487,7 @@ me <- function(modelName, data, z, prior = NULL, control = emControl(),
   eval(mc, parent.frame())
 }
 
-mstep <- function(modelName, data, z, prior = NULL, warn = NULL, ...)
+mstep <- function(data, modelName, z, prior = NULL, warn = NULL, ...)
 {
   checkModelName(modelName)
   funcName <- paste("mstep", modelName, sep = "")

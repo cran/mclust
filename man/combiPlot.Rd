@@ -55,7 +55,7 @@ combiPlot(ex4.1, MclustOutput$z, combiM1)
 title("Combine 1 and 2")
 
 # let's merge classes labeled 1 and 2, and then components labeled (in this 
-# new 5-classes combined solution...) 1 and 2
+# new 5-classes combined solution) 1 and 2
 combiM2 <- combMat(5, 1, 2) \%*\% combMat(6, 1, 2) 
 combiM2 
 combiPlot(ex4.1, MclustOutput$z, combiM2)

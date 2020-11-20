@@ -101,7 +101,7 @@ Mclust(data, G = NULL, modelNames = NULL,
   \item{verbose}{
   A logical controlling if a text progress bar is displayed during the
   fitting procedure. By default is \code{TRUE} if the session is 
-  interactive, and \code{FALSE} otherwise..
+  interactive, and \code{FALSE} otherwise.
   }
   \item{\dots}{
   Catches unused arguments in indirect or list calls via \code{do.call}.

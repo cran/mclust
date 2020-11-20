@@ -7,8 +7,8 @@
 \alias{simVEI}
 \alias{simEVI}
 \alias{simVVI}
-\alias{simEEE}
 \alias{simEEV}
+\alias{simEEE}
 \alias{simVEV}
 \alias{simVVV}
 \alias{simEVE}
@@ -32,13 +32,13 @@ simVEI(parameters, n, seed = NULL, \dots)
 simEVI(parameters, n, seed = NULL, \dots)
 simVVI(parameters, n, seed = NULL, \dots)
 simEEE(parameters, n, seed = NULL, \dots)
+simVEE(parameters, n, seed = NULL, \dots)
+simEVE(parameters, n, seed = NULL, \dots)
+simVVE(parameters, n, seed = NULL, \dots)
 simEEV(parameters, n, seed = NULL, \dots)
 simVEV(parameters, n, seed = NULL, \dots)
-simVVV(parameters, n, seed = NULL, \dots)
-simEVE(parameters, n, seed = NULL, \dots)
 simEVV(parameters, n, seed = NULL, \dots)
-simVEE(parameters, n, seed = NULL, \dots)
-simVVE(parameters, n, seed = NULL, \dots)
+simVVV(parameters, n, seed = NULL, \dots)
 }
 \arguments{
    \item{parameters}{
@@ -66,7 +66,7 @@ simVVE(parameters, n, seed = NULL, \dots)
       An integer specifying the number of data points to be simulated.
   }
   \item{seed}{
-    An optional integer argument to \code{set.seed} for reproducible
+    An optional integer argument to \code{set.seed()} for reproducible
     random class assignment. By default the current seed will be used.
     Reproducibility can also be achieved by calling \code{set.seed}
     before calling \code{sim}.
@@ -124,5 +124,3 @@ coordProj( simdat, paramList = paramList, classification = cl)
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

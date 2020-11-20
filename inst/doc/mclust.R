@@ -71,7 +71,7 @@ BIC <- NULL
 for(j in 1:20)
 {
   rBIC <- mclustBIC(galaxies, verbose = FALSE,
-                    initialization = list(hcPairs = randomPairs(galaxies)))
+                    initialization = list(hcPairs = hcRandomPairs(galaxies)))
   BIC <- mclustBICupdate(BIC, rBIC)
 }
 summary(BIC)
@@ -175,12 +175,18 @@ plot(mod3dr, what = "boundaries", ngrid = 200)
 mclust.options("bicPlotColors")
 mclust.options("classPlotColors")
 
+## ---- eval=FALSE--------------------------------------------------------------
+#  palette.colors(palette = "Okabe-Ito")
+
 ## -----------------------------------------------------------------------------
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#999999", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", 
+"#D55E00", "#CC79A7", "#999999")
+
+## -----------------------------------------------------------------------------
 bicPlotColors <- mclust.options("bicPlotColors")
-bicPlotColors[1:14] <- c(cbPalette, cbPalette[1:6])
+bicPlotColors[1:14] <- c(cbPalette, cbPalette[1:5])
 mclust.options("bicPlotColors" = bicPlotColors)
-mclust.options("classPlotColors" = cbPalette)
+mclust.options("classPlotColors" = cbPalette[-1])
 
 clPairs(iris[,-5], iris$Species)
 mod <- Mclust(iris[,-5])

@@ -79,5 +79,3 @@ meEst$parameters$variance$Sigma
 sigma2decomp(meEst$parameters$variance$Sigma, G = length(unique(iris[,5])))
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

@@ -8,19 +8,19 @@
   starting with the expectation step.
 }
 \usage{
-em(modelName, data, parameters, prior = NULL, control = emControl(),
+em(data, modelName, parameters, prior = NULL, control = emControl(),
    warn = NULL, \dots)
 }
 \arguments{
-  \item{modelName}{
-    A character string indicating the model. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-  }
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
     variables are not allowed. If a matrix or data frame, rows
     correspond to observations and columns correspond to variables. 
    }
+  \item{modelName}{
+    A character string indicating the model. The help file for
+    \code{\link{mclustModelNames}} describes the available models.
+  }
   \item{parameters}{
      A names list giving the parameters of the model.
      The components are as follows:

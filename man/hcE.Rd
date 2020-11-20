@@ -74,7 +74,7 @@ hcVVV(data, partition, minclus = 1, alpha = 1, beta = 1, \dots)
 \seealso{
   \code{\link{hc}},
   \code{\link{hclass}}
-  \code{\link{randomPairs}}
+  \code{\link{hcRandomPairs}}
 }
 \examples{
 hcTree <- hcEII(data = iris[,-5])
@@ -92,5 +92,3 @@ coordProj(iris[,-5], classification=cl[,"3"], dimens=dimens)
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

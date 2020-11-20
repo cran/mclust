@@ -9,7 +9,7 @@ Implements the EM algorithm for fitting MVN mixture models parameterized by eige
 
 \usage{
 me.weighted(modelName, data, z, weights = NULL, prior = NULL, 
-            control = emControl(), Vinv = NULL, warn = NULL, ...)
+            control = emControl(), Vinv = NULL, warn = NULL, \dots)
 }
 
 \arguments{
@@ -112,7 +112,7 @@ me.weighted(modelName, data, z, weights = NULL, prior = NULL,
 
 \seealso{
   \code{\link{me}},
-  \code{\link{meE}},...,
+  \code{\link{meE}}, \dots,
   \code{\link{meVVV}},
   \code{\link{em}},
   \code{\link{mstep}},

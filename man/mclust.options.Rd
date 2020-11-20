@@ -55,7 +55,7 @@ Available options are:
     \item{\code{"PCR"}}{principal components computed using SVD on standardized 
     (center and scaled) variables (i.e. using the correlation matrix);}
     \item{\code{"SVD"}}{scaled SVD transformation;}
-    \item{\code{"RND"}}{no transformation is applied but a random hierarchical structure is returned (see \code{\link{randomPairs}}).}
+    \item{\code{"RND"}}{no transformation is applied but a random hierarchical structure is returned (see \code{\link{hcRandomPairs}}).}
     }
     For further details see Scrucca and Raftery (2015), Scrucca et al. (2016).
   }

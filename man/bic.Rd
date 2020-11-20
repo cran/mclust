@@ -9,7 +9,7 @@
   and number of mixture components in the model. 
 }
 \usage{
-bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, ...)
+bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, \dots)
 }
 \arguments{
   \item{modelName}{

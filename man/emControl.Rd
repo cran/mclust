@@ -22,8 +22,8 @@ emControl(eps, tol, itmax, equalPro)
   \item{tol}{
     A vector of length two giving relative convergence tolerances for the 
     log-likelihood and for parameter convergence in the inner loop for models
-    with iterative M-step ("VEI", "EVE", "VEE", "VVE", "VEV"), respectively.
-    The default is \code{c(1.e-5,sqrt(.Machine$double.eps))}.
+    with iterative M-step ("VEI", "VEE", "EVE", "VVE", "VEV"), respectively.
+    The default is \code{c(1.e-5, sqrt(.Machine$double.eps))}.
     If only one number is supplied, it is used as the tolerance 
     for the outer iterations and the tolerance for the inner
     iterations is as in the default.
@@ -31,7 +31,7 @@ emControl(eps, tol, itmax, equalPro)
   \item{itmax}{
     A vector of length two giving integer limits on the number of EM
     iterations and on the number of iterations in the inner loop for
-    models with iterative M-step ("VEI", "EVE", "VEE", "VVE", "VEV"),
+    models with iterative M-step ("VEI", "VEE", "EVE", "VVE", "VEV"),
     respectively. The default is 
     \code{c(.Machine$integer.max, .Machine$integer.max)} 
     allowing termination to be completely governed by \code{tol}. 

@@ -7,25 +7,24 @@
 \description{
 A dimension reduction method for visualizing the clustering or classification structure obtained from a finite mixture of Gaussian densities.
 }
+
 \usage{
 MclustDR(object, lambda = 0.5, normalized = TRUE, Sigma,
          tol = sqrt(.Machine$double.eps))
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
-  \item{object}{An object of class \code{'Mclust'} or \code{'MclustDA'} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.
-}
-  \item{lambda}{A tuning parameter in the range [0,1] described in Scrucca (2014). 
-  The default 0.5 gives equal importance to differences in means and covariances 
-  among clusters/classes. To recover the directions that mostly separate the estimated
-  clusters or classes set this parameter to 1. 
-}
-  \item{normalized}{Logical. If \code{TRUE} directions are normalized to unit norm.
-}
-  \item{Sigma}{Marginal covariance matrix of data. If not provided is estimated by the MLE of observed data.
-}
+  \item{object}{An object of class \code{'Mclust'} or \code{'MclustDA'} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.}
+  
+  \item{lambda}{A tuning parameter in the range [0,1] described in Scrucca (2014). The default 0.5 gives equal importance to differences in means and covariances among clusters/classes. To recover the directions that mostly separate the estimated clusters or classes set this parameter to 1.}
+  
+  \item{normalized}{Logical. If \code{TRUE} directions are normalized to unit norm.}
+  
+  \item{Sigma}{Marginal covariance matrix of data. If not provided is estimated by the MLE of observed data.}
+  
   \item{tol}{A tolerance value.}
 }
+
 \details{
 The method aims at reducing the dimensionality by identifying a set of linear combinations, ordered by importance as quantified by the associated eigenvalues, of the original features which capture most of the clustering or classification structure contained in the data. 
 

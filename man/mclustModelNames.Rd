@@ -30,8 +30,8 @@ The following models are available in package \pkg{mclust}:\cr
 \item{\code{"EVI"}}{diagonal, equal volume, varying shape}
 \item{\code{"VVI"}}{diagonal, varying volume and shape}
 \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation}
-\item{\code{"EVE"}}{ellipsoidal, equal volume and orientation (*)}
 \item{\code{"VEE"}}{ellipsoidal, equal shape and orientation (*)}
+\item{\code{"EVE"}}{ellipsoidal, equal volume and orientation (*)}
 \item{\code{"VVE"}}{ellipsoidal, equal orientation (*)}
 \item{\code{"EEV"}}{ellipsoidal, equal volume and equal shape}
 \item{\code{"VEV"}}{ellipsoidal, equal shape}

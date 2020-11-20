@@ -102,5 +102,3 @@ mvn(modelName = "XXX", x)
 mvn(modelName = "Ellipsoidal", x) 
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

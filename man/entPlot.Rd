@@ -7,7 +7,7 @@ Plot Entropy Plots
 Plot "entropy plots" to help select the number of classes from a hierarchy of combined clusterings.
 }
 \usage{
-entPlot(z, combiM, abc = c("standard", "normalized"), reg = 2, ...)
+entPlot(z, combiM, abc = c("standard", "normalized"), reg = 2, \dots)
 }
 \arguments{
   \item{z}{

@@ -85,7 +85,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     bic <- max(BIC, na.rm = TRUE)
     loglik <- Model$loglik
     df <- (2*loglik - bic)/log(Model$n)
-    # there are (nclass-1) more df than real needed
+    # there are (nclass-1) more df than really needed
     # equal to logLik(object) but faster
     Model <- c(Model, list("BIC" = BIC))
     Models <- rep(list(Model), ncl)
@@ -394,7 +394,8 @@ predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
   
   models <- object$models
   nclass <- length(models)
-  classNames <- levels(object$class)
+  classNames <- if(is.null(object$class)) names(models)
+                else                      levels(object$class)
   n <- sapply(1:nclass, function(i) models[[i]]$n)
   if(missing(newdata))
     { newdata <- object$data }

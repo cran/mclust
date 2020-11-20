@@ -6,7 +6,8 @@
 
 hc <- function(data, 
                modelName = mclust.options("hcModelName"), 
-               use = mclust.options("hcUse"), ...)
+               partition, minclus = 1, ...,
+               use = mclust.options("hcUse"))
 {
   if(!any(modelName == c("E", "V", "EII", "VII", "EEE", "VVV")))
      stop("invalid 'modelName' argument for model-based hierarchical clustering. See help(mclust.options)")
@@ -50,7 +51,7 @@ hc <- function(data,
                    p <- min(dim(data))
                    SVD <- svd(data, nu=0)
                    Z <- data %*% SVD$v %*% diag(1/sqrt(SVD$d), p, p) },
-         "RND" = { out <- randomPairs(data, ...) 
+         "RND" = { out <- hcRandomPairs(data, ...) 
                    attr(out, "dimensions") <- dim(data)
                    attr(out, "use") <- use
                    attr(out, "call") <- match.call()
@@ -68,7 +69,6 @@ hc <- function(data,
   class(out) <- "hc"
   return(out)
 }
-
 
 print.hc <- function(x, ...) 
 {
@@ -88,9 +88,17 @@ print.hc <- function(x, ...)
   invisible(x)
 }
 
-randomPairs <- function(data, seed, ...)
+randomPairs <- function(...)
 {
-  if(!missing(seed)) set.seed(seed)
+  .Deprecated(old = "randomPairs", 
+              new = "hcRandomPairs",
+              package = "mclust")
+  hcRandomPairs(...)
+}
+
+hcRandomPairs <- function(data, seed = NULL, ...)
+{
+  if(!is.null(seed)) set.seed(seed)
   data <- as.matrix(data)
   n <- nrow(data)
   m <- if(n%%2 == 1) n-1 else n
@@ -365,171 +373,232 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
 }
 
 ##
-## Dendrogram for model-based hierarchical agglomeration ----
+## Plot method (dendrogram) for model-based hierarchical agglomeration ----
 ##
-
-as.hclust.hc <- function(x, ...)
+plot.hc <-
+function (x, what=c("loglik","merge"), maxG=NULL, labels=FALSE, hang=0,...) 
 {
-# Convert 'hc' objects to class 'hclust'
-  stopifnot(inherits(x, "hc"))
-  data <- as.matrix(attr(x, "data"))
-  labels <- rownames(data)
-  # convert a 'hc' hierarchical clustering structure to 'hclust' structure
-  HC <- matrix(as.vector(x), ncol(x), nrow(x), byrow = TRUE)
-  HCm <- matrix(NA, nrow(HC), ncol(HC))
-  merged <- list(as.vector(HC[1,]))
-  HCm[1,] <- -HC[1,]
-  for(i in 2:nrow(HC))
-     { lmerged <- lapply(merged, function(m) HC[i,] %in% m)
-       lm <- which(sapply(lmerged, function(lm) any(lm)))
-       if(length(lm) == 0)
-         { merged <- append(merged, list(HC[i,]))
-           HCm[i,] <- sort(-HC[i,]) }
-       else if(length(lm) == 1)
-              { merged <- append(merged, list(c(merged[[lm]], HC[i,!lmerged[[lm]]])))
-                merged[[lm]] <- list()
-                HCm[i,] <- sort(c(-HC[i,!lmerged[[lm]]], lm)) }
-       else   { merged <- append(merged, list(unlist(merged[lm])))
-                merged[[lm[1]]] <- merged[[lm[2]]] <- list()
-                HCm[i,] <- lm }
-  }
-  # compute heights
-  height <- attr(x, "deviance")
-  if(is.null(height)) 
-    height <- hcCriterion(x, Gmax = nrow(HC), what = "deviance")
-  # create 'hclust' object
-  obj <- structure(list(merge = HCm, 
-                        height = rev(height), 
-                        order = merged[[length(merged)]],
-                        labels = labels, 
-                        method = attr(x, "model"), 
-                        dist.method = NULL,
-                        call = attr(x, "call")),
-                   class = "hclust")
-  return(obj)
-}  
-  
+    stopifnot(inherits(x, "hc"))
+    what <- what[1]
+    hier <- as.hclust(x, what = what, maxG = maxG, labels = labels)
+    switch(what,
+              "loglik" = {
+	     ylab <- paste("Classification log-likelihood",
+	                  paste("(", hier$method, sep = ""), "model)")
+	     cloglik <- attr(hier,"cloglik")
+	     attr(hier,"cloglik") <- NULL
+	     plot( as.dendrogram(hier, hang=hang), axes=F, ylab=ylab)
+	     r <- range(cloglik,na.rm=T)
+	     par.usr <- par("usr")
+             ybot <- max(r)-par.usr[3]
+             ytop <- min(r)+par.usr[3]
+	    },
+	    "merge" = {
+	     ylab <- paste("Number of Clusters",
+	                paste("(", hier$method, sep = ""), "model)")
+	     nclus <- attr(hier,"nclus")
+	     attr(hier,"nclus") <- NULL
+	     plot( as.dendrogram(hier, hang=hang), axes=F, ylab=ylab)
+	     par.usr <- par("usr")
+	     ybot<- max(nclus)-par.usr[3]
+	     ytop <- 1+par.usr[3]
+            },
+	    stop("unrecognized what option"))
 
-as.dendrogram.hc <- function(object, ...)
-{
-# Convert 'hc' objects to class 'dendrogram'
-  stopifnot(inherits(object, "hc"))
-  as.dendrogram(as.hclust(object))
-}  
-  
-
-plot.hc <- function(x, ...)
-{
-  stopifnot(inherits(x, "hc"))
-  # dots <- list(...)
-  # if(is.null(dots$hang)) dots$hang <- -1
-  # if(is.null(dots$sub))  dots$sub <- NA
-  dendro <- as.dendrogram(x)
-  # do.call("plot", c(list(hcl), dots))
-  plot(dendro)
-  invisible(dendro)
+    par(usr=c(par("usr")[1:2],ybot,ytop))
+    at <- pretty(seq(from=ybot,to=ytop,length=100), min = 5, max = 10)
+    axis(2, at=at)
+    
+    invisible(hier)
 }
 
-# Auxiliary functions ----
-
-hcCriterion <- function(hcPairs, Gmax, what = c("deviance", "loglik"), ...)
+as.hclust.hc <-
+function (object, what = c("loglik", "merge"), maxG = NULL, labels = FALSE) 
 {
-  stopifnot(inherits(hcPairs, "hc"))
-  hcPairsName <- deparse(substitute(hcPairs))
-  what <- match.arg(what, choices = eval(formals(hcCriterion)$what))
-  data <- as.matrix(attr(hcPairs, "data"))
-  N <- nrow(data)
-  d <- ncol(data)
-  model <- attr(hcPairs, "model")
-  m <- as.integer(ifelse(missing(Gmax), N, Gmax))
-  hc <- hclass(hcPairs, seq_len(m))
-  Wdata <- var(data)*(N-1)
-  trWnd <- tr(Wdata)/(N*d)
-  # detS <- det(Wdata/N)
-  loglik <- rep(as.double(NA), length = m)
-  # loglik[1] <- mvn(model, data)$loglik
+    stopifnot(inherits(object, "hc"))
 
-  switch(model, 
-         "EII" =
-         { for(k in 1:m)
-              { n <- tabulate(hc[,k], k)
-                # mu <- by(data, as.factor(hc[,k]), FUN = colMeans, 
-                #          simplify = FALSE)
-                W <- WSS(data, hc[,k])
-                sigmasq <- sum(apply(W, 3, tr), na.rm=TRUE)/(N*d)
-                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
-                             -0.5*sum(n*log(sigmasq^d + 
-                                            apply(W, 3, tr)/n + trWnd))
-             }
-          },
-         "VII" =
-         { for(k in 1:m)
-              { n <- tabulate(hc[,k], k)
-                W <- WSS(data, hc[,k])
-                sigmasq <- apply(W, 3, tr)/(n*d)
-                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
-                             -0.5*sum(n*log(sigmasq^d + 
-                                            apply(W, 3, tr)/n + trWnd))
-           }
-         },
-         "EEE" = 
-         { for(k in 1:m)
-              { n <- tabulate(hc[,k], k)
-                W <- WSS(data, hc[,k])
-                Sigma <- apply(W, 1:2, sum)/N
-                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
-                             -0.5*sum(n*log(det(Sigma) + 
-                                            apply(W, 3, tr)/n + trWnd))
-           }
-         },
-         "VVV" = 
-         { for(k in 1:m)
-              { n <- tabulate(hc[,k], k)
-                W <- WSS(data, hc[,k])
-                Sigma <- sapply(1:k, function(k) W[,,k]/n[k], simplify = "array")
-                loglik[k] <- -0.5*d*N*log(2*pi) -0.5*N*d +
-                             -0.5*sum(n*log(apply(Sigma, 3, det) + 
-                                            apply(W, 3, tr)/n + trWnd))
-           }
-          }
-  )              
-  
-  maxloglik <- -0.5*N*d*log(2*pi) -0.5*N*d -0.5*N*log(trWnd)
-  deviance <- -2*(loglik - maxloglik)
-  # attr(hcPairs, "loglik") <- loglik
-  # attr(hcPairs, "deviance") <- deviance
-  # assign(hcPairsName, hcPairs, envir = parent.frame())
-  out <- switch(what, 
-                "deviance" = deviance,
-                "loglik" = loglik,
-                NULL)
-  return(out)
+    if (!is.null(maxG) && maxG < 2) stop("maxG < 2")
+
+    what <- what[1]
+    switch( what,
+            "loglik" = {
+	                obj <- ldend(object,maxG=maxG,labels)
+     		        obj <- c(obj, list(dist.method = NULL))
+			attr(obj,"cloglik") <- as.vector(obj$cloglik)
+			obj$cloglik <- NULL
+			class(obj) <- "hclust"
+			obj
+		       },
+            "merge" = {
+	               obj <- mdend(object,maxG=maxG,labels)
+    		       obj <- c(obj, list(dist.method = NULL))
+                       attr(obj,"nclus") <- as.vector(obj$nclus)
+		       obj$nclus <- NULL
+		       class(obj) <- "hclust"
+		       obj
+		      },
+	    stop("unrecognized what option")
+	   )
 }
 
-WSS <- function(X, group, ...)
+ldend <-
+function (hcObj, maxG = NULL, labels = FALSE) 
 {
-  X <- as.matrix(X)
-  Z <- unmap(as.vector(group))
-  n <- nrow(X)
-  p <- ncol(X)
-  G <- ncol(Z)
-  tmp <- .Fortran("covwf",
-                  X = as.double(X),
-                  Z = as.double(Z),
-                  n = as.integer(n),
-                  p = as.integer(p),
-                  G = as.integer(G),
-                  mean = double(p * G), 
-                  S = double(p * p * G), 
-                  W = double(p * p * G) )
-  array(tmp$W, c(p,p,G))
+ stopifnot(inherits(hcObj,"hc"))
+
+# classification logliklihood dendrogram setup for MBAHC
+
+ if (!is.null(maxG) && maxG < 2) stop("maxG < 2")
+
+ n <- ncol(hcObj) + 1
+ 
+ cLoglik <- CLL <- cloglik.hc(hcObj)
+ 
+ if (is.null(maxG)) maxG <- length(CLL) else maxG <- min(maxG,length(CLL))
+ 
+ na <- is.na(CLL)
+ m <- length(CLL)
+ d <- diff(CLL)
+ if (any(neg <- d[!is.na(d)] < 0)) {
+   m <- which(neg)[1]
+   CLLmax <- CLL[min(maxG,m)]
+   CLL[-(1:min(maxG,m))] <- CLLmax
+ }
+ else if (any(na)) {
+   m <- which(na)[1] - 1
+   CLLmax <- CLL[min(maxG,m)]
+   CLL[-(1:min(maxG,m))] <- CLLmax
+ }
+ else {
+   CLLmax <- max(CLL[1:maxG])
+   CLL[-(1:maxG)] <- CLLmax
+ }
+ 
+ height <- CLL
+ height <- height[-length(height)]
+ height <- rev(-height+max(height))
+
+ mo <- mergeOrder(hcObj)
+
+ nam <-  rownames(as.matrix(attr(hcObj,"data"))) 
+ leafLabels <- if (labels) nam  else character(length(nam))
+ 
+ obj <- structure(list(merge = mo$merge, height = height, order = mo$order, 
+                      labels = leafLabels, cloglik = cLoglik, 
+	   method = attr(hcObj, "model"), call = attr(hcObj, "call")))
+ obj
 }
 
-tr <- function(x) 
+mdend <-
+function (hcObj, maxG = NULL, labels = FALSE) 
 {
-  sum(diag(as.matrix(x)))
+ stopifnot(inherits(hcObj,"hc"))
+
+# uniform height dendrgram setup for MBAHC
+
+ if (!is.null(maxG) && maxG < 2) stop("maxG < 2")
+
+ ni <- length(unique(attr(hcObj,"initialPartition")))
+
+ if (!is.null(maxG)) maxG <- min(maxG, ni) else maxG <- ni
+ 
+ mo <- mergeOrder(hcObj)
+
+ j <- ni - maxG
+ n <- ncol(hcObj)
+ height <- c(rep(0,j),1:(n-j))
+ 
+ nclus <- maxG:1
+
+ nam <- rownames(as.matrix(attr(hcObj,"data"))) 
+ leafLabels <- if (labels) nam else character(length(nam))
+ 
+ obj <- structure(list(merge = mo$merge, order = mo$order, height = height,
+           labels = leafLabels, nclus = nclus,
+	   method = attr(hcObj, "model"), call = attr(hcObj, "call")))
+ obj
 }
 
+mergeOrder <-
+function(hcObj) 
+{
+# converts the hc representation of merges to conform with hclust
+# and computes the corresponding dendrogram leaf order
+# CF: inner code written by Luca Scrucca
+
+    HC <- matrix(as.vector(hcObj), ncol(hcObj), nrow(hcObj), byrow = TRUE)
+    HCm <- matrix(NA, nrow(HC), ncol(HC))
+
+    merged <- list(as.vector(HC[1, ]))
+    HCm[1, ] <- -HC[1, ]
+    for (i in 2:nrow(HC)) {
+        lmerged <- lapply(merged, function(m) HC[i, ] %in% m)
+        lm <- which(sapply(lmerged, function(lm) any(lm)))
+        if (length(lm) == 0) {
+            merged <- append(merged, list(HC[i, ]))
+            HCm[i, ] <- sort(-HC[i, ])
+        }
+        else if (length(lm) == 1) {
+            merged <- append(merged, list(c(merged[[lm]], HC[i, 
+                !lmerged[[lm]]])))
+            merged[[lm]] <- list()
+            HCm[i, ] <- sort(c(-HC[i, !lmerged[[lm]]], lm))
+        }
+        else {
+            merged <- append(merged, list(unlist(merged[lm])))
+            merged[[lm[1]]] <- merged[[lm[2]]] <- list()
+            HCm[i, ] <- lm
+        }
+    }
+
+  list(merge = HCm, order = merged[[length(merged)]])
+}
+
+cloglik.hc <-
+function(hcObj, maxG = NULL) {
+
+n <- ncol(hcObj) + 1
+
+if (is.null(maxG)) maxG <- n
+
+cl <- hclass(hcObj)
+cl <- cbind( "1" = 1, cl)
+
+modelName <- attr(hcObj,"modelName")
+
+LL <- rep(list(NA),maxG)
+for (j in 1:maxG) {
+   ll <- NULL
+   for (k in unique(cl[,j])) {
+     i <- which(cl[,j] == k)
+     # compute loglik term here
+     llnew <- mvn( modelName, attr(hcObj,"data")[i,,drop=FALSE])$loglik
+     if (substr(modelName,2,2) != "I") {
+         llvii <- mvn( "VII", attr(hcObj,"data")[i,,drop=FALSE])$loglik
+         if (substr(modelName,3,3) != "I") {
+           llvvi <- mvn( "VVI", attr(hcObj,"data")[i,,drop=FALSE])$loglik
+  	   llall <- c("VVV"=llnew,"VVI"=llvvi,"VII"=llvii)
+	 }
+	 else {
+  	   llall <- c("VVI"=llnew,"VII"=llvii)
+	 }
+	 if (!all(nall <- is.na(llall))) {
+           llnew <- llall[!nall][which.max(llall[!nall])]
+	 }
+     }
+     if (is.na(llnew)) break
+     ll <- c(ll, llnew)
+   }
+   if (is.na(llnew)) break
+   LL[[j]] <- ll
+ }
+ CLL <- sapply(LL,sum)
+ for (i in seq(along = CLL)) {
+    if (is.na(CLL[i])) LL[[i]] <- NA
+ }
+ attr(CLL,"terms") <- LL
+ CLL
+}
 
 ## Initialization for 1-dim data ----
 

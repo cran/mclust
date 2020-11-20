@@ -97,7 +97,7 @@ summary(BIC)
 plot(BIC)
 ```
 
-Univariate fit using random starting points obtained by creating random agglomerations (see `help(randomPairs)`) and merging best results:
+Univariate fit using random starting points obtained by creating random agglomerations (see `help(hcRandomPairs)`) and merging best results:
 ```{r, echo=-1}
 set.seed(20181116)
 data(galaxies, package = "MASS") 
@@ -106,7 +106,7 @@ BIC <- NULL
 for(j in 1:20)
 {
   rBIC <- mclustBIC(galaxies, verbose = FALSE,
-                    initialization = list(hcPairs = randomPairs(galaxies)))
+                    initialization = list(hcPairs = hcRandomPairs(galaxies)))
   BIC <- mclustBICupdate(BIC, rBIC)
 }
 summary(BIC)
@@ -247,13 +247,21 @@ mclust.options("classPlotColors")
 ```
 The first option controls colors used for plotting BIC, ICL, etc. curves, whereas the second option is used to assign colors for indicating clusters or classes when plotting data.
 
-Color-blind-friendly palettes can be defined and assigned to the above options as follows:
+Starting with \Rstat\ version 4.0, the function \code{palette.colors()} can be used for retrieving colors from some pre-defined palettes. For instance
+```{r, eval=FALSE}
+palette.colors(palette = "Okabe-Ito")
+```
+returns a color-blind-friendly palette for individuals suffering from protanopia or deuteranopia, the two most common forms of inherited color blindness. For earlier versions of \Rstat\ such palette can be defined as:
 ```{r}
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#999999", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", 
+"#D55E00", "#CC79A7", "#999999")
+```
+and then assigned to the **mclust** options as follows:
+```{r}
 bicPlotColors <- mclust.options("bicPlotColors")
-bicPlotColors[1:14] <- c(cbPalette, cbPalette[1:6])
+bicPlotColors[1:14] <- c(cbPalette, cbPalette[1:5])
 mclust.options("bicPlotColors" = bicPlotColors)
-mclust.options("classPlotColors" = cbPalette)
+mclust.options("classPlotColors" = cbPalette[-1])
 
 clPairs(iris[,-5], iris$Species)
 mod <- Mclust(iris[,-5])
@@ -261,7 +269,7 @@ plot(mod, what = "BIC")
 plot(mod, what = "classification")
 ```
 
-The above color definitions are adapted from http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/, but users can easily define their own palettes if needed.
+If needed, users can easily define their own palettes following the same procedure outlined above.
 
 
 # References

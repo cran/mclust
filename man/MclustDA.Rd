@@ -23,9 +23,10 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
   \item{data}{
     A data frame or matrix giving the training data.
   }
+	
   \item{class}{
-    A vector giving the class labels for the observations in 
-    the training data.}
+		A vector giving the known class labels (either a numerical value or 
+		a character string) for the observations in the training data.}
     
  \item{G}{
     An integer vector specifying the numbers of mixture components
@@ -93,7 +94,7 @@ MclustDA(data, class, G = NULL, modelNames = NULL,
   \item{verbose}{
     A logical controlling if a text progress bar is displayed during the
     fitting procedure. By default is \code{TRUE} if the session is 
-    interactive, and \code{FALSE} otherwise..
+    interactive, and \code{FALSE} otherwise.
   }  
   \item{\dots }{Further arguments passed to or from other methods.}
 }

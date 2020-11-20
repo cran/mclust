@@ -12,7 +12,7 @@ Compute the cumulative density function (cdf) or quantiles from an estimated one
 
 \usage{
 cdfMclust(object, data, ngrid = 100, \dots)
-quantileMclust(object, p, ...)
+quantileMclust(object, p, \dots)
 }
 
 \arguments{

@@ -56,13 +56,11 @@ export(clPairs, clPairsLegend, coordProj, randProj,
 
 export(priorControl, defaultPrior, hypvol)
 
-export(hc, print.hc, plot.hc, as.hclust.hc, as.dendrogram.hc)
+export(hc, print.hc, plot.hc)
 S3method("print", "hc")
 S3method("plot", "hc")
-S3method("as.hclust", "hc")
-S3method("as.dendrogram", "hc")
 export(hcE, hcEEE, hcEII, hcV, hcVII, hcVVV)
-export(hclass, randomPairs)
+export(hclass, hcRandomPairs, randomPairs)
 
 export(mclustBIC, print.mclustBIC, summary.mclustBIC, 
        print.summary.Mclust, plot.mclustBIC,
@@ -96,6 +94,14 @@ S3method("print", "summary.MclustDA")
 S3method("plot", "MclustDA")
 S3method("predict", "MclustDA")
 S3method("logLik", "MclustDA")
+
+export(MclustSSC, print.MclustSSC, summary.MclustSSC, print.summary.MclustSSC,
+       plot.MclustSSC, predict.MclustSSC)
+S3method("print", "MclustSSC")
+S3method("summary", "MclustSSC")
+S3method("print", "summary.MclustSSC")
+S3method("plot", "MclustSSC")
+S3method("predict", "MclustSSC")
 
 export(MclustDR, print.MclustDR, summary.MclustDR, print.summary.MclustDR,
        plot.MclustDR, plotEvalues.MclustDR, projpar.MclustDR, 

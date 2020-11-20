@@ -257,7 +257,7 @@ code span.an { font-style: italic; } /* Annotation */
 code span.cf { font-weight: bold; } /* ControlFlow */
 code span.co { color: rgb(112,112,112); font-style: normal; } /* Comment */
 code span.cv { font-style: italic; } /* CommentVar */
-code span.do { font-style: italic; } /* Documentation */
+code span.do { font-style: italic; color: rgb(255,255,255) } /* Documentation */
 code span.dt { color: #4075AD; }  /* DataType */
 /* code span.dt { text-decoration: underline; } */
 code span.dv { color: rgb(85,85,85); } /* DecVal (decimal values) */

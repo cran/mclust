@@ -41,5 +41,3 @@ clPairs(iris[,-5],cl=cl[,"3"])
 }
 }
 \keyword{cluster}
-% docclass is function
-% Converted by Sd2Rd version 1.21.

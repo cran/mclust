@@ -8,20 +8,20 @@
   eignevalue decomposition, starting with the maximization step.
 }
 \usage{
-me(modelName, data, z, prior = NULL, control = emControl(), 
+me(data, modelName, z, prior = NULL, control = emControl(), 
    Vinv = NULL, warn = NULL, \dots)
 
 }
 \arguments{
-  \item{modelName}{
-    A character string indicating the model. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-  }
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
     Categorical variables are not allowed.
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
+  }
+  \item{modelName}{
+    A character string indicating the model. The help file for
+    \code{\link{mclustModelNames}} describes the available models.
   }
   \item{z}{
     A matrix whose \code{[i,k]}th entry is an initial estimate of the
@@ -118,7 +118,7 @@ A list including the following components:
 }
 
 \seealso{
-  \code{\link{meE}},...,
+  \code{\link{meE}}, \dots,
   \code{\link{meVVV}},
   \code{\link{em}},
   \code{\link{mstep}},

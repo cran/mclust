@@ -494,7 +494,7 @@ mvn2plot <- function(mu, sigma, k = 15, alone = FALSE,
 }
 
 clPairs <- function (data, classification, 
-                     symbols = NULL, colors = NULL, cex = 1, 
+                     symbols = NULL, colors = NULL, cex = NULL, 
                      labels = dimnames(data)[[2]], cex.labels = 1.5, 
                      gap = 0.2, grid = FALSE, ...) 
 {
@@ -532,6 +532,7 @@ clPairs <- function (data, classification,
     { colors <- rep( "black", l)
       warning("more colors needed")
   }
+	if(is.null(cex)) cex <- rep(1, l) 
   grid <- isTRUE(as.logical(grid))
   
   if(d > 2)
@@ -542,12 +543,12 @@ clPairs <- function (data, classification,
             },
             pch = symbols[classification], 
             col = colors[classification], 
+            cex = cex[classification], 
             gap = gap, 
-            cex = cex, 
             cex.labels = cex.labels,
             ...) }
   else if(d == 2)
-    { plot(data, cex = cex, 
+    { plot(data, cex = cex[classification],
             pch = symbols[classification], 
             col = colors[classification], 
             panel.first = if(grid) grid(),
@@ -556,10 +557,11 @@ clPairs <- function (data, classification,
   invisible(list(d = d,
                  class = levels(classification),
                  col = colors,
-                 pch = symbols[seq(l)]))
+                 pch = symbols[seq(l)],
+								 cex = cex))
 }
 
-clPairsLegend <- function(x, y, class, col, pch, box = TRUE, ...)
+clPairsLegend <- function(x, y, class, col, pch, cex, box = TRUE, ...)
 {
   
   usr <- par("usr")
@@ -581,9 +583,10 @@ clPairsLegend <- function(x, y, class, col, pch, box = TRUE, ...)
   dots$legend <- class
   dots$text.width <- max(strwidth(dots$title, units = "user"), 
                          strwidth(dots$legend, units = "user"))
-  dots$col <- col
-  dots$text.col <- col
-  dots$pch <- pch
+  dots$col <- if(missing(col)) 1 else col
+  dots$text.col <- if(missing(col)) 1 else col
+  dots$pch <- if(missing(pch)) 1 else pch
+	dots$cex <- if(missing(cex)) 1 else cex
   dots$title.col <- par("fg")
   dots$title.adj <- 0.1
   dots$xpd <- NA

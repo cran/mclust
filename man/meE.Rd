@@ -9,8 +9,8 @@
 \alias{meEVI}
 \alias{meVVI}
 \alias{meEEE}
-\alias{meEVE}
 \alias{meVEE}
+\alias{meEVE}
 \alias{meVVE}
 \alias{meEEV}
 \alias{meVEV}
@@ -37,8 +37,8 @@ meVEI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meEVI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meVVI(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meEEE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
-meEVE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meVEE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
+meEVE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meVVE(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meEEV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)
 meVEV(data, z, prior=NULL, control=emControl(), Vinv=NULL, warn=NULL, \dots)

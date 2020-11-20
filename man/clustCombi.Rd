@@ -20,7 +20,7 @@ clustCombi(object = NULL, data = NULL, \dots)
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical variables are not allowed. If a matrix or data frame, rows correspond to observations and columns correspond to variables. If the \code{object} argument is not provided, the function \code{\link{Mclust}} is applied to the given \code{data} to fit a mixture model.}
   \item{\dots}{
-    Optional arguments to be passed to called functions. Notably, any argument (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm, ...) to be passed to \code{\link{Mclust}} in case \code{object = NULL}. Please see the \code{\link{Mclust}} documentation for more details.
+    Optional arguments to be passed to called functions. Notably, any argument (such as the numbers of components for which the BIC is computed; the models to be fitted by EM; initialization parameters for the EM algorithm, etc.) to be passed to \code{\link{Mclust}} in case \code{object = NULL}. Please see the \code{\link{Mclust}} documentation for more details.
   }
 }
 \details{
@@ -84,7 +84,7 @@ output$combiM[[5]]
 # 5-classes combined solution) to which the 4th class (in the 6-classes
 # solution) is assigned. Only two classes in the (K+1)-classes solution 
 # are assigned the same class in the K-classes solution: the two which 
-# are merged at this step... 
+# are merged at this step 
 output$combiM[[5]] %*% c(0,0,0,1,0,0) 
 # recover the 5-classes soft clustering from the 6-classes soft clustering 
 # and the 6 -> 5 combining matrix

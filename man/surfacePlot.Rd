@@ -14,7 +14,7 @@ surfacePlot(data, parameters,
             transformation = c("none", "log", "sqrt"),          
             grid = 200, nlevels = 11, levels = NULL, 
             prob = c(0.25, 0.5, 0.75),
-            col = gray(0.7),
+            col = gray(0.5),
             col.palette = function(...) hcl.colors(..., "blues", rev = TRUE),
             hdr.palette = blue2grey.colors,
             xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
@@ -148,7 +148,7 @@ grid points.
   \code{\link{mclust2Dplot}}
 }
 \examples{
-\dontrun{
+\donttest{
 faithfulModel <- Mclust(faithful)
 surfacePlot(faithful, parameters = faithfulModel$parameters,
             type = "contour", what = "density", transformation = "none",

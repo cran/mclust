@@ -173,7 +173,8 @@ mclust1Dplot <- function(data, parameters = NULL, z = NULL,
            if(is.null(parameters$pro) && parameters$variance$G != 1) 
              stop("mixing proportions missing")
            x <- grid1(n = ngrid, range = xlim, edge = TRUE)
-           plot(x, dens("V", data = x, parameters = parameters),
+           plot(x, dens(data = x, modelName = "V", 
+                        parameters = parameters),
                 xlab = xlab, 
                 ylab = if(is.null(ylab)) "Density" else ylab, 
                 xlim = xlim, 
@@ -1097,7 +1098,7 @@ surfacePlot <- function(data, parameters,
                         transformation = c("none", "log", "sqrt"), 
                         grid = 200, nlevels = 11, levels = NULL, 
                         prob = c(0.25, 0.5, 0.75),
-                        col = gray(0.7),
+                        col = gray(0.5),
                         col.palette = function(...) hcl.colors(..., "blues", rev = TRUE),
                         hdr.palette = blue2grey.colors,
                         xlim = NULL, ylim = NULL, 
@@ -1256,7 +1257,7 @@ surfacePlot <- function(data, parameters,
            p3d <- do.call("persp", 
                           c(list(x = x, y = y, z = zz, border = NA,
                                  xlab = xlab, ylab = ylab, 
-                                 col = col,
+                                 col = adjustcolor(col, alpha.f = 0.5),
                                  zlab = "Density", main = ""), dots))
            ii <- floor(seq(1, length(y), length.out = 2*nlevels))
            for(i in ii[-c(1,length(ii))])

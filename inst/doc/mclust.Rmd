@@ -17,10 +17,10 @@ vignette: >
 library(knitr)
 opts_chunk$set(fig.align = "center", 
                out.width = "90%",
-               fig.width = 6, fig.height = 5.5,
-               dev.args=list(pointsize=10),
+               fig.width = 6, fig.height = 5,
+               dev.args = list(pointsize=10),
                par = TRUE, # needed for setting hook 
-               collapse = TRUE, # collapse input & ouput code in chunks
+               collapse = TRUE, # collapse input & output code in chunks
                warning = FALSE)
 
 knit_hooks$set(par = function(before, options, envir)
@@ -150,10 +150,10 @@ plot(mod3, what = "classification")
 ```{r}
 cv <- cvMclustDA(mod2, nfold = 10)
 str(cv)
-unlist(cv[3:4])
+unlist(cv[3:6])
 cv <- cvMclustDA(mod3, nfold = 10)
 str(cv)
-unlist(cv[3:4])
+unlist(cv[3:6])
 ```
 
 # Density estimation
@@ -177,10 +177,7 @@ data(faithful)
 mod5 <- densityMclust(faithful)
 summary(mod5)
 plot(mod5, what = "BIC")
-plot(mod5, what = "density")
-plot(mod5, what = "density", type = "hdr")
-plot(mod5, what = "density", type = "hdr",
-     data = faithful, points.cex = 0.5)
+plot(mod5, what = "density", type = "hdr", data = faithful, points.cex = 0.5)
 plot(mod5, what = "density", type = "persp")
 ```
 
@@ -190,22 +187,24 @@ plot(mod5, what = "density", type = "persp")
 boot1 <- MclustBootstrap(mod1, nboot = 999, type = "bs")
 summary(boot1, what = "se")
 summary(boot1, what = "ci")
+```
 
+```{r, echo=-1, fig.width=6, fig.height=7}
 par(mfrow=c(4,3))
 plot(boot1, what = "pro")
 plot(boot1, what = "mean")
-par(mfrow=c(1,1))
 ```
 
 ```{r}
 boot4 <- MclustBootstrap(mod4, nboot = 999, type = "bs")
 summary(boot4, what = "se")
 summary(boot4, what = "ci")
+```
 
+```{r, echo=-1}
 par(mfrow=c(2,2))
 plot(boot4, what = "pro")
 plot(boot4, what = "mean")
-par(mfrow=c(1,1))
 ```
 
 # Dimension reduction 
@@ -238,6 +237,8 @@ plot(mod3dr, what = "scatterplot")
 plot(mod3dr, what = "boundaries", ngrid = 200)
 ```
 
+<br>
+
 # Using colorblind-friendly palettes
 
 Most of the graphs produced by **mclust** use colors that by default are defined in the following options:  
@@ -247,11 +248,11 @@ mclust.options("classPlotColors")
 ```
 The first option controls colors used for plotting BIC, ICL, etc. curves, whereas the second option is used to assign colors for indicating clusters or classes when plotting data.
 
-Starting with \Rstat\ version 4.0, the function \code{palette.colors()} can be used for retrieving colors from some pre-defined palettes. For instance
+Starting with R version 4.0, the function \code{palette.colors()} can be used for retrieving colors from some pre-defined palettes. For instance
 ```{r, eval=FALSE}
 palette.colors(palette = "Okabe-Ito")
 ```
-returns a color-blind-friendly palette for individuals suffering from protanopia or deuteranopia, the two most common forms of inherited color blindness. For earlier versions of \Rstat\ such palette can be defined as:
+returns a color-blind-friendly palette for individuals suffering from protanopia or deuteranopia, the two most common forms of inherited color blindness. For earlier versions of R such palette can be defined as:
 ```{r}
 cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", 
 "#D55E00", "#CC79A7", "#999999")
@@ -271,6 +272,7 @@ plot(mod, what = "classification")
 
 If needed, users can easily define their own palettes following the same procedure outlined above.
 
+<br><br>
 
 # References
 

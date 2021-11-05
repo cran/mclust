@@ -16,8 +16,8 @@
 \alias{charconv}
 \alias{[.mclustBIC}
 \alias{checkModelName}
-\alias{balanced.folds}
-\alias{permute.rows}
+\alias{balancedFolds}
+\alias{permuteRows}
 \alias{projpar.MclustDR}
 \alias{projdir.MclustDR}
 \alias{mvdnorm}

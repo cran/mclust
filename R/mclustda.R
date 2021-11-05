@@ -41,7 +41,8 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
       else     modelNames <- mclust.options("emModelNames")
   }
   if(n <= p) 
-    { m <- match(c("EEE","EEV","VEV","VVV"), mclust.options("emModelNames"), nomatch=0)
+    { m <- match(c("EEE","EEV","VEV","VVV"), 
+                 mclust.options("emModelNames"), nomatch=0)
       modelNames <- modelNames[-m]
   }
   if(!is.list(modelNames))
@@ -155,7 +156,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
            BIC <- eval(mc, parent.frame())
          }
          SUMMARY <- summary(BIC, data[I,])
-         SUMMARY$bic <- BIC; 
+         SUMMARY$bic <- BIC
          names(SUMMARY)[which(names(SUMMARY) == "bic")] <- "BIC"
          Models[[l]] <- c(SUMMARY, list(observations = which(I)))
     }
@@ -216,15 +217,15 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   class <- object$class
   data <- object$data
   pred <- predict(object, newdata = data, ...)
-  err <- mean(class != pred$classification)
+  ce <- mean(class != pred$classification)
   brier <- BrierScore(pred$z, class)
   tab <- try(table(class, pred$classification))
   if(class(tab) == "try-error") 
-    { err <- tab <- NA }
+    { ce <- tab <- NA }
   else 
     { names(dimnames(tab)) <- c("Class", "Predicted") }
   
-  tab.newdata <- err.newdata <- brier.newdata <- NULL
+  tab.newdata <- ce.newdata <- brier.newdata <- NULL
   if(!missing(newdata) & !missing(newclass))
   { 
     pred.newdata <- predict(object, newdata = newdata, ...)
@@ -235,7 +236,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
     else
     { tab.newdata <- table(newclass, pred.newdata$classification)
       names(dimnames(tab.newdata)) <- c("Class", "Predicted")
-      err.newdata <- mean(newclass != pred.newdata$classification)
+      ce.newdata <- mean(newclass != pred.newdata$classification)
       brier.newdata <- BrierScore(pred.newdata$z, newclass)
     }
   }
@@ -245,9 +246,9 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
               nclass = nclass, classes = classes,
               G = G, modelName = modelName,
               prop = object$prop, parameters = par, prior = prior, 
-              tab = tab, err = err, brier = brier,
+              tab = tab, ce = ce, brier = brier,
               tab.newdata = tab.newdata, 
-              err.newdata = err.newdata, brier.newdata = brier.newdata,
+              ce.newdata = ce.newdata, brier.newdata = brier.newdata,
               printParameters = printParameters)
   class(obj) <- "summary.MclustDA"
   return(obj)
@@ -313,15 +314,15 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
   
   cat("\nTraining confusion matrix:\n")
   print(x$tab)
-  cat("Classification error =", round(x$err, min(digits,4)), "\n")
+  cat("Classification error =", round(x$ce, min(digits,4)), "\n")
   cat("Brier score          =", round(x$brier, min(digits,4)), "\n")
   
   if(!is.null(x$tab.newdata)) 
   {
     cat("\nTest confusion matrix:\n")
     print(x$tab.newdata)
-    if(!is.null(x$err.newdata))
-    { cat("Classification error =", round(x$err.newdata, min(digits,4)), "\n") 
+    if(!is.null(x$ce.newdata))
+    { cat("Classification error =", round(x$ce.newdata, min(digits,4)), "\n") 
       cat("Brier score          =", round(x$brier.newdata, min(digits,4)), "\n")
     }
   }
@@ -390,7 +391,7 @@ predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
 {
   
   if(!inherits(object, "MclustDA")) 
-    stop("object not of class \"MclustDA\"")
+    stop("object not of class 'MclustDA'")
   
   models <- object$models
   nclass <- length(models)
@@ -399,7 +400,7 @@ predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
   n <- sapply(1:nclass, function(i) models[[i]]$n)
   if(missing(newdata))
     { newdata <- object$data }
-  if(object$d == 1) newdata <- as.vector(newdata)
+  # if(object$d == 1) newdata <- as.vector(newdata)
   if(is.numeric(prop))
   {
     if(any(prop < 0)) 
@@ -418,7 +419,9 @@ predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
     do.call("dens", c(list(data = data, logarithm = TRUE), mod)) 
   }
   #
-  z <- as.matrix(data.frame(lapply(models, densfun, data = newdata)))
+  z <- matrix(as.double(NA), nrow = NROW(newdata), ncol = nclass)
+  for(j in 1:nclass)
+    z[,j] <- densfun(models[[j]], data = newdata)
   z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prop))
   z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
   z <- exp(z)
@@ -439,7 +442,7 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
 {
   object <- x # Argh.  Really want to use object anyway
   if(!inherits(object, "MclustDA")) 
-    stop("object not of class \"MclustDA\"")
+    stop("object not of class 'MclustDA'")
   
   data <- object$data
   if(object$d > 1) dataNames <- colnames(data)
@@ -471,7 +474,7 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   what <- match.arg(what, several.ok = TRUE)
   models <- object$models
   M <- length(models)
-  if(missing(dimens)) dimens <- 1:p
+  if(missing(dimens)) dimens <- seq_len(p)
   trainClass <- object$class
   nclass <- length(unique(trainClass))
   Data <- rbind(data, newdata)
@@ -901,19 +904,95 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   
 }
 
+# TODO: delete
+# old version
+# cvMclustDA <- function(object, nfold = 10, 
+#                        metric = c("error", "brier"), 
+#                        prop = object$prop,
+#                        verbose = interactive(), ...) 
+# {
+# 
+#   call <- object$call
+#   nfold <- as.numeric(nfold)
+#   metric <- match.arg(metric, 
+#                       choices = eval(formals(cvMclustDA)$metric), 
+#                       several.ok = FALSE)
+#   #
+#   data <- object$data
+#   class <- as.factor(object$class)
+#   n <- length(class)
+#   G <- lapply(object$models, function(mod) mod$G)
+#   modelName <- lapply(object$models, function(mod) mod$modelName)
+#   #
+#   ce <- function(pred, class)
+#   {
+#     1 - sum(class == pred, na.rm = TRUE)/length(class)
+#   }
+#   #
+#   folds <- if(nfold == n) lapply(1:n, function(x) x)
+#            else           balancedFolds(class, nfolds = nfold)
+#   nfold <- length(folds)
+#   folds.size <- sapply(folds, length)
+#   #
+#   cvmetric <- rep(NA, nfold)
+#   cvclass <- factor(rep(NA, n), levels = levels(class))
+#   cvprob  <- matrix(as.double(NA), nrow = n, ncol = nlevels(class),
+#                     dimnames = list(NULL, levels(class)))
+#   
+#   if(verbose)
+#   { 
+#     cat("cross-validating ...\n")
+#     flush.console()
+#     pbar <- txtProgressBar(min = 0, max = nfold, style = 3)
+#     on.exit(close(pbar))
+#   }
+#   
+#   for(i in seq(nfold))
+#   { 
+#     x <- data[-folds[[i]],,drop=FALSE]
+#     y <- class[-folds[[i]]]
+#     call$data <- x
+#     call$class <- y
+#     call$G <- G
+#     call$modelNames <- modelName
+#     call$verbose <- FALSE
+#     mod <- eval(call, parent.frame())
+#     #
+#     predTest <- predict(mod, data[folds[[i]],,drop=FALSE], prop = prop)
+#     cvmetric[i] <- if(metric == "error") 
+#                      ce(predTest$classification, class[folds[[i]]])
+#                    else 
+#                      BrierScore(predTest$z, class[folds[[i]]])
+#     cvclass[folds[[i]]] <- predTest$classification
+#     cvprob[folds[[i]],] <- predTest$z
+#     #
+#     if(verbose) 
+#       setTxtProgressBar(pbar, i)
+#   }
+#   #    
+#   cv <- sum(cvmetric*folds.size)/sum(folds.size)
+#   se <- sqrt(var(cvmetric)/nfold)
+#   #
+#   out <- list(classification = cvclass, 
+#               z = cvprob,
+#               error = if(metric == "error") cv else NA,
+#               brier = if(metric == "brier") cv else NA,
+#               se = se)
+#   return(out)
+# }
 
+# TODO: update man
 cvMclustDA <- function(object, nfold = 10, 
-                       metric = c("error", "brier"), 
                        prop = object$prop,
-                       verbose = interactive(), ...) 
+                       verbose = interactive(), 
+                       ...) 
 {
-
+  
+  if(!is.null(match.call(expand.dots = TRUE)$metric))
+    warning("'metric' argument is deprecated! Ignored.")
+  #
   call <- object$call
   nfold <- as.numeric(nfold)
-  metric <- match.arg(metric, 
-                      choices = eval(formals(cvMclustDA)$metric), 
-                      several.ok = FALSE)
-  #
   data <- object$data
   class <- as.factor(object$class)
   n <- length(class)
@@ -926,14 +1005,14 @@ cvMclustDA <- function(object, nfold = 10,
   }
   #
   folds <- if(nfold == n) lapply(1:n, function(x) x)
-           else           balanced.folds(class, nfolds = nfold)
+           else           balancedFolds(class, nfolds = nfold)
   nfold <- length(folds)
   folds.size <- sapply(folds, length)
   #
-  cvmetric <- rep(NA, nfold)
-  cvclass <- factor(rep(NA, n), levels = levels(class))
-  cvprob  <- matrix(as.double(NA), nrow = n, ncol = nlevels(class),
-                    dimnames = list(NULL, levels(class)))
+  metric.cv <- matrix(as.double(NA), nrow = nfold, ncol = 2)
+  class.cv  <- factor(rep(NA, n), levels = levels(class))
+  prob.cv   <- matrix(as.double(NA), nrow = n, ncol = nlevels(class),
+                      dimnames = list(NULL, levels(class)))
   
   if(verbose)
   { 
@@ -955,63 +1034,62 @@ cvMclustDA <- function(object, nfold = 10,
     mod <- eval(call, parent.frame())
     #
     predTest <- predict(mod, data[folds[[i]],,drop=FALSE], prop = prop)
-    cvmetric[i] <- if(metric == "error") 
-                     ce(predTest$classification, class[folds[[i]]])
-                   else 
-                     BrierScore(predTest$z, class[folds[[i]]])
-    cvclass[folds[[i]]] <- predTest$classification
-    cvprob[folds[[i]],] <- predTest$z
+    metric.cv[i,1] <- ce(predTest$classification, class[folds[[i]]])
+    metric.cv[i,2] <- BrierScore(predTest$z, class[folds[[i]]])
+    class.cv[folds[[i]]] <- predTest$classification
+    prob.cv[folds[[i]],] <- predTest$z
     #
     if(verbose) 
       setTxtProgressBar(pbar, i)
   }
-  #    
-  cv <- sum(cvmetric*folds.size)/sum(folds.size)
-  se <- sqrt(var(cvmetric)/nfold)
   #
-  out <- list(classification = cvclass, 
-              z = cvprob,
-              error = if(metric == "error") cv else NA,
-              brier = if(metric == "brier") cv else NA,
-              se = se)
+  cv <- apply(metric.cv, 2, function(m)
+              sum(m*folds.size)/sum(folds.size))
+  se <- apply(metric.cv, 2, function(m)
+              sqrt(var(m)/nfold))
+  #
+  out <- list(classification = class.cv, z = prob.cv,
+              ce = cv[1], se.ce = se[1],
+              brier = cv[2], se.brier = se[2])
   return(out)
 }
 
-
-balanced.folds <- function(y, nfolds = min(min(table(y)), 10)) 
+balancedFolds <- function(y, nfolds = min(min(table(y)), 10)) 
 { 
-  # Create 'nfolds' balanced folds conditional on grouping variable 'y'.
-  # Function useful in evaluating a classifier by balanced cross-validation.
-  # Returns a list with 'nfolds' elements containing indexes of each fold.
-  # 
-  # From package 'pamr' by T. Hastie, R. Tibshirani, Balasubramanian 
-  # Narasimhan, Gil Chu.
+# Create 'nfolds' balanced folds conditional on grouping variable 'y'.
+# Function useful in evaluating a classifier by balanced cross-validation.
+# Returns a list with 'nfolds' elements containing indexes of each fold.
+# 
+# Based on balanced.folds() in package 'pamr' by T. Hastie, R. Tibshirani,
+# Balasubramanian Narasimhan, Gil Chu.
   
   totals <- table(y)
   fmax <- max(totals)
-  nfolds <- min(nfolds, fmax)  # makes no sense to have more folds than the max class size
+  nfolds <- min(nfolds, fmax)  # ensure number of folds not larger than the max class size
   folds <- as.list(seq(nfolds))
-  yids <- split(seq(y), y)     # nice we to get the ids in a list, split by class
-  ### create a big matrix, with enough rows to get in all the folds per class
-  bigmat <- matrix(as.double(NA), ceiling(fmax/nfolds) * nfolds, length(totals))
+  yids <- split(seq(y), y)     # get the ids in a list, split by class
+  ## create a big matrix, with enough rows to get in all the folds per class
+  bigmat <- matrix(as.double(NA), 
+                   nrow = ceiling(fmax/nfolds) * nfolds, 
+                   ncol = length(totals))
   for(i in seq(totals)) 
-    #   { bigmat[seq(totals[i]), i] <- sample(yids[[i]]) }
-    #   Luca: this version has a bug if a class has only 1 obs
-  { if (totals[i]==1) 
-    bigmat[seq(totals[i]), i] <- yids[[i]]    
-    else 
-      bigmat[seq(totals[i]), i] <- sample(yids[[i]]) }
+  { 
+    bigmat[seq(totals[i]), i] <- 
+      if (totals[i]==1) yids[[i]] else sample(yids[[i]]) 
+  }
   smallmat <- matrix(bigmat, nrow = nfolds) # reshape the matrix
-  ### Now do a clever sort to mix up the NAs
-  smallmat <- permute.rows(t(smallmat))   
+  ## clever sort to mix up the NAs
+  smallmat <- permuteRows(t(smallmat))   
   res <-vector("list", nfolds)
   for(j in 1:nfolds) 
-  { jj <- !is.na(smallmat[, j])
-    res[[j]] <- smallmat[jj, j] }
+  { 
+    jj <- !is.na(smallmat[, j])
+    res[[j]] <- smallmat[jj, j] 
+  }
   return(res)
 }
 
-permute.rows <- function(x)
+permuteRows <- function(x)
 {
   dd <- dim(x)
   n <- dd[1]
@@ -1123,7 +1201,7 @@ classPriorProbs <- function(object, newdata = object$data,
 {
 
   if(!inherits(object, "MclustDA")) 
-    stop("object not of class \"MclustDA\"")
+    stop("object not of class 'MclustDA'")
 
   z <- predict(object, newdata = newdata)$z
   prop <- object$prop

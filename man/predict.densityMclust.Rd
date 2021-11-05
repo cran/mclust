@@ -35,7 +35,7 @@ Returns a vector or a matrix of densities evaluated at \code{newdata} depending 
 \seealso{\code{\link{Mclust}}.}
 
 \examples{
-\dontrun{
+\donttest{
 x <- faithful$waiting
 dens <- densityMclust(x)
 x0 <- seq(50, 100, by = 10)

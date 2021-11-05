@@ -129,7 +129,7 @@ A list including the following components:
   \code{\link{mclust.options}}
 }
 \examples{
-\dontrun{
+\donttest{
 me(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]))}
 }
 \keyword{cluster}

@@ -79,7 +79,7 @@ mvnXXX(data, prior = NULL, warn = NULL, \dots)
   \code{\link{mstepE}}
 }
 \examples{
-\dontrun{
+\donttest{
 n <- 1000
 
 set.seed(0)

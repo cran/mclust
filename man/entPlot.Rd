@@ -43,7 +43,7 @@ J.-P. Baudry, A. E. Raftery, L. Scrucca
 \code{\link{plot.clustCombi}}, \code{\link{combiPlot}}, \code{\link{clustCombi}}
 }
 \examples{
-\dontrun{
+\donttest{
 data(Baudry_etal_2010_JCGS_examples)
 # run Mclust to get the MclustOutput
 output <- clustCombi(data = ex4.2, modelNames = "VII") 

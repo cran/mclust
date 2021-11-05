@@ -2,10 +2,10 @@
 library(knitr)
 opts_chunk$set(fig.align = "center", 
                out.width = "90%",
-               fig.width = 6, fig.height = 5.5,
-               dev.args=list(pointsize=10),
+               fig.width = 6, fig.height = 5,
+               dev.args = list(pointsize=10),
                par = TRUE, # needed for setting hook 
-               collapse = TRUE, # collapse input & ouput code in chunks
+               collapse = TRUE, # collapse input & output code in chunks
                warning = FALSE)
 
 knit_hooks$set(par = function(before, options, envir)
@@ -104,10 +104,10 @@ plot(mod3, what = "classification")
 ## -----------------------------------------------------------------------------
 cv <- cvMclustDA(mod2, nfold = 10)
 str(cv)
-unlist(cv[3:4])
+unlist(cv[3:6])
 cv <- cvMclustDA(mod3, nfold = 10)
 str(cv)
-unlist(cv[3:4])
+unlist(cv[3:6])
 
 ## -----------------------------------------------------------------------------
 data(acidity)
@@ -123,10 +123,7 @@ data(faithful)
 mod5 <- densityMclust(faithful)
 summary(mod5)
 plot(mod5, what = "BIC")
-plot(mod5, what = "density")
-plot(mod5, what = "density", type = "hdr")
-plot(mod5, what = "density", type = "hdr",
-     data = faithful, points.cex = 0.5)
+plot(mod5, what = "density", type = "hdr", data = faithful, points.cex = 0.5)
 plot(mod5, what = "density", type = "persp")
 
 ## -----------------------------------------------------------------------------
@@ -134,20 +131,20 @@ boot1 <- MclustBootstrap(mod1, nboot = 999, type = "bs")
 summary(boot1, what = "se")
 summary(boot1, what = "ci")
 
+## ---- echo=-1, fig.width=6, fig.height=7--------------------------------------
 par(mfrow=c(4,3))
 plot(boot1, what = "pro")
 plot(boot1, what = "mean")
-par(mfrow=c(1,1))
 
 ## -----------------------------------------------------------------------------
 boot4 <- MclustBootstrap(mod4, nboot = 999, type = "bs")
 summary(boot4, what = "se")
 summary(boot4, what = "ci")
 
+## ---- echo=-1-----------------------------------------------------------------
 par(mfrow=c(2,2))
 plot(boot4, what = "pro")
 plot(boot4, what = "mean")
-par(mfrow=c(1,1))
 
 ## -----------------------------------------------------------------------------
 mod1dr <- MclustDR(mod1)

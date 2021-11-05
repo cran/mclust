@@ -137,10 +137,10 @@ Fraley C. and Raftery A. E. (2002) Model-based clustering, discriminant analysis
 Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 for R: Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation. \emph{Technical Report} No. 597, Department of Statistics, University of Washington.
 }
 \seealso{
+  \code{\link{summary.mclustBIC}}, 
   \code{\link{priorControl}}, 
   \code{\link{emControl}}, 
   \code{\link{mclustModel}}, 
-  \code{\link{summary.mclustBIC}}, 
   \code{\link{hc}},
   \code{\link{me}},
   \code{\link{mclustModelNames}},
@@ -151,7 +151,7 @@ irisBIC <- mclustBIC(iris[,-5])
 irisBIC
 plot(irisBIC)
 
-\dontrun{
+\donttest{
 subset <- sample(1:nrow(iris), 100)
 irisBIC <- mclustBIC(iris[,-5], initialization=list(subset = subset))
 irisBIC
@@ -181,4 +181,3 @@ irisNbic
 plot(irisNbic)
 }
 \keyword{cluster}
-% docclass is function

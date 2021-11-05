@@ -141,7 +141,7 @@ A plot showing the data, together with the location of the mixture components, c
   \code{\link{mclust.options}}
 }
 \examples{
-\dontrun{
+\donttest{
 faithfulModel <- Mclust(faithful)
 
 mclust2Dplot(faithful, parameters=faithfulModel$parameters, 

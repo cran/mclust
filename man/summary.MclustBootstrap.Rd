@@ -24,7 +24,7 @@
 \seealso{\code{\link{MclustBootstrap}}.}
 
 \examples{
-\dontrun{
+\donttest{
 data(diabetes)
 X = diabetes[,-1]
 modClust = Mclust(X) 

@@ -35,7 +35,7 @@ J.-P. Baudry, A. E. Raftery, L. Scrucca
 \code{\link{combiPlot}}, \code{\link{entPlot}}, \code{\link{combiTree}}, \code{\link{clustCombi}}.
 }
 \examples{
-\dontrun{
+\donttest{
 data(Baudry_etal_2010_JCGS_examples)
 
 ## 1D Example 

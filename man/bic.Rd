@@ -54,7 +54,7 @@ bic(modelName, loglik, n, d, G, noise=FALSE, equalPro=FALSE, \dots)
   \code{\link{mclustModelNames}}.
 }
 \examples{
-\dontrun{
+\donttest{
 n <- nrow(iris)
 d <- ncol(iris)-1
 G <- 3

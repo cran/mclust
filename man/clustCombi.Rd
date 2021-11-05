@@ -47,7 +47,7 @@ data(Baudry_etal_2010_JCGS_examples)
 
 # run Mclust using provided data
 output <- clustCombi(data = ex4.1) 
-\dontrun{
+\donttest{
 # or run Mclust and then clustcombi on the returned object
 mod <- Mclust(ex4.1)
 output <- clustCombi(mod)
@@ -56,7 +56,7 @@ output <- clustCombi(mod)
 output
 summary(output)
 
-\dontrun{
+\donttest{
 # run Mclust using provided data and any further optional argument provided
 output <- clustCombi(data = ex4.1, modelName = "EEV", G = 1:15)
 }

@@ -73,7 +73,7 @@ McLachlan, G.J. and Rathnayake, S. (2014) On the number of components in a Gauss
 \seealso{\code{\link{mclustBIC}}, \code{\link{mclustICL}}, \code{\link{Mclust}}}
 
 \examples{
-\dontrun{
+\donttest{
 data(faithful)
 faithful.boot = mclustBootstrapLRT(faithful, model = "VVV")
 faithful.boot

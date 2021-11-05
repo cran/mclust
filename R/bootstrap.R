@@ -13,6 +13,10 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
   if(is.null(modelName))
     stop("A 'modelName' must be provided. Please see help(mclustModelNames) which describes the available models.")
   modelName <- modelName[1]
+  checkModelName(modelName)
+  if(grepl("X", modelName))
+    stop("Specified 'modelName' is only valid for one-component mixture.")
+  
   if(is.null(maxG))
   { 
     G <- seq.int(1, 9)
@@ -21,6 +25,7 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
     maxG <- as.numeric(maxG)
     G <- seq.int(1, maxG+1) 
   }
+  
   BIC <- mclustBIC(data, G = G, modelNames = modelName, 
                    warn = FALSE, verbose = FALSE, ...)
   

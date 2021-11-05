@@ -33,7 +33,7 @@ Plots the ICL values returned by the \code{\link{mclustICL}} function.
   \code{\link{mclustICL}}
 }
 \examples{
-\dontrun{
+\donttest{
 data(faithful)
 faithful.ICL = mclustICL(faithful)
 plot(faithful.ICL)

@@ -70,7 +70,7 @@ O'Hagan A., Murphy T. B., Gormley I. C. and Scrucca L. (2015) On Estimation of P
 \seealso{\code{\link{summary.MclustBootstrap}}, \code{\link{plot.MclustBootstrap}}, \code{\link{Mclust}}, \code{\link{densityMclust}}.}
 
 \examples{
-\dontrun{
+\donttest{
 data(diabetes)
 X <- diabetes[,-1]
 modClust <- Mclust(X) 

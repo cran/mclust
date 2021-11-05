@@ -46,7 +46,7 @@ ex4.4.2 has been simulated from a mixture of two uniform distributions in R^3.
 J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining mixture components for clustering. \emph{Journal of Computational and Graphical Statistics, 19(2):332-353.}
 }
 \examples{
-\dontrun{
+\donttest{
 data(Baudry_etal_2010_JCGS_examples)
 
 output <- clustCombi(data = ex4.4.1)

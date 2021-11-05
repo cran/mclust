@@ -98,7 +98,7 @@ simVVV(parameters, n, seed = NULL, \dots)
   \code{\link{mclustVariance}}.
 }
 \examples{
-\dontrun{
+\donttest{
 d <- 2
 G <- 2
 scale <- 1

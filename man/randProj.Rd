@@ -150,7 +150,7 @@ The function also returns an invisible list with components \code{basis}, the ra
   \code{\link{mclust.options}}
 }
 \examples{
-\dontrun{
+\donttest{
 est <- meVVV(iris[,-5], unmap(iris[,5]))
 par(pty = "s", mfrow = c(1,1))
 randProj(iris[,-5], seeds=1:3, parameters = est$parameters, z = est$z,

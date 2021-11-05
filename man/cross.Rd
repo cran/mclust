@@ -13,7 +13,7 @@ elliptical Gaussians.
 
 \examples{
 # This dataset was created as follows
-\dontrun{
+\donttest{
 n <- 250 
 set.seed(0)
 cross <- rbind(matrix(rnorm(n*2), n, 2) \%*\% diag(c(1,9)),

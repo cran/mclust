@@ -31,7 +31,7 @@ the corresponding best model (see example).
   \code{\link{Mclust}}.
 }
 \examples{
-\dontrun{
+\donttest{
 data(galaxies, package = "MASS") 
 galaxies <- galaxies / 1000
 

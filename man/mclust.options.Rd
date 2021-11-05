@@ -10,13 +10,12 @@ mclust.options(\dots)
 }
 
 \arguments{
-  \item{\dots}{
-one or more arguments provided in the \code{name = value} form, or no argument at all may be given. \cr
+  \item{\dots}{one or more arguments provided in the \code{name = value} form, or no argument at all may be given. \cr
 Available arguments are described in the Details section below.}
 }
   
 \details{
-\code{mclust.options} is provided for assigning or retrieving default values used by various functions in \code{MCLUST}.\cr
+\code{mclust.options()} is provided for assigning or retrieving default values used by various functions in \code{MCLUST}.\cr
 
 Available options are:
 \describe{
@@ -29,32 +28,28 @@ Available options are:
     available models.
   }
   \item{\code{hcModelName}}{
-    A string associated with multivariate models for which model-based 
-    hierarchical clustering is available in MCLUST. \cr
+   A character string specifying the multivariate model to be used in model-based agglomerative hierarchical clustering for initialization of EM algorithm.\cr
     The available models are the following:
     \describe{
-    \item{\code{"EII"}}{spherical, equal volume}
-    \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation}
-    \item{\code{"VII"}}{spherical, unequal volume}
-    \item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation.}
+    \item{\code{"EII"}}{spherical, equal volume;}
+    \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation;}
+    \item{\code{"VII"}}{spherical, unequal volume;}
+    \item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation (default).}
     }
-    The \code{"VVV"} is used as default for initialization of EM algorithm.
   }
   \item{\code{hcUse}}{
-    A string or a vector of character strings specifying the type of input 
-    variables to be used in model-based hierarchical clustering to start 
-    the EM algorithm.
+    A character string specifying the type of input variables/transformation to be used in model-based agglomerative hierarchical clustering for initialization of EM algorithm.\cr
     Possible values are:
     \describe{
     \item{\code{"VARS"}}{original variables;}
-    \item{\code{"STD"}}{standardized variables;}
-    \item{\code{"SPH"}}{sphered variables (centered, scaled, uncorrelated)  
+    \item{\code{"STD"}}{standardized variables (centered and scaled);}
+    \item{\code{"SPH"}}{sphered variables (centered, scaled and uncorrelated)  
     computed using SVD;}
     \item{\code{"PCS"}}{principal components computed using SVD on centered 
     variables (i.e. using the covariance matrix);}
     \item{\code{"PCR"}}{principal components computed using SVD on standardized 
     (center and scaled) variables (i.e. using the correlation matrix);}
-    \item{\code{"SVD"}}{scaled SVD transformation;}
+    \item{\code{"SVD"}}{scaled SVD transformation (default);}
     \item{\code{"RND"}}{no transformation is applied but a random hierarchical structure is returned (see \code{\link{hcRandomPairs}}).}
     }
     For further details see Scrucca and Raftery (2015), Scrucca et al. (2016).

@@ -153,7 +153,7 @@ emXXX(data, prior = NULL, warn = NULL, \dots)
   \code{\link{mclust.options}}.
 }
 \examples{
-\dontrun{
+\donttest{
 msEst <- mstepEEE(data = iris[,-5], z = unmap(iris[,5]))
 names(msEst)
 

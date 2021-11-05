@@ -196,7 +196,7 @@ plot(irisMclustDA, what = "error", newdata = X.test, newclass = Class.test)
 plot(irisMclustDA, what = "error", newdata = X.test, newclass = Class.test, dimens = 3:4)
 plot(irisMclustDA, what = "error", newdata = X.test, newclass = Class.test, dimens = 4)
 
-\dontrun{
+\donttest{
 # simulated 1D data
 n <- 250 
 set.seed(1)

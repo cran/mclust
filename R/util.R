@@ -224,7 +224,7 @@ orth2 <- function (n)
 
 randomOrthogonalMatrix <- function(nrow, ncol, n = nrow, d = ncol, seed = NULL)
 {
-# Generate a random orthogonal basis matrix of dimension (nrow x ndim) using 
+# Generate a random orthogonal basis matrix of dimension (nrow x ncol) using 
 # the algorithm in
 # Heiberger R. (1978) Generation of random orthogonal matrices. JRSS C, 27,
 #   199-206.
@@ -243,7 +243,7 @@ randomOrthogonalMatrix <- function(nrow, ncol, n = nrow, d = ncol, seed = NULL)
     ncol <- d
   }
   
-  Q <- qr.Q(qr(matrix(rnorm(n*d), nrow = nrow, ncol = ncol)))
+  Q <- qr.Q(qr(matrix(rnorm(nrow*ncol), nrow = nrow, ncol = ncol)))
   return(Q)
 }
 
@@ -485,12 +485,16 @@ covw <- function(X, Z, normalize = TRUE)
 
 hdrlevels <- function(density, prob)
 {
+# Compute the levels for Highest Density Levels (HDR) for estimated 'density' 
+# values and probability levels 'prob'.
+# 
+# Reference: Hyndman (1996) Computing and Graphing Highest Density Regions	
   if(missing(density) | missing(prob))
     stop("Please provide both 'density' and 'prob' arguments to function call!")
   density <- as.vector(density)
   prob <- pmin(pmax(as.numeric(prob), 0), 1)
   alpha <- 1-prob
-  lev <- quantile(density, alpha)
+  lev <- quantile(density, alpha, na.rm = TRUE)
   names(lev) <- paste0(round(prob*100),"%")
   return(lev)
 }
@@ -537,7 +541,7 @@ as.densityMclust.default <- function(x, ...)
 as.densityMclust.Mclust <- function(x, ...)
 { 
   class(x) <- c("densityMclust", class(x))
-  x$density <- dens(modelName = x$modelName, data = x$data, 
+  x$density <- dens(data = x$data, modelName = x$modelName, 
                     parameters = x$parameters, logarithm = FALSE)
   return(x)
 }

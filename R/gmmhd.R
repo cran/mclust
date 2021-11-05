@@ -70,14 +70,16 @@ gmmhd <- function(object,
       mc$verbose <- FALSE
       obj <- eval(mc, parent.frame())
       DR$parameters <- obj$parameters
-      fdens <- dens(modelName = obj$modelName,
-                    data = x, parameters = obj$parameters)
+      fdens <- dens(data = x, 
+                    modelName = obj$modelName,
+                    parameters = obj$parameters)
   }
   else
     { x <- data
       DR <- NULL
-      fdens <- dens(modelName = object$modelName,
-                    data = x, parameters = object$parameters)
+      fdens <- dens(data = x, 
+                    modelName = object$modelName,
+                    parameters = object$parameters)
     }
   
   p <- ncol(x)
@@ -409,11 +411,11 @@ gmmhdClassify <- function(object, G = 1:5,
   { 
     classSize <- tabulate(class)
     Gin <- as.vector(G)
-    Gmax <- classSize %/% minSize
-    Gmax <- pmin(Gmax, max(G))
-    G <- vector(length = length(Gmax), mode = "list")
+    maxG <- classSize %/% minSize
+    maxG <- pmin(maxG, max(G))
+    G <- vector(length = length(maxG), mode = "list")
     for(k in 1:length(G))
-       { G[[k]] <- intersect(Gin, seq(Gmax[k])) }
+       { G[[k]] <- intersect(Gin, seq(maxG[k])) }
     return(G)
   }
   
@@ -477,7 +479,7 @@ density.MclustDA <- function(object, newdata, prior, logarithm = FALSE, ...)
 # (later it may be included in the 'mclust' package)
 # or it can be obtained from predict.MclustDA
   if(!inherits(object, "MclustDA")) 
-    stop("object not of class \"MclustDA\"")
+    stop("object not of class 'MclustDA'")
   
   models <- object$models
   nclass <- length(models)

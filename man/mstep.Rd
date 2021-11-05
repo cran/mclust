@@ -95,7 +95,7 @@ mstep(data, modelName, z, prior = NULL, warn = NULL, \dots)
   \code{\link{mclust.options}}.
 }
 \examples{
-\dontrun{
+\donttest{
 mstep(modelName = "VII", data = iris[,-5], z = unmap(iris[,5]))}
 }
 \keyword{cluster}

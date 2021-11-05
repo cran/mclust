@@ -79,7 +79,7 @@ Scrucca, L. (2014) Graphical Tools for Model-based Mixture Discriminant Analysis
 }
 
 \examples{
-\dontrun{
+\donttest{
 # clustering
 data(crabs, package = "MASS")
 x <- crabs[,4:8]

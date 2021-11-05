@@ -1,9 +1,12 @@
 Package: mclust
-Version: 5.4.7
-Date: 2020-11-08
+Version: 5.4.8
+Date: 2021-11-05
 Title: Gaussian Mixture Modelling for Model-Based Clustering,
         Classification, and Density Estimation
-Description: Gaussian finite mixture models fitted via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization, dimension reduction for visualisation, and resampling-based inference.
+Description: Gaussian finite mixture models fitted via EM algorithm for
+  model-based clustering, classification, and density estimation, 
+  including Bayesian regularization, dimension reduction for 
+  visualisation, and resampling-based inference.
 Authors@R: c(person("Chris", "Fraley", role = "aut"),
              person("Adrian E.", "Raftery", role = "aut",
                     comment = c(ORCID = "0000-0002-6589-301X")),
@@ -26,11 +29,11 @@ ByteCompile: true
 NeedsCompilation: yes
 LazyData: yes
 Encoding: UTF-8
-Packaged: 2020-11-20 08:46:31 UTC; luca
+Packaged: 2021-11-05 11:30:47 UTC; luca
 Author: Chris Fraley [aut],
   Adrian E. Raftery [aut] (<https://orcid.org/0000-0002-6589-301X>),
   Luca Scrucca [aut, cre] (<https://orcid.org/0000-0003-3826-0484>),
   Thomas Brendan Murphy [ctb] (<https://orcid.org/0000-0002-5668-7046>),
   Michael Fop [ctb] (<https://orcid.org/0000-0003-3936-2757>)
 Maintainer: Luca Scrucca <luca.scrucca@unipg.it>
-Date/Publication: 2020-11-20 10:40:03 UTC
+Date/Publication: 2021-11-05 12:40:02 UTC

@@ -1,12 +1,15 @@
-densityMclust <- function(data, ...) 
+densityMclust <- function(data, ..., plot = TRUE) 
 {
   mc <- match.call()
   obj <- Mclust(data, ...)
+  if(is.null(obj)) return(obj)
   obj$call <- mc
-  d <- dens(modelName = obj$modelName, data = data, 
-            parameters = obj$parameters, logarithm = FALSE)
-  obj$density <- d
+  obj$density <- dens(data = obj$data, 
+                      modelName = obj$modelName,
+                      parameters = obj$parameters, 
+                      logarithm = FALSE)
   class(obj) <- c("densityMclust", "Mclust")
+  if(plot) plot(obj, what = "density")
   return(obj)
 }
 
@@ -15,7 +18,7 @@ predict.densityMclust <- function(object, newdata,
 																	logarithm = FALSE, ...)
 {
   if(!inherits(object, "densityMclust")) 
-    stop("object not of class \"densityMclust\"")
+    stop("object not of class 'densityMclust'")
   if(missing(newdata))
     { newdata <- object$data }
   newdata <- as.matrix(newdata)
@@ -29,15 +32,15 @@ predict.densityMclust <- function(object, newdata,
   switch(what,
          "dens" = 
 				 {  
-					 out <- dens(modelName = object$modelName, 
-                       data = newdata, 
+					 out <- dens(data = newdata, 
+					             modelName = object$modelName, 
                        parameters = object$parameters,
                        logarithm = logarithm) 
          },
 				 "cdens" =
          {
-					 z <- cdens(modelName = object$modelName, 
-					            data = newdata, 
+					 z <- cdens(data = newdata, 
+					            modelName = object$modelName, 
 					            parameters = object$parameters,
 					            logarithm = TRUE)
 					 z <- if(noise) cbind(z, log(object$parameters$Vinv))
@@ -47,8 +50,8 @@ predict.densityMclust <- function(object, newdata,
          },
 				 "z" = 
 				 {
-					 z <- cdens(modelName = object$modelName, 
-                      data = newdata, 
+					 z <- cdens(data = newdata, 
+					            modelName = object$modelName, 
                       parameters = object$parameters,
                       logarithm = TRUE)
 					 z <- if(noise) cbind(z, log(object$parameters$Vinv))
@@ -112,11 +115,11 @@ plot.densityMclust <- function(x, data = NULL, what = c("BIC", "density", "diagn
 }
 
 
-plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.border = "white", breaks = "Sturges", ...) 
+plotDensityMclust1 <- function(x, data = NULL, col = gray(0.3), hist.col = "lightgrey", hist.border = "white", breaks = "Sturges", ...) 
 {
   object <- x # Argh.  Really want to use object anyway
   mc <- match.call(expand.dots = TRUE)
-  mc$x <- mc$data <- mc$hist.col <- mc$hist.border <- mc$breaks <- NULL
+  mc$x <- mc$data <- mc$col <- mc$hist.col <- mc$hist.border <- mc$breaks <- NULL
   xlab <- mc$xlab
   if(is.null(xlab)) 
     xlab <- deparse(object$call$data)
@@ -134,10 +137,10 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
   d <- predict.densityMclust(object, eval.points)
   #
   if(!is.null(data)) 
-  { h <- hist(data, breaks = breaks, plot = FALSE)
+  { 
+    h <- hist(data, breaks = breaks, plot = FALSE)
     plot(h, freq = FALSE, col = hist.col, border = hist.border, main = "",
          xlim = range(h$breaks, xrange), 
-         # ylim = range(0, ylim, h$density, max(d)+diff(range(d))*0.1),
          ylim =  if(!is.null(ylim)) range(ylim) else range(0, h$density, d),
          xlab = xlab, ylab = ylab)
     box()
@@ -145,13 +148,15 @@ plotDensityMclust1 <- function(x, data = NULL, hist.col = "lightgrey", hist.bord
     mc$x <- eval.points
     mc$y <- d
     mc$type <- "l"
+    mc$col <- col
     eval(mc, parent.frame())
-  }
-  else
-  { mc[[1]] <- as.name("plot")
+  } else
+  { 
+    mc[[1]] <- as.name("plot")
     mc$x <- eval.points
     mc$y <- d
     mc$type <- "l"
+    mc$col <- col
     mc$xlim <- xlim
     mc$ylim <- if(!is.null(ylim)) range(ylim) else range(0, d)
     mc$ylab <- ylab
@@ -195,7 +200,7 @@ plotDensityMclust2 <- function(x, data = NULL,
   par <- object$parameters
   # these parameters should be missing 
   par$variance$cholSigma <- par$Sigma <- NULL
-  if(is.null(par$pro)) par$pro <- 1  # LS: bug?
+  if(is.null(par$pro)) par$pro <- 1
   par$variance$cholsigma <- par$variance$sigma
   for(k in seq(par$variance$G))
      { par$variance$cholsigma[,,k] <- chol(par$variance$sigma[,,k]) }
@@ -288,43 +293,42 @@ plotDensityMclustd <- function(x, data = NULL,
   invisible()
 }
 
-dens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
+dens <- function(data, modelName, parameters, logarithm = FALSE, warn = NULL, ...)
 {
   if(is.null(warn)) warn <- mclust.options("warn")
   # aux <- list(...)
-  cden <- cdens(modelName = modelName, data = data,
-                logarithm = TRUE, parameters = parameters, warn = warn)
-  dimdat <- dim(data)
-  oneD <- is.null(dimdat) || NCOL(data) == 1
-  G <- if(oneD) { length(parameters$mean) }
-       else     { ncol(as.matrix(parameters$mean)) }
+  logcden <- cdens(data = data,
+                   modelName = modelName,
+                   parameters = parameters,
+                   logarithm = TRUE, 
+                   warn = warn)
   pro <- parameters$pro
   if(is.null(pro))
     stop("mixing proportions must be supplied")
   noise <- (!is.null(parameters$Vinv))
-  if(G > 1)
-    { if(noise) 
-        { # proN <- pro[length(pro)]
-          pro <- pro[-length(pro)]
-          # pro <- pro/sum(pro)
-      }
-      if(any(proz <- pro == 0)) 
-        { pro <- pro[!proz]
-          cden <- cden[, !proz, drop = FALSE]
-      }
-      cden <- sweep(cden, 2, FUN = "+", STATS = log(pro))
-  }
-  # logsumexp
-  maxlog <- apply(cden, 1, max)
-  cden <- sweep(cden, 1, FUN = "-", STATS = maxlog)
-  den <- log(apply(exp(cden), 1, sum)) + maxlog
   if(noise) 
-    den <- den + parameters$pro[G+1]*parameters$Vinv
-  if(!logarithm) den <- exp(den)
-  den
+  {
+    proNoise <- pro[length(pro)]
+    pro <- pro[-length(pro)]
+  }
+  if(any(proz <- pro == 0)) 
+  { 
+    pro <- pro[!proz]
+    logcden <- logcden[, !proz, drop = FALSE]
+  }
+  logcden <- sweep(logcden, 2, FUN = "+", STATS = log(pro))
+  # logsumexp
+  maxlog <- apply(logcden, 1, max)
+  logcden <- sweep(logcden, 1, FUN = "-", STATS = maxlog)
+  logden <- log(apply(exp(logcden), 1, sum)) + maxlog
+  #
+  if(noise) 
+    logden <- log(exp(logden) + proNoise*parameters$Vinv)
+  out <- if(logarithm) logden else exp(logden)
+  return(out)
 }
 
-cdens <- function(modelName, data, logarithm = FALSE, parameters, warn = NULL, ...)
+cdens <- function(data, modelName, parameters, logarithm = FALSE, warn = NULL, ...)
 {
   modelName <- switch(EXPR = modelName,
                       X = "E",

@@ -8,22 +8,17 @@
   parameterized by eigenvalue decomposition.
 }
 \usage{
-cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
+cdens(data, modelName, parameters, logarithm = FALSE, warn = NULL, \dots)
 }
 \arguments{
-  \item{modelName}{
-    A character string indicating the model. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-  }
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
     variables are not allowed. If a matrix or data frame, rows
     correspond to observations and columns correspond to variables. 
   }
- \item{logarithm}{
-      A logical value indicating whether or not the logarithm of the component 
-      densities should be returned. The default is to return the component 
-      densities, obtained from the log component densities by exponentiation.
+  \item{modelName}{
+    A character string indicating the model. The help file for
+    \code{\link{mclustModelNames}} describes the available models.
   }
   \item{parameters}{
      The parameters of the model:
@@ -41,11 +36,16 @@ cdens(modelName, data, logarithm = FALSE, parameters, warn = NULL, \dots)
         }
      }
   }
- \item{warn}{
+  \item{logarithm}{
+      A logical value indicating whether or not the logarithm of the component 
+      densities should be returned. The default is to return the component 
+      densities, obtained from the log component densities by exponentiation.
+  }
+  \item{warn}{
     A logical value indicating whether or not a warning should be issued
     when computations fail. The default is \code{warn=FALSE}.
   }
- \item{\dots}{
+  \item{\dots}{
     Catches unused arguments in indirect or list calls via \code{do.call}.
   }
 }

@@ -62,7 +62,7 @@ Plots for model-based clustering results, such as BIC, classification, uncertain
   \code{\link{randProj}}.
 }
 \examples{
-\dontrun{
+\donttest{
 precipMclust <- Mclust(precip)
 plot(precipMclust)
 

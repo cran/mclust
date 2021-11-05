@@ -5,9 +5,23 @@
 
 \title{Gaussian Mixture Modelling for Model-Based Clustering, Classification, and Density Estimation}
 
-\description{Finite Gaussian mixture modelling fitted via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization and dimension reduction.}
+\description{
+\if{html}{\figure{logo.png}{options: align="right" alt="logo" width="120"}}
 
-\details{For a quick introduction to \pkg{mclust} see the vignette \href{../doc/mclust.html}{A quick tour of mclust}.}
+Gaussian finite mixture models estimated via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization and dimension reduction.
+}
+
+\details{
+For a quick introduction to \pkg{mclust} see the vignette \href{../doc/mclust.html}{A quick tour of mclust}.
+
+See also:
+\itemize{
+  \item \code{\link{Mclust}} for clustering;
+  \item \code{\link{MclustDA}} for supervised classification;
+  \item \code{\link{MclustSSC}} for semi-supervised classification;
+  \item  \code{\link{densityMclust}} for density estimation.
+  }
+}
 
 \author{
 Chris Fraley, Adrian Raftery and Luca Scrucca.
@@ -24,7 +38,6 @@ Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 fo
 }
 
 \examples{
-
 # Clustering
 mod1 <- Mclust(iris[,1:4])
 summary(mod1)

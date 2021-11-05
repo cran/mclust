@@ -9,7 +9,7 @@
 
 # GMMDR dimension reduction -----------------------------------------------
 
-MclustDR <- function(object, lambda = 0.5,
+MclustDR <- function(object, lambda = 1,
                      normalized = TRUE, Sigma, 
                      tol = sqrt(.Machine$double.eps))
 {
@@ -284,14 +284,14 @@ predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points
   # old version
   # cden <- array(NA, c(n, G))
   # for(j in 1:G)
-  #    { cden[,j] <- mvdnorm(dir, Mu[j,], Sigma[,,j], log = FALSE) }
+  #    { cden[,j] <- dmvnorm(dir, Mu[j,], Sigma[,,j], log = FALSE) }
   # z <- sweep(cden, 2, FUN = "*", STATS = object$pro)  
   # den <- apply(z, 1, sum)
   # z <- sweep(z, 1, FUN = "/", STATS = den)
   # new version: more efficient and accurate
   z <- array(NA, c(n, G))
   for(j in 1:G)
-     { z[,j] <- mvdnorm(dir, Mu[j,], Sigma[,,j], log = TRUE) }
+     { z[,j] <- dmvnorm(dir, Mu[j,], Sigma[,,j], log = TRUE) }
   z <- sweep(z, 2, FUN = "+", STATS = log(object$pro))
   logden <- apply(z, 1, logsumexp)
   z <- sweep(z, 1, FUN = "-", STATS = logden)
@@ -340,7 +340,8 @@ predict2D.MclustDR <- function(object, dim = 1:2, ngrid = 100, xlim, ylim)
 
 plot.MclustDR <- function(x, dimens, 
                           what = c("scatterplot", "pairs", "contour", 
-                                   "classification", "boundaries", "density", "evalues"), 
+                                   "classification", "boundaries", 
+                                   "density", "evalues"), 
                           symbols, colors, 
                           col.contour = gray(0.7), 
                           col.sep = grey(0.4), 
@@ -360,6 +361,8 @@ plot.MclustDR <- function(x, dimens,
   numdir <- object$numdir
   dimens <- if(missing(dimens)) seq(numdir)
             else intersect(as.numeric(dimens), seq(numdir))
+  if(length(dimens) == 0)
+    stop("invalid 'dimens' value(s) provided")
   
   if(missing(symbols)) 
     { if(G <= length(mclust.options("classPlotSymbols"))) 
@@ -379,14 +382,6 @@ plot.MclustDR <- function(x, dimens,
     { warning("more colors needed to show mixture components")
       colors <- rep("black", nclass) }
   
-  niceRange <- function (x, f = 0.04) 
-  { 
-    r <- range(x)
-    d <- diff(r)
-    out <- c(r[1] - d*f, r[2] + d*f)
-    return(out)
-  }
-
   ####################################################################
   what <- match.arg(what, several.ok = TRUE)
   oldpar <- par(no.readonly = TRUE)
@@ -394,7 +389,9 @@ plot.MclustDR <- function(x, dimens,
   if(any(i <- (what == "pairs")) & (length(dimens) == 2))
     { what[i] <- "scatterplot" }
   if(length(dimens) == 1) 
-    { what[!(what == "density" | what == "evalues")] <- "density" }
+    { what[!(what == "classification" | 
+             what == "density" | 
+             what == "evalues")] <- "classification" }
   what <- unique(what)
   
   plot.MclustDR.scatterplot <- function(...)
@@ -406,48 +403,58 @@ plot.MclustDR <- function(x, dimens,
   }
   
   plot.MclustDR.pairs <- function(...)
-  { dir <- dir[,dimens,drop=FALSE]
+  { 
+    dir <- dir[,dimens,drop=FALSE]
     pairs(dir, col = colors[class], pch = symbols[class], 
           gap = 0.2, asp = asp, ...)
   }
   
   plot.MclustDR.density <- function(...)
-  { dimens <- dimens[1]
+  { 
+    dimens <- dimens[1]
     dir <- object$dir[,dimens,drop=FALSE]
     par <- projpar.MclustDR(object, dimens)
     Mu <- par$mean
     Sigma <- par$variance
-    q <- seq(min(dir), max(dir), length=2*ngrid)
-    dens <- matrix(as.double(NA), length(q), G)
+    xgrid <- extendrange(dir, f = 0.1)
+    xgrid <- seq(min(xgrid), max(xgrid), length=2*ngrid)
+    dens <- matrix(as.double(NA), length(xgrid), G)
     for(j in 1:G)
-      dens[,j] <- dnorm(q, Mu[j,], sqrt(Sigma[,,j]))
+      dens[,j] <- dnorm(xgrid, Mu[j,], sqrt(Sigma[,,j]))
     #
     if(object$type == "MclustDA")
-    { d <- t(apply(dens, 1, function(x, p = object$pro) p*x))
-      dens <- matrix(as.double(NA), length(q), nclass) 
+    { 
+      d <- t(apply(dens, 1, function(x, p = object$pro) p*x))
+      dens <- matrix(as.double(NA), length(xgrid), nclass) 
       tab <- table(y, class)
       for(i in 1:ncol(tab))
-      { j <- which(tab[,i] > 0)
+      { 
+        j <- which(tab[,i] > 0)
         dens[,i] <- apply(d[,j,drop=FALSE],1,sum) 
       }
     }
-    #
-    oldpar <- par(mar = c(0,5.1,1,1), mfrow = par("mfrow"), no.readonly = TRUE)
-    on.exit(par(oldpar))
-    layout(matrix(1:2,2,1), heights = c(2,1))
+    # TODO: remove
+    # oldpar <- par(mar = c(0,5.1,1,1), mfrow = par("mfrow"), no.readonly = TRUE)
+    # on.exit(par(oldpar))
+    # layout(matrix(1:2,2,1), heights = c(2,1))
+    # plot(0, 0, type = "n", xlab = colnames(dir), ylab = "Density", 
+    #      xlim = range(q, dir), ylim = range(0, dens*1.1), xaxt = "n")
+    # for(j in 1:ncol(dens))
+    #   lines(q, dens[,j], col = colors[j])
+    # dir.class <- split(dir, class) 
+    # par(mar = c(4.1,5.1,0,1))
+    # boxplot(dir.class, col = adjustcolor(colors[1:nclass], alpha.f = 0.3),
+    #         border = colors[1:nclass], horizontal = TRUE, 
+    #         pars = list(boxwex = 0.6, staplewex = 0.8, medlwd = 2,
+    #                     whisklty = 3, outlty = 1, outpch = NA),
+    #         ylim = range(q,dir), yaxt = "n", xlab = colnames(dir))
+    # axis(2, at = 1:nclass, labels = levels(object$classification), 
+    #      tick = FALSE, cex = 0.8, las = 2)
     plot(0, 0, type = "n", xlab = colnames(dir), ylab = "Density", 
-         xlim = range(q, dir), ylim = range(0, dens*1.1), xaxt = "n")
+         xlim = range(xgrid), ylim = range(0, dens*1.1))
     for(j in 1:ncol(dens))
-      lines(q, dens[,j], col = colors[j])
-    dir.class <- split(dir, class) 
-    par(mar = c(4.1,5.1,0,1))
-    boxplot(dir.class, col = adjustcolor(colors[1:nclass], alpha.f = 0.3),
-            border = colors[1:nclass], horizontal = TRUE, 
-            pars = list(boxwex = 0.6, staplewex = 0.8, medlwd = 2,
-                        whisklty = 3, outlty = 1, outpch = NA),
-            ylim = range(q,dir), yaxt = "n", xlab = colnames(dir))
-    axis(2, at = 1:nclass, labels = levels(object$classification), 
-         tick = FALSE, cex = 0.8, las = 2)
+      lines(xgrid, dens[,j], col = colors[j])
+    rug(dir, lwd = 1)
   }
   
   plot.MclustDR.contour <- function(...)
@@ -475,11 +482,24 @@ plot.MclustDR <- function(x, dimens,
   }
   
   plot.MclustDR.classification.Mclust <- function(...)
-  { dimens <- dimens[1:2]
+  { 
+    if(object$numdir == 1)
+    {
+      dir <- object$dir[,1]
+      boxplot(dir ~ class, horizontal = TRUE, 
+              col = adjustcolor(mclust.options("classPlotColors"), alpha.f = 0.3)[1:nclass],
+              border = mclust.options("classPlotColors")[1:nclass],
+              ylab = "Classification", xlab = "Dir1",
+              xlim = c(0,nclass+0.5))
+      points(dir, rep(0,n), pch = "|")
+      return()
+    }
+    # numdir >= 2
+    dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = niceRange(dir[,1]), 
-                               ylim = niceRange(dir[,2]))
+                               xlim = extendrange(dir[,1], f = 0.05), 
+                               ylim = extendrange(dir[,2], f = 0.05))
     pred$classification <- apply(pred$z, 1:2, which.max)
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:G], alpha.f = 0.1),
@@ -493,8 +513,8 @@ plot.MclustDR <- function(x, dimens,
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = niceRange(dir[,1]), 
-                               ylim = niceRange(dir[,2]))
+                               xlim = extendrange(dir[,1], f = 0.05), 
+                               ylim = extendrange(dir[,2], f = 0.05))
     pred$classification <- apply(pred$z, 1:2, which.max)
     image(pred$x, pred$y, pred$classification, 
           col = adjustcolor(colors[1:nclass], alpha.f = 0.1),
@@ -504,11 +524,14 @@ plot.MclustDR <- function(x, dimens,
   }
   
   plot.MclustDR.boundaries.Mclust <- function(...)
-  { dimens <- dimens[1:2]
+  { 
+    dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = niceRange(dir[,1]), 
-                               ylim = niceRange(dir[,2]))
+                               xlim = extendrange(dir[,1], f = 0.05), 
+                               ylim = extendrange(dir[,2], f = 0.05))
+    pred$uncertainty[c(1,ngrid),] <- NA
+    pred$uncertainty[,c(1,ngrid)] <- NA
     image(pred$x, pred$y, pred$uncertainty,
           col = rev(gray.colors(10, start = 0, end = 1)),
           breaks = seq(0, 1-1/nclass, length = 11),
@@ -522,20 +545,23 @@ plot.MclustDR <- function(x, dimens,
     dimens <- dimens[1:2]
     dir <- object$dir[,dimens,drop=FALSE]
     pred <- predict2D.MclustDR(object, dimens, ngrid,
-                               xlim = niceRange(dir[,1]), 
-                               ylim = niceRange(dir[,2]))
-    levels <- seq(0, 1-1/nclass, length = 11)
-    col <- rev(gray.colors(10, start = 0, end = 1))
+                               xlim = extendrange(dir[,1], f = 0.05), 
+                               ylim = extendrange(dir[,2], f = 0.05))
+    pred$uncertainty[c(1,ngrid),] <- NA
+    pred$uncertainty[,c(1,ngrid)] <- NA
     image(pred$x, pred$y, pred$uncertainty,
-          col = col, breaks = levels,
+          col = rev(gray.colors(10, start = 0, end = 1)),
+          breaks = seq(0, 1-1/nclass, length = 11),
           xlab = colnames(dir)[1], ylab = colnames(dir)[2],
           xaxs = "i", yaxs = "i", asp = asp)
     points(dir, col = colors[class], pch = symbols[class], ...)
   }
   
   plot.MclustDR.evalues <- function(...)
-  { plotEvalues.MclustDR(object, numdir = max(dimens), plot = TRUE) }
-  
+  { 
+    plotEvalues.MclustDR(object, numdir = max(dimens), plot = TRUE) 
+  }
+
   if(interactive() & length(what) > 1)
     { title <- "Dimension reduction for model-based clustering and classification plots:"
       # present menu waiting user choice
@@ -623,8 +649,8 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, .
     if(legend)
     { legend("topright", lty = c(1,2,2), pch = c(16,22,2), 
              legend = c("Eigenvalues", 
-                        "Means contrib.", 
-                        "Vars contrib."),
+                        "from means", 
+                        "from vars"),
              bg = ifelse(par("bg")=="transparent", "white", par("bg")),
              inset = 0.01, pt.cex = 1.5) }
   }
@@ -637,23 +663,24 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, .
 
 # Auxiliary functions -----------------------------------------------------
 
-mvdnorm <- function(x, mu, sigma, log = FALSE, tol = sqrt(.Machine$double.eps))
-{
-  if(is.vector(x)) 
-  { x <- matrix(x, ncol = length(x)) }
-  else
-  { x <- as.matrix(x) }
-  SVD <- svd(sigma)
-  pos <- (SVD$d > max(tol*SVD$d[1], 0)) # in case of not full rank covar matrix
-  inv.sigma <- SVD$v[,pos,drop=FALSE] %*% (1/SVD$d[pos] *
-                                             t(SVD$u[,pos,drop=FALSE]))
-  z <- mahalanobis(x, center = mu, cov = inv.sigma, inverted = TRUE)
-  # logdet <- sum(log(eigen(sigma, symmetric = TRUE, only.values = TRUE)$values))
-  logdet <- sum(log(SVD$d[pos]))
-  logdens <- -(ncol(x) * log(2 * pi) + logdet + z)/2
-  if(log) return(logdens)
-  else    return(exp(logdens))
-}
+# TODO: remove
+# mvdnorm <- function(x, mu, sigma, log = FALSE, tol = sqrt(.Machine$double.eps))
+# {
+#   if(is.vector(x)) 
+#   { x <- matrix(x, ncol = length(x)) }
+#   else
+#   { x <- as.matrix(x) }
+#   SVD <- svd(sigma)
+#   pos <- (SVD$d > max(tol*SVD$d[1], 0)) # in case of not full rank covar matrix
+#   inv.sigma <- SVD$v[,pos,drop=FALSE] %*% (1/SVD$d[pos] *
+#                                              t(SVD$u[,pos,drop=FALSE]))
+#   z <- mahalanobis(x, center = mu, cov = inv.sigma, inverted = TRUE)
+#   # logdet <- sum(log(eigen(sigma, symmetric = TRUE, only.values = TRUE)$values))
+#   logdet <- sum(log(SVD$d[pos]))
+#   logdens <- -(ncol(x) * log(2 * pi) + logdet + z)/2
+#   if(log) return(logdens)
+#   else    return(exp(logdens))
+# }
 
 ellipse <- function(c, M, r, npoints = 100)
 {
@@ -1040,7 +1067,7 @@ MclustDRrecoverdir <- function(object, data, normalized = TRUE, std = FALSE)
 # directions
 
   if(!any(class(object) == "MclustDR"))
-    stop("object must be of class mclustsir")
+    stop("object must be of class 'mclustsir'")
   if(missing(data)) x <- object$x
   else              x <- as.matrix(data)
   x <- scale(x, center=TRUE, scale=FALSE)

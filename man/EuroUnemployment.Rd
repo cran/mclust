@@ -20,6 +20,6 @@ The data set contains unemployment rates for 31 European countries for the year 
 
 }
 
-\source{EUROSTAT (http://ec.europa.eu/eurostat/web/lfs/data/database)}
+\source{Dataset from EUROSTAT available at \url{https://ec.europa.eu/eurostat/web/lfs/data/database}. For conditions of use see \url{https://ec.europa.eu/eurostat/about/policies/copyright}.}
 
 \keyword{datasets}

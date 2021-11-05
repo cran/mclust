@@ -8,20 +8,20 @@ Implements the EM algorithm for fitting MVN mixture models parameterized by eige
 }
 
 \usage{
-me.weighted(modelName, data, z, weights = NULL, prior = NULL, 
+me.weighted(data, modelName, z, weights = NULL, prior = NULL, 
             control = emControl(), Vinv = NULL, warn = NULL, \dots)
 }
 
 \arguments{
-  \item{modelName}{
-    A character string indicating the model. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-  }
   \item{data}{
     A numeric vector, matrix, or data frame of observations.
     Categorical variables are not allowed.
     If a matrix or data frame, rows correspond to observations and
     columns correspond to variables.
+  }
+  \item{modelName}{
+    A character string indicating the model. The help file for
+    \code{\link{mclustModelNames}} describes the available models.
   }
   \item{z}{
     A matrix whose \code{[i,k]}th entry is an initial estimate of the
@@ -122,11 +122,12 @@ me.weighted(modelName, data, z, weights = NULL, prior = NULL,
   \code{\link{mclustVariance}},
   \code{\link{mclust.options}}
 }
+
 \examples{
-\dontrun{
+\donttest{
 w <- rep(1,150)
 w[1] <- 0
-me.weighted(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]),weights=w)}
-}
-\keyword{cluster}
+me.weighted(data = iris[,-5], modelName = "VVV", 
+            z = unmap(iris[,5]), weights = w)
+}}
 

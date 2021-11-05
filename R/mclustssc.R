@@ -268,7 +268,7 @@ plot.MclustSSC <- function(x, what = c("BIC", "classification", "uncertainty"), 
 {
   object <- x # Argh.  Really want to use object anyway
   if(!inherits(object, "MclustSSC")) 
-    stop("object not of class \"MclustSSC\"")
+    stop("object not of class 'MclustSSC'")
   class(object) <- c(class(object), "Mclust")
   
   what <- match.arg(what, several.ok = TRUE)
@@ -303,7 +303,7 @@ plot.MclustSSC <- function(x, what = c("BIC", "classification", "uncertainty"), 
 predict.MclustSSC <- function(object, newdata, ...)
 {
   if(!inherits(object, "MclustSSC")) 
-    stop("object not of class \"MclustSSC\"")
+    stop("object not of class 'MclustSSC'")
   if(missing(newdata))
     { newdata <- object$data }
   newdata <- as.matrix(newdata)

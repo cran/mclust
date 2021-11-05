@@ -30,7 +30,7 @@ Returns the log-likelihood for a \code{MclustDA} object.}
 \seealso{\code{\link{MclustDA}}.}
 
 \examples{
-\dontrun{
+\donttest{
 irisMclustDA <- MclustDA(iris[,1:4], iris$Species)
 summary(irisMclustDA)
 logLik(irisMclustDA)

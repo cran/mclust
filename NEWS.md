@@ -1,11 +1,21 @@
-# mclust 5.4.7 (NOT ON CRAN)
+# mclust 5.4.8
+
+- `densityMclust()` by default draw a graph of the density estimate.
+- Fixed a bug in computing mixture density if the noise component is present.
+- Changed default behaviour of `hc()` when called to perform agglomerative hierarchical clustering instead of using for EM initialization.
+- The default `mclust.options("hcModelName")` now returns only the model to be used.
+- Changed default `partition` argument of `hc()` function by adding `dupPartion()` to remove data duplicates.
+- Added checks to `mclustBootstrapLRT()` to stop if an invalid `modelName` is provided or a one-component mixture model is provided. 
+- Extended the functionality of `cvMclustDA()` by including as cross-validated metrics both the classification error and the Brier score.
+- Updated info on dataset man pages. 
+
+# mclust 5.4.7
 
 - Updated plot method (dendrogram) for hierarchical clustering --- now based on classification likelihood.
 - Added `MclustSSC()` function (and related `print`, `summary`, `plot`, and `predict`, methods) for semi-supervised classification.
 - Exchanged order of models VEE and EVE to account for increasing complexity of EVE.
 - Added `cex` argument to `clPairs()` to control character expansion used in plotting symbols.
 - `em()` and `me()` have now `data` as first argument.
-- Added fish length data. 
 
 # mclust 5.4.6
 

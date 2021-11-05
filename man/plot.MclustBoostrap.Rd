@@ -50,7 +50,7 @@ Plots the bootstrap distribution of parameters as returned by the \code{\link{Mc
   \code{\link{MclustBootstrap}}
 }
 \examples{
-\dontrun{
+\donttest{
 data(diabetes)
 X <- diabetes[,-1]
 modClust <- Mclust(X, G = 3, modelNames = "VVV")

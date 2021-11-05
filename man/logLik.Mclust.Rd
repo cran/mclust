@@ -28,7 +28,7 @@ Returns the log-likelihood for a \code{'Mclust'} object.}
 \seealso{\code{\link{Mclust}}.}
 
 \examples{
-\dontrun{
+\donttest{
 irisMclust <- Mclust(iris[,1:4])
 summary(irisMclust)
 logLik(irisMclust)

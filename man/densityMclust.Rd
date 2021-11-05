@@ -9,7 +9,7 @@
 }
 
 \usage{
-densityMclust(data, \dots)
+densityMclust(data, \dots, plot = TRUE)
 }
 
 \arguments{
@@ -25,13 +25,19 @@ densityMclust(data, \dots)
     model to be fitted. By default an "optimal" model is selected based
     on the BIC criterion. 
   }
+  \item{plot}{
+    A logical value specifying if the estimated density should be 
+    plotted. For more contols on the resulting graph see the associated 
+    \code{\link{plot.densityMclust}} method. 
+  }
 }
 
 \value{
-  An object of class \code{densityMclust}, which inherits from 
-  \code{Mclust}, is returned with the following slot added:
-  \item{density}{The density evaluated at the input \code{data}
-    computed from the estimated model.}
+An object of class \code{densityMclust}, which inherits from 
+\code{Mclust}. This contains all the components described in 
+\code{\link{Mclust}} and the additional element:
+\item{density}{The density evaluated at the input \code{data}
+computed from the estimated model.}
 }
 
 %\details{}
@@ -71,7 +77,7 @@ plot(dens, what = "density", type = "hdr", prob = c(0.1, 0.9))
 plot(dens, what = "density", type = "hdr", data = faithful)
 plot(dens, what = "density", type = "persp")
 
-\dontrun{
+\donttest{
 dens <- densityMclust(iris[,1:4], G = 2)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = iris[,1:4], 

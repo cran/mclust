@@ -88,7 +88,7 @@ Plots for model-based mixture discriminant analysis results, such as scatterplot
 }
 
 \examples{
-\dontrun{
+\donttest{
 odd <- seq(from = 1, to = nrow(iris), by = 2)
 even <- odd + 1
 X.train <- iris[odd,-5]

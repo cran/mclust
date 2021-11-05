@@ -22,7 +22,8 @@ Data on five laboratory tests administered to a sample of 215 patients. The test
 
 }
 
-\source{UCI \url{ftp://ftp.ics.uci.edu/pub/machine-learning-databases/thyroid-disease/}}
+\source{Thyroid Disease Data Set (\code{new-thyroid.data}, \code{new-thyroid.names}) is available at UCI Machine Learning Repository
+\url{https://archive.ics.uci.edu/ml/datasets/thyroid+disease}. Please note the UCI conditions of use.}
 
 \references{
 Coomans, D., Broeckaert, M. Jonckheer M. and Massart D.L. (1983)

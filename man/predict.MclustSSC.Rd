@@ -34,7 +34,7 @@ Returns a list of with the following components:
 \seealso{\code{\link{MclustSSC}}.}
 
 \examples{
-\dontrun{
+\donttest{
 X <- iris[,1:4]
 class <- iris$Species
 # randomly remove class labels

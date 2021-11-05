@@ -6,7 +6,7 @@ clustCombi <- function(object = NULL, data = NULL, ...)
     { object <- Mclust(data, ...) }
   else
     { if(!inherits(object, "Mclust")) 
-        stop("object not of class \"Mclust\"")
+        stop("object not of class 'Mclust'")
       data <- object$data }
 	combiRes <- combi(data, object)
 	return(combiRes)
@@ -87,7 +87,7 @@ plot.clustCombi <- function(x, what = c("classification", "entropy", "tree"), ..
 {
   object <- x # Argh.  Really want to use object anyway
   if(!inherits(object, "clustCombi")) 
-    stop("object not of class \"clustCombi\"")
+    stop("object not of class 'clustCombi'")
   data <- object$MclustOutput$data
   
   what <- match.arg(what, several.ok = TRUE)
@@ -308,7 +308,7 @@ combiTree <- function(object, type = c("triangle", "rectangle"),
 { 
   
   if(!inherits(object, "clustCombi")) 
-    stop("object not of class \"clustCombi\"")
+    stop("object not of class 'clustCombi'")
   yaxis <- match.arg(yaxis, eval(formals(combiTree)$yaxis), several.ok = FALSE)
   type <- match.arg(type, eval(formals(combiTree)$type), several.ok = FALSE)
 

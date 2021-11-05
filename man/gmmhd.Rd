@@ -75,7 +75,7 @@ Luca Scrucca \email{luca.scrucca@unipg.it}
 \seealso{\code{\link{Mclust}}}
 
 \examples{
-\dontrun{
+\donttest{
 data(faithful)
 mod <- Mclust(faithful)
 summary(mod)

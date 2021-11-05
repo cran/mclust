@@ -38,7 +38,7 @@ The function always draw a tree and invisibly returns an object of class \code{'
 \seealso{\code{\link{clustCombi}}}
 
 \examples{
-\dontrun{
+\donttest{
 data(Baudry_etal_2010_JCGS_examples)
 output <- clustCombi(data = ex4.1) 
 combiTree(output)

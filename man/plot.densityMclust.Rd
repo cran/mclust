@@ -16,7 +16,7 @@
 \usage{
 \method{plot}{densityMclust}(x, data = NULL, what = c("BIC", "density", "diagnostic"), \dots)
 
-plotDensityMclust1(x, data = NULL, hist.col = "lightgrey", 
+plotDensityMclust1(x, data = NULL, col = gray(0.3), hist.col = "lightgrey", 
                    hist.border = "white",  breaks = "Sturges", \dots)
 
 plotDensityMclust2(x, data = NULL, nlevels = 11, levels = NULL, 
@@ -47,6 +47,9 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL,
     }
   }
   
+  \item{col}{The color to be used to draw the density line in 1-dimension 
+  or contours in higher dimensions.}
+
   \item{hist.col}{The color to be used to fill the bars of the histogram.}
 
   \item{hist.border}{The color of the border around the bars of the histogram.}
@@ -100,7 +103,7 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL,
 }
 
 \examples{
-\dontrun{
+\donttest{
 dens <- densityMclust(faithful$waiting)
 summary(dens)
 summary(dens, parameters = TRUE)

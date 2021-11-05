@@ -5,9 +5,10 @@
 # MBAHC used for EM initialization for d-dim data ----
 
 hc <- function(data, 
-               modelName = mclust.options("hcModelName"), 
-               partition, minclus = 1, ...,
-               use = mclust.options("hcUse"))
+               modelName = "VVV", 
+               use = "VARS",
+               partition = dupPartition(data), 
+               minclus = 1, ...)
 {
   if(!any(modelName == c("E", "V", "EII", "VII", "EEE", "VVV")))
      stop("invalid 'modelName' argument for model-based hierarchical clustering. See help(mclust.options)")
@@ -21,7 +22,7 @@ hc <- function(data,
   data <- data.matrix(data)
 
   dropCols <- function(x)
-  { # select only those columns of matrix x with all finite numeric values
+  { # select only those columns of matrix x with all finite numerical values
     x[,apply(x, 2, function(x) all(is.finite(x))), drop = FALSE]
   }
 
@@ -116,6 +117,22 @@ hcRandomPairs <- function(data, seed = NULL, ...)
   structure(tree, initialPartition = 1:n, dimensions = c(n,2))
 }
 
+dupPartition <- function(data) 
+{
+  dup <- duplicated(data)
+  if (is.null(dim(data))) 
+  {
+    data <- as.numeric(data)
+    if (!any(dup)) return(1:length(data))
+    kmeans(data, centers = data[!dup])$cluster
+  } else 
+  {
+    data <- data.matrix(data)
+    if (!any(dup)) return(1:nrow(data))
+    kmeans(data, centers = data[!dup,])$cluster
+  }
+}
+
 hclass <- function(hcPairs, G)
 {
   initial <- attributes(hcPairs)$init
@@ -153,7 +170,7 @@ hclass <- function(hcPairs, G)
   apply(cl[, L:1, drop = FALSE], 2, partconv, consec = TRUE)
 }
 
-hcEII <- function(data, partition, minclus = 1, ...)
+hcEII <- function(data, partition = NULL, minclus = 1, ...)
 {
   if(minclus < 1) stop("minclus must be positive")
   if(any(is.na(data)))
@@ -167,7 +184,7 @@ hcEII <- function(data, partition, minclus = 1, ...)
   dimnames(data) <- NULL
   n <- nrow(data)
   p <- ncol(data)
-  if(missing(partition))
+  if(is.null(partition))
     partition <- 1:n
   else if(length(partition) != n)
     stop("partition must assign a class to each observation")
@@ -195,12 +212,14 @@ hcEII <- function(data, partition, minclus = 1, ...)
                    PACKAGE = "mclust")[c(1, 9)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
-  structure(t(temp[[1]]), initialPartition = partition, 
-            dimensions = dimdat, modelName = "EII", 
+  structure(t(temp[[1]]), 
+            initialPartition = partition, 
+            dimensions = dimdat, 
+            modelName = "EII", 
             call =  match.call())
 }
 
-hcEEE <- function(data, partition, minclus = 1, ...)
+hcEEE <- function(data, partition = NULL, minclus = 1, ...)
 {
   if(minclus < 1) stop("minclus must be positive")
   if(any(is.na(data)))
@@ -216,7 +235,7 @@ hcEEE <- function(data, partition, minclus = 1, ...)
   p <- ncol(data)
   if(n <= p & mclust.options("warn"))
     warning("# of observations <= data dimension")
-  if(missing(partition))
+  if(is.null(partition))
     partition <- 1:n
   else if(length(partition) != n)
     stop("partition must assign a class to each observation")
@@ -261,12 +280,14 @@ hcEEE <- function(data, partition, minclus = 1, ...)
   determinant <- temp[[1]][, 1]
   attr(determinant, "breakpoints") <- temp[[4]]
   trace <- temp[[1]][, 2]
-  structure(tree,  initialPartition = partition, 
-            dimensions = dimdat, modelName = "EEE", 
+  structure(tree,  
+            initialPartition = partition, 
+            dimensions = dimdat, 
+            modelName = "EEE", 
             call = match.call())
 }
 
-hcVII <- function(data, partition, minclus = 1, alpha = 1, ...)
+hcVII <- function(data, partition = NULL, minclus = 1, alpha = 1, ...)
 {
   if(minclus < 1) stop("minclus must be positive")
   if(any(is.na(data)))
@@ -282,7 +303,7 @@ hcVII <- function(data, partition, minclus = 1, alpha = 1, ...)
   p <- ncol(data)
   if(n <= p & mclust.options("warn"))
     warning("# of observations <= data dimension")
-  if(missing(partition))
+  if(is.null(partition))
     partition <- 1:n
   else if(length(partition) != n)
     stop("partition must assign a class to each observation")
@@ -311,12 +332,14 @@ hcVII <- function(data, partition, minclus = 1, alpha = 1, ...)
                    PACKAGE = "mclust")[c(1, 10)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
-  structure(t(temp[[1]]), initialPartition = partition, 
-            dimensions = dimdat, modelName = "VII", 
+  structure(t(temp[[1]]), 
+            initialPartition = partition, 
+            dimensions = dimdat, 
+            modelName = "VII", 
             call = match.call())
 }
 
-hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
+hcVVV <- function(data, partition = NULL, minclus = 1, alpha = 1, beta = 1, ...)
 {
   if(minclus < 1) stop("minclus must be positive")
   if(any(is.na(data)))
@@ -331,7 +354,7 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
   p <- ncol(data)
   if(n <= p & mclust.options("warn"))
     warning("# of observations <= data dimension")
-  if(missing(partition))
+  if(is.null(partition))
     partition <- 1:n
   else if(length(partition) != n)
     stop("partition must assign a class to each observation")
@@ -367,8 +390,10 @@ hcVVV <- function(data, partition, minclus = 1, alpha = 1, beta = 1, ...)
                    PACKAGE = "mclust")[c(1, 14)]
   temp[[1]] <- temp[[1]][1:m, 1:2, drop = FALSE]
   temp[[2]] <- temp[[2]][1:m]
-  structure(t(temp[[1]]), initialPartition = partition, 
-            dimensions = dimdat, modelName = "VVV", 
+  structure(t(temp[[1]]), 
+            initialPartition = partition, 
+            dimensions = dimdat, 
+            modelName = "VVV", 
             call = match.call())
 }
 
@@ -441,20 +466,18 @@ function (object, what = c("loglik", "merge"), maxG = NULL, labels = FALSE)
 	   )
 }
 
-ldend <-
-function (hcObj, maxG = NULL, labels = FALSE) 
+ldend <- function (hcObj, maxG = NULL, labels = FALSE) 
 {
  stopifnot(inherits(hcObj,"hc"))
 
-# classification logliklihood dendrogram setup for MBAHC
+# classification log-likelihood dendrogram setup for MBAHC
 
  if (!is.null(maxG) && maxG < 2) stop("maxG < 2")
 
  n <- ncol(hcObj) + 1
- 
  cLoglik <- CLL <- cloglik.hc(hcObj)
  
- if (is.null(maxG)) maxG <- length(CLL) else maxG <- min(maxG,length(CLL))
+ maxG <- if (is.null(maxG)) length(CLL) else min(maxG,length(CLL))
  
  na <- is.na(CLL)
  m <- length(CLL)
@@ -483,10 +506,14 @@ function (hcObj, maxG = NULL, labels = FALSE)
  nam <-  rownames(as.matrix(attr(hcObj,"data"))) 
  leafLabels <- if (labels) nam  else character(length(nam))
  
- obj <- structure(list(merge = mo$merge, height = height, order = mo$order, 
-                      labels = leafLabels, cloglik = cLoglik, 
-	   method = attr(hcObj, "model"), call = attr(hcObj, "call")))
- obj
+ obj <- structure(list(merge = mo$merge, 
+                       height = height, 
+                       order = mo$order, 
+                       labels = leafLabels, 
+                       cloglik = cLoglik, 
+                       method = attr(hcObj, "model"), 
+                       call = attr(hcObj, "call")))
+ return(obj)
 }
 
 mdend <-
@@ -628,7 +655,7 @@ qclass <- function (x, k)
   return(cl)
 }
 
-hcE <- function(data, partition, minclus = 1, ...)
+hcE <- function(data, partition = NULL, minclus = 1, ...)
 {
   if(minclus < 1) stop("minclus must be positive")
   if(any(is.na(data)))
@@ -640,7 +667,7 @@ hcE <- function(data, partition, minclus = 1, ...)
     stop("data must be one-dimensional")
   data <- as.vector(data)
   n <- length(data)
-  if(missing(partition))
+  if(is.null(partition))
     partition <- 1:n
   else if(length(partition) != n)
     stop("partition must assign a class to each observation")
@@ -664,12 +691,14 @@ hcE <- function(data, partition, minclus = 1, ...)
   temp[[1]] <- temp[[1]][1:m]
   temp[[2]] <- temp[[2]][1:m]
   temp[[3]] <- temp[[3]][1:m]
-  structure(rbind(temp[[1]], temp[[2]]),   initialPartition = partition, 
-            dimensions = n, modelName = "E",
+  structure(rbind(temp[[1]], temp[[2]]),
+            initialPartition = partition, 
+            dimensions = n, 
+            modelName = "E",
             call = match.call())
 }
 
-hcV <- function(data, partition, minclus = 1, alpha = 1, ...)
+hcV <- function(data, partition = NULL, minclus = 1, alpha = 1, ...)
 {
   if(minclus < 1) stop("minclus must be positive")
   if(any(is.na(data)))
@@ -681,7 +710,7 @@ hcV <- function(data, partition, minclus = 1, alpha = 1, ...)
     stop("data must be one-dimensional")
   data <- as.vector(data)
   n <- length(data)
-  if(missing(partition))
+  if(is.null(partition))
     partition <- 1:n
   else if(length(partition) != n)
     stop("partition must assign a class to each observation")
@@ -708,7 +737,9 @@ hcV <- function(data, partition, minclus = 1, alpha = 1, ...)
   temp[[1]] <- temp[[1]][1:m]
   temp[[2]] <- temp[[2]][1:m]
   temp[[3]] <- temp[[3]][1:m]
-  structure(rbind(temp[[1]], temp[[2]]),   initialPartition = partition, 
-            dimensions = n, modelName = "V",
+  structure(rbind(temp[[1]], temp[[2]]),
+            initialPartition = partition, 
+            dimensions = n, 
+            modelName = "V",
             call = match.call())
 }

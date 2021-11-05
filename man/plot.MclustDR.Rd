@@ -87,9 +87,9 @@ Graphs data projected onto the estimated subspace for model-based clustering and
 \seealso{\link{MclustDR}}
 
 \examples{
-\dontrun{
+\donttest{
 mod <- Mclust(iris[,1:4], G = 3)
-dr <- MclustDR(mod)
+dr <- MclustDR(mod, lambda = 0.5)
 plot(dr, what = "evalues")
 plot(dr, what = "pairs")
 plot(dr, what = "scatterplot", dimens = c(1,3))
@@ -105,7 +105,6 @@ dr <- MclustDR(da)
 plot(dr, what = "evalues")
 plot(dr, what = "pairs")
 plot(dr, what = "contour")
-plot(dr, what = "contour", dimens = c(1,3))
 plot(dr, what = "classification", ngrid = 200)
 plot(dr, what = "boundaries", ngrid = 200)
 plot(dr, what = "density")

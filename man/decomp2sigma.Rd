@@ -59,7 +59,7 @@ meEst$parameters$variance
 dec <- meEst$parameters$variance
 decomp2sigma(d=dec$d, G=dec$G, shape=dec$shape, scale=dec$scale,
              orientation = dec$orientation)
-\dontrun{
+\donttest{
 do.call("decomp2sigma", dec)  ## alternative call
 }
 }

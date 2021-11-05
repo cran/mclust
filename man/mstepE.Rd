@@ -131,7 +131,7 @@ mstepVVE( data, z, prior = NULL, warn = NULL, control = NULL, \dots)
   \code{\link{emControl}}.
 }
 \examples{
-\dontrun{
+\donttest{
 mstepVII(data = iris[,-5], z = unmap(iris[,5]))}
 }
 \keyword{cluster}

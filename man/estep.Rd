@@ -89,7 +89,7 @@
   \code{\link{mclustVariance}}
 }
 \examples{
-\dontrun{
+\donttest{
 msEst <- mstep(modelName = "VVV", data = iris[,-5], z = unmap(iris[,5]))
 names(msEst)
 

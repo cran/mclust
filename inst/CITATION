@@ -1,4 +1,4 @@
-citHeader("To cite 'mclust' R package in publications, please use::")
+citHeader("To cite 'mclust' R package in publications, please use:")
 
 citEntry(entry = "Article",
   title = "{mclust} 5: clustering, classification and density estimation using {G}aussian finite mixture models",

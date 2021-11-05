@@ -110,7 +110,7 @@ cdensXXX(data, logarithm = FALSE, parameters, warn = NULL, \dots)
   \code{\link{do.call}}.
 }
 \examples{
-\dontrun{
+\donttest{
 z2 <- unmap(hclass(hcVVV(faithful),2)) # initial value for 2 class case
 
 model <- meVVV(data=faithful, z=z2)

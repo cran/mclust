@@ -34,7 +34,7 @@ hclass(hcPairs, G)
 hcTree <- hc(modelName="VVV", data = iris[,-5])
 cl <- hclass(hcTree,c(2,3))
 
-\dontrun{
+\donttest{
 par(pty = "s", mfrow = c(1,1))
 clPairs(iris[,-5],cl=cl[,"2"])
 clPairs(iris[,-5],cl=cl[,"3"])

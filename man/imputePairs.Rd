@@ -86,7 +86,7 @@ imputePairs(data, dataImp,
   \code{\link{imputeData}}
 }
 \examples{
-\dontrun{
+\donttest{
 # Note that package 'mix' must be installed
 data(stlouis, package = "mix")
  

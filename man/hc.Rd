@@ -11,9 +11,10 @@
 
 \usage{
 hc(data,
-   modelName = mclust.options("hcModelName"),  
-   partition, minclus = 1, \dots,
-   use = mclust.options("hcUse"))
+   modelName = "VVV",  
+   use = "VARS",
+   partition = dupPartition(data), 
+   minclus = 1, \dots)
 }
 
 \arguments{
@@ -24,24 +25,45 @@ hc(data,
     columns correspond to variables (\eqn{d}).
   }
   \item{modelName}{
-    A character string indicating the model to be used.\cr
+    A character string indicating the model to be used in model-based agglomerative hierarchical clustering.\cr
     Possible models are:
     \describe{
-    \item{\code{"E"}}{equal variance (one-dimensional)}
-    \item{\code{"V"}}{spherical, variable variance (one-dimensional)}
-    \item{\code{"EII"}}{spherical, equal volume}
-    \item{\code{"VII"}}{spherical, unequal volume}
-    \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation}
-    \item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation.}
+    \item{\code{"E"}}{equal variance (one-dimensional);}
+    \item{\code{"V"}}{spherical, variable variance (one-dimensional);}
+    \item{\code{"EII"}}{spherical, equal volume;}
+    \item{\code{"VII"}}{spherical, unequal volume;}
+    \item{\code{"EEE"}}{ellipsoidal, equal volume, shape, and orientation;}
+    \item{\code{"VVV"}}{ellipsoidal, varying volume, shape, and orientation (default).}
     }
-    By default the model provided by \code{mclust.options("hcModelName")} is used. 
-    See \code{\link{mclust.options}}.
+    If \code{hc()} is used for initialization of EM algorithm then the default is taken from \code{mclust.options("hcModelName")}. See \code{\link{mclust.options}}.
+  }
+  \item{use}{
+    A character string specifying the type of input variables/data transformation to be used for model-based agglomerative hierarchical clustering.\cr
+    Possible values are:
+    \describe{
+    \item{\code{"VARS"}}{original variables (default);}
+    \item{\code{"STD"}}{standardized variables (centered and scaled);}
+    \item{\code{"SPH"}}{sphered variables (centered, scaled and uncorrelated)  
+    computed using SVD;}
+    \item{\code{"PCS"}}{principal components computed using SVD on centered 
+    variables (i.e. using the covariance matrix);}
+    \item{\code{"PCR"}}{principal components computed using SVD on standardized 
+    (center and scaled) variables (i.e. using the correlation matrix);}
+    \item{\code{"SVD"}}{scaled SVD transformation.}
+    }
+    If \code{hc()} is used for initialization of EM algorithm then the default is taken from \code{mclust.options("hcUse")}. See \code{\link{mclust.options}}.\cr
+    For further details see Scrucca and Raftery (2015).
   }
   \item{partition}{
     A numeric or character vector representing a partition of
-    observations (rows) of \code{data}. If provided, group merges will
-    start with this partition. Otherwise, each observation is assumed to
-    be in a cluster by itself at the start of agglomeration.
+    observations (rows) of \code{data}. 
+    If provided, group merges will start with this partition. 
+    Otherwise, each observation is assumed to be in a cluster by itself 
+    at the start of agglomeration.
+    Starting with version 5.4.8, by default the function
+    \code{\link{dupPartition}} is used to start with all duplicated
+    observations in the same group, thereby keeping duplicates in the 
+    same group throughout the modelling process.
   }
   \item{minclus}{
     A number indicating the number of clusters at which to stop the
@@ -52,14 +74,8 @@ hc(data,
     Arguments for the method-specific \code{hc} functions. See for example
     \code{\link{hcE}}.
   }
-  \item{use}{
-    A string or a vector of character strings specifying the type of input 
-    variables/data transformation to be used for model-based hierarchical 
-    clustering.\cr
-    By default the method specified in \code{mclust.options("hcUse")} is used. 
-    See \code{\link{mclust.options}}.
-  }
 }
+
 \value{
   The function \code{hc()} returns a numeric two-column matrix in which 
   the \emph{i}th row gives the minimum index for observations in each of 
@@ -88,18 +104,23 @@ hc(data,
   Ward's method for hierarchical clustering.
 }
 \references{
-  J. D. Banfield and A. E. Raftery (1993).
+  Banfield J. D. and Raftery A. E. (1993).
   Model-based Gaussian and non-Gaussian Clustering.
-  \emph{Biometrics 49:803-821}. 
+  \emph{Biometrics}, 49:803-821. 
   
-  C. Fraley (1998).
+  Fraley C. (1998).
   Algorithms for model-based Gaussian hierarchical clustering.
-  \emph{SIAM Journal on Scientific Computing 20:270-281}. 
+  \emph{SIAM Journal on Scientific Computing}, 20:270-281. 
   
-  C. Fraley and A. E. Raftery (2002).
+  Fraley C. and Raftery A. E. (2002).
   Model-based clustering, discriminant analysis, and density estimation.
-  \emph{Journal of the American Statistical Association 97:611-631}. 
+  \emph{Journal of the American Statistical Association}, 97:611-631. 
+  
+  Scrucca L. and Raftery A. E. (2015).
+  Improved initialisation of model-based clustering using Gaussian hierarchical partitions. 
+  \emph{Advances in Data Analysis and Classification}, 9/4:447-460.
 }
+
 \seealso{
   \code{\link{hcE}}, \dots,
   \code{\link{hcVVV}},
@@ -107,6 +128,7 @@ hc(data,
   \code{\link{hclass}},
   \code{\link{mclust.options}}  
 }
+
 \examples{
 hcTree <- hc(modelName = "VVV", data = iris[,-5])
 hcTree
@@ -114,7 +136,7 @@ cl <- hclass(hcTree,c(2,3))
 table(cl[,"2"])
 table(cl[,"3"])
 
-\dontrun{
+\donttest{
 clPairs(iris[,-5], classification = cl[,"2"])
 clPairs(iris[,-5], classification = cl[,"3"])
 }

@@ -62,7 +62,7 @@ Plots the BIC values returned by the \code{\link{mclustBIC}} function.
   \code{\link{mclustBIC}}
 }
 \examples{
-\dontrun{
+\donttest{
 plot(mclustBIC(precip), legendArgs =  list(x = "bottomleft"))
 
 plot(mclustBIC(faithful))

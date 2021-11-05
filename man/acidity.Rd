@@ -5,7 +5,8 @@
 \title{Acidity data}
 
 \description{
-Acidity index measured in a sample of 155 lakes in the Northeastern United States. The data are on the log scale, as analysed by Crawford et al. (1992, 1994). 
+Acidity index measured in a sample of 155 lakes in the Northeastern United States.
+Following Crawford et al. (1992, 1994), the data are expressed as log(ANC+50), where ANC is the acidity neutralising capacity value.
 The data were also used to fit mixture of gaussian distributions by Richardson and Green (1997), and by McLachlan and Peel (2000, Sec. 6.6.2).
 }
 

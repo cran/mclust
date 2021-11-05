@@ -9,14 +9,21 @@ A dimension reduction method for visualizing the clustering or classification st
 }
 
 \usage{
-MclustDR(object, lambda = 0.5, normalized = TRUE, Sigma,
+MclustDR(object, lambda = 1, normalized = TRUE, Sigma,
          tol = sqrt(.Machine$double.eps))
 }
 
 \arguments{
-  \item{object}{An object of class \code{'Mclust'} or \code{'MclustDA'} resulting from a call to, respectively, \code{\link{Mclust}} or \code{\link{MclustDA}}.}
+  \item{object}{An object of class \code{'Mclust'} or \code{'MclustDA'} 
+  resulting from a call to, respectively, \code{\link{Mclust}} or 
+  \code{\link{MclustDA}}.}
   
-  \item{lambda}{A tuning parameter in the range [0,1] described in Scrucca (2014). The default 0.5 gives equal importance to differences in means and covariances among clusters/classes. To recover the directions that mostly separate the estimated clusters or classes set this parameter to 1.}
+  \item{lambda}{A tuning parameter in the range [0,1] as described in 
+  Scrucca (2014). The directions that mostly separate the estimated clusters 
+  or classes are recovered using the default value 1. Users can set this 
+  parameter to balance the relative importance of information derived from 
+  cluster/class means and covariances. For instance, a value of 0.5 gives 
+  equal importance to differences in means and covariances among clusters/classes.}
   
   \item{normalized}{Logical. If \code{TRUE} directions are normalized to unit norm.}
   
@@ -32,7 +39,7 @@ Information on the dimension reduction subspace is obtained from the variation o
 
 Observations may then be projected onto such a reduced subspace, thus providing summary plots which help to visualize the underlying structure.
 
-The method has been extended to the supervised case, i.e. when the true classification is known (see Scrucca, 2013).
+The method has been extended to the supervised case, i.e. when the true classification is known (see Scrucca, 2014).
 
 This implementation doesn't provide a formal procedure for the selection of dimensionality. A future release will include one or more methods.
 }
@@ -104,11 +111,10 @@ summary(dr)
 plot(dr, what = "scatterplot")
 plot(dr, what = "evalues")
 
-# adjust the tuning parameter to show the most separating directions
-dr1 <- MclustDR(mod, lambda = 1) 
-summary(dr1)
-plot(dr1, what = "scatterplot")
-plot(dr1, what = "evalues")
+dr <- MclustDR(mod, lambda = 0.5) 
+summary(dr)
+plot(dr, what = "scatterplot")
+plot(dr, what = "evalues")
 
 # classification
 data(banknote)

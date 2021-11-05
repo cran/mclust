@@ -42,7 +42,7 @@ Saerens, M., Latinne, P. and Decaestecker, C. (2002) Adjusting the outputs of a 
 \seealso{\code{\link{MclustDA}}, \code{\link{predict.MclustDA}}}
 
 \examples{
-\dontrun{
+\donttest{
 # generate data from a mixture f(x) = 0.9 * N(0,1) + 0.1 * N(3,1)
 n <- 10000
 mixpro <- c(0.9, 0.1)

@@ -139,7 +139,7 @@ A list including the following components:
   \code{\link{do.call}}
 }
 \examples{
-\dontrun{
+\donttest{
 msEst <- mstep(modelName = "EEE", data = iris[,-5], 
                z = unmap(iris[,5]))
 names(msEst)

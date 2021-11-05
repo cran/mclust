@@ -62,7 +62,7 @@ The two diagnostic plots for density estimation in the one-dimensional case are 
 }
 
 \examples{
-\dontrun{
+\donttest{
 x <- faithful$waiting
 dens <- densityMclust(x)
 plot(dens, x, what = "diagnostic")

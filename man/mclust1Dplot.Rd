@@ -120,7 +120,7 @@ mclust1Dplot(data, parameters = NULL, z = NULL,
   \code{\link{coordProj}}
 }
 \examples{
-\dontrun{
+\donttest{
 n <- 250 ## create artificial data
 set.seed(1)
 y <- c(rnorm(n,-5), rnorm(n,0), rnorm(n,5))

@@ -35,7 +35,7 @@ K. Lo, R. R. Brinkman, R. Gottardo (2008). Automated gating of flow cytometry da
 J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining mixture components for clustering. \emph{Journal of Computational and Graphical Statistics, 19(2):332-353.}
 }
 \examples{
-\dontrun{
+\donttest{
 data(GvHD)
 dat <- GvHD.pos[1:500,] # only a few lines for a quick example
 output <- clustCombi(data = dat) 

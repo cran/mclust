@@ -46,7 +46,7 @@ Schafer J. L. (1997). Analysis of Imcomplete Multivariate Data, Chapman and Hall
   \code{\link{imputePairs}}
 }
 \examples{
-\dontrun{
+\donttest{
 # Note that package 'mix' must be installed
 data(stlouis, package = "mix")
  

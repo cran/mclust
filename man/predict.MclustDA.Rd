@@ -36,7 +36,7 @@ Returns a list of with the following components:
 \seealso{\code{\link{MclustDA}}.}
 
 \examples{
-\dontrun{
+\donttest{
 odd <- seq(from = 1, to = nrow(iris), by = 2)
 even <- odd + 1
 X.train <- iris[odd,-5]

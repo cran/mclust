@@ -117,7 +117,7 @@ faithful.ICL <- mclustICL(faithful)
 faithful.ICL
 summary(faithful.ICL)
 plot(faithful.ICL)
-\dontrun{
+\donttest{
 # compare with
 faithful.BIC <- mclustBIC(faithful)
 faithful.BIC

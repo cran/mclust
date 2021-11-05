@@ -22,14 +22,21 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
   G <- attr(BIC, "G")
   modelNames <- attr(BIC, "modelNames")
   Sumry <- summary(BIC, data, G = G, modelNames = modelNames)
-  if(length(Sumry)==0) return()
+  
+  if(length(Sumry)==0) 
+  {
+    if(warn) 
+      warning("no model(s) could be fitted. Try adjusting G and modelNames arguments")
+    return()
+  }
+  
   if(!(length(G) == 1)) 
     { bestG <- length(tabulate(Sumry$cl))
       if(warn) 
         { if(bestG == max(G) & warn) 
              warning("optimal number of clusters occurs at max choice")
           else if(bestG == min(G) & warn) 
-               warning("optimal number of clusters occurs at min choice")
+             warning("optimal number of clusters occurs at min choice")
         }
   }
   oldClass(Sumry) <- NULL
@@ -186,12 +193,12 @@ plot.Mclust <- function(x,
   
   object <- x # Argh.  Really want to use object anyway
   if(!inherits(object, "Mclust")) 
-    stop("object not of class \"Mclust\"")
+    stop("object not of class 'Mclust'")
   
   data <- object$data
   p <- ncol(data)
   if(p == 1) 
-    colnames(data) <- deparse(x$call$data)
+    colnames(data) <- deparse(object$call$data)
   dimens <- if(is.null(dimens)) seq(p) else dimens[dimens <= p]
   d <- length(dimens)
   
@@ -343,14 +350,21 @@ plot.Mclust <- function(x,
   plot.Mclust.density <- function(...)
   {
     if(p == 1)
-      { mclust1Dplot(data = data,
-                     parameters = object$parameters,
-                     z = object$z, what = "density", 
-                     xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-                     main = main, ...) 
+      { 
+        objdens <- as.densityMclust(object)
+        plotDensityMclust1(objdens, 
+                           xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
+                           main = if(main) main else NULL, ...) 
+        # mclust1Dplot(data = data,
+        #              parameters = object$parameters,
+        #              # z = object$z, 
+        #              what = "density", 
+        #              xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
+        #              main = main, ...) 
     }
     if(p == 2) 
-      { surfacePlot(data = data, parameters = object$parameters,
+      { surfacePlot(data = data, 
+                    parameters = object$parameters,
                     what = "density", 
                     xlab = if(is.null(xlab)) colnames(data)[1] else xlab, 
                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
@@ -422,7 +436,7 @@ logLik.Mclust <- function(object, ...)
 predict.Mclust <- function(object, newdata, ...)
 {
   if(!inherits(object, "Mclust")) 
-    stop("object not of class \"Mclust\"")
+    stop("object not of class 'Mclust'")
   if(missing(newdata))
     { newdata <- object$data }
   newdata <- as.matrix(newdata)
@@ -633,10 +647,13 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
           if (n > d) 
           {
             hcPairs <- hc(data = data, 
-                          modelName = mclust.options("hcModelName")[1])
+                          modelName = mclust.options("hcModelName"),
+                          use = mclust.options("hcUse"))
           } else 
           {
-            hcPairs <- hc(data = data, modelName = "EII")
+            hcPairs <- hc(data = data, 
+                          modelName = "EII",
+                          use = mclust.options("hcUse"))
           } 
         }
         else {
@@ -682,17 +699,17 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
     {
       ## initial hierarchical clustering phase on a subset ----
       subset <- initialization$subset
-      # TODO: remove after check 
-      # if (is.logical(subset)) subset <- which(subset)
       if (is.null(initialization$hcPairs)) {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelName")[1], 
-                          data = data[subset,])
+            hcPairs <- hc(data = data[subset,],
+                          modelName = mclust.options("hcModelName"), 
+                          use = mclust.options("hcUse"))
           }
           else {
-            hcPairs <- hc(modelName = "EII", 
-                          data = data[subset,])
+            hcPairs <- hc(data = data[subset,],
+                          modelName = "EII", 
+                          use = mclust.options("hcUse"))
           }
         }
         else {
@@ -774,11 +791,14 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelName")[1], 
-                          data = data[-noise,])
+            hcPairs <- hc(data = data[-noise,],
+                          modelName = mclust.options("hcModelName"), 
+                          use = mclust.options("hcUse"))
           }
           else {
-            hcPairs <- hc(modelName = "EII", data = data[-noise,])
+            hcPairs <- hc(data = data[-noise,],
+                          modelName = "EII",
+                          use = mclust.options("hcUse"))
           }
         }
         else {
@@ -859,12 +879,14 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
       {
         if (d != 1) {
           if (n > d) {
-            hcPairs <- hc(modelName = mclust.options("hcModelName")[1], 
-                          data = data[subset,])
+            hcPairs <- hc(data = data[subset,],
+                          modelName = mclust.options("hcModelName"), 
+                          use = mclust.options("hcUse"))
           }
           else {
-            hcPairs <- hc(modelName = "EII", 
-                          data = data[subset,])
+            hcPairs <- hc(data = data[subset,],
+                          modelName = "EII", 
+                          use = mclust.options("hcUse"))
           }
         }
         else {

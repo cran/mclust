@@ -63,7 +63,8 @@ The recorded features are:
 For each feature the recorded values are computed from each image as \code{<feature_name>_mean}, \code{<feature_name>_se}, and \code{<feature_name>_extreme}, for the mean, the standard error, and the mean of the three largest values.
 }
 
-\source{UCI \url{http://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)}}
+\source{Breast Cancer Wisconsin (Diagnostic) Data Set (\code{wdbc.data}, \code{wdbc.names}) is available at UCI Machine Learning Repository
+\url{https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)}. Please note the UCI conditions of use.}
 
 \references{
 Mangasarian, O. L., Street, W. N., and Wolberg, W. H. (1995) Breast cancer diagnosis and prognosis via linear programming. \emph{Operations Research}, 43(4), pp. 570-577.

@@ -7,24 +7,19 @@
   Computes densities of observations in parameterized MVN mixtures.
 }
 \usage{
-dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
+dens(data, modelName, parameters, logarithm = FALSE, warn=NULL, \dots)
 }
 \arguments{
-  \item{modelName}{
-    A character string indicating the model. The help file for
-    \code{\link{mclustModelNames}} describes the available models.
-  }
   \item{data}{
     A numeric vector, matrix, or data frame of observations. Categorical
     variables are not allowed. If a matrix or data frame, rows
     correspond to observations and columns correspond to variables. 
   }
-  \item{logarithm}{
-     A logical value indicating whether or not the logarithm of the component 
-      densities should be returned. The default is to return the component 
-      densities, obtained from the log component densities by exponentiation.
-   }
- \item{parameters}{
+  \item{modelName}{
+    A character string indicating the model. The help file for
+    \code{\link{mclustModelNames}} describes the available models.
+  }
+  \item{parameters}{
      The parameters of the model:
      \describe{ 
        \item{\code{pro}}{
@@ -43,6 +38,11 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
             }
  
      }
+  }
+  \item{logarithm}{
+     A logical value indicating whether or not the logarithm of the component 
+      densities should be returned. The default is to return the component 
+      densities, obtained from the log component densities by exponentiation.
   }
   \item{warn}{
     A logical value indicating whether or not a warning should be issued
@@ -64,7 +64,7 @@ dens(modelName, data, logarithm = FALSE, parameters, warn=NULL, \dots)
   \code{\link{do.call}}
 }
 \examples{
-\dontrun{
+\donttest{
 faithfulModel <- Mclust(faithful)
 Dens <- dens(modelName = faithfulModel$modelName, data = faithful,
              parameters = faithfulModel$parameters)

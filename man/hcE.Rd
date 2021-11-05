@@ -5,20 +5,21 @@
 \alias{hcVII}
 \alias{hcEEE}
 \alias{hcVVV}
-\title{
-  Model-based Hierarchical Clustering
-}
+
+\title{Model-based Hierarchical Clustering}
+
 \description{
   Agglomerative hierarchical clustering based on maximum likelihood
   for a Gaussian mixture model parameterized by eigenvalue decomposition.
 }
+
 \usage{
-hcE(data, partition, minclus=1, \dots)
-hcV(data, partition, minclus = 1, alpha = 1, \dots)
-hcEII(data, partition, minclus = 1, \dots)
-hcVII(data, partition, minclus = 1, alpha = 1, \dots)
-hcEEE(data, partition, minclus = 1, \dots)
-hcVVV(data, partition, minclus = 1, alpha = 1, beta = 1, \dots)
+hcE(data, partition = NULL, minclus=1, \dots)
+hcV(data, partition = NULL, minclus = 1, alpha = 1, \dots)
+hcEII(data, partition = NULL, minclus = 1, \dots)
+hcVII(data, partition = NULL, minclus = 1, alpha = 1, \dots)
+hcEEE(data, partition = NULL, minclus = 1, \dots)
+hcVVV(data, partition = NULL, minclus = 1, alpha = 1, beta = 1, \dots)
 }
 \arguments{
   \item{data}{
@@ -80,7 +81,7 @@ hcVVV(data, partition, minclus = 1, alpha = 1, beta = 1, \dots)
 hcTree <- hcEII(data = iris[,-5])
 cl <- hclass(hcTree,c(2,3))
 
-\dontrun{
+\donttest{
 par(pty = "s", mfrow = c(1,1))
 clPairs(iris[,-5],cl=cl[,"2"])
 clPairs(iris[,-5],cl=cl[,"3"])

@@ -132,7 +132,7 @@ coordProj(data, dimens = c(1,2), parameters = NULL, z = NULL,
   \code{\link{mclust.options}}
 }
 \examples{
-\dontrun{
+\donttest{
 est <- meVVV(iris[,-5], unmap(iris[,5]))
 par(pty = "s", mfrow = c(1,1))
 coordProj(iris[,-5], dimens=c(2,3), parameters = est$parameters, z = est$z,

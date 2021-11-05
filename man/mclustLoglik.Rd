@@ -29,7 +29,7 @@ An object of class \code{'mclustLoglik'} containing the maximal log-likelihood v
   \code{\link{mclustBIC}}.
 }
 \examples{
-\dontrun{
+\donttest{
 BIC <- mclustBIC(iris[,1:4])
 mclustLoglik(BIC)
 }

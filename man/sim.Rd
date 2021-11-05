@@ -79,7 +79,7 @@ irisSim <- sim(modelName = irisModel$modelName,
                parameters = irisModel$parameters, 
                n = nrow(iris))
 
-\dontrun{
+\donttest{
   do.call("sim", irisModel) # alternative call
 }
 
@@ -105,7 +105,7 @@ coordProj(iris[,-5], parameters=irisModel$parameters,
 irisModel3 <- mclustModel(iris[,-5], irisBIC, G=3)
 irisSim3 <- sim(modelName = irisModel3$modelName, 
                parameters = irisModel3$parameters, n = 500, seed = 1)
-\dontrun{
+\donttest{
  irisModel3$n <- NULL
  irisSim3 <- do.call("sim",c(list(n=500,seed=1),irisModel3)) # alternative call
 }

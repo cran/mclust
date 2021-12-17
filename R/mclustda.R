@@ -904,8 +904,7 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   
 }
 
-# TODO: delete
-# old version
+# TODO: old version to be deleted at a certain point
 # cvMclustDA <- function(object, nfold = 10, 
 #                        metric = c("error", "brier"), 
 #                        prop = object$prop,
@@ -981,7 +980,6 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
 #   return(out)
 # }
 
-# TODO: update man
 cvMclustDA <- function(object, nfold = 10, 
                        prop = object$prop,
                        verbose = interactive(), 
@@ -1048,7 +1046,8 @@ cvMclustDA <- function(object, nfold = 10,
   se <- apply(metric.cv, 2, function(m)
               sqrt(var(m)/nfold))
   #
-  out <- list(classification = class.cv, z = prob.cv,
+  out <- list(classification = class.cv, 
+		          z = prob.cv,
               ce = cv[1], se.ce = se[1],
               brier = cv[2], se.brier = se[2])
   return(out)

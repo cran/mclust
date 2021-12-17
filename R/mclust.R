@@ -1140,9 +1140,6 @@ summaryMclustBICn <- function(object, data, G = NULL, modelNames = NULL, ...)
   hcPairs <- initialization$hcPairs
   subset <- initialization$subset
   noise <- initialization$noise
-  # TODO: remove after check
-  # if(!is.logical(noise)) 
-  #   noise <- as.logical(match(1:n, noise, nomatch = 0))
   if(is.logical(noise)) 
     noise <- which(noise)
   prior <- attr(object, "prior")

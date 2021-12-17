@@ -51,7 +51,8 @@ export(imputeData, imputePairs, matchCluster, majorityVote)
 export(mapClass, classError, adjustedRandIndex, BrierScore)
 
 export(mclust1Dplot, mclust2Dplot, mvn2plot, surfacePlot, uncerPlot)
-export(clPairs, clPairsLegend, coordProj, randProj,
+export(clPairs, clPairsLegend, 
+       coordProj, randProj,
        randomOrthogonalMatrix)
 
 export(priorControl, defaultPrior, hypvol)
@@ -167,6 +168,11 @@ S3method("print", "gmmhd")
 S3method("summary", "gmmhd")
 S3method("print", "summary.gmmhd")
 S3method("plot", "gmmhd")
+
+export(crimcoords, print.crimcoords, 
+       plot.crimcoords)
+S3method("print", "crimcoords")
+S3method("plot", "crimcoords")
 
 # deprecated functions
 export(cv.MclustDA, cv1EMtrain, bicEMtrain)

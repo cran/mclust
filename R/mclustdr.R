@@ -433,23 +433,6 @@ plot.MclustDR <- function(x, dimens,
         dens[,i] <- apply(d[,j,drop=FALSE],1,sum) 
       }
     }
-    # TODO: remove
-    # oldpar <- par(mar = c(0,5.1,1,1), mfrow = par("mfrow"), no.readonly = TRUE)
-    # on.exit(par(oldpar))
-    # layout(matrix(1:2,2,1), heights = c(2,1))
-    # plot(0, 0, type = "n", xlab = colnames(dir), ylab = "Density", 
-    #      xlim = range(q, dir), ylim = range(0, dens*1.1), xaxt = "n")
-    # for(j in 1:ncol(dens))
-    #   lines(q, dens[,j], col = colors[j])
-    # dir.class <- split(dir, class) 
-    # par(mar = c(4.1,5.1,0,1))
-    # boxplot(dir.class, col = adjustcolor(colors[1:nclass], alpha.f = 0.3),
-    #         border = colors[1:nclass], horizontal = TRUE, 
-    #         pars = list(boxwex = 0.6, staplewex = 0.8, medlwd = 2,
-    #                     whisklty = 3, outlty = 1, outpch = NA),
-    #         ylim = range(q,dir), yaxt = "n", xlab = colnames(dir))
-    # axis(2, at = 1:nclass, labels = levels(object$classification), 
-    #      tick = FALSE, cex = 0.8, las = 2)
     plot(0, 0, type = "n", xlab = colnames(dir), ylab = "Density", 
          xlim = range(xgrid), ylim = range(0, dens*1.1))
     for(j in 1:ncol(dens))

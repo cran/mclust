@@ -20,7 +20,7 @@
 \alias{permuteRows}
 \alias{projpar.MclustDR}
 \alias{projdir.MclustDR}
-\alias{mvdnorm}
+%\alias{mvdnorm}
 \alias{ellipse}
 \alias{eigen.decomp}
 \alias{getParameters.MclustDA}

@@ -181,7 +181,7 @@ plotDensityMclust2 <- function(x, data = NULL,
   mc$nlevels <- nlevels
   mc$levels <- levels
   if(!is.null(mc$type))
-    if(mc$type == "level") mc$type <- "hdr" # TODO: to be removed
+    if(mc$type == "level") mc$type <- "hdr" # TODO: to be removed at certain point
   if(isTRUE(mc$type == "hdr"))
     { mc$levels <- c(sort(hdrlevels(object$density, prob)), 
                      1.1*max(object$density))
@@ -232,7 +232,7 @@ plotDensityMclustd <- function(x, data = NULL,
   mc$levels <- levels
   mc$prob <- prob
   if(!is.null(mc$type))
-    if(mc$type == "level") mc$type <- "hdr" # TODO: to be removed
+    if(mc$type == "level") mc$type <- "hdr" # TODO: to be removed at certain point
 
   if(is.null(data)) 
     { data <- mc$data <- object$data
@@ -355,11 +355,10 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
 # 
 # Arguments:
 # object = a 'densityMclust' object
-# data = the data vector
 # type = type of diagnostic plot:
-# cdf = the fitted distribution function vs the empirical distribution function;
-# qq = the fitted distribution function evaluated over the observed points vs 
-#      the quantile from a uniform distribution.
+#   "cdf" = fitted CDF  vs empirical CDF
+#   "qq"  = fitted CDF evaluated over the observed data points vs 
+#           the quantile from a uniform distribution
 #
 # Reference: 
 # Loader C. (1999), Local Regression and Likelihood. New York, Springer, 
@@ -408,17 +407,23 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
          ylab = "Sample Quantiles", 
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
          main = NULL, ...)
-    # if(main) title(main = "Q-Q plot", cex.main = 1.1)
-    with(list(y = sort(data), x = q),
-         { i <- (y > quantile(y, 0.25) & y < quantile(y, 0.75))
-           abline(lm(y ~ x, subset = i), lty = 2) 
-         })
-# P-P plot
-# cdf <- cdfMclust(object, data, ...)
-# plot(seq(1,n)/(n+1), cdf$y, xlab = "Uniform quantiles", 
-#    ylab = "Cumulative Distribution Function",
-#      main = "Diagnostic: P-P plot")
-# abline(0, 1, lty = 2)
+		# add qq-line
+		Q.y <- quantile(sort(data), probs = c(.25,.75))
+		Q.x <- quantileMclust(object, p = c(.25,.75))
+		b <- (Q.y[2] - Q.y[1])/(Q.x[2] - Q.x[1])
+		a <- Q.y[1] - b*Q.x[1]
+		abline(a, b, untf = TRUE, col = 1, lty = 2)
+    # old method to draw qq-line
+    # with(list(y = sort(data), x = q),
+    #      { i <- (y > quantile(y, 0.25) & y < quantile(y, 0.75))
+    #        abline(lm(y ~ x, subset = i), lty = 2) 
+    #      })
+    # P-P plot
+    # cdf <- cdfMclust(object, data, ...)
+    # plot(seq(1,n)/(n+1), cdf$y, xlab = "Uniform quantiles", 
+    #      ylab = "Cumulative Distribution Function",
+		#      panel.first = if(grid) grid(equilogs=FALSE) else NULL)
+    # abline(0, 1, untf = TRUE, col = col[2], lty = lty[1])
   }
 
   invisible()
@@ -462,29 +467,6 @@ cdfMclust <- function(object, data, ngrid = 100, ...)
   
   out <- list(x = eval.points, y = cdf)    
   return(out)
-}
-
-# old version using spline approx
-quantileMclust <- function(object, p, ...)
-{
-# Calculate the quantile of a univariate mixture corresponding to cdf equal to p 
-#
-# Arguments:
-# object = a 'densityMclust' object
-# p = vector of probabilities (0 <= p <= 1)
-
-  if(!any(class(object) == "densityMclust"))
-    { stop("first argument must be an object of class 'densityMclust'") }
-  eval.points <- extendrange(object$data, f = 1)
-  eval.points <- seq(eval.points[1], eval.points[2], length.out = 10000) 
-  cdf <- cdfMclust(object, data = eval.points)
-  dup <- duplicated(cdf$y)
-  q <- spline(cdf$y[!dup], cdf$x[!dup], method = "fmm", 
-              xmin = 0, xmax = 1, xout = p)$y
-  q[ p < 0 | p > 1] <- NaN
-  q[ p == 0 ] <- -Inf
-  q[ p == 1 ] <- Inf
-  return(q)  
 }
 
 quantileMclust <- function(object, p, ...)

@@ -1,3 +1,8 @@
+# mclust 5.4.9
+
+- Added `crimcoords()` to compute discriminant coordinates or crimcoords.
+- Fixed man page for `cvMclustDA()`.
+
 # mclust 5.4.8
 
 - `densityMclust()` by default draw a graph of the density estimate.

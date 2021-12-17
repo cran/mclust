@@ -833,11 +833,6 @@ symb2fill <- function(x)
   fill[sapply(x, function(x) which(symb == x))]
 }
 
-# x <- c(16, 0, 17, 3, 15, 4, 1, 8, 2, 7, 5, 9, 6, 10, 11, 18, 12, 13, 14)
-# plot(seq(x), rep(1,length(x)), pch = x, cex = 2, ylim = c(0.8, 3.8), yaxt = "n")
-# points(seq(x), rep(2,length(x)), pch = symb2open(x), cex = 2)
-# points(seq(x), rep(3,length(x)), pch = symb2fill(x), cex = 2, bg = "black")
-
 randProj <- function(data, seeds = NULL, 
                      parameters = NULL, z = NULL,
                      classification = NULL, truth = NULL, 
@@ -1111,7 +1106,7 @@ surfacePlot <- function(data, parameters,
   if(dim(data)[2] != 2) 
     stop("data must be two dimensional")
   if(any(type == "level")) 
-    type[type == "level"] <- "hdr" # TODO: to be removed
+    type[type == "level"] <- "hdr" # TODO: to be removed at certain point
   type <- match.arg(type, choices = eval(formals(surfacePlot)$type))
   what <- match.arg(what, choices = eval(formals(surfacePlot)$what))
   transformation <- match.arg(transformation, 
@@ -1370,4 +1365,96 @@ vpoints <- function(x, y, col, cex = 1, ...)
           fg = if(missing(col)) par("col") else col,
           rectangles = matrix(c(0,1), nrow = length(xy$x), ncol = 2, byrow = TRUE), 
           ...)
+}
+
+
+# Discriminant coordinates / crimcoords -------------------------------
+
+crimcoords <- function(data, classification, 
+                       numdir = NULL, 
+                       unbiased = FALSE, 
+                       plot = TRUE, ...) 
+{
+  X <- as.matrix(data)
+  n <- nrow(X)
+  p <- ncol(X)
+  classification <- as.vector(classification)
+  stopifnot(length(classification) == n)
+  Z <- unmap(classification)
+  G <- ncol(Z)
+  nk <- colSums(Z)
+  # overall mean
+  M <- matrix(apply(X,2,mean), n, p, byrow=TRUE)
+  # within-group means
+  Mk <- sweep(crossprod(Z, X), 1, FUN = "/", STATS = nk)
+  ZMk <- Z %*% Mk
+  # pooled within-groups covar
+  W <- crossprod(X - ZMk)
+  W <- if(unbiased) W/(n-G) else W/n
+  # between-groups covar
+  B <- crossprod(ZMk - M)
+  B <- if(unbiased) B/(G-1) else B/G
+  # manova identity: (n-1)*var(X) = 
+  # if(unbiased) (n-G)*W+(G-1)*B else n*W+G*B
+  # generalized eigendecomposition of B with respect to W
+  SVD <- eigen.decomp(B, W)
+  l <- SVD$l; l <- (l+abs(l))/2
+  if(is.null(numdir))
+    numdir <- sum(l > sqrt(.Machine$double.eps))
+  numdir <- min(p, numdir)
+  basis <- as.matrix(SVD$v)[,seq(numdir),drop=FALSE]
+  dimnames(basis) <- list(colnames(X), paste("crimcoords", 1:numdir, sep=""))
+  proj <- X %*% basis
+  s <- sign(apply(proj,2,median))
+  proj <- sweep(proj, 2, FUN = "*", STATS = s)
+  basis <- sweep(basis, 2, FUN = "*", STATS = s)
+
+  obj <- list(means = Mk,
+              B = B, W = W, 
+              evalues = l, basis = basis, 
+              projection = proj,
+              classification = classification)
+  class(obj) <- "crimcoords"
+  if(plot) plot(obj)
+  invisible(obj)
+}
+
+print.crimcoords <- function(x, digits = getOption("digits"), ...)
+{
+  cat("\'", class(x)[1], "\' object:\n", sep = "")
+  str(x, max.level = 1, give.attr = FALSE, strict.width = "wrap")
+  invisible()
+}
+
+plot.crimcoords <- function(x, ...)
+{
+  object <- x # Argh.  Really want to use object anyway
+  numdir <- ncol(object$projection)
+  G <- length(unique(object$classification))
+  if(numdir >= 2)
+  {
+    clPairs(object$projection, object$classification, ...)
+  } else
+  {
+    args <- list(...)
+    cols <- if(!is.null(args$colors)) args$colors
+            else if(!is.null(args$col)) args$col
+            else mclust.options("classPlotColors")
+    cols <- adjustcolor(cols, alpha.f = 0.5)[1:G]  
+    br <- pretty(object$projection, n = nclass.Sturges(object$projection))
+    x <- split(object$projection[,1], object$classification)
+    hist(x[[1]], breaks = br, probability = TRUE, 
+         xlim = extendrange(br), main = NULL, 
+         xlab = colnames(object$projection),
+         border = FALSE, col = cols[1])
+    rug(x[[1]], col = cols[1])
+    for(k in seq_len(G-1)+1)
+    {
+      lines(hist(x[[k]], breaks = br, plot = FALSE), 
+            freq = FALSE, border = FALSE, col = cols[k], ann = FALSE)
+      rug(x[[k]], col = cols[k])
+    }
+    box()
+  }
+  invisible()
 }

@@ -54,9 +54,9 @@ The function returns a list with the following components:
 
   \item{z}{a matrix containing the cross-validated probabilites for class assignment.} 
 
-  \item{error}{the cross-validation classification error.}
+  \item{ce}{the cross-validation classification error.}
   
-  \item{se.error}{the standard error of the cross-validated classification error.}
+  \item{se.ce}{the standard error of the cross-validated classification error.}
 
   \item{brier}{the cross-validation Brier score.} 
     

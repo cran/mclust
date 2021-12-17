@@ -25,7 +25,7 @@ quantileMclust(object, p, \dots)
 
 \details{The cdf is evaluated at points given by the optional argument  \code{data}. If not provided, a regular grid of length \code{ngrid} for the evaluation points is used. 
 
-The quantiles are computed using interpolating splines on an adaptive finer grid.
+The quantiles are computed using bisection linear search algorithm.
 }
 
 \value{

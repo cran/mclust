@@ -43,7 +43,7 @@ ex4.4.2 has been simulated from a mixture of two uniform distributions in R^3.
   
 }
 \references{
-J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining mixture components for clustering. \emph{Journal of Computational and Graphical Statistics, 19(2):332-353.}
+J.-P. Baudry, A. E. Raftery, G. Celeux, K. Lo and R. Gottardo (2010). Combining mixture components for clustering. \emph{Journal of Computational and Graphical Statistics}, 19(2):332-353.
 }
 \examples{
 \donttest{

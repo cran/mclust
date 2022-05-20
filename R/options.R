@@ -52,10 +52,10 @@ mclust.options <- function(...)
   if(length(args) == 0) return(current)
   n <- names(args)
   if (is.null(n)) stop("options must be given by name")
-  # changed <- current[n]
+  changed <- current[n]
   current[n] <- args
   assign(".mclust", current, envir = asNamespace("mclust"))
-  # da provare
   # assignInNamespace(".mclust", current, ns = asNamespace("mclust"))
+  # invisible(changed) # bettina suggestion...
   invisible(current)
 }

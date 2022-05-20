@@ -73,10 +73,11 @@ Mclust(data, G = NULL, modelNames = NULL,
   \item{\code{subset}}{
   A logical or numeric vector specifying a subset of the data
   to be used in the initial hierarchical clustering phase.
-  By default no subset is used unless the number of observations exceeds 
-  the value specified by \code{mclust.options("subset")}. Note that to
-  guarantee exact reproducibility of results a seed must be specified 
-  (see \code{\link{set.seed}}).}
+  No subset is used unless the number of observations exceeds 
+  the value specified by \code{mclust.options("subset")}, which by 
+  default is set to 2000 (see \code{\link{mclust.options}}).
+  Note that in this case to guarantee exact reproducibility of results 
+  a seed must be specified (see \code{\link{set.seed}}).}
   \item{\code{noise}}{
   A logical or numeric vector indicating an initial guess as to
   which observations are noise in the data. If numeric the entries

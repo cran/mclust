@@ -42,8 +42,9 @@ The quantiles are computed using bisection linear search algorithm.
 }
 
 \examples{
+\donttest{
 x <- c(rnorm(100), rnorm(100, 3, 2))
-dens <- densityMclust(x)
+dens <- densityMclust(x, plot = FALSE)
 summary(dens, parameters = TRUE)
 cdf <- cdfMclust(dens)
 str(cdf)
@@ -54,14 +55,13 @@ points(q, cdfMclust(dens, q)$y, pch = 20, col = "red3")
 
 par(mfrow = c(2,2))
 dens.waiting <- densityMclust(faithful$waiting)
-plot(dens.waiting)
 plot(cdfMclust(dens.waiting), type = "l", 
      xlab = dens.waiting$varname, ylab = "CDF")
 dens.eruptions <- densityMclust(faithful$eruptions)
-plot(dens.eruptions)
 plot(cdfMclust(dens.eruptions), type = "l", 
      xlab = dens.eruptions$varname, ylab = "CDF")
 par(mfrow = c(1,1))
+}
 }
 
 \keyword{cluster}

@@ -1,3 +1,10 @@
+# mclust 5.4.10 
+
+- Updated banner on startup.
+- Updated info on man page for datasets `diabetes`, `wdbc`, and `thyroid`.  
+- Std. error for cross-validation in `cvMclustDA()` uses formula for the weighted standard deviation with weights given by folds size.
+- Fix .Rd files.
+
 # mclust 5.4.9
 
 - Added `crimcoords()` to compute discriminant coordinates or crimcoords.

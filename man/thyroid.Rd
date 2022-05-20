@@ -2,7 +2,7 @@
 \alias{thyroid}
 \docType{data}
 
-\title{Thyroid gland data}
+\title{UCI Thyroid Gland Data}
 
 \description{
 Data on five laboratory tests administered to a sample of 215 patients. The tests are used to predict whether a patient's thyroid can be classified as euthyroidism (normal thyroid gland function), hypothyroidism (underactive thyroid not producing enough thyroid hormone) or hyperthyroidism (overactive thyroid producing and secreting excessive amounts of the free thyroid hormones T3 and/or thyroxine T4). Diagnosis of thyroid operation was based on a complete medical record, including anamnesis, scan, etc.}
@@ -22,7 +22,7 @@ Data on five laboratory tests administered to a sample of 215 patients. The test
 
 }
 
-\source{Thyroid Disease Data Set (\code{new-thyroid.data}, \code{new-thyroid.names}) is available at UCI Machine Learning Repository
+\source{One of several databases in the Thyroid Disease Data Set (\code{new-thyroid.data}, \code{new-thyroid.names}) of the UCI Machine Learning Repository
 \url{https://archive.ics.uci.edu/ml/datasets/thyroid+disease}. Please note the UCI conditions of use.}
 
 \references{

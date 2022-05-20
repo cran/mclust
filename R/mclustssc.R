@@ -53,8 +53,8 @@ MclustSSC <- function(data, class,
                        c(args, list(modelName = modelNames[m]))),
                silent = TRUE)
     if(verbose) 
-      { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
-    if(class(mod) == "try-error") next()
+    { ipbar <- ipbar+1; setTxtProgressBar(pbar, ipbar) }
+    if(inherits(mod, "try-error")) next()
     BIC[m] <- mod$bic
     if(!is.na(BIC[m]) && BIC[m] >= max(BIC, na.rm = TRUE))
       Model <- mod

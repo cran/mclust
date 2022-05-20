@@ -144,8 +144,8 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "pb", "j
                             max.nonfit = 10*nboot, verbose = interactive(), ...)
 {
   
-  if(!any(class(object) %in% c("Mclust", "densityMclust")))
-    stop("object must be of class 'Mclust' or 'densityMclust'")
+	stopifnot("object must be of class 'Mclust' or 'densityMclust'" =
+	          inherits(object, c("Mclust", "densityMclust")))
   
   if(any(type %in% c("nonpara", "wlb")))
     { type <- gsub("nonpara", "bs", type)

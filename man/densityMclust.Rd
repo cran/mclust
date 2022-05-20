@@ -67,7 +67,7 @@ summary(dens, parameters = TRUE)
 plot(dens, what = "BIC", legendArgs = list(x = "topright"))
 plot(dens, what = "density", data = faithful$waiting)
 
-dens <- densityMclust(faithful, modelNames = "EEE", G = 3)
+dens <- densityMclust(faithful, modelNames = "EEE", G = 3, plot = FALSE)
 summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = faithful, 

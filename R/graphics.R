@@ -533,7 +533,10 @@ clPairs <- function (data, classification,
     { colors <- rep( "black", l)
       warning("more colors needed")
   }
-	if(is.null(cex)) cex <- rep(1, l) 
+	if(is.null(cex)) cex <- 1
+  if(length(cex) == 1) cex <- rep(cex, l)
+  cex <- cex[1:l]
+  
   grid <- isTRUE(as.logical(grid))
   
   if(d > 2)

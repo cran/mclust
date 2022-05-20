@@ -6,8 +6,6 @@
 \title{Gaussian Mixture Modelling for Model-Based Clustering, Classification, and Density Estimation}
 
 \description{
-\if{html}{\figure{logo.png}{options: align="right" alt="logo" width="120"}}
-
 Gaussian finite mixture models estimated via EM algorithm for model-based clustering, classification, and density estimation, including Bayesian regularization and dimension reduction.
 }
 
@@ -38,6 +36,7 @@ Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 fo
 }
 
 \examples{
+\donttest{
 # Clustering
 mod1 <- Mclust(iris[,1:4])
 summary(mod1)
@@ -52,7 +51,7 @@ plot(mod2)
 # Density estimation
 mod3 <- densityMclust(faithful$waiting)
 summary(mod3)
-plot(mod3, faithful$waiting)
+}
 }
 
 \keyword{package}

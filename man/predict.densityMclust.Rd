@@ -37,10 +37,10 @@ Returns a vector or a matrix of densities evaluated at \code{newdata} depending 
 \examples{
 \donttest{
 x <- faithful$waiting
-dens <- densityMclust(x)
+dens <- densityMclust(x, plot = FALSE)
 x0 <- seq(50, 100, by = 10)
 d0 <- predict(dens, x0)
-plot(dens)
+plot(dens, what = "density")
 points(x0, d0, pch = 20)
 }
 }

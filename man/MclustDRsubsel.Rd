@@ -29,19 +29,19 @@ MclustDRsubsel(object, G = 1:9,
   \item{\dots}{Further arguments passed through \code{\link{Mclust}} or \code{\link{MclustDA}}.}
   \item{bic.stop}{A criterion to terminate the search. If maximal BIC difference is less than \code{bic.stop} then the algorithm stops. \cr
   Two tipical values are:
-  \describe{
-  \item{}{\code{0}: algorithm stops when the BIC difference becomes negative (default)}
-  \item{}{\code{-Inf}: algorithm continues until all directions have been selected}
-  }}
+  \tabular{ll}{  
+    \code{0}: \tab algorithm stops when the BIC difference becomes negative (default);\cr
+    \code{-Inf}: \tab algorithm continues until all directions have been selected.
+    }
+  }
   \item{bic.cutoff}{A value specifying how to select simplest ``best'' model within \code{bic.cutoff} from the maximum value achieved. Setting this to \code{0} (default) simply select the model with the largest BIC difference.}
   \item{mindir}{An integer value specifying the minimum number of directions to be estimated.}
   \item{verbose}{A logical or integer value specifying if and how much detailed information should be reported during the iterations of the algorithm. \cr
   Possible values are:
-  \describe{  
-  \item{}{\code{0} or \code{FALSE}: no trace info is shown;}
-  \item{}{\code{1} or \code{TRUE}: a trace info is shown at each step of the search;}
-  \item{}{\code{2}: a more detailed trace info is is shown.}
-  }
+  \tabular{ll}{  
+  \code{0} or \code{FALSE}: \tab no trace info is shown;\cr
+  \code{1} or \code{TRUE}: \tab a trace info is shown at each step of the search;\cr
+  \code{2}: \tab a more detailed trace info is is shown.}
   }
 }
 \details{

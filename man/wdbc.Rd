@@ -2,7 +2,7 @@
 \alias{wdbc}
 \docType{data}
 
-\title{Wisconsin diagnostic breast cancer (WDBC) data}
+\title{UCI Wisconsin Diagnostic Breast Cancer Data}
 
 \description{
 The data set provides data for 569 patients on 30 features of the cell nuclei obtained from a digitized image of a fine needle aspirate (FNA) of a breast mass. For each patient the cancer was diagnosed as malignant or benign.}
@@ -63,7 +63,7 @@ The recorded features are:
 For each feature the recorded values are computed from each image as \code{<feature_name>_mean}, \code{<feature_name>_se}, and \code{<feature_name>_extreme}, for the mean, the standard error, and the mean of the three largest values.
 }
 
-\source{Breast Cancer Wisconsin (Diagnostic) Data Set (\code{wdbc.data}, \code{wdbc.names}) is available at UCI Machine Learning Repository
+\source{The Breast Cancer Wisconsin (Diagnostic) Data Set (\code{wdbc.data}, \code{wdbc.names}) from the UCI Machine Learning Repository
 \url{https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)}. Please note the UCI conditions of use.}
 
 \references{

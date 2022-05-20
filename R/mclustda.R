@@ -220,7 +220,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   ce <- mean(class != pred$classification)
   brier <- BrierScore(pred$z, class)
   tab <- try(table(class, pred$classification))
-  if(class(tab) == "try-error") 
+  if(inherits(tab, "try-error"))
     { ce <- tab <- NA }
   else 
     { names(dimnames(tab)) <- c("Class", "Predicted") }
@@ -1041,10 +1041,12 @@ cvMclustDA <- function(object, nfold = 10,
       setTxtProgressBar(pbar, i)
   }
   #
-  cv <- apply(metric.cv, 2, function(m)
-              sum(m*folds.size)/sum(folds.size))
-  se <- apply(metric.cv, 2, function(m)
-              sqrt(var(m)/nfold))
+  cv <- sapply(1:2, function(m) sum(metric.cv[,m]*folds.size)/sum(folds.size))
+  # se <- apply(metric.cv, 2, function(m) sqrt(var(m)/nfold))
+  se <- sapply(1:2, function(m) 
+               sqrt( ( sum( (metric.cv[,m] - cv[m])^2 * folds.size) / 
+                       (sum(folds.size)*(nfold-1)/nfold)) / 
+                     nfold))
   #
   out <- list(classification = class.cv, 
 		          z = prob.cv,

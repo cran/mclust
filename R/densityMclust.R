@@ -364,8 +364,8 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
 # Loader C. (1999), Local Regression and Likelihood. New York, Springer, 
 #   pp. 87-90)
 
-  if(!any(class(object) == "densityMclust"))
-    { stop("first argument must be an object of class 'densityMclust'") }
+  stopifnot("first argument must be an object of class 'densityMclust'" = 
+	          inherits(object, "densityMclust"))
   if(object$d > 1)
     { warning("only available for one-dimensional data") 
       return() }  
@@ -442,8 +442,8 @@ cdfMclust <- function(object, data, ngrid = 100, ...)
 # data = the data vector
 # ngrid = the length of rectangular grid 
   
-  if(!any(class(object) == "densityMclust"))
-    { stop("first argument must be an object of class 'densityMclust'") }
+  stopifnot("first argument must be an object of class 'densityMclust'" = 
+            inherits(object, "densityMclust"))
   
   if(missing(data))
     { eval.points <- extendrange(object$data, f = 0.1)

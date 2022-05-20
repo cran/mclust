@@ -33,7 +33,7 @@ summary(bootClust, what = "se")
 summary(bootClust, what = "ci")
 
 data(acidity)
-modDens = densityMclust(acidity)
+modDens = densityMclust(acidity, plot = FALSE)
 modDens = MclustBootstrap(modDens)
 summary(modDens, what = "se")
 summary(modDens, what = "ci")

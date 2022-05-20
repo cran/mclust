@@ -104,13 +104,13 @@ plotDensityMclustd(x, data = NULL, nlevels = 11, levels = NULL,
 
 \examples{
 \donttest{
-dens <- densityMclust(faithful$waiting)
+dens <- densityMclust(faithful$waiting, plot = FALSE)
 summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens, what = "BIC", legendArgs = list(x = "topright"))
 plot(dens, what = "density", data = faithful$waiting)
 
-dens <- densityMclust(faithful)
+dens <- densityMclust(faithful, plot = FALSE)
 summary(dens)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = faithful, 
@@ -120,7 +120,7 @@ plot(dens, what = "density", type = "hdr", prob = seq(0.1, 0.9, by = 0.1))
 plot(dens, what = "density", type = "hdr", data = faithful)
 plot(dens, what = "density", type = "persp")
 
-dens <- densityMclust(iris[,1:4])
+dens <- densityMclust(iris[,1:4], plot = FALSE)
 summary(dens, parameters = TRUE)
 plot(dens, what = "density", data = iris[,1:4], 
      col = "slategrey", drawlabels = FALSE, nlevels = 7)

@@ -64,7 +64,7 @@ The two diagnostic plots for density estimation in the one-dimensional case are 
 \examples{
 \donttest{
 x <- faithful$waiting
-dens <- densityMclust(x)
+dens <- densityMclust(x, plot = FALSE)
 plot(dens, x, what = "diagnostic")
 # or
 densityMclust.diagnostic(dens, type = "cdf")

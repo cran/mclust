@@ -15,10 +15,10 @@ MclustDR <- function(object, lambda = 1,
 {
 #  Dimension reduction for model-based clustering and classification
 
-  call <- match.call()
-  if(!any(class(object) %in% c("Mclust", "MclustDA")))
-    stop("object must be of class 'Mclust' or 'MclustDA'")
+	stopifnot("first argument must be an object of class 'Mclust' or 'MclustDA'" = 
+            inherits(object, c("Mclust", "MclustDA")))
   
+  call <- match.call()
   x <- data.matrix(object$data)
   n <- nrow(x)
   p <- ncol(x)
@@ -754,9 +754,9 @@ MclustDRsubsel <- function(object, G = 1:9,
 #              of the search is printed; if 2 a detailed trace info is
 #              is shown.
 
-  if(class(object) != "MclustDR") 
-    stop("Not a 'MclustDR' object")
-  
+  stopifnot("first argument must be an object of class 'MclustDR'" = 
+            inherits(object, "MclustDR"))
+						  
   hcUse <- mclust.options("hcUse")
   mclust.options("hcUse" = "VARS")
   on.exit(mclust.options("hcUse" = hcUse))  
@@ -824,8 +824,8 @@ MclustDRsubsel1cycle <- function(object,
 {
 # Single cycle of subset selection for GMMDR directions based on bayes factors.
 
-  if(class(object) != "MclustDR") 
-    stop("Not a 'MclustDR' object")
+  stopifnot("first argument must be an object of class 'MclustDR'" = 
+            inherits(object, "MclustDR"))
 
   d <- object$numdir
   dir <- object$dir[,seq(d),drop=FALSE]
@@ -944,8 +944,8 @@ MclustDRCsubsel1cycle <- function(object,
 {
 # Single cycle of subset selection for GMMDRC directions based on bayes factors.
 
-  if(class(object) != "MclustDR") 
-    stop("Not a 'MclustDR' object")
+  stopifnot("first argument must be an object of class 'MclustDR'" = 
+            inherits(object, "MclustDR"))
 
   d <- object$numdir
   dir <- object$dir[,seq(d),drop=FALSE]
@@ -1049,8 +1049,9 @@ MclustDRrecoverdir <- function(object, data, normalized = TRUE, std = FALSE)
 # directions. This is useful if the directions are obtained from other 
 # directions
 
-  if(!any(class(object) == "MclustDR"))
-    stop("object must be of class 'mclustsir'")
+  stopifnot("first argument must be an object of class 'MclustDR'" = 
+            inherits(object, "MclustDR"))
+						
   if(missing(data)) x <- object$x
   else              x <- as.matrix(data)
   x <- scale(x, center=TRUE, scale=FALSE)

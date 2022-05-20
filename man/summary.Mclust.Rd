@@ -36,13 +36,15 @@
 \seealso{\code{\link{Mclust}}, \code{\link{densityMclust}}.}
 
 \examples{
+\donttest{
 mod1 = Mclust(iris[,1:4])
 summary(mod1)
 summary(mod1, parameters = TRUE, classification = FALSE)
 
-mod2 = densityMclust(faithful)
+mod2 = densityMclust(faithful, plot = FALSE)
 summary(mod2)
 summary(mod2, parameters = TRUE)
+}
 }
 
 \keyword{cluster}

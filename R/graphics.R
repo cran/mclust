@@ -1375,8 +1375,8 @@ vpoints <- function(x, y, col, cex = 1, ...)
 
 crimcoords <- function(data, classification, 
                        numdir = NULL, 
-                       unbiased = FALSE, 
-                       plot = TRUE, ...) 
+                       unbiased = FALSE,
+                       ...) 
 {
   X <- as.matrix(data)
   n <- nrow(X)
@@ -1418,7 +1418,6 @@ crimcoords <- function(data, classification,
               projection = proj,
               classification = classification)
   class(obj) <- "crimcoords"
-  if(plot) plot(obj)
   invisible(obj)
 }
 
@@ -1459,5 +1458,38 @@ plot.crimcoords <- function(x, ...)
     }
     box()
   }
+  invisible()
+}
+
+summary.crimcoords <- function(object, numdir, ...)
+{
+  if(missing(numdir)) 
+    numdir <- sum(object$evalues > sqrt(.Machine$double.eps))
+  dim <- seq(numdir)
+  obj <- list(basis = object$basis[,seq(dim),drop=FALSE],
+              evalues = object$evalues[seq(dim)],
+              evalues.cumperc = with(object, 
+                                     { evalues <- evalues[seq(numdir)]
+                                       cumsum(evalues)/sum(evalues)*100 })
+              )
+  class(obj) <- "summary.crimcoords"
+  return(obj)
+}
+
+print.summary.crimcoords <- function(x, digits = max(5, getOption("digits") - 3), ...)
+{
+  title <- paste("Discriminant coordinates (crimcoords)")
+  txt <- paste(rep("-", min(nchar(title), getOption("width"))), collapse = "")
+  catwrap(txt)
+  catwrap(title)
+  catwrap(txt)
+  cat("\n")
+  catwrap("Estimated basis vectors:")
+  print(x$basis, digits = digits)
+  cat("\n")
+  evalues <- rbind("Eigenvalues" = x$evalues, 
+                   "Cum. %" = x$evalues.cumperc)
+  colnames(evalues) <- colnames(x$basis)
+  print(evalues, digits = digits)
   invisible()
 }

@@ -169,9 +169,12 @@ S3method("summary", "gmmhd")
 S3method("print", "summary.gmmhd")
 S3method("plot", "gmmhd")
 
-export(crimcoords, print.crimcoords, 
+export(crimcoords, print.crimcoords,
+       summary.crimcoords, print.summary.crimcoords, 
        plot.crimcoords)
 S3method("print", "crimcoords")
+S3method("summary", "crimcoords")
+S3method("print", "summary.crimcoords")
 S3method("plot", "crimcoords")
 
 # deprecated functions

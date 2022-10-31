@@ -12,7 +12,7 @@ The data were also used to fit mixture of gaussian distributions by Richardson a
 
 \usage{data(acidity)}
 
-\source{\url{http://www.stats.bris.ac.uk/~peter/mixdata}}
+\source{\code{https://www.stats.bris.ac.uk/~peter/mixdata}}
 
 \references{
 Crawford, S. L. (1994) An application of the Laplace method to finite mixture distribution. \emph{Journal of the American Statistical Association}, 89, 259--267.

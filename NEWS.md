@@ -1,3 +1,12 @@
+# mclust 6.0.0
+
+- Major release of mclust accompanying the upcoming book by Chapman & Hall/CRC Press.
+
+# mclust 5.4.11 (NOT ON CRAN)
+
+- Added `summary.crimcoords()` method and removed argument `plot` from 
+  `crimcoords()` function call.
+
 # mclust 5.4.10 
 
 - Updated banner on startup.

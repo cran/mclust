@@ -1,6 +1,8 @@
 \name{crimcoords}
 \alias{crimcoords}
 \alias{print.crimcoords}
+\alias{summary.crimcoords}
+\alias{print.summary.crimcoords}
 \alias{plot.crimcoords}
 
 \title{Discriminant coordinates data projection}
@@ -13,8 +15,10 @@ The optimal projection subspace is given by the linear transformation of the ori
 crimcoords(data, classification, 
            numdir = NULL, 
            unbiased = FALSE, 
-           plot = TRUE, \dots)
-           
+           \dots)
+
+\method{summary}{crimcoords}(object, numdir, \dots)
+
 \method{plot}{crimcoords}(x, \dots)
 }
 
@@ -50,11 +54,7 @@ crimcoords(data, classification,
 	a constant of proportionality, so the discriminant coordinates or 
 	crimcoords are essentially the same.}
 
-  \item{plot}{
-	A logical specifying if a graph of discriminant coordinates should be 
-	produced (default) or not.}
-	
-	\item{x}{
+	\item{object, x}{
 	An object of class \code{crimcoords} as returned by \code{crimcoords()} function.}
 	
   \item{\dots}{further arguments passed to or from other methods.}
@@ -72,9 +72,6 @@ discriminant subspace.}
 \item{projection}{A matrix of projected data points onto the discriminant
 subspace.}
 \item{classification}{A vector giving the groups classification.}
-
-If \code{plot = TRUE} (default) a graph of data points projected onto 
-the discriminant coordinate or crimcoords subspace is also produced.
 }
 
 \references{
@@ -95,18 +92,22 @@ Luca Scrucca \email{luca.scrucca@unipg.it}
 # discriminant coordinates for the iris data using known classes 
 data("iris")
 CRIMCOORDS = crimcoords(iris[,-5], iris$Species)
-CRIMCOORDS
+summary(CRIMCOORDS)
+plot(CRIMCOORDS)
 
 # banknote data
 data("banknote")
 
 # discriminant coordinate on known classes 
 CRIMCOORDS = crimcoords(banknote[,-1], banknote$Status)
-CRIMCOORDS
+summary(CRIMCOORDS)
+plot(CRIMCOORDS)
 
 #  discriminant coordinates on estimated clusters
 mod = Mclust(banknote[,-1])
-CRIMCOORDS = crimcoords(banknote[,-1], mod$classification, plot = FALSE)
+CRIMCOORDS = crimcoords(banknote[,-1], mod$classification)
+summary(CRIMCOORDS)
+plot(CRIMCOORDS)
 plot(CRIMCOORDS$projection, type = "n")
 text(CRIMCOORDS$projection, cex = 0.8,
      labels = strtrim(banknote$Status, 2), 

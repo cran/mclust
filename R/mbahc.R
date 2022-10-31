@@ -135,7 +135,7 @@ dupPartition <- function(data)
 
 hclass <- function(hcPairs, G)
 {
-  initial <- attributes(hcPairs)$init
+  initial <- attributes(hcPairs)$initialPartition
   n <- length(initial)
   k <- length(unique(initial))
   G <- if(missing(G)) k:2 else rev(sort(unique(G)))

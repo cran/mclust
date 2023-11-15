@@ -1,6 +1,16 @@
+# mclust 6.0.1
+
+- Changed initialization in `MclustSSC()` for components of unlabeled 
+  data via k-means.
+- Corrected output of `summary.MclustSCC()` for components of unlabeled
+  data.
+- Updated citation info with reference to book published by Chapman & 
+  Hall/CRC
+
 # mclust 6.0.0
 
-- Major release of mclust accompanying the upcoming book by Chapman & Hall/CRC Press.
+- Major release of mclust accompanying the upcoming book by Chapman & 
+  Hall/CRC.
 
 # mclust 5.4.11 (NOT ON CRAN)
 

@@ -46,12 +46,9 @@ The two diagnostic plots for density estimation in the one-dimensional case are 
 % \value{}
 
 \references{
-  Loader C. (1999), Local Regression and Likelihood. New York, Springer.
+Loader C. (1999), Local Regression and Likelihood. New York, Springer.
 
-  C. Fraley, A. E. Raftery, T. B. Murphy and L. Scrucca (2012).
-  mclust Version 4 for R: Normal Mixture Modeling for Model-Based 
-  Clustering, Classification, and Density Estimation. 
-  Technical Report No. 597, Department of Statistics, University of Washington.
+Scrucca L., Fraley C., Murphy T. B. and Raftery A. E. (2023) \emph{Model-Based Clustering, Classification, and Density Estimation Using mclust in R}. Chapman & Hall/CRC, ISBN: 978-1032234953, https://mclust-org.github.io/book/
 }
 
 \author{Luca Scrucca}

@@ -134,11 +134,11 @@ The \code{"EDDA"} method for discriminant analysis is described in Bensmail and 
 }
 
 \references{
+Scrucca L., Fraley C., Murphy T. B. and Raftery A. E. (2023) \emph{Model-Based Clustering, Classification, and Density Estimation Using mclust in R}. Chapman & Hall/CRC, ISBN: 978-1032234953, https://mclust-org.github.io/book/
+
 Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering, classification and density estimation using Gaussian finite mixture models, \emph{The R Journal}, 8/1, pp. 289-317. 
 
 Fraley C. and Raftery A. E. (2002) Model-based clustering, discriminant analysis and density estimation, \emph{Journal of the American Statistical Association}, 97/458, pp. 611-631.
-
-Fraley C., Raftery A. E., Murphy T. B. and Scrucca L. (2012) mclust Version 4 for R: Normal Mixture Modeling for Model-Based Clustering, Classification, and Density Estimation. \emph{Technical Report} No. 597, Department of Statistics, University of Washington.
 
 Bensmail, H., and Celeux, G. (1996) Regularized Gaussian Discriminant Analysis Through Eigenvalue Decomposition.\emph{Journal of the American Statistical Association}, 91, 1743-1748.
 }

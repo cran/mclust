@@ -14,7 +14,7 @@ knit_hooks$set(par = function(before, options, envir)
 })
 set.seed(1) # for exact reproducibility
 
-## ---- message = FALSE, echo=-2------------------------------------------------
+## ----message = FALSE, echo=-2-------------------------------------------------
 library(mclust)
 cat(mclust:::mclustStartupMessage(), sep="")
 
@@ -63,7 +63,7 @@ BIC <- mclustBICupdate(BIC1, BIC2, BIC3)
 summary(BIC)
 plot(BIC)
 
-## ---- echo=-1-----------------------------------------------------------------
+## ----echo=-1------------------------------------------------------------------
 set.seed(20181116)
 data(galaxies, package = "MASS") 
 galaxies <- galaxies / 1000
@@ -131,7 +131,7 @@ boot1 <- MclustBootstrap(mod1, nboot = 999, type = "bs")
 summary(boot1, what = "se")
 summary(boot1, what = "ci")
 
-## ---- echo=-1, fig.width=6, fig.height=7--------------------------------------
+## ----echo=-1, fig.width=6, fig.height=7---------------------------------------
 par(mfrow=c(4,3))
 plot(boot1, what = "pro")
 plot(boot1, what = "mean")
@@ -141,7 +141,7 @@ boot4 <- MclustBootstrap(mod4, nboot = 999, type = "bs")
 summary(boot4, what = "se")
 summary(boot4, what = "ci")
 
-## ---- echo=-1-----------------------------------------------------------------
+## ----echo=-1------------------------------------------------------------------
 par(mfrow=c(2,2))
 plot(boot4, what = "pro")
 plot(boot4, what = "mean")
@@ -172,7 +172,7 @@ plot(mod3dr, what = "boundaries", ngrid = 200)
 mclust.options("bicPlotColors")
 mclust.options("classPlotColors")
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----eval=FALSE---------------------------------------------------------------
 #  palette.colors(palette = "Okabe-Ito")
 
 ## -----------------------------------------------------------------------------

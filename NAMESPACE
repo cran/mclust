@@ -61,7 +61,8 @@ export(hc, print.hc, plot.hc)
 S3method("print", "hc")
 S3method("plot", "hc")
 export(hcE, hcEEE, hcEII, hcV, hcVII, hcVVV)
-export(hclass, hcRandomPairs, randomPairs, dupPartition)
+export(hclass, hcRandomPairs, randomPairs, dupPartition, as.hclust.hc)
+S3method("as.hclust", "hc")
 
 export(mclustBIC, print.mclustBIC, summary.mclustBIC, 
        print.summary.Mclust, plot.mclustBIC,

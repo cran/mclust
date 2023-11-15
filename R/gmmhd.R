@@ -247,18 +247,20 @@ plot.gmmhd <- function(x, what = c("mode", "cores", "clusters"), ...)
   invisible()
 }
 
-plot.gmmhd.mode <- function(object, ...)
-{ 
+plot.gmmhd.mode <- function(x, ...)
+{
+  object <- x # Argh. Really want to use object anyway
   plot(c(object$pc,1), c(object$nc,0), type = "S",
        xlab = "Proportion of observed data",
        ylab = "Mode function", yaxt = "n") 
   axis(side = 2, at = seq(0, max(object$nc, na.rm = TRUE)))
 }
 
-plot.gmmhd.cores <- function(object, 
+plot.gmmhd.cores <- function(x, 
                              col = c("grey50", mclust.options("classPlotColors")), 
                              pch = c(1, mclust.options("classPlotSymbols")), ...)
 {
+  object <- x # Argh. Really want to use object anyway
   x <- object$x
   p <- ncol(x)
   n <- nrow(x)
@@ -288,11 +290,12 @@ plot.gmmhd.cores <- function(object,
   invisible()
 }
 
-plot.gmmhd.clusters <- function(object,
+plot.gmmhd.clusters <- function(x,
                                 col = mclust.options("classPlotColors"), 
                                 pch = mclust.options("classPlotSymbols"),
                                 ...)
 {
+  object <- x # Argh. Really want to use object anyway
   x <- object$x
   p <- ncol(x)
   n <- nrow(x)
@@ -473,11 +476,16 @@ gmmhdClassify <- function(object, G = 1:5,
   return(out)
 }
 
-density.MclustDA <- function(object, newdata, prior, logarithm = FALSE, ...)
+density.MclustDA <- function(x, newdata, 
+                             prior, 
+                             logarithm = FALSE, 
+                             ...)
 {
 # Compute the density based on a MclustDA model 
 # (later it may be included in the 'mclust' package)
 # or it can be obtained from predict.MclustDA
+
+  object <- x # Argh. Really want to use object anyway
   if(!inherits(object, "MclustDA")) 
     stop("object not of class 'MclustDA'")
   

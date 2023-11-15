@@ -1,6 +1,7 @@
 \name{hc}
 \alias{hc}
 \alias{print.hc}
+\alias{as.hclust.hc}
 
 \title{Model-based Agglomerative Hierarchical Clustering}
 
@@ -15,6 +16,8 @@ hc(data,
    use = "VARS",
    partition = dupPartition(data), 
    minclus = 1, \dots)
+   
+\method{as.hclust}{hc}(x, \dots)
 }
 
 \arguments{
@@ -74,6 +77,9 @@ hc(data,
     Arguments for the method-specific \code{hc} functions. See for example
     \code{\link{hcE}}.
   }
+  \item{x}{
+    An object of class \code{'hc'} resulting from a call to \code{hc()}.
+  }
 }
 
 \value{
@@ -83,9 +89,8 @@ hc(data,
   hierarchical clustering. Several other informations are also returned
   as attributes.
   
-  The plotting method \code{plot.hc()} draws a dendrogram, which can be based
-  on either the classification loglikelihood or the merge level (number of
-  clusters). For details, see the associated help file.
+  The method \code{as.hclust.hc()} can be used to convert the input 
+  object from class \code{'hc'} to class \code{'hclust'}.
 }
 
 \details{

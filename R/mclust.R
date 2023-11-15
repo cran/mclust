@@ -191,7 +191,7 @@ plot.Mclust <- function(x,
                         ...) 
 {
   
-  object <- x # Argh.  Really want to use object anyway
+  object <- x # Argh. Really want to use object anyway
   if(!inherits(object, "Mclust")) 
     stop("object not of class 'Mclust'")
   
@@ -7185,8 +7185,7 @@ mstepVVV <- function(data, z, prior = NULL, warn = NULL, ...)
                      as.integer(G),
                      as.double(priorParams$shrinkage),
                      as.double(priorParams$mean),
-                     as.double(if(any(priorParams$scale != 0)) chol(priorParams$
-                                                                      scale) else priorParams$scale),
+                     as.double(if(any(priorParams$scale != 0)) chol(priorParams$scale) else priorParams$scale),
                      as.double(priorParams$dof),
                      double(p),
                      double(p * G),

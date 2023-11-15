@@ -1,6 +1,6 @@
 Package: mclust
-Version: 6.0.0
-Date: 2022-10-31
+Version: 6.0.1
+Date: 2023-11-15
 Title: Gaussian Mixture Modelling for Model-Based Clustering,
         Classification, and Density Estimation
 Description: Gaussian finite mixture models fitted via EM algorithm for
@@ -19,8 +19,8 @@ Authors@R: c(person("Chris", "Fraley", role = "aut"),
                     comment = c(ORCID = "0000-0003-3936-2757")))
 Depends: R (>= 3.0)
 Imports: stats, utils, graphics, grDevices
-Suggests: knitr (>= 1.12), rmarkdown (>= 0.9), mix (>= 1.0), geometry
-        (>= 0.3-6), MASS
+Suggests: knitr (>= 1.4), rmarkdown (>= 2.10), mix (>= 1.0), geometry
+        (>= 0.4), MASS
 License: GPL (>= 2)
 URL: https://mclust-org.github.io/mclust/
 VignetteBuilder: knitr
@@ -29,11 +29,11 @@ ByteCompile: true
 NeedsCompilation: yes
 LazyData: yes
 Encoding: UTF-8
-Packaged: 2022-10-31 09:52:43 UTC; luca
+Packaged: 2023-11-15 08:01:53 UTC; luca
 Author: Chris Fraley [aut],
   Adrian E. Raftery [aut] (<https://orcid.org/0000-0002-6589-301X>),
   Luca Scrucca [aut, cre] (<https://orcid.org/0000-0003-3826-0484>),
   Thomas Brendan Murphy [ctb] (<https://orcid.org/0000-0002-5668-7046>),
   Michael Fop [ctb] (<https://orcid.org/0000-0003-3936-2757>)
 Maintainer: Luca Scrucca <luca.scrucca@unipg.it>
-Date/Publication: 2022-10-31 10:57:37 UTC
+Date/Publication: 2023-11-15 10:00:05 UTC

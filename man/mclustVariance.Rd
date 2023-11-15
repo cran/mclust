@@ -18,7 +18,7 @@ mclustVariance(modelName, d = NULL, G = 2)
   \item{G}{An integer specifying the number of components in the mixture model.}  
 }
 
-\details{The \code{variance} component in the {parameters} list from the
+\details{The \code{variance} component in the \code{parameters} list from the
 output to e.g. \code{me} or \code{mstep} or input to e.g. \code{estep} may contain one or more of the following arguments, depending on the model:
 \describe{
   \item{\code{modelName}}{
@@ -45,7 +45,7 @@ output to e.g. \code{me} or \code{mstep} or input to e.g. \code{estep} may conta
   components of the  mixture model.
 }
 \item{\code{cholSigma}}{
-  For the equal variance model {"EEE"}. 
+  For the equal variance model \code{"EEE"}. 
   A \emph{d} by \emph{d} upper triangular matrix giving the 
   Cholesky factor of the common covariance for all  
   components of the  mixture model.

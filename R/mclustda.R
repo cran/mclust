@@ -137,11 +137,14 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     Models <- rep(list(NULL), ncl)
     mc[[1]] <- as.name("mclustBIC")
     mc$class <- NULL
+    # noise <- eval(mc$initialization$noise, parent.frame())
     for(l in 1:ncl) 
        { I <- (class == classLabel[l])
          mc[[2]] <- data[I,]
          mc$G <- G[[l]]
          mc$modelNames <- as.character(modelNames[[l]])
+         # if(!is.null(noise))
+         #   mc$initialization$noise <- noise[I]
          if(verbose) cat(paste0("Class ", classLabel[l], ": "))
          BIC <- eval(mc, parent.frame())
          # slightly adjust parameters if none of the models can be fitted

@@ -4,7 +4,8 @@ MclustSSC <- function(data, class,
 	                    G = NULL, modelNames = NULL, 
                       prior = NULL, control = emControl(), 
 											warn = mclust.options("warn"),
-                      verbose = interactive(), ...) 
+                      verbose = interactive(), 
+											...) 
 {
   call <- match.call()
   data <- data.matrix(data)
@@ -44,7 +45,7 @@ MclustSSC <- function(data, class,
     ipbar <- 0
   }
   
-  args <- list(data = data, class = class, G = G, verbose = FALSE, ...)
+  args <- list(data = data, class = class, G = G, ...)
   Model <- NULL
   BIC <- rep(as.double(NA), length(modelNames))
   for(m in seq(nModelNames))
@@ -97,11 +98,12 @@ summary.MclustSSC <- function(object, parameters = FALSE, ...)
   printParameters <- parameters
   class <- object$class
   classif <- object$classification
+  classifNames <- levels(object$classification)
   err <- classError(class[!is.na(class)], 
                     classif[!is.na(class)])$errorRate
   # n <- c(table(class, useNA = "always"))
   n <- tabulate(class, nbins = G)
-  names(n) <- levels(object$classification)
+  names(n) <- classifNames
   if(any(is.na(class)))
     n <- c(n, "<NA>" = sum(is.na(class)))
   tab <- table("Class" = class, "Predicted" = classif, useNA = "ifany")
@@ -110,14 +112,18 @@ summary.MclustSSC <- function(object, parameters = FALSE, ...)
   # noise <- if(is.na(object$hypvol)) FALSE else object$hypvol
   pro <- object$parameters$pro
   if(is.null(pro)) pro <- 1
-  names(pro) <- if(noise) c(classes,0) else classes
+  names(pro) <- if(noise) c(classifNames,0) else classifNames
   mean <- object$parameters$mean
   colnames(mean) <- names(pro)
   if(object$d > 1)
-    { sigma <- object$parameters$variance$sigma }
-  else
-    { sigma <- rep(object$parameters$variance$sigmasq, object$G)[1:object$G]
-      names(sigma) <- names(mean) }
+  { 
+    sigma <- object$parameters$variance$sigma
+    dimnames(sigma)[[3]] <-  names(pro)
+  } else
+  { 
+    sigma <- rep(object$parameters$variance$sigmasq, object$G)[1:object$G]
+    names(sigma) <- names(mean) 
+  }
 
   obj <- list(n = n, d = object$d,
               loglik = object$loglik, 
@@ -194,7 +200,7 @@ print.summary.MclustSSC <- function(x, digits = getOption("digits"), ...)
 MclustSSC.fit <- function(data, class, 
                           G = NULL, modelName = NULL, 
                           prior = NULL, control = emControl(), 
-													warn = NULL, verbose = FALSE, ...) 
+													warn = NULL, .verbose = FALSE, ...) 
 {
   data <- data.matrix(data)
   n <- nrow(data)
@@ -206,19 +212,35 @@ MclustSSC.fit <- function(data, class,
   if(is.null(G)) G <- nclass
   if(is.null(modelName)) 
     stop("modelName must be specified!")
+  #browser()
   
-  # create z matrix by filling with 0/1 for known labels and 1/G for unlabelled data
+  # initialization of z matrix by filling with 0/1 for observations 
+  # with known labels
   z <- matrix(0.0, nrow = n, ncol = G)
   for(k in 1:nclass)
     z[class == levels(class)[k], k] <- 1
-  z[unknown.class,] <- 1/G 
+  # store the z which should not be updated
   z0 <- z[known.class,,drop=FALSE]
+  # initialization of unlabeled data...
+  if(G > nclass)
+  { 
+    # via k-means if unobserved classes 
+    km <- kmeans(data[unknown.class,,drop=FALSE],
+                 centers = G,
+                 nstart = 25, iter.max = 100)
+    # z[unknown.class,] <- unmap(km$cluster)
+    z[unknown.class,] <- rep(1,length(unknown.class)) %o% km$size/sum(km$size)
+  } else
+  {
+    # by equal proportion otherwise
+    z[unknown.class,] <- 1/G
+  }
   
   loglik0 <- -Inf
   criterion <- TRUE
   iter <- 0
-  if(verbose)
-     cat("modelName =", modelName, "\n")
+  if(.verbose)
+    cat("\nmodelName =", modelName, "\n")
   #
   while(criterion) 
   {
@@ -243,8 +265,9 @@ MclustSSC.fit <- function(data, class,
     loglik <- sum(ldens) + sum(lcdens * z0)
     criterion <- ( iter < control$itmax[1] & 
                    (loglik - loglik0) > control$tol[1] )
+    # print(loglik - loglik0)
     loglik0 <- loglik
-    if(verbose)
+    if(.verbose)
       cat("iter =", iter, "  loglik =", loglik0, "\n")
   }
   fit <- fit.m

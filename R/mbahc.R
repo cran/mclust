@@ -436,11 +436,16 @@ plot.hc <- function(x, what = c("loglik", "merge"), maxG = NULL, labels = FALSE,
     invisible(hier)
 }
 
-as.hclust.hc <- function (object, what = c("loglik", "merge"), 
-                          maxG = NULL, labels = FALSE) 
+as.hclust.hc <- function(x, ...)
+{
+  stopifnot(inherits(x, "hc"))
+  hc2hclust(x, ...)
+}
+
+hc2hclust <- function(object, what = c("loglik", "merge"), 
+                      maxG = NULL, labels = FALSE) 
 {
   stopifnot(inherits(object, "hc"))
-  
   if (!is.null(maxG) && maxG < 2) stop("maxG < 2")
   
   what <- what[1]

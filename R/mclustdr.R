@@ -291,17 +291,22 @@ predict.MclustDR <- function(object, dim = 1:object$numdir, newdata, eval.points
   # new version: more efficient and accurate
   z <- array(NA, c(n, G))
   for(j in 1:G)
-     { z[,j] <- dmvnorm(dir, Mu[j,], Sigma[,,j], log = TRUE) }
-  z <- sweep(z, 2, FUN = "+", STATS = log(object$pro))
-  logden <- apply(z, 1, logsumexp)
-  z <- sweep(z, 1, FUN = "-", STATS = logden)
-  z <- exp(z)
+  { 
+    z[,j] <- dmvnorm(dir, Mu[j,], Sigma[,,j], log = TRUE) 
+  }
+  # TODO: to be removed at a certain point
+  # z <- sweep(z, 2, FUN = "+", STATS = log(object$pro))
+  # logden <- apply(z, 1, logsumexp_old)
+  # z <- sweep(z, 1, FUN = "-", STATS = logden)
+  # z <- exp(z)
+  logden <- logsumexp(z, log(object$pro))
+  z <- softmax(z, log(object$pro))
   #
   zz <- matrix(0, n, nclass)
   for(j in seq(nclass))
      { zz[,j] <- rowSums(z[,object$class2mixcomp == j,drop=FALSE]) }
   z <- zz; rm(zz)
-
+  #
   class <- factor(apply(z,1,which.max), 
                   levels = 1:nclass, 
                   labels = levels(object$classification))
@@ -645,25 +650,6 @@ plotEvalues.MclustDR <- function(x, numdir, plot = FALSE, legend = TRUE, ylim, .
 
 
 # Auxiliary functions -----------------------------------------------------
-
-# TODO: remove
-# mvdnorm <- function(x, mu, sigma, log = FALSE, tol = sqrt(.Machine$double.eps))
-# {
-#   if(is.vector(x)) 
-#   { x <- matrix(x, ncol = length(x)) }
-#   else
-#   { x <- as.matrix(x) }
-#   SVD <- svd(sigma)
-#   pos <- (SVD$d > max(tol*SVD$d[1], 0)) # in case of not full rank covar matrix
-#   inv.sigma <- SVD$v[,pos,drop=FALSE] %*% (1/SVD$d[pos] *
-#                                              t(SVD$u[,pos,drop=FALSE]))
-#   z <- mahalanobis(x, center = mu, cov = inv.sigma, inverted = TRUE)
-#   # logdet <- sum(log(eigen(sigma, symmetric = TRUE, only.values = TRUE)$values))
-#   logdet <- sum(log(SVD$d[pos]))
-#   logdens <- -(ncol(x) * log(2 * pi) + logdet + z)/2
-#   if(log) return(logdens)
-#   else    return(exp(logdens))
-# }
 
 ellipse <- function(c, M, r, npoints = 100)
 {

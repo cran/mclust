@@ -50,6 +50,8 @@ export(imputeData, imputePairs, matchCluster, majorityVote)
 
 export(mapClass, classError, adjustedRandIndex, BrierScore)
 
+export(logsumexp, softmax)
+
 export(mclust1Dplot, mclust2Dplot, mvn2plot, surfacePlot, uncerPlot)
 export(clPairs, clPairsLegend, 
        coordProj, randProj,

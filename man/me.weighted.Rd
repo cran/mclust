@@ -1,10 +1,10 @@
 \name{me.weighted}
 \alias{me.weighted}
 
-\title{EM algorithm with weights starting with M-step for parameterized MVN mixture models}
+\title{EM algorithm with weights starting with M-step for parameterized Gaussian mixture models}
 
 \description{
-Implements the EM algorithm for fitting MVN mixture models parameterized by eigenvalue decomposition, when observations have weights, starting with the maximization step.
+Implements the EM algorithm for fitting Gaussian mixture models parameterized by eigenvalue decomposition, when observations have weights, starting with the maximization step. 
 }
 
 \usage{
@@ -99,7 +99,10 @@ me.weighted(data, modelName, z, weights = NULL, prior = NULL,
       }
   }
   \item{loglik}{
-    The log likelihood for the data in the mixture model. 
+    The log-likelihood for the estimated mixture model. 
+  }
+  \item{bic}{
+    The BIC value for the estimated mixture model. 
   }
   \item{Attributes:}{
       \code{"info"} Information on the iteration.\cr
@@ -108,7 +111,9 @@ me.weighted(data, modelName, z, weights = NULL, prior = NULL,
   }
 }
 
-\author{Thomas Brendan Murphy}
+\details{This is a more efficient version made available with \pkg{mclust} \eqn{ge 6.1} using Fortran code internally.}
+
+\author{T. Brendan Murphy, Luca Scrucca}
 
 \seealso{
   \code{\link{me}},
@@ -124,10 +129,12 @@ me.weighted(data, modelName, z, weights = NULL, prior = NULL,
 }
 
 \examples{
-\donttest{
-w <- rep(1,150)
-w[1] <- 0
-me.weighted(data = iris[,-5], modelName = "VVV", 
-            z = unmap(iris[,5]), weights = w)
-}}
+w = rexp(nrow(iris))
+w = w/mean(w)
+c(summary(w), sum = sum(w))
+z = unmap(sample(1:3, size = nrow(iris), replace = TRUE))
+MEW = me.weighted(data = iris[,-5], modelName = "VVV", 
+                  z = z, weights = w)
+str(MEW,1)
+}
 

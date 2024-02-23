@@ -37,16 +37,22 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     stop("G must be positive")
   #
   if(is.null(modelNames)) 
-    { if(oneD) modelNames <- c("E", "V")
-      else     modelNames <- mclust.options("emModelNames")
-  }
-  if(n <= p) 
-    { m <- match(c("EEE","EEV","VEV","VVV"), 
-                 mclust.options("emModelNames"), nomatch=0)
-      modelNames <- modelNames[-m]
+  { 
+    if(oneD) modelNames <- c("E", "V")
+    else     modelNames <- mclust.options("emModelNames")
   }
   if(!is.list(modelNames))
     { modelNames <- rep(list(modelNames), ncl) }
+  for(k in 1:ncl)
+  {
+    if(n*prop[k] <= p)
+    {
+      m <- match(modelNames[[k]], 
+                 c("EII", "VII", "EEI", "VEI", "EVI", "VVI"),
+                 nomatch = 0)
+      modelNames[[k]] <- modelNames[[k]][m]
+    }
+  }
   #
   # hcUse <- mclust.options("hcUse")
   # mclust.options("hcUse" = "VARS")
@@ -345,10 +351,12 @@ getParameters.MclustDA <- function(object)
   # prior <- attr(object, "prior")
   par <- vector(mode = "list", length = nclass)
   for(i in seq(nclass))
-  { par[[i]] <- models[[i]]$parameters
+  { 
+		par[[i]] <- models[[i]]$parameters
     if(is.null(par[[i]]$pro)) par$pro <- 1
     if(par[[i]]$variance$d < 2)
-    { sigma <- rep(par[[i]]$variance$sigma,
+    { 
+			sigma <- rep(par[[i]]$variance$sigma,
                    models[[i]]$G)[1:models[[i]]$G]
       names(sigma) <- names(par[[i]]$mean)
       par[[i]]$variance$sigma <- sigma
@@ -382,8 +390,9 @@ logLik.MclustDA <- function (object, data, ...)
   # l <- sum(log(apply(ll, 1, function(l) sum(fclass*l))))
   ll <- sapply(object$models, function(mod) 
         { do.call("dens", c(list(data = data, logarithm = TRUE), mod)) })
-  l <- sum(apply(ll, 1, function(l) logsumexp(logfclass+l)))
-    
+  # TODO: to be removed at a certain point
+  # l <- sum(apply(ll, 1, function(l) logsumexp_old(logfclass+l)))
+  l <- sum(logsumexp(ll, logfclass))
   attr(l, "nobs") <- n
   attr(l, "df") <- df
   class(l) <- "logLik"
@@ -425,9 +434,11 @@ predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
   z <- matrix(as.double(NA), nrow = NROW(newdata), ncol = nclass)
   for(j in 1:nclass)
     z[,j] <- densfun(models[[j]], data = newdata)
-  z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prop))
-  z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
-  z <- exp(z)
+  # TODO: to be removed at a certain point
+  # z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(prop))
+  # z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp_old))
+  # z <- exp(z)
+  z <- softmax(z, log(prop))
   colnames(z) <- classNames
   cl <- apply(z, 1, which.max)
   class <- factor(classNames[cl], levels = classNames)
@@ -904,84 +915,7 @@ plot.MclustDA <- function(x, what = c("scatterplot", "classification", "train&te
   }
     
   invisible()
-  
 }
-
-# TODO: old version to be deleted at a certain point
-# cvMclustDA <- function(object, nfold = 10, 
-#                        metric = c("error", "brier"), 
-#                        prop = object$prop,
-#                        verbose = interactive(), ...) 
-# {
-# 
-#   call <- object$call
-#   nfold <- as.numeric(nfold)
-#   metric <- match.arg(metric, 
-#                       choices = eval(formals(cvMclustDA)$metric), 
-#                       several.ok = FALSE)
-#   #
-#   data <- object$data
-#   class <- as.factor(object$class)
-#   n <- length(class)
-#   G <- lapply(object$models, function(mod) mod$G)
-#   modelName <- lapply(object$models, function(mod) mod$modelName)
-#   #
-#   ce <- function(pred, class)
-#   {
-#     1 - sum(class == pred, na.rm = TRUE)/length(class)
-#   }
-#   #
-#   folds <- if(nfold == n) lapply(1:n, function(x) x)
-#            else           balancedFolds(class, nfolds = nfold)
-#   nfold <- length(folds)
-#   folds.size <- sapply(folds, length)
-#   #
-#   cvmetric <- rep(NA, nfold)
-#   cvclass <- factor(rep(NA, n), levels = levels(class))
-#   cvprob  <- matrix(as.double(NA), nrow = n, ncol = nlevels(class),
-#                     dimnames = list(NULL, levels(class)))
-#   
-#   if(verbose)
-#   { 
-#     cat("cross-validating ...\n")
-#     flush.console()
-#     pbar <- txtProgressBar(min = 0, max = nfold, style = 3)
-#     on.exit(close(pbar))
-#   }
-#   
-#   for(i in seq(nfold))
-#   { 
-#     x <- data[-folds[[i]],,drop=FALSE]
-#     y <- class[-folds[[i]]]
-#     call$data <- x
-#     call$class <- y
-#     call$G <- G
-#     call$modelNames <- modelName
-#     call$verbose <- FALSE
-#     mod <- eval(call, parent.frame())
-#     #
-#     predTest <- predict(mod, data[folds[[i]],,drop=FALSE], prop = prop)
-#     cvmetric[i] <- if(metric == "error") 
-#                      ce(predTest$classification, class[folds[[i]]])
-#                    else 
-#                      BrierScore(predTest$z, class[folds[[i]]])
-#     cvclass[folds[[i]]] <- predTest$classification
-#     cvprob[folds[[i]],] <- predTest$z
-#     #
-#     if(verbose) 
-#       setTxtProgressBar(pbar, i)
-#   }
-#   #    
-#   cv <- sum(cvmetric*folds.size)/sum(folds.size)
-#   se <- sqrt(var(cvmetric)/nfold)
-#   #
-#   out <- list(classification = cvclass, 
-#               z = cvprob,
-#               error = if(metric == "error") cv else NA,
-#               brier = if(metric == "brier") cv else NA,
-#               se = se)
-#   return(out)
-# }
 
 cvMclustDA <- function(object, nfold = 10, 
                        prop = object$prop,

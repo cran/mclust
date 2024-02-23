@@ -340,9 +340,11 @@ predict.MclustSSC <- function(object, newdata, ...)
   noise <- FALSE # (!is.na(object$hypvol))
   z <- if(noise) cbind(z, log(object$parameters$Vinv))
        else      cbind(z) # drop redundant attributes
-  z <- sweep(z, MARGIN = 2, FUN = "+", STATS = logpro)
-  z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
-  z <- exp(z)
+  # TODO: to be removed at a certain point
+  # z <- sweep(z, MARGIN = 2, FUN = "+", STATS = logpro)
+  # z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp_old))
+  # z <- exp(z)
+  z <- softmax(z, logpro)
   cl <- c(levels(object$classification), if(noise) 0)
   colnames(z) <- cl
   cl <- factor(cl[apply(z, 1, which.max)], levels = cl)

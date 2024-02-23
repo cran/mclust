@@ -186,14 +186,16 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "pb", "j
     obj <- object
     switch(type, 
            "bs" = 
-           { idx <- sample(seq_len(n), size = n, replace = TRUE)
+           { 
+						 idx <- sample(seq_len(n), size = n, replace = TRUE)
              obj$data <- object$data[idx,]
              obj$z <- object$z[idx,]
              obj$warn <- FALSE
              mod.boot <- try(do.call("me", obj), silent = TRUE)
            },
            "wlbs" = 
-           { w <- rexp(n)
+           { 
+						 w <- rexp(n)
              # w <- w/mean(w)
              w <- w/max(w)
              mod.boot <- try(do.call("me.weighted", 
@@ -201,13 +203,17 @@ MclustBootstrap <- function(object, nboot = 999, type = c("bs", "wlbs", "pb", "j
                              silent = TRUE)
            },
            "pb" = 
-           { obj$data <- do.call("sim", object)[,-1,drop=FALSE]
-             obj$z <- predict(obj)$z
+           { 
+						 obj$data <- do.call("sim", object)[,-1,drop=FALSE]
+             obj$z <- estep(data = obj$data, 
+                            modelName = obj$modelName, 
+                            parameters = obj$parameters)$z
              obj$warn <- FALSE
              mod.boot <- try(do.call("me", obj), silent = TRUE)
            },
            "jk" =
-           { idx <- seq_len(n)[-b]
+           { 
+						 idx <- seq_len(n)[-b]
              obj$data <- object$data[idx,]
              obj$z <- object$z[idx,]
              obj$warn <- FALSE

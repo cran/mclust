@@ -56,10 +56,14 @@ predict.densityMclust <- function(object, newdata,
                       logarithm = TRUE)
 					 z <- if(noise) cbind(z, log(object$parameters$Vinv))
                 else      cbind(z) # drop redundant attributes
-           z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(pro))
-           z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp))
+					 # TODO: to be removed at a certain point
+           # z <- sweep(z, MARGIN = 2, FUN = "+", STATS = log(pro))
+           # z <- sweep(z, MARGIN = 1, FUN = "-", STATS = apply(z, 1, logsumexp_old))
+           # colnames(z) <- cl
+           # out <- if(!logarithm) exp(z) else z
+           z <- softmax(z, log(pro))
            colnames(z) <- cl
-           out <- if(!logarithm) exp(z) else z
+           out <- if(logarithm) log(z) else z
          }
 	)
 	
@@ -316,11 +320,12 @@ dens <- function(data, modelName, parameters, logarithm = FALSE, warn = NULL, ..
     pro <- pro[!proz]
     logcden <- logcden[, !proz, drop = FALSE]
   }
-  logcden <- sweep(logcden, 2, FUN = "+", STATS = log(pro))
-  # logsumexp
-  maxlog <- apply(logcden, 1, max)
-  logcden <- sweep(logcden, 1, FUN = "-", STATS = maxlog)
-  logden <- log(apply(exp(logcden), 1, sum)) + maxlog
+  # TODO: to be removed at a certain point
+  # logcden <- sweep(logcden, 2, FUN = "+", STATS = log(pro))
+  # maxlog <- apply(logcden, 1, max)
+  # logcden <- sweep(logcden, 1, FUN = "-", STATS = maxlog)
+  # logden <- log(apply(exp(logcden), 1, sum)) + maxlog
+  logden <- logsumexp(logcden, log(pro))
   #
   if(noise) 
     logden <- log(exp(logden) + proNoise*parameters$Vinv)

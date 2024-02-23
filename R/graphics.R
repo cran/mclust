@@ -1128,10 +1128,13 @@ surfacePlot <- function(data, parameters,
     pro <- parameters$pro
     if(!is.null(parameters$Vinv))
       pro <- pro[-length(pro)]
-    z <- sweep(cden, MARGIN = 2, FUN = "+", STATS = log(pro))
-    logden <- apply(z, 1, logsumexp)
-    z <- sweep(z, MARGIN = 1, FUN = "-", STATS = logden)
-    z <- exp(z)
+    # TODO: to be removed at a certain point
+    # z <- sweep(cden, MARGIN = 2, FUN = "+", STATS = log(pro))
+    # logden <- apply(z, 1, logsumexp_old)
+    # z <- sweep(z, MARGIN = 1, FUN = "-", STATS = logden)
+    # z <- exp(z)
+    logden <- logsumexp(cden, log(pro))
+    z <- softmax(cden, log(pro))
     data.frame(density = exp(logden),
                uncertainty = 1 - apply(z, 1, max))
   }

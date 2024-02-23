@@ -9,10 +9,16 @@ me.weighted <- function(data, modelName, z, weights = NULL, prior = NULL,
                         control = emControl(), Vinv = NULL, warn = NULL, ...)
 {
   data <- as.matrix(data)
-  N <- nrow(data)
+  nobs <- nrow(data)
+  modelName <- switch(EXPR = modelName,
+                      "X" = "E",
+                      "XII" = "EII",
+                      "XXI" = "EEI",
+                      "XXX" = "EEE",
+                      modelName)
   if(is.null(warn)) warn <- mclust.options("warn")
   if(is.null(weights))
-    { weights <- rep(1,N) }
+    { weights <- rep(1,nobs) }
   if(any(weights < 0)| any(!is.finite(weights)))
     { stop("Weights must be positive and finite") }
   if(!is.vector(weights))
@@ -23,11 +29,11 @@ me.weighted <- function(data, modelName, z, weights = NULL, prior = NULL,
       weights <- weights/max(weights)
   }
   zw <- z*weights
-  llold <- -Inf
+  llold <- ll <- -Inf
   eps <- .Machine$double.eps
   criterion <- TRUE
   iter <- 0
-  while(criterion)
+  while(!is.na(criterion) & criterion)
   {
     iter <- iter+1
     fit.m <- do.call("mstep", list(data = data, 
@@ -43,19 +49,25 @@ me.weighted <- function(data, modelName, z, weights = NULL, prior = NULL,
                                      Vinv = Vinv, 
                                      warn = warn),
                                 fit.m))
+		if(is.na(fit.e$loglik)) 
+		  { criterion <- FALSE; next() }
     zw <- pmax(fit.e$z*weights, eps)
-    criterion <- criterion & (iter < control$itmax[1])
     ldens <- do.call("dens", c(list(data = data, 
-                                    logarithm=TRUE, 
+                                    logarithm = TRUE, 
 																		warn = warn), 
 															 fit.m))
-    ll <- sum(weights*ldens)
-    criterion <- criterion & (ll-llold > control$tol[1])
-    llold <- ll
+		ll <- sum(weights*ldens)
+		criterion <- criterion & (iter < control$itmax[1])
+		criterion <- criterion & ((ll-llold)/(1+abs(ll)) > control$tol[1])
+		llold <- ll
   }
   fit <- fit.m
   fit$z <- fit.e$z
   fit$weights <- weights
-  fit$loglik <- ll
+  fit$loglik <- ll/mean(weights)
+  npar <- nMclustParams(modelName = modelName, 
+                        d = ncol(data), 
+                        G = ncol(z))
+  fit$bic <- 2*ll - npar*log(nobs)	
   return(fit)
 }

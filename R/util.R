@@ -247,11 +247,47 @@ randomOrthogonalMatrix <- function(nrow, ncol, n = nrow, d = ncol, seed = NULL)
   return(Q)
 }
 
-logsumexp <- function(x)
+# TODO: to be removed at a certain point
+logsumexp_old <- function(x)
 { 
 # Numerically efficient implementation of log(sum(exp(x)))
   max <- max(x)
   max + log(sum(exp(x-max)))
+}
+
+logsumexp <- function(x, v = NULL)
+{
+# Numerically efficient implementation of 
+#   log-sum-exp(x_i+v)  for i = 1,...,n
+# via Fortran call
+  x <- if(is.null(dim(x))) matrix(x, nrow = 1) else as.matrix(x)
+  n <- nrow(x)
+  k <- ncol(x)
+  v <- if(is.null(v)) double(k) else as.vector(v)
+  stopifnot(length(v) == k)
+  .Fortran("logsumexp", 
+           x = x, n = as.integer(n), k = as.integer(k), v = v, 
+           lse = double(n))$lse
+}
+
+softmax <- function(x, v = NULL)
+{
+# Efficiently computes softmax function based on 
+#   log-sum-exp(x_i+v) for i = 1,...,n
+# via Fortran call such that the output matrix z (n x k) has 
+# rowsum(z_j) = 1 for j = 1,...,k
+# 
+  x <- if(is.null(dim(x))) matrix(x, nrow = 1) else as.matrix(x)
+  n <- nrow(x)
+  k <- ncol(x)
+  v <- if(is.null(v)) double(k) else as.vector(v)
+  stopifnot(length(v) == k)
+  
+  z <- .Fortran("softmax", 
+                x = x, n = as.integer(n), k = as.integer(k), 
+                v = as.double(v), lse = double(n), z = double(n * k))$z
+  z <- matrix(z, nrow = n, ncol = k)
+  return(z)
 }
 
 partconv <- function(x, consec = TRUE)

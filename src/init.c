@@ -10,10 +10,10 @@ FIXME: Check these declarations against the C/Fortran source code.
 */
 
 /* .Fortran calls */
-extern void F77_NAME(dmvnorm)(void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(covwf)(void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(crossprodf)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(d2norm)(void *, void *, void *, void *);
+extern void F77_NAME(dmvnorm)(void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(es1e)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(es1v)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(eseee)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
@@ -36,6 +36,7 @@ extern void F77_NAME(hceee)(void *, void *, void *, void *, void *, void *, void
 extern void F77_NAME(hceii)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(hcvii)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(hcvvv)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(logsumexp)(void *, void *, void *, void *, void *);
 extern void F77_NAME(mcltrw)(void *, void *, void *, void *, void *);
 extern void F77_NAME(me1e)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(me1ep)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
@@ -102,13 +103,14 @@ extern void F77_NAME(mvnxii)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(mvnxxi)(void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(mvnxxx)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(shapeo)(void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(softmax)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(uncholf)(void *, void *, void *, void *, void *);
 
 static const R_FortranMethodDef FortranEntries[] = {
-    {"dmvnorm",    (DL_FUNC) &F77_NAME(dmvnorm),     8},
     {"covwf",      (DL_FUNC) &F77_NAME(covwf),       8},
     {"crossprodf", (DL_FUNC) &F77_NAME(crossprodf),  6},
     {"d2norm",     (DL_FUNC) &F77_NAME(d2norm),      4},
+    {"dmvnorm",    (DL_FUNC) &F77_NAME(dmvnorm),     8},
     {"es1e",       (DL_FUNC) &F77_NAME(es1e),        9},
     {"es1v",       (DL_FUNC) &F77_NAME(es1v),        9},
     {"eseee",      (DL_FUNC) &F77_NAME(eseee),      12},
@@ -131,6 +133,7 @@ static const R_FortranMethodDef FortranEntries[] = {
     {"hceii",      (DL_FUNC) &F77_NAME(hceii),       9},
     {"hcvii",      (DL_FUNC) &F77_NAME(hcvii),      10},
     {"hcvvv",      (DL_FUNC) &F77_NAME(hcvvv),      14},
+    {"logsumexp",  (DL_FUNC) &F77_NAME(logsumexp),   5},
     {"mcltrw",     (DL_FUNC) &F77_NAME(mcltrw),      5},
     {"me1e",       (DL_FUNC) &F77_NAME(me1e),       12},
     {"me1ep",      (DL_FUNC) &F77_NAME(me1ep),      16},
@@ -197,6 +200,7 @@ static const R_FortranMethodDef FortranEntries[] = {
     {"mvnxxi",     (DL_FUNC) &F77_NAME(mvnxxi),      7},
     {"mvnxxx",     (DL_FUNC) &F77_NAME(mvnxxx),      6},
     {"shapeo",     (DL_FUNC) &F77_NAME(shapeo),      7},
+    {"softmax",    (DL_FUNC) &F77_NAME(softmax),     6},
     {"uncholf",    (DL_FUNC) &F77_NAME(uncholf),     5},
     {NULL, NULL, 0}
 };

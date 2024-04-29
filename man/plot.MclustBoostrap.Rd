@@ -10,7 +10,7 @@ Plots the bootstrap distribution of parameters as returned by the \code{\link{Mc
 \usage{
 \method{plot}{MclustBootstrap}(x, what = c("pro", "mean", "var"), 
      show.parest = TRUE, show.confint = TRUE,
-     hist.col = "grey", hist.border = "lightgrey", breaks = "Sturges", 
+     hist.col = "grey", hist.border = "lightgrey", breaks = NA, 
      col = "forestgreen", lwd = 2, lty = 3, 
      xlab = NULL, xlim = NULL, ylim = NULL, \dots)
 }
@@ -30,7 +30,7 @@ Plots the bootstrap distribution of parameters as returned by the \code{\link{Mc
 
   \item{hist.border}{The color of the border around the bars of the histograms.}
   
-  \item{breaks}{See the argument in function \code{\link[graphics]{hist}}.}
+  \item{breaks}{The number of breaks used in histogram to visualize the bootstrap distribution. When \code{NA} (default), it is computed as the maximum between the "Sturges" and "Freedman-Diaconis" methods; see \code{\link{nclass.Sturges}} and \code{\link{nclass.FD}}.}
 
   \item{col, lwd, lty}{The color, line width and line type to be used to represent the estimated parameters and confidence intervals.}
 

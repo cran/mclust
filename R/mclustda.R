@@ -53,11 +53,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
       modelNames[[k]] <- modelNames[[k]][m]
     }
   }
-  #
-  # hcUse <- mclust.options("hcUse")
-  # mclust.options("hcUse" = "VARS")
-  # on.exit(mclust.options("hcUse" = hcUse))
-  #
+
   if(modelType == "EDDA")
   { 
     mc[[1]] <- as.name("mstep")
@@ -89,12 +85,11 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
       { warning("No model(s) can be estimated!!")
         return() }
     names(BIC) <- modelNames
-    bic <- max(BIC, na.rm = TRUE)
-    loglik <- Model$loglik
-    df <- (2*loglik - bic)/log(Model$n)
-    # there are (nclass-1) more df than really needed
-    # equal to logLik(object) but faster
-    Model <- c(Model, list("BIC" = BIC))
+    # bic <- max(BIC, na.rm = TRUE)
+    # loglik <- Model$loglik
+    # df <- (2*loglik - bic)/log(Model$n)
+    # Model <- c(Model, list("BIC" = BIC))
+    bic <- loglik <- df <- NULL
     Models <- rep(list(Model), ncl)
     names(Models) <- classLabel
     for(l in 1:ncl)
@@ -171,22 +166,19 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     }
     bic <- loglik <- df <- NULL
   }
-  
-  names(Models) <- classLabel
   Models$Vinv <- NULL
+  names(Models) <- classLabel
+  
   out <- list(call = call, data = data, class = class,
               type = modelType, n = n, d = p, prop = prop, 
               models = Models, bic = bic, loglik = loglik, df = df)
-  out <- structure(out, prior = prior, control = control, 
+  out <- structure(out, prior = prior, 
+                   control = control, 
                    class = "MclustDA")
-  
-  if(modelType == "MclustDA") 
-  { 
-    l <- logLik.MclustDA(out, data)
-    out$loglik <- as.numeric(l)
-    out$df <- attr(l, "df")
-    out$bic <- 2*out$loglik - log(n)*out$df
-  }
+  l <- logLik.MclustDA(out, data)
+  out$loglik <- as.numeric(l)
+  out$df <- attr(l, "df")
+  out$bic <- 2*out$loglik - log(n)*out$df
   
   return(out)
 }
@@ -373,30 +365,32 @@ logLik.MclustDA <- function (object, data, ...)
   n <- object$n
   d <- object$d
   par <- getParameters.MclustDA(object)
-  nclass <- length(par)
-  fclass <- sapply(object$models, function(m) m$n)/n
-  logfclass <- log(fclass)
-  G <- sapply(par, function(x) length(x$pro))
-  if(object$type == "EDDA") 
-    { df <- d * nclass + nVarParams(object$models[[1]]$modelName, 
-                                    d = d, G = nclass)
+  prop <- object$prop
+  nclass <- length(prop)
+  df <- if(object$type == "EDDA") 
+  { 
+    d * nclass + nVarParams(object$models[[1]]$modelName, 
+                                  d = d, G = nclass)
+  } else 
+  { 
+    sum(sapply(object$models, function(mod) 
+        with(mod, (G - 1) + G * d + nVarParams(modelName, d = d, G = G))))
   }
-  else 
-    { df <- sum(sapply(object$models, function(mod) with(mod, 
-                       (G - 1) + G * d + nVarParams(modelName, d = d, G = G))))
-  }
-  # ll <- sapply(object$models, function(mod) 
-  #       { do.call("dens", c(list(data = data, logarithm = FALSE), mod)) })
-  # l <- sum(log(apply(ll, 1, function(l) sum(fclass*l))))
+  df <- df + nclass-1
   ll <- sapply(object$models, function(mod) 
         { do.call("dens", c(list(data = data, logarithm = TRUE), mod)) })
-  # TODO: to be removed at a certain point
-  # l <- sum(apply(ll, 1, function(l) logsumexp_old(logfclass+l)))
-  l <- sum(logsumexp(ll, logfclass))
-  attr(l, "nobs") <- n
-  attr(l, "df") <- df
-  class(l) <- "logLik"
-  return(l)
+  
+  # logcden <- cdens(data = data,
+  #                  modelName = object$models[[1]]$modelName,
+  #                  parameters = object$models[[1]]$parameters,
+  #                  logarithm = TRUE)
+  
+  
+  ll <- sum(logsumexp(ll, log(prop)))
+  attr(ll, "nobs") <- n
+  attr(ll, "df") <- df
+  class(ll) <- "logLik"
+  return(ll)
 }
 
 predict.MclustDA <- function(object, newdata, prop = object$prop, ...)

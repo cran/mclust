@@ -50,7 +50,7 @@ meEVV <- function(data, z, prior = NULL, control = emControl(),
     storage.mode(z) <- "double"
     #
     #
-    # MICHAEL from here------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -209,7 +209,7 @@ mstepEVV <- function(data, z, prior = NULL, warn = NULL, ...)
     if(any(is.na(z)) || any(z < 0) || any(z > 1)) stop("improper specification of z")
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), G)
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -336,7 +336,7 @@ estepEVV <- function(data, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here----------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "esevv",
                       x = as.double(data),
@@ -459,6 +459,8 @@ simEVV <- function(parameters, n, seed = NULL, ...)
     ctabel <- tabulate(clabels, nbins = G)
     x <- matrix(0, n, d)
     rtshape <- sqrt(parameters$variance$shape)
+    if(G == 1)
+      rtshape <- matrix(rtshape, nrow = d, ncol = G)
     if (dim(rtshape)[1] != d | dim(rtshape)[2] != G) 
         stop("shape incompatible with mean")
     rtscale <- sqrt(parameters$variance$scale)    
@@ -524,7 +526,7 @@ meVEE <- function(data, z, prior = NULL, control = emControl(),
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     storage.mode(z) <- "double"
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -710,7 +712,7 @@ mstepVEE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     tol <- if(length(control$tol) == 1) control$tol else control$tol[2]
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -847,7 +849,7 @@ estepVEE <- function(data, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "esvee",
                       x = as.double(data),
@@ -916,7 +918,7 @@ cdensVEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "esvee",
                       x = as.double(data),
@@ -1041,7 +1043,7 @@ meEVE <- function(data, z, prior = NULL, control = emControl(),
     storage.mode(z) <- "double"
     
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -1226,7 +1228,7 @@ mstepEVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -1365,7 +1367,7 @@ estepEVE <- function(data, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "eseve",
                       x = as.double(data),
@@ -1434,7 +1436,7 @@ cdensEVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "eseve",
                       x = as.double(data),
@@ -1491,6 +1493,8 @@ simEVE <- function(parameters, n, seed = NULL, ...)
     ctabel <- tabulate(clabels, nbins = G)
     x <- matrix(0, n, d)
     rtshape <- sqrt(parameters$variance$shape)
+    if(G == 1)
+      rtshape <- matrix(rtshape, nrow = d, ncol = G)
     if (dim(rtshape)[1] != d | dim(rtshape)[2] != G) 
         stop("shape incompatible with mean")
     rtscale <- sqrt(parameters$variance$scale)   
@@ -1556,7 +1560,7 @@ meVVE <- function(data, z, prior = NULL, control = emControl(),
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     storage.mode(z) <- "double"
 
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -1744,7 +1748,7 @@ mstepVVE <- function(data, z, prior = NULL, warn = NULL, control = NULL, ...)
     lwork <- max(3 * min(n, p) + max(n, p), 5 * min(n, p), p + G)
     
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     # without prior specification
     if(is.null(prior)) {
@@ -1883,7 +1887,7 @@ estepVVE <- function(data, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "esvve",
                       x = as.double(data),
@@ -1952,7 +1956,7 @@ cdensVVE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
             is.null(parameters$variance$orientation))
         stop("variance parameters are missing")
     #
-    # MICHAEL from here-------------------------------------------------------
+    #-- MICHAEL from here --
     #
     temp <- .Fortran( "esvve",
                       x = as.double(data),
@@ -2007,8 +2011,10 @@ simVVE <- function(parameters, n, seed = NULL, ...)
         pro <- rep(1/G, G)
     clabels <- sample(1:G, size = n, replace = TRUE, prob = pro)
     ctabel <- tabulate(clabels, nbins = G)
-    x <- matrix(0, n, d)
+    x <- matrix(as.double(0), n, d)
     rtshape <- sqrt(parameters$variance$shape)
+    if(G == 1) 
+      rtshape <- matrix(rtshape, nrow = d, ncol = G)
     if (dim(rtshape)[1] != d | dim(rtshape)[2] != G) 
         stop("shape incompatible with mean")
     rtscale <- sqrt(parameters$variance$scale)

@@ -248,12 +248,12 @@ randomOrthogonalMatrix <- function(nrow, ncol, n = nrow, d = ncol, seed = NULL)
 }
 
 # TODO: to be removed at a certain point
-logsumexp_old <- function(x)
-{ 
-# Numerically efficient implementation of log(sum(exp(x)))
-  max <- max(x)
-  max + log(sum(exp(x-max)))
-}
+# logsumexp_old <- function(x)
+# { 
+# # Numerically efficient implementation of log(sum(exp(x)))
+#   max <- max(x)
+#   max + log(sum(exp(x-max)))
+# }
 
 logsumexp <- function(x, v = NULL)
 {
@@ -533,6 +533,27 @@ hdrlevels <- function(density, prob)
   lev <- quantile(density, alpha, na.rm = TRUE)
   names(lev) <- paste0(round(prob*100),"%")
   return(lev)
+}
+
+nclass.numpy <- function(x, ...)
+{
+#' Compute the number of classes for a histogram as the maximum of the 
+#' "Sturges" and "FD" (Freedman Diaconis) estimators as in numpy library
+#' for Python. 
+#' x: a vector of values
+#'
+#' Example:
+#' x <- rnorm(100)
+#' hist(x, breaks = nclass.numpy(x))
+#' x <- rnorm(1000)
+#' hist(x, breaks = nclass.numpy(x))
+#' n = c(50, seq(100,1000,by=100))
+#' brks = rep(NA, length(n))
+#' for(i in seq(n)) brks[i] = nclass.numpy(rnorm(n[i]))
+#' plot(n, brks)
+#' 
+  x <- as.vector(x)
+  max(nclass.Sturges(x), nclass.FD(x))
 }
 
 catwrap <- function(x, width = getOption("width"), ...)

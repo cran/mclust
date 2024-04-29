@@ -20,7 +20,7 @@ softmax(x, v = NULL)
 Given the matrix \code{x}, for each row \eqn{x_{[i]} = [x_1, \dots, x_k]} (with \eqn{i=1,\dots,n}), the softmax function calculates
 \deqn{
 \text{softmax}(x_{[i]})_j = 
-\dfrac{\exp{x_j + v_j}}{\sum_{l=1}^k \exp(x_l + v_l)}
+\dfrac{\exp(x_j + v_j)}{\sum_{l=1}^k \exp(x_l + v_l)}
 \qquad \text{for } j = 1,\dots,k 
 }
 }
@@ -30,6 +30,13 @@ Given the matrix \code{x}, for each row \eqn{x_{[i]} = [x_1, \dots, x_k]} (with 
 \author{Luca Scrucca}
 
 \seealso{\code{\link{logsumexp}}}
+
+\references{
+Blanchard P., Higham D. J., Higham N. J. (2021). 
+Accurately computing the log-sum-exp and softmax functions.
+\emph{IMA Journal of Numerical Analysis}, 41/4:2311–2330.
+\doi{10.1093/imanum/draa038}
+}
 
 \examples{
 x = matrix(rnorm(15), 5, 3)

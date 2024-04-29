@@ -49,17 +49,17 @@ me.weighted <- function(data, modelName, z, weights = NULL, prior = NULL,
                                      Vinv = Vinv, 
                                      warn = warn),
                                 fit.m))
-		if(is.na(fit.e$loglik)) 
-		  { criterion <- FALSE; next() }
+    if(is.na(fit.e$loglik)) 
+      { criterion <- FALSE; next() }
     zw <- pmax(fit.e$z*weights, eps)
     ldens <- do.call("dens", c(list(data = data, 
                                     logarithm = TRUE, 
-																		warn = warn), 
-															 fit.m))
-		ll <- sum(weights*ldens)
-		criterion <- criterion & (iter < control$itmax[1])
-		criterion <- criterion & ((ll-llold)/(1+abs(ll)) > control$tol[1])
-		llold <- ll
+                                    warn = warn), 
+                               fit.m))
+    ll <- sum(weights*ldens)
+    criterion <- criterion & (iter < control$itmax[1])
+    criterion <- criterion & ((ll-llold)/(1+abs(ll)) > control$tol[1])
+    llold <- ll
   }
   fit <- fit.m
   fit$z <- fit.e$z
@@ -68,6 +68,6 @@ me.weighted <- function(data, modelName, z, weights = NULL, prior = NULL,
   npar <- nMclustParams(modelName = modelName, 
                         d = ncol(data), 
                         G = ncol(z))
-  fit$bic <- 2*ll - npar*log(nobs)	
+  fit$bic <- 2*ll - npar*log(nobs)  
   return(fit)
 }

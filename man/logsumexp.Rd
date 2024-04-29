@@ -30,6 +30,13 @@ where \eqn{m = \max(x_1+v_1, \dots, x_k+v_k)}.
 
 \seealso{\code{\link{softmax}}}
 
+\references{
+Blanchard P., Higham D. J., Higham N. J. (2021). 
+Accurately computing the log-sum-exp and softmax functions.
+\emph{IMA Journal of Numerical Analysis}, 41/4:2311–2330.
+\doi{10.1093/imanum/draa038}
+}
+
 \examples{
 x = matrix(rnorm(15), 5, 3)
 v = log(c(0.5, 0.3, 0.2))

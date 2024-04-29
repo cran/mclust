@@ -306,6 +306,8 @@ dens <- function(data, modelName, parameters, logarithm = FALSE, warn = NULL, ..
                    parameters = parameters,
                    logarithm = TRUE, 
                    warn = warn)
+  if(attr(logcden, "returnCode") < 0)
+    stop(attr(logcden, "WARNING"))
   pro <- parameters$pro
   if(is.null(pro))
     stop("mixing proportions must be supplied")

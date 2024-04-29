@@ -1,4 +1,12 @@
-# mclust 6.1 (NOT ON CRAN)
+# mclust 6.1.1
+
+- Corrected computation of df for MclustDA and EDDA classification 
+  models.
+- Bug fix on `sim()` when EVV, EVE, and VVE models for G = 1.
+- Bug fix on `summary.MclustBootstrap()` when computing confidence 
+  intervals for G = 1.
+
+# mclust 6.1
 
 - Added `logsumexp()` and `softmax()` functions as a wrapper to 
   efficiently implementations written in Fortran code.

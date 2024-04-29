@@ -204,7 +204,7 @@ MclustSSC.fit <- function(data, class,
 {
   data <- data.matrix(data)
   n <- nrow(data)
-  p <- ncol(data)
+  d <- ncol(data)
   class <- factor(class, exclude = NA)
   nclass <- nlevels(class)
   known.class <- which(!is.na(class))
@@ -212,8 +212,7 @@ MclustSSC.fit <- function(data, class,
   if(is.null(G)) G <- nclass
   if(is.null(modelName)) 
     stop("modelName must be specified!")
-  #browser()
-  
+
   # initialization of z matrix by filling with 0/1 for observations 
   # with known labels
   z <- matrix(0.0, nrow = n, ncol = G)
@@ -228,7 +227,6 @@ MclustSSC.fit <- function(data, class,
     km <- kmeans(data[unknown.class,,drop=FALSE],
                  centers = G,
                  nstart = 25, iter.max = 100)
-    # z[unknown.class,] <- unmap(km$cluster)
     z[unknown.class,] <- rep(1,length(unknown.class)) %o% km$size/sum(km$size)
   } else
   {
@@ -260,15 +258,18 @@ MclustSSC.fit <- function(data, class,
                                     logarithm = TRUE), fit.m))
     lcdens <- do.call("cdens", c(list(data = data[known.class,,drop=FALSE], 
                                       logarithm = TRUE), fit.m))
-    lcdens <- sweep(lcdens, MARGIN = 2, FUN = "+", 
-                    STATS = log(fit.m$parameters$pro))
+    # lcdens <- sweep(lcdens, MARGIN = 2, FUN = "+", 
+    #                 STATS = log(fit.m$parameters$pro))
+    lcdens <- lcdens + matrix(log(fit.m$parameters$pro), 
+                              nrow = nrow(lcdens), ncol = ncol(lcdens), 
+                              byrow = TRUE)
     loglik <- sum(ldens) + sum(lcdens * z0)
     criterion <- ( iter < control$itmax[1] & 
                    (loglik - loglik0) > control$tol[1] )
-    # print(loglik - loglik0)
-    loglik0 <- loglik
     if(.verbose)
-      cat("iter =", iter, "  loglik =", loglik0, "\n")
+      cat("iter =", iter, "  loglik =", loglik, 
+          " \u0394 =", loglik - loglik0, "\n")
+    loglik0 <- loglik
   }
   fit <- fit.m
   fit$loglik <- loglik
@@ -281,7 +282,7 @@ MclustSSC.fit <- function(data, class,
   levels(fitclass) <- labels
   fit$classification <- fitclass
 
-  fit$df <- (G-1) + p*nclass + nVarParams(fit$modelName, d = p, G = nclass)
+  fit$df <- (G-1) + d*nclass + nVarParams(fit$modelName, d = d, G = nclass)
   fit$bic <- 2*fit$loglik - fit$df*log(n)
   #
   return(fit)

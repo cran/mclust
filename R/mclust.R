@@ -6498,7 +6498,7 @@ cdensVVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
   }
   dimnames(z) <- list(dimnames(data)[[1]],NULL)  
   structure(z, logarithm = logarithm, modelName = "VVI",
-            WARNING = WARNING, retrinCode = ret)
+            WARNING = WARNING, returnCode = ret)
 }
 
 emVVI <- function(data, parameters, prior = NULL, control = emControl(), 

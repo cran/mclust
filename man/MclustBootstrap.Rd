@@ -7,9 +7,10 @@
 \description{Bootstrap or jackknife estimation of standard errors and percentile bootstrap confidence intervals for the parameters of a Gaussian mixture model.}
 
 \usage{
-MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "pb", "jk"),
-                max.nonfit = 10*nboot, verbose = interactive(), 
-                \dots)
+MclustBootstrap(object, nboot = 999, 
+                type = c("bs", "wlbs", "pb", "jk"),
+                alpha = 1, max.nonfit = 10*nboot, 
+                verbose = interactive(), \dots)
 }
 
 \arguments{
@@ -23,6 +24,7 @@ MclustBootstrap(object, nboot = 999, type = c("bs", "wlbs", "pb", "jk"),
   \item{\code{"jk"}}{jackknife}
   }
   }
+  \item{alpha}{A numerical value used when \code{type = "wlbs"} to generate weights from a Dirichlet(alpha, ..., alpha) distribution. By default \code{alpha = 1}, so weights are generated from a uniform distribution on the simplex.}
   \item{max.nonfit}{The maximum number of non-estimable models allowed.}
   \item{verbose}{A logical controlling if a text progress bar is displayed during the resampling procedure. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise.}
   \item{\dots}{Further arguments passed to or from other methods.}

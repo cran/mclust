@@ -406,32 +406,32 @@ plot.hc <- function(x, what = c("loglik", "merge"), maxG = NULL, labels = FALSE,
     what <- what[1]
     hier <- as.hclust(x, what = what, maxG = maxG, labels = labels)
     switch(what,
-              "loglik" = {
-	     ylab <- paste("Classification log-likelihood",
-	                  paste("(", hier$method, sep = ""), "model)")
-	     cloglik <- attr(hier,"cloglik")
-	     attr(hier,"cloglik") <- NULL
-	     plot( as.dendrogram(hier, hang=hang), axes=FALSE, ylab=ylab)
-	     r <- range(cloglik, na.rm=TRUE)
-	     par.usr <- par("usr")
-       ybot <- max(r)-par.usr[3]
-       ytop <- min(r)+par.usr[3]
-	    },
-	    "merge" = {
-	     ylab <- paste("Number of Clusters",
-	                paste("(", hier$method, sep = ""), "model)")
-	     nclus <- attr(hier,"nclus")
-	     attr(hier,"nclus") <- NULL
-	     plot( as.dendrogram(hier, hang=hang), axes=FALSE, ylab=ylab)
-	     par.usr <- par("usr")
-	     ybot<- max(nclus)-par.usr[3]
-	     ytop <- 1+par.usr[3]
-            },
-	    stop("unrecognized what option"))
-
+           "loglik" = {
+             ylab <- paste("Classification log-likelihood",
+                           paste("(", hier$method, sep = ""), "model)")
+             cloglik <- attr(hier,"cloglik")
+             attr(hier,"cloglik") <- NULL
+             plot( as.dendrogram(hier, hang=hang), axes=FALSE, ylab=ylab)
+             r <- range(cloglik, na.rm=TRUE)
+             par.usr <- par("usr")
+             ybot <- max(r)-par.usr[3]
+             ytop <- min(r)+par.usr[3]
+           },
+           "merge" = {
+             ylab <- paste("Number of Clusters",
+                           paste("(", hier$method, sep = ""), "model)")
+             nclus <- attr(hier,"nclus")
+             attr(hier,"nclus") <- NULL
+             plot( as.dendrogram(hier, hang=hang), axes=FALSE, ylab=ylab)
+             par.usr <- par("usr")
+             ybot <- max(nclus)-par.usr[3]
+             ytop <- 1+par.usr[3]
+           },
+           stop("unrecognized what option"))
+    
     par(usr=c(par("usr")[1:2],ybot,ytop))
-    at <- pretty(seq(from=ybot,to=ytop,length=100), min = 5, max = 10)
-    axis(2, at=at)
+    at <- pretty(seq(from=ybot,to=ytop,length=100), min.n = 5)
+    axis(2, at = at)
     
     invisible(hier)
 }

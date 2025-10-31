@@ -266,8 +266,12 @@ logsumexp <- function(x, v = NULL)
   v <- if(is.null(v)) double(k) else as.vector(v)
   stopifnot(length(v) == k)
   .Fortran("logsumexp", 
-           x = x, n = as.integer(n), k = as.integer(k), v = v, 
-           lse = double(n))$lse
+           x = x, 
+           n = as.integer(n), 
+           k = as.integer(k), 
+           v = v, 
+           lse = double(n),
+           PACKAGE = "mclust")$lse
 }
 
 softmax <- function(x, v = NULL)
@@ -284,10 +288,43 @@ softmax <- function(x, v = NULL)
   stopifnot(length(v) == k)
   
   z <- .Fortran("softmax", 
-                x = x, n = as.integer(n), k = as.integer(k), 
-                v = as.double(v), lse = double(n), z = double(n * k))$z
+                x = x, 
+                n = as.integer(n), 
+                k = as.integer(k), 
+                v = as.double(v), 
+                lse = double(n), 
+                z = double(n * k),
+                PACKAGE = "mclust")$z
   z <- matrix(z, nrow = n, ncol = k)
   return(z)
+}
+
+count <- function(x, bins)
+{
+# Return the counts for each values equal to bins via 
+# numerically efficient Fortran code.
+# 
+# Example:
+# x = c(1, 2, 4, 2, 5, 3, 2, 1, 6, 5, 3, 4, 4, 2, 1)
+# count(x, bins = 0:10)
+# 
+  x <- as.vector(x)
+  if(!is.numeric(x))
+    x <- as.factor(x)
+  n <- length(x)
+  bins <- as.vector(bins)
+  if(!is.numeric(bins))
+    bins <- as.factor(bins)
+  m <- length(bins)
+  freq <- .Fortran("countf", 
+                   x = as.integer(x), 
+                   n = as.integer(n), 
+                   bins = as.integer(bins), 
+                   m = as.integer(m), 
+                   freq = integer(m),
+                   PACKAGE = "mclust")[[5]]
+  names(freq) <- as.character(bins)
+  return(freq)
 }
 
 partconv <- function(x, consec = TRUE)

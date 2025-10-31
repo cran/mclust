@@ -1,12 +1,18 @@
 Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL, 
-                   control = emControl(), initialization = NULL, 
+                   control = emControl(), initialization = NULL,
                    warn = mclust.options("warn"), x = NULL, 
                    verbose = interactive(), ...) 
 {
   call <- match.call()
-  data <- data.matrix(data)
+  #
+  data <- na.omit(data.matrix(data))
+  n <- nrow(data)
   d <- ncol(data)
-  
+  varname <- deparse(call$data)
+  if(is.null(colnames(data)))
+    { if(d == 1) colnames(data) <- varname
+      else       colnames(data) <- paste0(varname, seq(d)) }
+  #
   if(!is.null(x))
   {
     if(!inherits(x, "mclustBIC"))
@@ -16,7 +22,6 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
   mc <- match.call(expand.dots = TRUE)
   mc[[1]] <- as.name("mclustBIC")
   mc[[2]] <- data
-
   BIC <- eval(mc, parent.frame())
   # get the best model from BIC table
   G <- attr(BIC, "G")
@@ -154,8 +159,8 @@ print.summary.Mclust <- function(x, digits = getOption("digits"), ...)
   #
   tab <- data.frame("log-likelihood" = x$loglik, "n" = x$n, 
                     "df" = x$df, "BIC" = x$bic, "ICL" = x$icl, 
-                    row.names = "", check.names = FALSE)
-  print(tab, digits = digits)
+                    check.names = FALSE)
+  print(tab, row.names = FALSE, digits = digits)
   #
   if(x$printClassification)
   {
@@ -196,10 +201,8 @@ plot.Mclust <- function(x,
     stop("object not of class 'Mclust'")
   
   data <- object$data
-  p <- ncol(data)
-  if(p == 1) 
-    colnames(data) <- deparse(object$call$data)
-  dimens <- if(is.null(dimens)) seq(p) else dimens[dimens <= p]
+  d <- ncol(data)
+  dimens <- if(is.null(dimens)) seq(d) else dimens[dimens <= d]
   d <- length(dimens)
   
   main <- if(is.null(main) || is.character(main)) FALSE else as.logical(main)
@@ -286,7 +289,7 @@ plot.Mclust <- function(x,
       pars$variance$sigma <- pars$variance$sigma[dimens,dimens,,drop=FALSE]
     }
     #
-    if(p == 1 || d == 1)
+    if(d == 1)
     { 
       mclust1Dplot(data = data[,dimens,drop=FALSE], 
                    what = "uncertainty", 
@@ -294,7 +297,7 @@ plot.Mclust <- function(x,
                    xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
                    main = main, ...) 
     }
-    if(p == 2 || d == 2)
+    if(d == 2)
     { 
       mclust2Dplot(data = data[,dimens,drop=FALSE], 
                    what = "uncertainty", 
@@ -306,7 +309,7 @@ plot.Mclust <- function(x,
                    ylab = if(is.null(ylab)) colnames(data)[dimens][2] else ylab,
                    addEllipses = addEllipses, main = main, ...)
     }
-    if(p > 2 && d > 2)
+    if(d > 2)
     { 
       on.exit(par(oldpar))
       par(mfrow = c(d, d), 
@@ -349,20 +352,14 @@ plot.Mclust <- function(x,
 
   plot.Mclust.density <- function(...)
   {
-    if(p == 1)
+    if(d == 1)
       { 
         objdens <- as.densityMclust(object)
         plotDensityMclust1(objdens, 
                            xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
                            main = if(main) main else NULL, ...) 
-        # mclust1Dplot(data = data,
-        #              parameters = object$parameters,
-        #              # z = object$z, 
-        #              what = "density", 
-        #              xlab = if(is.null(xlab)) colnames(data)[dimens] else xlab, 
-        #              main = main, ...) 
     }
-    if(p == 2) 
+    if(d == 2) 
       { surfacePlot(data = data, 
                     parameters = object$parameters,
                     what = "density", 
@@ -370,7 +367,7 @@ plot.Mclust <- function(x,
                     ylab = if(is.null(ylab)) colnames(data)[2] else ylab,
                     main = main, ...) 
     }
-    if(p > 2) 
+    if(d > 2) 
       { 
         objdens <- as.densityMclust(object)
         objdens$data <- objdens$data[,dimens,drop=FALSE]
@@ -1685,9 +1682,10 @@ cdensEEE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emEEE <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepEEE(data, parameters = parameters, warn = warn)$z  
-  meEEE(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepEEE(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meEEE(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepEEE(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepEEE <- function(data, parameters, warn = NULL, ...)
@@ -2158,9 +2156,10 @@ cdensEII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emEEI <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepEEI(data, parameters = parameters, warn = warn)$z  
-  meEEI(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepEEI(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meEEI(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepEEI(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepEEI <- function(data, parameters, warn = NULL, ...)
@@ -2568,9 +2567,10 @@ cdensE <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emE <- function(data, parameters, prior = NULL, control = emControl(), 
                 warn = NULL, ...)
 {
-  z <- estepE(data, parameters = parameters, warn = warn)$z
-  meE(data, z = z, prior = prior, control = control, 
-      Vinv = parameters$Vinv, warn = warn)
+  z <- estepE(data, parameters = parameters, warn = warn, ...)$z
+  z <- meE(data, z = z, prior = prior, control = control, 
+           Vinv = parameters$Vinv, warn = warn, ...)$z
+  meE(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepE <- function(data, parameters, warn = NULL, ...)
@@ -2714,9 +2714,10 @@ cdensEEV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emEEV <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepEEV(data, parameters = parameters, warn = warn)$z  
-  meEEV(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepEEV(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meEEV(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepEEV(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepEEV <- function(data, parameters, warn = NULL, ...)
@@ -3104,9 +3105,10 @@ simEEV <- function(parameters, n, seed = NULL, ...)
 emEII <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepEII(data, parameters = parameters, warn = warn)$z
-  meEII(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepEII(data, parameters = parameters, warn = warn, ...)$z
+  z <- meEII(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepEII(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepEII <- function(data, parameters, warn = NULL, ...)
@@ -3719,9 +3721,10 @@ cdensEVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emEVI <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepEVI(data, parameters = parameters, warn = warn)$z  
-  meEVI(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepEVI(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meEVI(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepEVI(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepEVI <- function(data, parameters, warn = NULL, ...)
@@ -4423,6 +4426,17 @@ em <- function(data, modelName, parameters, prior = NULL, control = emControl(),
   eval(mc, parent.frame())
 }
 
+me <- function(data, modelName, z, prior = NULL, control = emControl(), 
+               Vinv = NULL, warn = NULL, ...)
+{
+  checkModelName(modelName)
+  funcName <- paste("me", modelName, sep = "")
+  mc <- match.call(expand.dots = TRUE)
+  mc[[1]] <- as.name(funcName)
+  mc$modelName <- NULL
+  eval(mc, parent.frame())
+}
+
 estep <- function(data, modelName, parameters, warn = NULL, ...)
 {
   checkModelName(modelName)
@@ -4433,8 +4447,17 @@ estep <- function(data, modelName, parameters, warn = NULL, ...)
   eval(mc, parent.frame())
 }
 
+mstep <- function(data, modelName, z, prior = NULL, warn = NULL, ...)
+{
+  checkModelName(modelName)
+  funcName <- paste("mstep", modelName, sep = "")
+  mc <- match.call(expand.dots = TRUE)
+  mc[[1]] <- as.name(funcName)
+  mc$modelName <- NULL
+  eval(mc, parent.frame())
+}
 
-mclustVariance <- function(modelName, d=NULL, G=2)
+mclustVariance <- function(modelName, d = NULL, G = 2)
 {
   x <- -1
   if (nchar(modelName) == 1) {
@@ -4497,26 +4520,6 @@ mclustVariance <- function(modelName, d=NULL, G=2)
   c(modelName = modelName, d = d, G = G, varList)
 }
 
-me <- function(data, modelName, z, prior = NULL, control = emControl(), 
-               Vinv = NULL, warn = NULL, ...)
-{
-  checkModelName(modelName)
-  funcName <- paste("me", modelName, sep = "")
-  mc <- match.call(expand.dots = TRUE)
-  mc[[1]] <- as.name(funcName)
-  mc$modelName <- NULL
-  eval(mc, parent.frame())
-}
-
-mstep <- function(data, modelName, z, prior = NULL, warn = NULL, ...)
-{
-  checkModelName(modelName)
-  funcName <- paste("mstep", modelName, sep = "")
-  mc <- match.call(expand.dots = TRUE)
-  mc[[1]] <- as.name(funcName)
-  mc$modelName <- NULL
-  eval(mc, parent.frame())
-}
 
 mvn <- function(modelName, data, prior = NULL, warn = NULL, ...)
 {
@@ -4686,9 +4689,11 @@ cdensVEI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emVEI <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepVEI(data, parameters = parameters, warn = warn)$z  
-  meVEI(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepVEI(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meVEI(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepVEI(data, z = z, prior = prior, warn = warn,
+           control = control, ...)
 }
 
 estepVEI <- function(data, parameters, warn = NULL, ...)
@@ -5126,9 +5131,10 @@ cdensV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emV <- function(data, parameters, prior = NULL, control = emControl(), 
                 warn = NULL, ...)
 {
-  z <- estepV(data, parameters = parameters, warn = warn)$z  
-  meV(data, z = z, prior = prior, control = control, 
-      Vinv = parameters$Vinv, warn = warn)
+  z <- estepV(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meV(data, z = z, prior = prior, control = control, 
+           Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepV(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepV <- function(data, parameters, warn = NULL, ...)
@@ -5269,9 +5275,11 @@ cdensVEV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emVEV <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepVEV(data, parameters = parameters, warn = warn)$z  
-  meVEV(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepVEV(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meVEV(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  meVEV(data, z = z, prior = prior, warn = warn,
+        control = control, ...)
 }
 
 estepVEV <- function(data, parameters, warn = NULL, ...)
@@ -5760,9 +5768,10 @@ cdensVII <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emVII <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepVII(data, parameters = parameters, warn = warn)$z  
-  meVII(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepVII(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meVII(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepVII(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepVII <- function(data, parameters, warn = NULL, ...)
@@ -6504,9 +6513,10 @@ cdensVVI <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emVVI <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepVVI(data, parameters = parameters, warn = warn)$z  
-  meVVI(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepVVI(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meVVI(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepVVI(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepVVI <- function(data, parameters, warn = NULL, ...)
@@ -6908,9 +6918,10 @@ cdensVVV <- function(data, logarithm = FALSE, parameters, warn = NULL, ...)
 emVVV <- function(data, parameters, prior = NULL, control = emControl(), 
                   warn = NULL, ...)
 {
-  z <- estepVVV(data, parameters = parameters, warn = warn)$z  
-  meVVV(data, z = z, prior = prior, control = control, 
-        Vinv = parameters$Vinv, warn = warn)
+  z <- estepVVV(data, parameters = parameters, warn = warn, ...)$z  
+  z <- meVVV(data, z = z, prior = prior, control = control, 
+             Vinv = parameters$Vinv, warn = warn, ...)$z
+  mstepVVV(data, z = z, prior = prior, warn = warn, ...)
 }
 
 estepVVV <- function(data, parameters, warn = NULL, ...)

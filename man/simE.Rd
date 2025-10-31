@@ -120,7 +120,7 @@ cl <- simdat[,1]
 sigma <- array(apply(O, 3, function(x,y) crossprod(x*y), 
                  y = sqrt(scale*shape)), c(2,2,2))
 paramList <- list(mu = mu, sigma = sigma)
-coordProj( simdat, paramList = paramList, classification = cl)
+coordProj( simdat, parameters = paramList, classification = cl)
 }
 }
 \keyword{cluster}

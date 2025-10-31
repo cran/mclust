@@ -9,10 +9,14 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   #
   if(missing(data))
     stop("no training data provided!")
-  data <- data.matrix(data)
+  data <- na.omit(data.matrix(data))
   n <- nrow(data)
-  p <- ncol(data)
-  oneD <- if(p==1) TRUE else FALSE
+  d <- ncol(data)
+  varname <- deparse(call$data)
+  if(is.null(colnames(data)))
+    { if(d == 1) colnames(data) <- varname
+      else       colnames(data) <- paste0(varname, seq(d)) }
+  oneD <- if(d==1) TRUE else FALSE
   #
   if(missing(class))
     stop("class labels for training data must be provided!")
@@ -45,7 +49,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
     { modelNames <- rep(list(modelNames), ncl) }
   for(k in 1:ncl)
   {
-    if(n*prop[k] <= p)
+    if(n*prop[k] <= d)
     {
       m <- match(modelNames[[k]], 
                  c("EII", "VII", "EEI", "VEI", "EVI", "VVI"),
@@ -170,7 +174,7 @@ MclustDA <- function(data, class, G = NULL, modelNames = NULL,
   names(Models) <- classLabel
   
   out <- list(call = call, data = data, class = class,
-              type = modelType, n = n, d = p, prop = prop, 
+              type = modelType, n = n, d = d, prop = prop, 
               models = Models, bic = bic, loglik = loglik, df = df)
   out <- structure(out, prior = prior, 
                    control = control, 
@@ -224,7 +228,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
   if(inherits(tab, "try-error"))
     { ce <- tab <- NA }
   else 
-    { names(dimnames(tab)) <- c("Class", "Predicted") }
+    { names(dimnames(tab)) <- c("Classes", "Predicted") }
   
   tab.newdata <- ce.newdata <- brier.newdata <- NULL
   if(!missing(newdata) & !missing(newclass))
@@ -236,7 +240,7 @@ summary.MclustDA <- function(object, parameters = FALSE, newdata, newclass, ...)
     }
     else
     { tab.newdata <- table(newclass, pred.newdata$classification)
-      names(dimnames(tab.newdata)) <- c("Class", "Predicted")
+      names(dimnames(tab.newdata)) <- c("Classes", "Predicted")
       ce.newdata <- mean(newclass != pred.newdata$classification)
       brier.newdata <- BrierScore(pred.newdata$z, newclass)
     }
@@ -264,9 +268,8 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
   catwrap(txt)
   
   cat("\n")
-  catwrap(paste(x$type, "model summary:"))
-  cat("\n")
-  #
+  catwrap(paste(x$type))
+  catwrap(txt)
   tab <- data.frame("log-likelihood" = x$loglik,
                     "n" = sum(x$n), "df" = x$df, 
                     "BIC" = x$bic, 
@@ -282,7 +285,8 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
   print(tab, digits = digits, quote = FALSE, right = TRUE)
   
   if(!is.null(x$prior))
-  { cat("\nPrior: ")
+  { 
+    cat("\nPrior: ")
     cat(x$prior$functionName, "(", 
         paste(names(x$prior[-1]), x$prior[-1], sep = " = ", collapse = ", "), 
         ")", sep = "")
@@ -291,10 +295,17 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
   
   if(x$printParameters)
   {
-    cat("\nClass prior probabilities:\n")
+    cat("\n")
+    cat("Parameter estimates\n")
+    catwrap(txt)
+    cat("Class prior probabilities:\n")
     print(x$prop, digits = digits)
     for(i in seq(x$nclass))
-    { cat("\nClass = ", x$class[i], "\n", sep = "")
+    { 
+      ptitle <- paste0("Class = ", x$class[i])
+      ptxt <- paste(rep("-", min(nchar(ptitle), getOption("width"))), collapse = "")
+      cat("\n", ptitle, "\n", sep = "")
+      catwrap(ptxt)
       par <- x$parameters[[i]]
       if(x$type == "MclustDA")
       {
@@ -313,18 +324,23 @@ print.summary.MclustDA <- function(x, digits = getOption("digits"), ...)
     }
   }
   
-  cat("\nTraining confusion matrix:\n")
+  cat("\nTraining confusion matrix\n")
+  catwrap(txt)
   print(x$tab)
-  cat("Classification error =", round(x$ce, min(digits,4)), "\n")
-  cat("Brier score          =", round(x$brier, min(digits,4)), "\n")
+  cat("\n")
+  cat("Classification error =", sprintf("%.4f", x$ce), "\n")
+  cat("Brier score          =", sprintf("%.4f", x$brier), "\n")
   
   if(!is.null(x$tab.newdata)) 
   {
-    cat("\nTest confusion matrix:\n")
+    cat("\nTest confusion matrix\n")
+    catwrap(txt)
     print(x$tab.newdata)
     if(!is.null(x$ce.newdata))
-    { cat("Classification error =", round(x$ce.newdata, min(digits,4)), "\n") 
-      cat("Brier score          =", round(x$brier.newdata, min(digits,4)), "\n")
+    { 
+      cat("\n")
+      cat("Classification error =", sprintf("%.4f", x$ce.newdata), "\n") 
+      cat("Brier score          =", sprintf("%.4f", x$brier.newdata), "\n")
     }
   }
   
@@ -344,11 +360,11 @@ getParameters.MclustDA <- function(object)
   par <- vector(mode = "list", length = nclass)
   for(i in seq(nclass))
   { 
-		par[[i]] <- models[[i]]$parameters
+    par[[i]] <- models[[i]]$parameters
     if(is.null(par[[i]]$pro)) par$pro <- 1
     if(par[[i]]$variance$d < 2)
     { 
-			sigma <- rep(par[[i]]$variance$sigma,
+      sigma <- rep(par[[i]]$variance$sigma,
                    models[[i]]$G)[1:models[[i]]$G]
       names(sigma) <- names(par[[i]]$mean)
       par[[i]]$variance$sigma <- sigma
@@ -960,7 +976,12 @@ cvMclustDA <- function(object, nfold = 10,
     call$G <- G
     call$modelNames <- modelName
     call$verbose <- FALSE
-    mod <- eval(call, parent.frame())
+    mod <- try(eval(call, parent.frame()), silent = TRUE)
+    while(inherits(mod, "try-error"))
+    {
+      call$G <- lapply(call$G, function(G) pmax(1, G-1))
+      mod <- try(eval(call, parent.frame()))
+    }
     #
     predTest <- predict(mod, data[folds[[i]],,drop=FALSE], prop = prop)
     metric.cv[i,1] <- ce(predTest$classification, class[folds[[i]]])

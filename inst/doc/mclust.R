@@ -20,6 +20,10 @@ cat(mclust:::mclustStartupMessage(), sep="")
 
 ## -----------------------------------------------------------------------------
 data(diabetes)
+#-- data corrections (see help("diabetes", package = "mclust")) --#
+names(diabetes) <- c("class", "fpg", "glucose", "insulin")
+diabetes$glucose[104] <- 455
+#-----------------------------------------------------------------#
 class <- diabetes$class
 table(class)
 X <- diabetes[,-1]
@@ -173,7 +177,7 @@ mclust.options("bicPlotColors")
 mclust.options("classPlotColors")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  palette.colors(palette = "Okabe-Ito")
+# palette.colors(palette = "Okabe-Ito")
 
 ## -----------------------------------------------------------------------------
 cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", 

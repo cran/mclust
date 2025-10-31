@@ -8,13 +8,24 @@ MclustSSC <- function(data, class,
 											...) 
 {
   call <- match.call()
-  data <- data.matrix(data)
+  data <- na.omit(data.matrix(data))
   n <- nrow(data)
   d <- ncol(data)
+  varname <- deparse(call$data)
+  if(is.null(colnames(data)))
+    { if(d == 1) colnames(data) <- varname
+      else       colnames(data) <- paste0(varname, seq(d)) }
   oneD <- if(d==1) TRUE else FALSE
   #
   class <- factor(class, exclude = NA)
   nclass <- nlevels(class)
+  #
+  if(!any(is.na(class)))
+  {
+    warning("No obs with unknown class encoded as NA. Reverting to MclustDA() ...")
+    call[[1]] <- as.name("MclustDA")
+    return(eval(call, parent.frame()))
+  }
   #
   if(is.null(G))
     G <- nclass
@@ -106,21 +117,23 @@ summary.MclustSSC <- function(object, parameters = FALSE, ...)
   names(n) <- classifNames
   if(any(is.na(class)))
     n <- c(n, "<NA>" = sum(is.na(class)))
-  tab <- table("Class" = class, "Predicted" = classif, useNA = "ifany")
+  tab <- table("Classes" = class, "Predicted" = classif, useNA = "ifany")
   noise <- FALSE
   # todo:
   # noise <- if(is.na(object$hypvol)) FALSE else object$hypvol
   pro <- object$parameters$pro
   if(is.null(pro)) pro <- 1
   names(pro) <- if(noise) c(classifNames,0) else classifNames
-  mean <- object$parameters$mean
-  colnames(mean) <- names(pro)
   if(object$d > 1)
   { 
+    mean <- object$parameters$mean
+    colnames(mean) <- names(pro)
     sigma <- object$parameters$variance$sigma
     dimnames(sigma)[[3]] <-  names(pro)
   } else
   { 
+    mean <- object$parameters$mean
+    names(mean) <- names(pro)
     sigma <- rep(object$parameters$variance$sigmasq, object$G)[1:object$G]
     names(sigma) <- names(mean) 
   }
@@ -146,13 +159,11 @@ print.summary.MclustSSC <- function(x, digits = getOption("digits"), ...)
   catwrap(txt)
   catwrap(title)
   catwrap(txt)
-
   cat("\n")
-  tab <- data.frame("log-likelihood" = x$loglik,
-                     "n" = sum(x$n), "df" = x$df, 
-                     "BIC" = x$bic, 
-                    row.names = "", check.names = FALSE)
-  print(tab, digits = digits)
+  tab <<- data.frame("log-likelihood" = x$loglik,
+                    "n" = sum(x$n), "df" = x$df,
+                    "BIC" = x$bic, check.names = FALSE)
+  print(tab, row.names = FALSE, digits = digits)
 
   tab <- data.frame("n" = x$n, "%" = round(x$n/sum(x$n)*100,2), 
                     "Model" = c(rep(x$modelName, x$G), ""),
@@ -172,9 +183,13 @@ print.summary.MclustSSC <- function(x, digits = getOption("digits"), ...)
    cat("\n")
   }
 
+  txt <- paste(rep("-", min(48, getOption("width"))), collapse = "")
   if(x$printParameters)
   {
-    cat("\nMixing probabilities:\n")
+    cat("\n")
+    cat("Parameter estimates\n")
+    catwrap(txt)
+    cat("Mixing probabilities:\n")
     print(x$pro, digits = digits)
     cat("\nMeans:\n")
     print(x$mean, digits = digits)
@@ -191,7 +206,8 @@ print.summary.MclustSSC <- function(x, digits = getOption("digits"), ...)
         cat(signif(x$noise, digits = digits), "\n") }
   }
 
-  cat("\nClassification summary:\n")
+  cat("\nClassification summary\n")
+  catwrap(txt)
   print(x$tab)
 
   invisible(x)

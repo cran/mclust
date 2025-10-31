@@ -1,3 +1,11 @@
+# mclust 6.1.2
+
+- Add count() function to efficiently tabulate frequencies given bins.
+- Fix bugs in colnames for 1D case.
+- Fix (marginal) issues in some `em*()` functions that end with the M-step instead of the E-step. 
+- Bug fix on `summary.crimcoords()` when `numdir` is provided in `crimcoords()` call.
+- Set varnames for input data if missing from the name of the input vector or data matrix in all main functions, namely `Mclust()`, `densityMclust()`, `MclustDA()`, and `MclustSSC()`.
+
 # mclust 6.1.1
 
 - Corrected computation of df for MclustDA and EDDA classification 

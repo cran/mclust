@@ -146,8 +146,6 @@ names(msEst)
 
 em(modelName = msEst$modelName, data = iris[,-5],
    parameters = msEst$parameters)
-
-do.call("em", c(list(data = iris[,-5]), msEst))   ## alternative call
 }
 }
 \keyword{cluster}

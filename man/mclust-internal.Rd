@@ -30,6 +30,7 @@
 \alias{as.densityMclust}
 \alias{as.densityMclust.default}
 \alias{as.densityMclust.Mclust}
+\alias{count}
 
 \description{
   Internal functions not intended to be called directly by users.

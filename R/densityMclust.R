@@ -1,8 +1,18 @@
 densityMclust <- function(data, ..., plot = TRUE) 
 {
   mc <- match.call()
+  #
+  data <- na.omit(data.matrix(data))
+  n <- nrow(data)
+  d <- ncol(data)
+  varname <- deparse(mc$data)
+  if(is.null(colnames(data)))
+    { if(d == 1) colnames(data) <- varname
+      else       colnames(data) <- paste0(varname, seq(d)) }
+  #
   obj <- Mclust(data, ...)
   if(is.null(obj)) return(obj)
+  #
   obj$call <- mc
   obj$density <- dens(data = obj$data, 
                       modelName = obj$modelName,
@@ -98,7 +108,7 @@ plot.densityMclust <- function(x, data = NULL, what = c("BIC", "density", "diagn
   }
   
   if(interactive() & length(what) > 1)
-    { title <- "Model-based density estimation plots:"
+    { title <- "Gaussian mixture-based density estimation plots:"
       # present menu waiting user choice
       choice <- menu(what, graphics = FALSE, title = title)
       while(choice != 0)
@@ -126,7 +136,7 @@ plotDensityMclust1 <- function(x, data = NULL, col = gray(0.3), hist.col = "ligh
   mc$x <- mc$data <- mc$col <- mc$hist.col <- mc$hist.border <- mc$breaks <- NULL
   xlab <- mc$xlab
   if(is.null(xlab)) 
-    xlab <- deparse(object$call$data)
+    xlab <- colnames(object$data)[1]
   ylab <- mc$ylab
   if(is.null(ylab)) 
     ylab <- "Density"
@@ -393,7 +403,7 @@ densityMclust.diagnostic <- function(object, type = c("cdf", "qq"),
     empcdf <- ecdf(data)
     plot(empcdf, do.points = FALSE, verticals = TRUE,
          col = col[2], lwd = lwd[2], lty = lty[2],
-         xlab = deparse(object$call$data), 
+         xlab = colnames(object$data)[1],
          ylab = "Cumulative Distribution Function",
          panel.first = if(grid) grid(equilogs=FALSE) else NULL,
          main = NULL, ...)

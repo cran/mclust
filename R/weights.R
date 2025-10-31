@@ -65,9 +65,7 @@ me.weighted <- function(data, modelName, z, weights = NULL, prior = NULL,
   fit$z <- fit.e$z
   fit$weights <- weights
   fit$loglik <- ll/mean(weights)
-  npar <- nMclustParams(modelName = modelName, 
-                        d = ncol(data), 
-                        G = ncol(z))
-  fit$bic <- 2*ll - npar*log(nobs)  
+  npar <- nMclustParams(modelName = fit$modelName, d = fit$d, G = fit$G)
+  fit$bic <- 2*fit$loglik - npar*log(fit$n)  
   return(fit)
 }

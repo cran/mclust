@@ -7,6 +7,125 @@
 #
 
 mclustBootstrapLRT <- function(data, modelName = NULL, 
+                               nboot = 999, level = 0.05, maxG = NULL,
+                               verbose = interactive(), ...)
+{ 
+  if (is.null(modelName)) 
+      stop("A 'modelName' must be provided. Please see help(mclustModelNames) which describes the available models.")
+  modelName <- modelName[1]
+  checkModelName(modelName)
+  if (grepl("X", modelName)) 
+      stop("Specified 'modelName' is only valid for one-component mixture.")
+  if (is.null(maxG)) 
+  { 
+    G <- seq.int(1, 9)
+  } else 
+  {
+    maxG <- as.numeric(maxG)
+    G <- seq.int(1, maxG + 1)
+  }
+  
+  BIC <- mclustBIC(data, G = G, modelNames = modelName, 
+                   warn = FALSE, verbose = FALSE, ...)
+  if (!(modelName %in% attr(BIC, "modelNames"))) 
+      stop("'modelName' not compatibile with data. Please see help(mclustModelNames) which describes the available models.")
+  bic <- BIC[, attr(BIC, "modelNames") == modelName]
+  G <- G[!is.na(BIC)]
+  if (length(G) == 0) 
+      stop(paste("no model", modelName, "can be fitted."))
+  if (all(G == 1)) 
+	{  
+	   warning("only 1-component model could be fitted. No LRT is performed!")
+     return()
+  }
+  if (sum(is.na(bic)) > 0) 
+      warning("some model(s) could not be fitted!")
+  if (verbose)
+	{  
+     flush.console()
+     cat("bootstrapping LRTS ...\n")
+     pbar <- txtProgressBar(min = 0, max = (max(G) - 1) * nboot, style = 3)
+     on.exit(close(pbar))
+  }
+  obsLRTS <- p.value <- vector("numeric", length = max(G) - 1)
+  bootLRTS <- matrix(as.double(NA), nrow = nboot, ncol = max(G) - 1)
+  g <- 0
+  continue <- TRUE
+  while (g < (max(G) - 1) & continue) 
+  {  
+     g <- g + 1
+     # fit model under H0
+     Mod0 <- summary(BIC, data, G = g, modelNames = modelName)
+     # fit model under H1
+     Mod1 <- summary(BIC, data, G = g + 1, modelNames = modelName)
+     # observed LRTS
+     obsLRTS[g] <- 2 * (Mod1$loglik - Mod0$loglik)
+     # bootstrap
+     b <- 0
+     while (b < nboot) 
+     { 
+       b <- b + 1
+       # generate 'parametric' bootstrap sample under H0
+       bootSample <- sim(Mod0$modelName, Mod0$parameters, n = Mod0$n)
+       # compute log-likelihood for model under H0
+       if (Mod0$modelName == "X") 
+       { 
+          loglik0 <- mvnX(data = bootSample[, -1], 
+                          parameters = Mod0$parameters, 
+                          warn = FALSE, ...)$loglik
+       } else 
+       if (Mod0$modelName == "XXX") 
+       {  
+          loglik0 <- mvnXXX(data = bootSample[, -1], 
+                            parameters = Mod0$parameters, 
+                            warn = FALSE, ...)$loglik
+       } else 
+       {
+          param0 <- em(data = bootSample[, -1],
+                       modelName = Mod0$modelName, 
+                       parameters = Mod0$parameters, 
+                       warn = FALSE, ...)$parameters
+          loglik0 <- estep(data = bootSample[, -1],
+                           modelName = Mod0$modelName, 
+                           parameters = param0, 
+                           warn = FALSE, ...)$loglik
+       }
+       # compute log-likelihood for model under H1
+       param1 <- em(data = bootSample[, -1], 
+                    modelName = Mod1$modelName, 
+                    parameters = Mod1$parameters, 
+                    warn = FALSE, ...)$parameters
+       loglik1 <- estep(data = bootSample[, -1],
+                        modelName = Mod1$modelName, 
+                        parameters = param1, 
+                        warn = FALSE, ...)$loglik
+       # compute bootstrap LRT
+       LRTS <- 2 * (loglik1 - loglik0)
+       if(is.na(LRTS)) { b <- b - 1; next() }
+       bootLRTS[b, g] <- LRTS
+       if (verbose) 
+         setTxtProgressBar(pbar, (g - 1) * nboot + b)
+     }
+     p.value[g] <- (1 + sum(bootLRTS[, g] >= obsLRTS[g]))/(nboot + 1)
+     # check if not-significant when no maxG is provided
+     if (is.null(maxG) & p.value[g] > level) 
+     { 
+        continue <- FALSE
+        if (verbose) 
+          setTxtProgressBar(pbar, (max(G) - 1) * nboot)
+     }
+  }
+  
+  out <- list(G = 1:g, 
+              modelName = modelName, 
+              obs = obsLRTS[1:g], 
+              boot = bootLRTS[, 1:g, drop = FALSE], 
+              p.value = p.value[1:g])
+  class(out) <- "mclustBootstrapLRT"
+  return(out)
+}
+
+mclustBootstrapLRT_old <- function(data, modelName = NULL, 
                                nboot = 999, level = 0.05, maxG = NULL, 
                                verbose = interactive(), ...)
 {
@@ -68,7 +187,7 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
     b <- 0
     while(b < nboot)
     { 
-			b <- b + 1
+      b <- b + 1
       # generate 'parametric' bootstrap sample under H0
       bootSample <- sim(Mod0$modelName, Mod0$parameters, n = Mod0$n)
       # fit model under H0
@@ -146,8 +265,8 @@ MclustBootstrap <- function(object, nboot = 999,
                             verbose = interactive(), ...)
 {
   
-	stopifnot("object must be of class 'Mclust' or 'densityMclust'" =
-	          inherits(object, c("Mclust", "densityMclust")))
+  stopifnot("object must be of class 'Mclust' or 'densityMclust'" =
+            inherits(object, c("Mclust", "densityMclust")))
   
   if(any(type %in% c("nonpara", "wlb")))
     { type <- gsub("nonpara", "bs", type)
@@ -189,7 +308,7 @@ MclustBootstrap <- function(object, nboot = 999,
     switch(type, 
            "bs" = 
            { 
-						 idx <- sample(seq_len(n), size = n, replace = TRUE)
+             idx <- sample(seq_len(n), size = n, replace = TRUE)
              obj$data <- object$data[idx,]
              obj$z <- object$z[idx,]
              obj$warn <- FALSE
@@ -207,7 +326,7 @@ MclustBootstrap <- function(object, nboot = 999,
            },
            "pb" = 
            { 
-						 obj$data <- do.call("sim", object)[,-1,drop=FALSE]
+             obj$data <- do.call("sim", object)[,-1,drop=FALSE]
              obj$z <- estep(data = obj$data, 
                             modelName = obj$modelName, 
                             parameters = obj$parameters)$z
@@ -216,7 +335,7 @@ MclustBootstrap <- function(object, nboot = 999,
            },
            "jk" =
            { 
-						 idx <- seq_len(n)[-b]
+             idx <- seq_len(n)[-b]
              obj$data <- object$data[idx,]
              obj$z <- object$z[idx,]
              obj$warn <- FALSE

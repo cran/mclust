@@ -1467,7 +1467,8 @@ plot.crimcoords <- function(x, ...)
 summary.crimcoords <- function(object, numdir, ...)
 {
   if(missing(numdir)) 
-    numdir <- sum(object$evalues > sqrt(.Machine$double.eps))
+    numdir <- min(ncol(object$projection), 
+                  sum(object$evalues > sqrt(.Machine$double.eps)))
   dim <- seq(numdir)
   obj <- list(basis = object$basis[,seq(dim),drop=FALSE],
               evalues = object$evalues[seq(dim)],

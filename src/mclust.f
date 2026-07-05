@@ -11504,9 +11504,12 @@ c     double precision    x(n,p), v(p). d(*), ALPHA
 c------------------------------------------------------------------------------
 
       iopt = 0
+			jopt = 0
       niop = 0
       njop = 0
       nopt = 0
+      siop = 0.d0
+      sjop = 0.d0
       tmop = 0.d0
       trop = 0.d0
 

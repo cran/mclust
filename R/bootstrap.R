@@ -74,7 +74,7 @@ mclustBootstrapLRT <- function(data, modelName = NULL,
                           parameters = Mod0$parameters, 
                           warn = FALSE, ...)$loglik
        } else 
-       if (Mod0$modelName == "XXX") 
+       if (Mod0$modelName %in% c("XII", "XXI", "XXX"))
        {  
           loglik0 <- mvnXXX(data = bootSample[, -1], 
                             parameters = Mod0$parameters, 

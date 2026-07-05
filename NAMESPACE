@@ -180,5 +180,11 @@ S3method("summary", "crimcoords")
 S3method("print", "summary.crimcoords")
 S3method("plot", "crimcoords")
 
+export(simulate.Mclust, 
+       simulate.densityMclust)
+S3method("simulate", "Mclust")
+S3method("simulate", "densityMclust")
+
+
 # deprecated functions
 export(cv.MclustDA, cv1EMtrain, bicEMtrain)

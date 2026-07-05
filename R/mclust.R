@@ -5,13 +5,17 @@ Mclust <- function(data, G = NULL, modelNames = NULL, prior = NULL,
 {
   call <- match.call()
   #
-  data <- na.omit(data.matrix(data))
+  # data <- na.omit(data.matrix(data))
+  data <- checkDataMatrix(data)
   n <- nrow(data)
   d <- ncol(data)
   varname <- deparse(call$data)
   if(is.null(colnames(data)))
-    { if(d == 1) colnames(data) <- varname
-      else       colnames(data) <- paste0(varname, seq(d)) }
+  { 
+    colnames(data) <- if(d == 0) NULL else
+                      if(d == 1) varname else
+                      paste0(varname, seq_len(d))
+  }
   #
   if(!is.null(x))
   {
@@ -472,12 +476,18 @@ mclustBIC <- function(data, G = NULL, modelNames = NULL,
   oneD <- (is.null(dimData) || length(dimData[dimData > 1]) == 1)
   if(!oneD && length(dimData) != 2)
     stop("data must be a vector or a matrix")
+  data <- checkDataMatrix(data)
+  dimData <- dim(data)
+  if(dimData[2] < 1)
+    stop("no available data for fitting")
+  oneD <- (dimData[2] == 1)
+
   if(oneD) 
-    { data <- drop(as.matrix(data))
+    { data <- drop(data)
       n <- length(data)
       d <- 1
   } else {
-      data <- as.matrix(data)
+      # data <- as.matrix(data)
       n <- nrow(data)
       d <- ncol(data)
   }

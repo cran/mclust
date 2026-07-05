@@ -247,6 +247,18 @@ randomOrthogonalMatrix <- function(nrow, ncol, n = nrow, d = ncol, seed = NULL)
   return(Q)
 }
 
+checkDataMatrix <- function(x, ...)
+{
+# Return matrix x after removing columns that are constant or all NAs.
+  x <- na.omit(data.matrix(x))
+  col_min <- apply(x, 2, min, na.rm = TRUE)
+  col_max <- apply(x, 2, max, na.rm = TRUE)
+  todrop <- which(col_min == col_max)
+  if(length(todrop > 0))
+    x <- x[, -todrop, drop = FALSE]
+  return(x)
+}
+
 # TODO: to be removed at a certain point
 # logsumexp_old <- function(x)
 # { 
@@ -599,6 +611,31 @@ catwrap <- function(x, width = getOption("width"), ...)
   cat(paste(strwrap(x, width = width, ...), collapse = "\n"), "\n")
 }
 
+##
+##
+##
+
+simulate.Mclust <- function(object, nsim = 1, seed = NULL, ...)
+{
+#| Simulate from Gaussian mixture model for model-based clustering
+  out <- mclust::sim(modelName = object$modelName,
+                     parameters = object$parameters,
+                     n = nsim, 
+                     seed = seed, ...)
+  attr(out,"modelName") <- NULL
+  return(out)
+}
+
+simulate.densityMclust <- function(object, nsim = 1, seed = NULL, ...)
+{
+#| Simulate from Gaussian mixture model for model-based density estimation
+  out <- mclust::sim(modelName = object$modelName,
+                     parameters = object$parameters,
+                     n = nsim, 
+                     seed = seed, ...)[,-1,drop=FALSE]
+  attr(out,"modelName") <- NULL
+  return(out)
+}
 
 ##
 ## Convert to a from classes 'Mclust' and 'densityMclust' 

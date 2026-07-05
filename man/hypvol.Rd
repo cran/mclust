@@ -1,7 +1,7 @@
 \name{hypvol}
 \alias{hypvol}
 \title{
-  Aproximate Hypervolume for Multivariate Data
+  Approximate Hypervolume for Multivariate Data
 }
 \description{
   Computes a simple approximation to the hypervolume of a multivariate

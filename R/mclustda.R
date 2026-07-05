@@ -434,7 +434,7 @@ predict.MclustDA <- function(object, newdata, prop = object$prop, ...)
   {
     prop <- n/sum(n)
   }
-
+  
   # class density computed on log scale
   densfun <- function(mod, data)
   { 

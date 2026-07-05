@@ -1,4 +1,9 @@
-# mclust 6.1.2
+# mclust 6.1.3
+
+- Bug fix on `mclustBootstrapLRT()` when model under null hypothesis is XXI or XXI with one component.
+- Added a check for dropping constant columns in input data matrix.
+- Added `simulate()` method for `Mclust` and `densityMclust` methods.
+- Small fixes to mclust.f fortran code to avoid warnings.
 
 - Add count() function to efficiently tabulate frequencies given bins.
 - Fix bugs in colnames for 1D case.

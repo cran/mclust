@@ -13,7 +13,7 @@ thyroid <- structure(list(Diagnosis = structure(
     3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 1L, 1L, 1L, 1L, 
     1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 
     1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L), 
-    .Label = c("Hypo", "Normal", "Hyper"), class = "factor"), 
+    levels = c("Hypo", "Normal", "Hyper"), class = "factor"), 
     RT3U = c(107.0, 113.0, 127.0, 109.0, 105.0, 105.0, 110.0, 114.0, 
     106.0, 107.0, 106.0, 110.0, 116.0, 112.0, 122.0, 109.0, 111.0, 114.0, 
     119.0, 115.0, 101.0, 103.0, 109.0, 102.0, 121.0, 100.0, 106.0, 116.0, 

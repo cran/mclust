@@ -1,15 +1,23 @@
+# mclust 6.1.4
+
+- Fixed issues with structure() formatting as reported by CRAN.
+
 # mclust 6.1.3
 
-- Bug fix on `mclustBootstrapLRT()` when model under null hypothesis is XXI or XXI with one component.
+- Bug fix on `mclustBootstrapLRT()` when model under null hypothesis is 
+  XXI or XXI with one component.
 - Added a check for dropping constant columns in input data matrix.
 - Added `simulate()` method for `Mclust` and `densityMclust` methods.
 - Small fixes to mclust.f fortran code to avoid warnings.
-
 - Add count() function to efficiently tabulate frequencies given bins.
 - Fix bugs in colnames for 1D case.
-- Fix (marginal) issues in some `em*()` functions that end with the M-step instead of the E-step. 
-- Bug fix on `summary.crimcoords()` when `numdir` is provided in `crimcoords()` call.
-- Set varnames for input data if missing from the name of the input vector or data matrix in all main functions, namely `Mclust()`, `densityMclust()`, `MclustDA()`, and `MclustSSC()`.
+- Fix (marginal) issues in some `em*()` functions that end with the 
+  M-step instead of the E-step. 
+- Bug fix on `summary.crimcoords()` when `numdir` is provided in 
+  `crimcoords()` call.
+- Set varnames for input data if missing from the name of the input 
+  vector or data matrix in all main functions, namely `Mclust()`, 
+  `densityMclust()`, `MclustDA()`, and `MclustSSC()`.
 
 # mclust 6.1.1
 
@@ -50,7 +58,7 @@
 - Major release of mclust accompanying the upcoming book by Chapman & 
   Hall/CRC.
 
-# mclust 5.4.11 (NOT ON CRAN)
+# mclust 5.4.11
 
 - Added `summary.crimcoords()` method and removed argument `plot` from 
   `crimcoords()` function call.
